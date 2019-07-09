@@ -17,5 +17,5 @@ const task = () => {
 }
 
 
-schedule.scheduleJob('* */20 * * * *', task);
+schedule.scheduleJob(process.env.cron, task);
 
