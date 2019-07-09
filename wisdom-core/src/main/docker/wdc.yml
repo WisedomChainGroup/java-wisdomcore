@@ -1,0 +1,35 @@
+version: '3.1'
+
+services:
+
+  wdc_pgsql:
+    image: wisdomchain/wdc_pgsql
+    restart: always
+    container_name: wdc_pgsql
+    privileged: true
+    volumes:
+      - /opt/wdc_pgsql:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5433:5432
+    environment:
+      POSTGRES_USER: wdcadmin
+      POSTGRES_PASSWORD: PqR_w9hk6Au-jq5ElsFcEjq!wvULrYXeF3*oDKp5i@A/D5m03VaB1M/hyKY
+      WDC_POSTGRES_USER: replica
+      WDC_POSTGRES_PASSWORD: replica
+
+  wdc_core:
+    image: wisdomchain/wdc_core
+    restart: always
+    container_name: wdc_core
+    privileged: true
+    volumes:
+      - /opt/wdc_logs:/logs
+    ports:
+      - 9585:9585
+      - 19585:19585
+    environment:
+      DATA_SOURCE_URL: 'jdbc:postgresql://wdc_pgsql:5432/postgres'
+      DB_USERNAME: 'replica'
+      DB_PASSWORD: 'replica'
+      ENABLE_MINING: 'true'
+      WDC_MINER_COINBASE: '1317J5fZb8kVrACnfi3PXN1T21573hYata'

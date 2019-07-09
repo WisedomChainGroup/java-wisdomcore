@@ -1,0 +1,14 @@
+syntax = "proto3";
+package org.ethereum.protobuf.tcp.command;
+option java_outer_classname = "HatchModel";
+option optimize_for = SPEED;
+
+message Hatch{
+    bytes info = 1;
+}
+
+message Payload{
+    bytes tx_id = 1;
+    string share_pubkey_hash =2;
+    uint32 type = 3;
+}

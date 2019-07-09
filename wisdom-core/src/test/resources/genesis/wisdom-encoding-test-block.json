@@ -1,0 +1,27 @@
+{
+  "nVersion" : 4294967295,
+  "hashPrevBlock" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "hashMerkleRoot" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "nHeight" : 0,
+  "nTime" : 4294967295,
+  "consensusPubKey" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "consensusPayload" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "nNonce" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "blockNotice" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "transactions": [{
+    "version" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+    "type" : 128,
+    "inPoints" : [ {
+      "previousTransactionHash" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      "outPointIndex" : 2,
+      "scriptLength" : 32,
+      "script" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    } ],
+    "outPoints" : [ {
+      "amount" : 4294967295,
+      "scriptLength" : 32,
+      "script" : "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    } ],
+    "lockTime" : 4294967295
+  }]
+}

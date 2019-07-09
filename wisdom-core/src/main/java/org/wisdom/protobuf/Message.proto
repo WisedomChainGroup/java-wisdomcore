@@ -1,0 +1,106 @@
+syntax = "proto3";
+package org.ethereum.protobuf;
+option java_outer_classname = "MessageModel";
+option optimize_for = SPEED;
+
+
+message PongMessage{
+    string magic=1;
+
+    sfixed32 length=2;
+
+    bytes checksum=3;
+
+    message Pong{
+        bytes token=1;
+        uint64 expires=2;
+    }
+    Pong pong=4;
+}
+
+
+message PingMessage{
+
+    string magic=1;
+
+    sfixed32 length=2;
+
+    bytes checksum=3;
+
+    message Ping{
+
+        message Address{
+                string ip=1;
+                int32 prot=2;
+        }
+
+        Address toHost=1;
+
+        Address fromHost=2;
+
+        uint64 expires=3;
+
+        int32 version=4;
+    }
+    Ping ping=4;
+}
+
+message FindNodeMessage{
+
+    string magic=1;
+
+    sfixed32 length=2;
+
+    bytes checksum=3;
+
+    message FindNode{
+        bytes target=1;
+        uint64 expires=2;
+    }
+    FindNode findNode=4;
+}
+
+message NeighborsMessage{
+
+    string magic=1;
+
+    sfixed32 length=2;
+
+    bytes checksum=3;
+
+    message Neighbors{
+        message Node{
+            bytes noteid=1;
+            string ip=2;
+            int32 prot=3;
+        }
+        repeated Node node = 1;
+        uint64 expires=2;
+    }
+    Neighbors neighbors=4;
+}
+
+message Message{
+    enum DataType {
+            PingMessage = 0;
+            PongMessage = 1;
+            FindNodeMessage = 2;
+            NeighborsMessage = 3;
+        }
+    DataType type = 1;
+
+
+    message FromeAdd{
+        bytes noteid=1;
+        string ip=2;
+        int32 prot=3;
+    }
+    FromeAdd fromeAdd=2;
+
+    oneof dataMsg {
+            PingMessage pingMessage = 3;
+            PongMessage pongMessage = 4;
+            FindNodeMessage findNodeMessage=5;
+            NeighborsMessage neighborsMessage=6;
+        }
+}

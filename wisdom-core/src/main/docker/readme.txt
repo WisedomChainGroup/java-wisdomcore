@@ -1,0 +1,3 @@
+- Copy wdc.yml to some dir.
+- Change the value of environment WDC_MINER_COINBASE to your own coinbase in services.wdc_core.environment.
+- Run command: docker -f wdc.yml up -ddocker

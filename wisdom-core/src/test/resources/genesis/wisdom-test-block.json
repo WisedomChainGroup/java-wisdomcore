@@ -1,0 +1,16 @@
+{
+  "version": "wisdom-test",
+  "parentHash": "",
+  "number": 1,
+  "timestamp": 1558104005595,
+  "seed": "0",
+  "randomValue": "",
+  "randomProof": "",
+  "publicKey": null,
+  "miner": null,
+  "transactionCount":0,
+  "transactionRoot": null,
+  "signature": null,
+
+  "transactions": []
+}

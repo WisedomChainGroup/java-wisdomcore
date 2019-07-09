@@ -1,0 +1,3 @@
+rootProject.name = "WisdomCore-J"
+include "wisdom-core"
+

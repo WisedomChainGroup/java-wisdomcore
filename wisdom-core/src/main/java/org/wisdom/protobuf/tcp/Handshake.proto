@@ -1,0 +1,43 @@
+syntax = "proto3";
+package org.ethereum.protobuf.tcp;
+option java_outer_classname = "HandshakeModel";
+option optimize_for = SPEED;
+
+message ByteMessage{
+     bytes meg=1;
+}
+
+message HelloMessage{
+    uint64 p2pVersion=1;
+    string clientId=2;
+    uint32 type=3;
+
+    message Capability{
+        string name=1;
+        uint64 version=2;
+    }
+    repeated Capability capability=4;
+    uint64 listenPort=5;
+    string peerId=6;
+}
+
+message DisconnectMessage{
+
+    string reasonCode=1;
+}
+
+message HandshakeMessage{
+    enum DataType {
+        ByteMessage = 0;
+        HelloMessage = 1;
+        DisconnectMessage = 2;
+    }
+    DataType type=1;
+
+    oneof dataMsg {
+        ByteMessage byteMessage = 3;
+        HelloMessage helloMessage = 4;
+        DisconnectMessage disconnectMessage = 5;
+    }
+
+}

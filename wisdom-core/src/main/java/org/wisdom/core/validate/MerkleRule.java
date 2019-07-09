@@ -1,0 +1,191 @@
+package org.wisdom.core.validate;
+
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.command.Configuration;
+import org.wisdom.command.IncubatorAddress;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Account;
+import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class MerkleRule {
+
+    @Autowired
+    AccountDB accountDB;
+
+    @Autowired
+    IncubatorDB incubatorDB;
+
+    @Autowired
+    RateTable rateTable;
+
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
+
+    @Autowired
+    Configuration configuration;
+
+    public Map<String, Object> validateMerkle(List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
+        Map<String, Account> accmap = new HashMap<>();
+        Map<String, Incubator> incumap = new HashMap<>();
+        Account totalaccount = accountDB.selectaccount(IncubatorAddress.resultpubhash());
+        long totalbalance = totalaccount.getBalance();
+        boolean isdisplay = false;
+        for (Transaction tran : transactionList) {
+            Account toaccount;
+            Account fromaccount;
+            if (accmap.containsKey(Hex.encodeHexString(tran.to))) {
+                toaccount = accmap.get(Hex.encodeHexString(tran.to));
+            } else {
+                toaccount = accountDB.selectaccount(tran.to);
+                if (toaccount == null) {
+                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0);
+                }
+            }
+            if (tran.type == 0x00) {//CoinBase
+                long balance = toaccount.getBalance();
+                balance += tran.amount;
+                toaccount.setBalance(balance);
+                toaccount.setBlockHeight(nowheight);
+                accmap.put(Hex.encodeHexString(tran.to), toaccount);
+            } else if (tran.type == 0x09) {//hatch
+                isdisplay = true;
+                long balance = toaccount.getBalance();
+                balance -= tran.amount;
+                balance -= tran.getFee();
+                toaccount.setBalance(balance);
+                long cost = toaccount.getIncubatecost();
+                cost += tran.amount;
+                toaccount.setIncubatecost(cost);
+                toaccount.setBlockHeight(nowheight);
+                toaccount.setNonce(tran.nonce);
+                accmap.put(Hex.encodeHexString(tran.to), toaccount);
+
+                byte[] playload = tran.payload;
+                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
+                int days = payloadproto.getType();
+                String sharpub = payloadproto.getSharePubkeyHash();
+                byte[] share_pubkeyhash = null;
+                long share = 0;
+                if (sharpub != null && sharpub != "") {
+                    share_pubkeyhash = Hex.decodeHex(sharpub.toCharArray());
+                    share = tran.getShare(nowheight, rateTable, days);
+                }
+                long interest = tran.getInterest(nowheight, rateTable, days);
+                Incubator incubator = new Incubator(share_pubkeyhash, tran.to, tran.getHash(), nowheight, tran.amount, interest, share, nowheight, nowheight);
+                incumap.put(Hex.encodeHexString(tran.to), incubator);
+                totalbalance -= (share + interest);
+            } else if (tran.type == 0x0a || tran.type == 0x0b) {//extract
+                long balance = toaccount.getBalance();
+                balance += tran.amount;
+                balance -= tran.getFee();
+                toaccount.setBalance(balance);
+                toaccount.setBlockHeight(nowheight);
+                toaccount.setNonce(tran.nonce);
+                accmap.put(Hex.encodeHexString(tran.to), toaccount);
+
+                byte[] playload = tran.payload;//孵化哈希
+                Incubator incubator = incubatorDB.selectIncubator(playload);
+                Transaction transaction = wisdomBlockChain.getTransaction(playload);
+                int days = transaction.getdays();
+                double rate = rateTable.selectrate(transaction.height, days);//利率
+                if (tran.type == 0x0a) {//interset
+                    long dayinterset = (long) (incubator.getCost() * rate);
+                    int extractday = (int) (tran.amount / dayinterset);
+                    long extractheight = extractday * configuration.getDay_count();
+                    long lastheight = incubator.getLast_blockheight_interest();
+                    lastheight += extractheight;
+                    long lastinterset = incubator.getInterest_amount();
+                    lastinterset -= tran.amount;
+                    incubator.setHeight(nowheight);
+                    incubator.setInterest_amount(lastinterset);
+                    incubator.setLast_blockheight_interest(lastheight);
+                } else {//share
+                    long dayinterset = (long) (incubator.getCost() * rate * 0.1);
+                    int extractday = (int) (tran.amount / dayinterset);
+                    long extractheight = extractday * configuration.getDay_count();
+                    long lastheight = incubator.getLast_blockheight_share();
+                    lastheight += extractheight;
+                    long lastshare = incubator.getShare_amount();
+                    lastshare -= tran.amount;
+                    incubator.setHeight(nowheight);
+                    incubator.setShare_amount(lastshare);
+                    incubator.setLast_blockheight_share(lastheight);
+                }
+                incumap.put(Hex.encodeHexString(tran.to), incubator);
+            } else if (tran.type == 0x01) {//transfer
+                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                    fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                } else {
+                    fromaccount = accountDB.selectaccount(frompubhash);
+                }
+                long frombalance = fromaccount.getBalance();
+                frombalance -= tran.amount;
+                frombalance -= tran.getFee();
+                fromaccount.setBalance(frombalance);
+                fromaccount.setNonce(tran.nonce);
+                fromaccount.setBlockHeight(nowheight);
+                long tobalance = toaccount.getBalance();
+                tobalance += tran.amount;
+                toaccount.setBalance(tobalance);
+                toaccount.setBlockHeight(nowheight);
+                accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+                accmap.put(Hex.encodeHexString(tran.to), toaccount);
+            } else if (tran.type == 0x0c) {//extract cost
+                long balance = toaccount.getBalance();
+                balance += tran.amount;
+                balance -= tran.getFee();
+                long cost = toaccount.getIncubatecost();
+                cost -= tran.amount;
+                toaccount.setBalance(balance);
+                toaccount.setBlockHeight(nowheight);
+                toaccount.setNonce(tran.nonce);
+                toaccount.setIncubatecost(cost);
+                accmap.put(Hex.encodeHexString(tran.to), toaccount);
+
+                byte[] playload = tran.payload;//孵化哈希
+                Incubator incubator = incubatorDB.selectIncubator(playload);
+                incubator.setCost(0);
+                incubator.setHeight(nowheight);
+                incumap.put(Hex.encodeHexString(tran.to), incubator);
+            }
+        }
+        if (isdisplay) {
+            totalaccount.setBalance(totalbalance);
+            long nonce = totalaccount.getNonce();
+            nonce += 1;
+            totalaccount.setNonce(nonce);
+            totalaccount.setBlockHeight(nowheight);
+            accmap.put(Hex.encodeHexString(totalaccount.getPubkeyHash()), totalaccount);
+        }
+        List<Account> accountList = new ArrayList<>();
+        List<Incubator> incubatorList = new ArrayList<>();
+        for (Map.Entry<String, Account> entry : accmap.entrySet()) {
+            accountList.add(entry.getValue());
+        }
+        for (Map.Entry<String, Incubator> entry : incumap.entrySet()) {
+            incubatorList.add(entry.getValue());
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("account", accountList);
+        result.put("incubator", incubatorList);
+        return result;
+    }
+}

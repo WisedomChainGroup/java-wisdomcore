@@ -1,0 +1,167 @@
+package org.wisdom.core.account;
+
+import org.wisdom.core.orm.TransactionMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class AccountDB {
+
+    @Autowired
+    private JdbcTemplate tmpl;
+
+    public Account selectaccount(byte[] pubkeyhash){
+        try{
+            String sql="select * from account b where b.pubkeyhash=? and b.blockheight=(\n" +
+                    "select MAx(a.blockheight) from account a where a.pubkeyhash=? )";
+            return tmpl.queryForObject(sql,new Object[] { pubkeyhash,pubkeyhash }, new BeanPropertyRowMapper<Account>(Account.class));
+        }catch (Exception e){
+            return null;
+        }
+    }
+
+    public int count(){
+        try{
+            String sql="select count(*) from account";
+            return tmpl.queryForObject(sql,Integer.class);
+        }catch (Exception e){
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public long getBestHeight(){
+        try{
+            String sql="select COALESCE(max(blockheight),0) from account";
+            return tmpl.queryForObject(sql,Long.class);
+        }catch (Exception e){
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public long getNonce(byte[] pubkeyhash){
+        try{
+            String sql="select COALESCE(MAx(a.nonce),0) from account a where a.pubkeyhash=? ";
+            return tmpl.queryForObject(sql,new Object[] {pubkeyhash},Long.class);
+        }catch (Exception e){
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public long getBalance(byte[] pubkeyhash){
+        try{
+            String sql="select b.balance from account b where b.pubkeyhash=? and b.blockheight =(select COALESCE(MAx(a.blockheight),0) from account a where a.pubkeyhash=?)";
+            return tmpl.queryForObject(sql, new Object[]{pubkeyhash,pubkeyhash},Long.class );
+        }catch (Exception e){
+            return 0;
+        }
+    }
+
+    public int insertaccount(Account account){
+        try{
+            String sql="insert into account values(?,?,?,?,?,?,?)";
+            return tmpl.update(sql, new Object[]{account.getId(),account.getBlockHeight(),account.getPubkeyHash(),account.getNonce(),account.getBalance(),account.getIncubatecost(),account.getMortgage()});
+        }catch (Exception e){
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public long getHeightBalance(byte[] pubkeyhash,int height){
+        try{
+            String sql="select c.balance from account c where c.pubkeyhash=? and c.blockheight=(\n" +
+                    "select max(a.blockheight) from account a where a.pubkeyhash=? and a.blockheight<=?)";
+            return tmpl.queryForObject(sql,new Object[]{pubkeyhash,pubkeyhash,height},Long.class);
+        }catch (Exception e){
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public int[] insertAccountList(List<Object[]> Object){
+        try{
+            String sql="insert into account(id,blockheight,pubkeyhash,nonce,balance,incubatecost,mortgage) VALUES(?,?,?,?,?,?,?) on conflict(id) do nothing";
+            return tmpl.batchUpdate(sql,Object);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistTran(int height,int type,long gas){
+        try{
+            String sql="select encode(t.tx_hash::bytea,'hex') as \"tranHash\",t.from as \"fromAddress\",t.to as \"coinAddress\",t.amount as \"amount\",h.height as \"coinHeigth\",t.gas_price*? as \"fee\" \n" +
+                    "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height>? and TYPE=? order by h.height limit 1000";
+            return tmpl.queryForList(sql,new Object[]{gas,height,0});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Transaction> selectTran(byte[] frompublickey){
+        try{
+            String sql="select *,0 as height,0 as block_hash from transaction a where a.to=?";
+            return tmpl.query(sql,new Object[]{frompublickey},new TransactionMapper());
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Transaction> selectt(){
+        String sql="select *, 0 as height,0 as block_hash from transaction a where a.amount=50000000000 and a.type=0";
+        return tmpl.query(sql,new Object[] { },new TransactionMapper());
+    }
+
+    public List<Map<String,Object>> selectlistHacth(int height, int type) {
+        try{
+            String sql="select encode(t.tx_hash::bytea,'hex') as \"coinHash\",t.to as \"coinAddress\",t.amount as \"coinAccount\",h.height as \"blockHeight\",encode(t.payload::bytea,'hex')as payload \n" +
+                    "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height>? and TYPE=? order by h.height limit 1000";
+            return tmpl.queryForList(sql,new Object[]{height,type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistInterest(int height, int type) {
+        try{
+            String sql="select encode(t.tx_hash::bytea,'hex') as \"tranHash\",t.to as \"coinAddress\",t.amount as \"amount\",h.height as \"coinHeigth\",encode(t.payload::bytea,'hex') as \"coinHash\"\n" +
+                    "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height>? and TYPE=? order by h.height limit 1000";
+            return tmpl.queryForList(sql,new Object[]{height,type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistShare(int height, int type) {
+        try{
+            String sql="select encode(t.tx_hash::bytea,'hex') as \"coinHash\",t.to as \"coinAddress\",t.amount as \"amount\",h.height as \"coinHeigth\",encode(r.tx_hash::bytea,'hex') as \"tranHash\",\n" +
+                    "r.to as \"inviteAddress\"\n" +
+                    "from transaction t \n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash \n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "left join transaction r on t.payload=r.tx_hash\n" +
+                    "where  h.height>? and t.type=? order by h.height limit 1000";
+            return tmpl.queryForList(sql,new Object[]{height,type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
