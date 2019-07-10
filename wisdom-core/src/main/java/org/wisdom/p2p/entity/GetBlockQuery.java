@@ -1,4 +1,4 @@
-package org.wisdom.Controller.entity;
+package org.wisdom.p2p.entity;
 
 public class GetBlockQuery {
     public long start;

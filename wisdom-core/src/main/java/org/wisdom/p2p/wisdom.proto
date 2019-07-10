@@ -1,0 +1,62 @@
+syntax = "proto3";
+package org.wisdom.p2p;
+
+enum Code {
+    UNKNOWN = 0;
+
+    // message for peer management, contains body unencrypted
+    PING = 1;
+    PONG = 2;
+    PEERS = 3;
+
+    // consensus message, contains body encrypted
+    STATUS = 4;
+    GET_BLOCKS = 5;
+    BLOCKS = 6;
+    PROPOSAL = 7;
+    TRANSACTION = 8;
+}
+
+message Message {
+    // protocol head
+    Code code = 1;
+    string remote_address = 2;
+
+    // protocol body, may be encrypted, according to message type
+    bytes body = 3;
+}
+
+message Ping {
+    bytes public_key = 1; // public key, for ecdh
+}
+
+message Pong {
+    bytes public_key = 1; // public key, for ecdh
+}
+
+message Peers {
+    string address = 1; // wisdom protocol address, e.g. wisdom://your-miner-address@your-host:9090
+    bytes public_key = 2; // public key, for ecdh
+}
+
+message Status {
+
+}
+
+message GetBlocks {
+    uint32 start = 1;
+    uint32 stop = 2;
+    bool clipFromStop = 3;
+}
+
+message Blocks {
+
+}
+
+message Proposal {
+
+}
+
+message Transaction {
+
+}

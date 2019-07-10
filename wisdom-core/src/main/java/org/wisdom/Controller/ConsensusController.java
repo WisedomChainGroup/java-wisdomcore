@@ -2,8 +2,8 @@ package org.wisdom.Controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
-import org.wisdom.Controller.entity.GetBlockQuery;
-import org.wisdom.Controller.entity.Status;
+import org.wisdom.p2p.entity.GetBlockQuery;
+import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.Block;
 import org.wisdom.core.TransactionPool;

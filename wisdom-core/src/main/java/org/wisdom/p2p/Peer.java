@@ -24,12 +24,14 @@ public class Peer {
         }
     }
 
+    // miner address
     private String address;
     private int ip0;
     private int ip1;
     private int ip2;
     private int ip3;
     private int port;
+    private byte[] publicKey;
 
     private Peer(String address, int ip0, int ip1, int ip2, int ip3, int port) {
         this.address = address;
@@ -79,5 +81,18 @@ public class Peer {
                 Peer.newPeer("wisdom://abcabc@192.168.0.2")
         ));
         System.out.println(Peer.newPeer("wisdom://abcabc@192.168.0.116"));
+        System.out.println(Peer.newPeer("wisdom://abcabc@192.168.0.116:8080"));
+    }
+
+    public byte[] getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(byte[] publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    public String getAddress() {
+        return address;
     }
 }

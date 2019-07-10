@@ -212,7 +212,7 @@ public class BlocksCache {
         }
         this.readWriteLock.writeLock().lock();
         for (Block b : blocks) {
-            if(b == null){
+            if (b == null) {
                 continue;
             }
             String key = b.getHashHexString();
