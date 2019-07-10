@@ -8,9 +8,9 @@ module.exports = (hostport, from, to) => {
     return axios.get(`http://${hostport}/block/${from}`)
         .then(resp => resp.data
         ).then((block) => {
-        context['t0'] = block.nTime
-        context['h0'] = block.nHeight
-    })
+            context['t0'] = block.nTime
+            context['h0'] = block.nHeight
+        })
         .then(() => {
             return axios.get(`http://${hostport}/block/${to}`)
         })
