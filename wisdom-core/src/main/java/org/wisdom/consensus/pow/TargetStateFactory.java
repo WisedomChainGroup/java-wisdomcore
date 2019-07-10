@@ -24,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+
 /**
  * @author sal 1564319846@qq.com
  * adjust difficulty per era
@@ -36,5 +38,10 @@ public class TargetStateFactory extends EraLinkedStateFactory<TargetState> {
     @Autowired
     public TargetStateFactory(WisdomBlockChain blockChain, TargetState genesisState, @Value("${wisdom.consensus.blocks-per-era}") int blocksPerRea) {
         super(blockChain, CACHE_SIZE, genesisState, blocksPerRea);
+    }
+
+    @PostConstruct
+    public void init(){
+        super.initCache();
     }
 }

@@ -18,6 +18,7 @@
 
 package org.wisdom.consensus.pow;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
@@ -84,7 +85,7 @@ public class TargetState implements State {
         if (rate.compareTo(new BigFraction(1, MAX_ADJUST_RATE)) < 0) {
             rate = new BigFraction(1, MAX_ADJUST_RATE);
         }
-        logger.info("adjust rate = " + rate.doubleValue());
+        logger.info("adjust rate = " + rate.doubleValue() + " current nbits = " + Hex.encodeHexString(BigEndian.encodeUint256(target)));
         target = safeTyMul(target, rate);
         return this;
     }

@@ -106,4 +106,23 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
         Block target = blockChain.currentHeader();
         return getInstance(target);
     }
+
+    // init cache when restart, avoid stack overflow
+    public void initCache(){
+        Block latest = blockChain.currentBlock();
+        long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
+        Block confirmed = blockChain.getCanonicalBlock(latestHeight);
+        long era = getEraAtBlockNumber(confirmed.nHeight);
+        T state = (T) genesisState.copy();
+        Block lastEraHead = null;
+        for(int i = 0; i < era; i++){
+            List<Block> bks = blockChain.getCanonicalBlocks(i * blocksPerEra + 1, blocksPerEra);
+            System.out.println("init cache, start from" + " " + bks.get(0).nHeight + " " + bks.get(bks.size() - 1).nHeight);
+            state.updateBlocks(bks);
+            lastEraHead = bks.get(bks.size() - 1);
+        }
+        logger.info("put cache at era head height " + lastEraHead.nHeight + " era is " + era);
+
+        cache.put(getLRUCacheKey(lastEraHead.getHash()), state);
+    }
 }

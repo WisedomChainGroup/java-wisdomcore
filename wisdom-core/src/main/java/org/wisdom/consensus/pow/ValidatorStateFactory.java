@@ -22,11 +22,18 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.state.StateFactory;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+
 @Component
 public class ValidatorStateFactory extends StateFactory<ValidatorState> {
     private static final int cacheSize = 20;
 
     public ValidatorStateFactory(WisdomBlockChain blockChain, ValidatorState genesisState) {
         super(blockChain, cacheSize, genesisState);
+    }
+
+    @PostConstruct
+    public void init(){
+        super.initCache();
     }
 }

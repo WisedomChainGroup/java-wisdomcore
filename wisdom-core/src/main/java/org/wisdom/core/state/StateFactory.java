@@ -66,4 +66,16 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
         Block target = blockChain.currentHeader();
         return getInstance(target);
     }
+
+    // init cache when restart, avoid stack overflow
+    public void initCache(){
+        Block latest = blockChain.currentBlock();
+        long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
+        Block confirmed = blockChain.getCanonicalBlock(latestHeight);
+        T state = (T) genesisState.copy();
+        for(long i = 1; i <= confirmed.nHeight; i++){
+            state.updateBlock(blockChain.getCanonicalBlock(i));
+        }
+        cache.put(getLRUCacheKey(confirmed.getHash()), state);
+    }
 }

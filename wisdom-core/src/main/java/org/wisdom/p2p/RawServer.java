@@ -9,7 +9,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.Arrays;
@@ -17,7 +16,7 @@ import java.util.Comparator;
 import java.util.List;
 
 // plain netty server
-@Component
+//@Component
 public class RawServer extends ChannelInboundHandlerAdapter {
     @Value("${p2p.port}")
     private int port;
@@ -33,6 +32,9 @@ public class RawServer extends ChannelInboundHandlerAdapter {
         final ByteBuf data = (ByteBuf) msg;
         try {
             Wisdom.Message m = Wisdom.Message.parseFrom(data.array());
+
+            // 检查消息头
+
             for(MessageHandler h: handlers){
                 h.handleMessage(m);
             }
