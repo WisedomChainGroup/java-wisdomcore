@@ -1,8 +1,5 @@
 const axios = require('axios')
 
-// 1. interval --from 1 --to 2000 --rpc_host_port localhost:8888
-// 2. proposals --from 1 --to 50 --rpc_host_port localhost:8888
-
 module.exports = (hostport, from, to) => {
     const context = new Map()
     return axios.get(`http://${hostport}/block/${from}`)

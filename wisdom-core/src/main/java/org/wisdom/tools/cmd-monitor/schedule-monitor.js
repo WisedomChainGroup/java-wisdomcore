@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const countProposal = require('./count-proposals')
 const sendServiceAlert = require('./send-service-alert')
 const schedule = require('node-schedule')
