@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class StateFactory<T extends State> extends AbstractStateFactory {
     private static Logger logger = LoggerFactory.getLogger(StateFactory.class);
+    private static final int BLOCKS_PER_UPDATE = 100;
 
     private T genesisState;
 
@@ -38,7 +39,7 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
     }
 
     public T getFromCache(Block block) {
-        if(block.nHeight == 0){
+        if (block.nHeight == 0) {
             return genesisState;
         }
         String key = getLRUCacheKey(block.getHash());
@@ -68,13 +69,13 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
     }
 
     // init cache when restart, avoid stack overflow
-    public void initCache(){
+    public void initCache() {
         Block latest = blockChain.currentBlock();
         long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
-        Block confirmed = blockChain.getCanonicalBlock(latestHeight);
+        Block confirmed = blockChain.getCanonicalBlock(latestHeight / BLOCKS_PER_UPDATE * BLOCKS_PER_UPDATE);
         T state = (T) genesisState.copy();
-        for(long i = 1; i <= confirmed.nHeight; i++){
-            state.updateBlock(blockChain.getCanonicalBlock(i));
+        for (long i = 0; i < confirmed.nHeight / BLOCKS_PER_UPDATE; i++) {
+            state.updateBlocks(blockChain.getCanonicalBlocks(i * BLOCKS_PER_UPDATE + 1, BLOCKS_PER_UPDATE));
         }
         cache.put(getLRUCacheKey(confirmed.getHash()), state);
     }

@@ -18,10 +18,13 @@
 
 package org.wisdom.core.state;
 
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.wisdom.encoding.BigEndian;
 
 import java.util.List;
 
@@ -117,12 +120,19 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
         Block lastEraHead = null;
         for(int i = 0; i < era; i++){
             List<Block> bks = blockChain.getCanonicalBlocks(i * blocksPerEra + 1, blocksPerEra);
-            System.out.println("init cache, start from" + " " + bks.get(0).nHeight + " " + bks.get(bks.size() - 1).nHeight);
+            System.out.println("update blocks start from" + " " + bks.get(0).nHeight + " " + bks.get(bks.size() - 1).nHeight);
             state.updateBlocks(bks);
             lastEraHead = bks.get(bks.size() - 1);
         }
-        logger.info("put cache at era head height " + lastEraHead.nHeight + " era is " + era);
-
+        if(state instanceof TargetState){
+            logger.info("put cache at era head height " + lastEraHead.nHeight + " target = " +
+                    Hex.encodeHexString(
+                            BigEndian.encodeUint256(
+                                   ((TargetState) state).getTarget()
+                            )
+                    )
+            );
+        }
         cache.put(getLRUCacheKey(lastEraHead.getHash()), state);
     }
 }
