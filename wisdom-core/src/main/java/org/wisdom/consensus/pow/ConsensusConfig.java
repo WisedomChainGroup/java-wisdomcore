@@ -145,6 +145,6 @@ public class ConsensusConfig {
                 getValidatorPubKeyHashes().get(currentValidatorIndex),
                 startTime,
                 endTime
-                );
+        );
     }
 }
