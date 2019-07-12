@@ -117,7 +117,7 @@ task buildDockerJdk(type: Docker) {
 task buildDockerCore(type: Docker, dependsOn: jar) {
     push = false
     tag="wisdomchain/wdc_core"
-    tagVersion='latest'
+    tagVersion='test'
     applicationName = 'wdc_core'
     dockerfile = file('src/main/docker/core/Dockerfile')
 
