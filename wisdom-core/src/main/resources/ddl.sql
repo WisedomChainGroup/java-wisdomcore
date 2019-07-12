@@ -76,7 +76,8 @@ CREATE TABLE "public"."account" (
                                     "nonce" int8 NOT NULL,
                                     "balance" int8 NOT NULL,
                                     "incubatecost" int8,
-                                    "mortgage" int8
+                                    "mortgage" int8,
+                                    "vote" int8 DEFAULT 0 NOT NULL
 )
 ;
 COMMENT ON COLUMN "public"."account"."id" IS '主键ID';
@@ -86,6 +87,7 @@ COMMENT ON COLUMN "public"."account"."nonce" IS 'nonce,防止重放攻击';
 COMMENT ON COLUMN "public"."account"."balance" IS 'WDC余额';
 COMMENT ON COLUMN "public"."account"."incubatecost" IS '孵化本金';
 COMMENT ON COLUMN "public"."account"."mortgage" IS '抵押金额';
+COMMENT ON COLUMN "public"."account"."vote" IS '投票数';
 COMMENT ON TABLE "public"."account" IS '账户对象';
 
 -- ----------------------------

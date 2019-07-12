@@ -18,7 +18,6 @@
 
 package org.wisdom.Controller;
 
-import org.wisdom.ApiResult.APIResult;
 import org.wisdom.service.Impl.HatchServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

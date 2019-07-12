@@ -39,9 +39,13 @@ public class RpcInterceptor implements HandlerInterceptor {
         String token = request.getHeader("token");
         //判断
         if (token != null && token != "") {
-            return true;
+            if(token.equals("NUMtD0dEXungVX7eLuXkEurH5BCJzw")){
+                return true;
+            }else{
+                return false;
+            }
         } else {
-            //throw new RuntimeException("无token，调用失败");
+//            throw new RuntimeException("无token，调用失败");
             logger.warn("Illegal connection request from " + request.getRemoteHost() + ":" + request.getRemotePort());
             return false;
         }

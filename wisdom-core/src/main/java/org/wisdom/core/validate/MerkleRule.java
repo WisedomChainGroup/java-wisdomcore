@@ -183,6 +183,18 @@ public class MerkleRule {
                 incubator.setCost(0);
                 incubator.setHeight(nowheight);
                 incumap.put(Hex.encodeHexString(tran.to), incubator);
+            }else if(tran.type == 0x03){//存证
+                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                    fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                } else {
+                    fromaccount = accountDB.selectaccount(frompubhash);
+                }
+                long balance=fromaccount.getBalance();
+                balance-=tran.getFee();
+                fromaccount.setBalance(balance);
+                fromaccount.setNonce(tran.nonce);
+                accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
             }
         }
         if (isdisplay) {
