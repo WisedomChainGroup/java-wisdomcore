@@ -49,10 +49,10 @@ public class MineThread {
     private ApplicationContext ctx;
 
     @Async
-    public void mine(Block block, long parentBlockTimeStamp, long endTime) {
+    public void mine(Block block, long startTime, long endTime) {
         block.setWeight(1);
         logger.info("start mining at height " + block.nHeight + " target = " + Hex.encodeHexString(block.nBits));
-        block = pow(block, parentBlockTimeStamp, endTime);
+        block = pow(block, startTime, endTime);
         terminated = true;
         if (block != null) {
             ctx.publishEvent(new NewBlockMinedEvent(this, block));

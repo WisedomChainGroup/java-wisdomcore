@@ -18,10 +18,9 @@
 
 package org.wisdom.core.validate;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.Block;
@@ -40,9 +39,12 @@ import java.util.Map;
 
 // 基本规则校验 校验区块版本号，字段类型, pow，交易 merkle root
 @Component
-public class BasicRule implements BlockRule, TransactionRule{
+public class BasicRule implements BlockRule, TransactionRule {
     @Autowired
     MerkleRule merkleRule;
+
+    @Autowired
+    private WisdomBlockChain bc;
 
     private Block genesis;
     private static javax.validation.Validator validator = Validation.byProvider(HibernateValidator.class)
@@ -54,52 +56,58 @@ public class BasicRule implements BlockRule, TransactionRule{
 
     @Override
     public Result validateBlock(Block block) {
-        if (block == null){
+        Block best = bc.currentHeader();
+        if (block == null) {
             return Result.Error("null block");
         }
+        // 只接受当前 480 秒以内的区块
+        if (Math.abs(block.nHeight - best.nHeight) > 16){
+            return Result.Error("accept blocks height between " + (best.nHeight - 16) + " and " + (best.nHeight + 16));
+        }
         // 区块基本校验
-        if (validator.validate(block).size() != 0){
+        if (validator.validate(block).size() != 0) {
             return Result.Error(validator.validate(block).toArray()[0].toString());
         }
+        // 区块大小限制
+        if (block.size() > Block.MAX_BLOCK_SIZE){
+            return Result.Error("block size exceed");
+        }
         // 不可以接收创世区块
-        if(block.nHeight == 0 || Arrays.areEqual(block.getHash(), genesis.getHash())){
+        if (block.nHeight == 0 || Arrays.areEqual(block.getHash(), genesis.getHash())) {
             return Result.Error("cannot write genesis block");
         }
         // 区块体不可以为空
-        if (block.body == null || block.body.size() == 0){
+        if (block.body == null || block.body.size() == 0) {
             return Result.Error("missing body");
         }
         // 区块版本
-        if (block.nVersion != genesis.nVersion){
+        if (block.nVersion != genesis.nVersion) {
             return Result.Error("version check fail");
         }
         // pow 校验
-        if (BigEndian.compareUint256(Block.calculatePOWHash(block), block.nBits) >= 0){
+        if (BigEndian.compareUint256(Block.calculatePOWHash(block), block.nBits) >= 0) {
             return Result.Error("pow validate fail");
         }
         // 梅克尔根校验
-        if (!Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))){
+        if (!Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
             return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
         }
         try {
-            Map<String,Object> merklemap = merkleRule.validateMerkle(block.body,block.nHeight);
-            List<Account> accountList= (List<Account>) merklemap.get("account");
-            List<Incubator> incubatorList= (List<Incubator>) merklemap.get("incubator");
-            if(!Arrays.areEqual(block.hashMerkleState,Block.calculateMerkleState(accountList))){
+            Map<String, Object> merklemap = merkleRule.validateMerkle(block.body, block.nHeight);
+            List<Account> accountList = (List<Account>) merklemap.get("account");
+            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
+            if (!Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
                 return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
             }
-            if(!Arrays.areEqual(block.hashMerkleIncubate,Block.calculateMerkleIncubate(incubatorList))){
+            if (!Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
                 return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
             }
-        } catch (InvalidProtocolBufferException e) {
-            e.printStackTrace();
-        } catch (DecoderException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            return Result.Error("error occurs when validate merle hash");
         }
-
-        for(Transaction tx: block.body){
+        for (Transaction tx : block.body) {
             Result r = validateTransaction(tx);
-            if (!r.isSuccess()){
+            if (!r.isSuccess()) {
                 return r;
             }
         }
@@ -108,11 +116,11 @@ public class BasicRule implements BlockRule, TransactionRule{
 
     @Override
     public Result validateTransaction(Transaction transaction) {
-        if (validator.validate(transaction).size() != 0 || transaction.version != Transaction.DEFAULT_TRANSACTION_VERSION){
+        if (validator.validate(transaction).size() != 0 || transaction.version != Transaction.DEFAULT_TRANSACTION_VERSION) {
             return Result.Error(validator.validate(transaction).toArray()[0].toString() + "missing fields or version invalid");
         }
         // 1. deposit 事务的 amount 必须为 0
-        if (transaction.type == Transaction.Type.DEPOSIT.ordinal() && transaction.amount != 0){
+        if (transaction.type == Transaction.Type.DEPOSIT.ordinal() && transaction.amount != 0) {
             return Result.Error("the amount of deposit must be zero");
         }
         return Result.SUCCESS;

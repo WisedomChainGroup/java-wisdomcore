@@ -51,29 +51,11 @@ public class ConsensusConfig {
     @Value("${wisdom.consensus.enable-mining}")
     private volatile boolean enableMining;
 
-    @Value("${wisdom.consensus.block-interval}")
-    private int blocksInterval;
-
-    @Value("${wisdom.consensus.block-interval-upper-bound}")
-    private int blockIntervalUpperBound;
-
-    @Value("${wisdom.consensus.round-wait}")
-    private int roundWait;
+    @Value("${wisdom.consensus.pow-wait}")
+    private int powWait;
 
     public boolean isEnableMining() {
         return enableMining;
-    }
-
-    public int getBlocksInterval() {
-        return blocksInterval;
-    }
-
-    public int getBlockIntervalUpperBound() {
-        return blockIntervalUpperBound;
-    }
-
-    public int getRoundWait() {
-        return roundWait;
     }
 
     public List<String> getValidators() {
@@ -137,53 +119,32 @@ public class ConsensusConfig {
         }
     }
 
-    // 用于判断是否轮到自己出块
-    private int getValidatorIndex(Block lastBlock, long currentTimeStamp) {
-        if (lastBlock.nHeight == 0) {
-            return 0;
+    public Proposer getProposer(Block parentBlock, long timeStamp) {
+        if (timeStamp <= parentBlock.nTime) {
+            return null;
         }
-        if (currentTimeStamp <= lastBlock.nTime) {
-            return -1;
+        if (parentBlock.nHeight == 0) {
+            return new Proposer(getValidatorPubKeyHashes().get(0), 0, Integer.MAX_VALUE);
         }
-        long round = (currentTimeStamp - lastBlock.nTime)
-                / roundWait + 1;
+        long step = (timeStamp - parentBlock.nTime)
+                / powWait + 1;
         String lastValidator = Hex
                 .encodeHexString(
-                        lastBlock.body.get(0).to
+                        parentBlock.body.get(0).to
                 );
-        int lastIndex =
-                getValidatorPubKeyHashes()
+        int lastValidatorIndex = getValidatorPubKeyHashes()
                 .indexOf(lastValidator);
-        return (int) (lastIndex + round)
-                % getValidatorPubKeyHashes()
-                .size();
-    }
-
-    private long getTimeWaited(int currentValidatorIndex, int bestValidatorIndex) {
-        return currentValidatorIndex >= bestValidatorIndex
-                ? (currentValidatorIndex - bestValidatorIndex) * roundWait
-                : (currentValidatorIndex
-                    + (getValidatorPubKeyHashes().size()
-                    - bestValidatorIndex)) * roundWait;
-    }
-
-    public long getEndTime(Block lastBlock, long currentTineStamp, String minerPubKeyHash) {
-        int currentValidatorIndex = getValidatorIndex(lastBlock, currentTineStamp);
-        if (currentValidatorIndex < 0){
-            return -1;
+        int currentValidatorIndex = (int) (lastValidatorIndex + step) % getValidatorPubKeyHashes().size();
+        long endTime = parentBlock.nTime + step * powWait;
+        long startTime = endTime - powWait;
+        if (parentBlock.nHeight == 9005) {
+            endTime = Long.MAX_VALUE;
+            startTime = parentBlock.nTime;
         }
-        if (!getValidatorPubKeyHashes()
-                .get(
-                       currentValidatorIndex).equals(
-                                minerPubKeyHash
-                )){
-            return -1;
-        }
-        // 轮到自己出块了
-        if(lastBlock.nHeight == 0){
-            return Long.MAX_VALUE;
-        }
-        return lastBlock.nTime + getTimeWaited(currentValidatorIndex,
-                getValidatorIndex(lastBlock, lastBlock.nTime + 1)) + roundWait;
+        return new Proposer(
+                getValidatorPubKeyHashes().get(currentValidatorIndex),
+                startTime,
+                endTime
+                );
     }
 }

@@ -20,6 +20,7 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.ConsensusConfig;
+import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.TargetStateFactory;
 import org.wisdom.encoding.BigEndian;
@@ -48,12 +49,10 @@ public class ConsensusRule implements BlockRule{
     @Autowired
     ConsensusConfig consensusConfig;
 
-    @Value("${wisdom.consensus.block-interval-upper-bound}")
-    private int blockIntervalUpperBound;
-
     @Override
     public Result validateBlock(Block block) {
         Block parent = bc.getBlock(block.hashPrevBlock);
+        Block best = bc.currentHeader();
         // 不接受孤块
         if (parent == null){
             return  Result.Error("failed to find parent block");
@@ -62,27 +61,10 @@ public class ConsensusRule implements BlockRule{
         if (parent.nHeight + 1 != block.nHeight){
             return  Result.Error("block height invalid");
         }
-        // 高度2以上的区块的出块者必须在一定时间内出块
-        if (block.nHeight != 1 &&
-                (block.nTime <= parent.nTime
-                        || (block.nTime - parent.nTime) > blockIntervalUpperBound
-                )
-        ){
-            return  Result.Error("block time invalid");
-        }
-        long endTime = consensusConfig.getEndTime(
-                parent, block.nTime, Hex.encodeHexString(block.body.get(0).to)
-        );
-        // 出块者节点工作量证明不可以超时
-        if(block.nTime >= endTime){
-            return Result.Error("the validator propose at invalid round " + block.nHeight + " " + block.nTime + " " + endTime);
-        }
-        List<Block> bs = bc.getBlocks(block.nHeight, block.nHeight);
-        // 此高度已接受到更优节点出的块
-        for(Block b0: bs){
-            if(consensusConfig.getEndTime(parent, b0.nTime, Hex.encodeHexString(b0.body.get(0).to)) <= endTime){
-                return Result.Error("a better block has received in this height");
-            }
+        // 出块在是否在合理时间内出块
+        Proposer p = consensusConfig.getProposer(parent, block.nTime);
+        if (!p.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to))){
+            return Result.Error("the proposer cannot propose this block" );
         }
         // 难度值符合调整难度值
         TargetState state = factory.getInstance(block);
