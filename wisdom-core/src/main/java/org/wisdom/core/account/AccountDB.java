@@ -119,7 +119,7 @@ public class AccountDB {
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height>? and TYPE=? order by h.height limit 1000";
-            return tmpl.queryForList(sql,new Object[]{gas,height,0});
+            return tmpl.queryForList(sql,new Object[]{gas,height,type});
         }catch (Exception e){
             e.printStackTrace();
             return null;

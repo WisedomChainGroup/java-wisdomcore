@@ -105,8 +105,8 @@ public class TransactionCheck {
         tranlast=ByteUtil.bytearraycopy(tranlast,8,tranlast.length-8);
         //amount
         byte[] amountbyte=ByteUtil.bytearraycopy(tranlast,0,8);
-        long amount=BigEndian.decodeUint64(amountbyte);
-        if(type[0]==0x03){
+        long amount=ByteUtil.byteArrayToLong(amountbyte);
+        if(type[0]==0x03){//存证
             if(amount!=0){
                 apiResult.setStatusCode(-1);
                 apiResult.setMessage("The amount of the deposit transaction is 0");
@@ -114,13 +114,13 @@ public class TransactionCheck {
             }
         }
         long nowbalance=accountDB.getBalance(frompubhash);
-        if(type[0]==0x01 || type[0]==0x03 || type[0]==0x09 ){
+        if(type[0]==0x01 || type[0]==0x09 ){
             if((amount+gasPrice*gas)>nowbalance){
                 apiResult.setStatusCode(-1);
                 apiResult.setMessage("Not sufficient funds");
                 return apiResult;
             }
-        }else if(type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
+        }else if(type[0]==0x03 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
             if(gasPrice*gas>nowbalance){
                 apiResult.setStatusCode(-1);
                 apiResult.setMessage("Not sufficient funds");
@@ -144,6 +144,13 @@ public class TransactionCheck {
         //bytelength
         byte[] date=ByteUtil.bytearraycopy(tranlast,0,4);
         int legnth=ByteUtil.byteArrayToInt(date);
+        if(type[0]!=0x01){
+            if(legnth==0){
+                apiResult.setStatusCode(-1);
+                apiResult.setMessage("Payload is not null");
+                return apiResult;
+            }
+        }
         if(legnth>0){
             tranlast=ByteUtil.bytearraycopy(tranlast,4,tranlast.length-4);
             byte[] Payload=ByteUtil.bytearraycopy(tranlast,0,legnth);
