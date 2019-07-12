@@ -123,6 +123,15 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
             state.updateBlocks(bks);
             lastEraHead = bks.get(bks.size() - 1);
         }
+        if(state instanceof TargetState){
+            logger.info("put cache at era head height " + lastEraHead.nHeight + " target = " +
+                    Hex.encodeHexString(
+                            BigEndian.encodeUint256(
+                                   ((TargetState) state).getTarget()
+                            )
+                    )
+            );
+        }
         cache.put(getLRUCacheKey(lastEraHead.getHash()), state);
     }
 }
