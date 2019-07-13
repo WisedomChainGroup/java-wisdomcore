@@ -38,7 +38,7 @@ public class TransferMsgCheck {
         if (!transactionPool.has(Hex.encodeHexString(msg.getHash().toByteArray()))) {
             Transaction tran=Transaction.fromProto(msg);
             APIResult apiResult= TransactionCheck.TransactionVerifyResult(tran.toRPCBytes(), wisdomBlockChain, configuration,accountDB, incubatorDB, rateTable, nowheight, true);
-            if(apiResult.getStatusCode()==-1){
+            if(apiResult.getCode()==-1){
                 return false;
             }
             return true;
