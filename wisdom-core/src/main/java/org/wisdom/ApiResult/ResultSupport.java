@@ -22,7 +22,7 @@ import java.io.Serializable;
 
 public class ResultSupport implements Serializable{
     private String message;
-    private int StatusCode;
+    private int Code;
 
     public String getMessage() {
         return message;
@@ -32,11 +32,11 @@ public class ResultSupport implements Serializable{
         this.message = message;
     }
 
-    public int getStatusCode() {
-        return StatusCode;
+    public int getCode() {
+        return Code;
     }
 
-    public void setStatusCode(int statusCode) {
-        StatusCode = statusCode;
+    public void setCode(int code) {
+        Code = code;
     }
 }

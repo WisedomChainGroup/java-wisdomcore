@@ -39,7 +39,7 @@ public class APIResult<T> extends ResultSupport {
      */
     public static <U> APIResult<U> newFailResult(int code, String message, U data) {
         APIResult<U> apiResult = new APIResult<U>();
-        apiResult.setStatusCode(code);
+        apiResult.setCode(code);
         apiResult.setMessage(message);
         apiResult.setData(data);
         return apiResult;
@@ -54,7 +54,7 @@ public class APIResult<T> extends ResultSupport {
      */
     public static <U> APIResult<U> newFailResult(int code, String message) {
         APIResult<U> apiResult = new APIResult<U>();
-        apiResult.setStatusCode(code);
+        apiResult.setCode(code);
         apiResult.setMessage(message);
         return apiResult;
     }
