@@ -83,7 +83,7 @@ public class MineThread {
         return null;
     }
 
-    public void stop() {
+    public void terminate() {
         terminated = true;
         logger.info("mining terminated");
     }

@@ -20,6 +20,7 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
+import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -46,6 +47,9 @@ public class BasicRule implements BlockRule, TransactionRule {
     @Autowired
     private WisdomBlockChain bc;
 
+    @Value("${wisdom.consensus.block-interval}")
+    private int blockInterval;
+
     private Block genesis;
     private static javax.validation.Validator validator = Validation.byProvider(HibernateValidator.class)
             .configure()
@@ -60,16 +64,20 @@ public class BasicRule implements BlockRule, TransactionRule {
         if (block == null) {
             return Result.Error("null block");
         }
-        // 只接受当前 480 秒以内的区块
-        if (Math.abs(block.nHeight - best.nHeight) > 16){
-            return Result.Error("accept blocks height between " + (best.nHeight - 16) + " and " + (best.nHeight + 16));
-        }
-        // 区块基本校验
+        // 区块基本校验 字段值非空
         if (validator.validate(block).size() != 0) {
             return Result.Error(validator.validate(block).toArray()[0].toString());
         }
+        // 只接受当前最高区块16个高度因为以内的区块
+        if (Math.abs(block.nHeight - best.nHeight) > 16) {
+            return Result.Error("accept blocks height between " + (best.nHeight - 16) + " and " + (best.nHeight + 16));
+        }
+        // 区块时间戳必须小于当前系统时间
+        if (block.nTime > System.currentTimeMillis() / 1000) {
+            return Result.Error("the received block timestamp too large");
+        }
         // 区块大小限制
-        if (block.size() > Block.MAX_BLOCK_SIZE){
+        if (block.size() > Block.MAX_BLOCK_SIZE) {
             return Result.Error("block size exceed");
         }
         // 不可以接收创世区块

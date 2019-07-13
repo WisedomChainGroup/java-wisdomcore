@@ -19,6 +19,7 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.core.TransactionPool;
 import org.wisdom.encoding.BigEndian;
@@ -39,9 +40,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 public class Miner implements ApplicationListener {
@@ -153,7 +152,9 @@ public class Miner implements ApplicationListener {
 
     @Scheduled(fixedRate = 1000)
     public void tryMine() {
-        if (thread != null && !thread.isTerminated()) {
+        if (thread != null
+                && !thread.isTerminated()
+        ) {
             return;
         }
         try {
@@ -180,6 +181,9 @@ public class Miner implements ApplicationListener {
             Block o = ((NewBlockMinedEvent) event).getBlock();
             logger.info("new block mined event triggered");
             pendingBlocksManager.addPendingBlocks(new BlocksCache(Collections.singletonList(o)));
+        }
+        if (event instanceof NewBestBlockEvent && thread != null){
+            thread.terminate();
         }
     }
 
