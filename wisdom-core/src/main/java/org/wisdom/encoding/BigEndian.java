@@ -19,6 +19,7 @@
 package org.wisdom.encoding;
 
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.util.Arrays;
 
 import java.math.BigInteger;
 
@@ -104,7 +105,7 @@ public class BigEndian {
     }
 
     public static BigInteger decodeUint256(byte[] in) {
-        return new BigInteger(1, in);
+        return new BigInteger(1, Arrays.copyOfRange(in, 0, 32));
     }
 
     public static void main(String[] args) throws Exception{

@@ -20,6 +20,7 @@ package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.core.Block;
@@ -53,6 +54,10 @@ public class ConsensusConfig {
 
     @Value("${wisdom.consensus.pow-wait}")
     private int powWait;
+
+    public void setPowWait(int powWait) {
+        this.powWait = powWait;
+    }
 
     public boolean isEnableMining() {
         return enableMining;
@@ -108,9 +113,16 @@ public class ConsensusConfig {
 
     public static void main(String[] args) throws Exception {
         ConsensusConfig cfg = new ConsensusConfig(new JSONEncodeDecoder(), "1pQfDX4fvz7uzBQuM9FbuoKWohmhg9TmY", "genesis/validators.json", true);
+        cfg.setPowWait(90);
         Block p = new Block();
+        p.nHeight = 9005;
         p.nTime = 1562875891;
+        p.body = new ArrayList<>();
+        Transaction tx = new Transaction();
+        tx.to = Hex.decodeHex("5b0a4c7e31c3123db40a4c14200b54b8e358294b".toCharArray());
+        p.body.add(tx);
         System.out.println(cfg.getProposer(p, 1562875906).pubkeyHash);
+
     }
 
     public Proposer getProposer(Block parentBlock, long timeStamp) {
@@ -131,12 +143,9 @@ public class ConsensusConfig {
         int currentValidatorIndex = (int) (lastValidatorIndex + step) % getValidatorPubKeyHashes().size();
         long endTime = parentBlock.nTime + step * powWait;
         long startTime = endTime - powWait;
-        if (parentBlock.nHeight == 9005) {
-            endTime = Long.MAX_VALUE;
-            startTime = parentBlock.nTime;
-        }
+        String validator = getValidatorPubKeyHashes().get(currentValidatorIndex);
         return new Proposer(
-                getValidatorPubKeyHashes().get(currentValidatorIndex),
+                validator,
                 startTime,
                 endTime
         );
