@@ -37,15 +37,18 @@ public class Account {
 
     private long mortgage;
 
+    private long vote;
+
     public Account(){}
 
-    public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage) {
+    public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote) {
         this.blockHeight = blockHeight;
         this.pubkeyHash = pubkeyHash;
         this.nonce = nonce;
         this.balance = balance;
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
+        this.vote = vote;
     }
 
     public String getIdHexString(){
@@ -106,5 +109,13 @@ public class Account {
 
     public void setMortgage(long mortgage) {
         this.mortgage = mortgage;
+    }
+
+    public long getVote() {
+        return vote;
+    }
+
+    public void setVote(long vote) {
+        this.vote = vote;
     }
 }

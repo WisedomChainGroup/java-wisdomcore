@@ -105,15 +105,15 @@ public class InitialState {
                         accounts.setNonce(nonce);
                         map.put(Hex.encodeHexString(tx.to), accounts);
                     } else {
-                        Account accounts = new Account(0, tx.to, tx.nonce, 0, tx.amount, 0);
+                        Account accounts = new Account(0, tx.to, tx.nonce, 0, tx.amount, 0,0);
                         map.put(Hex.encodeHexString(tx.to), accounts);
                     }
                 } else {//0x00
-                    Account account = new Account(0, tx.to, 1, tx.amount, 0, 0);
+                    Account account = new Account(0, tx.to, 1, tx.amount, 0, 0,0);
                     if (!Arrays.equals(account.getPubkeyHash(), totalpubhash)) {
                         accountlist.add(new Object[]{
                                 account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce()
-                                , account.getBalance(), account.getIncubatecost(), account.getMortgage()
+                                , account.getBalance(), account.getIncubatecost(), account.getMortgage(),account.getVote()
                         });
                     } else {
                         totalaccount = account;

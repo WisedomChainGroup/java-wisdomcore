@@ -23,6 +23,11 @@ import net.sf.json.JSONObject;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.command.Configuration;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -42,27 +47,37 @@ public class HatchServiceImpl implements HatchService {
     @Autowired
     AccountDB accountDB;
 
+    @Autowired
+    IncubatorDB incubatorDB;
+
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
+
+    @Autowired
+    RateTable rateTable;
+
+    @Autowired
+    Configuration configuration;
+
     @Override
-    public long getBalance(String pubkeyhash) {
+    public Object getBalance(String pubkeyhash) {
         try {
             byte[] pubkey= Hex.decodeHex(pubkeyhash.toCharArray());
             long balance=accountDB.getBalance(pubkey);
-            return balance;
+            return APIResult.newFailResult(1,"SUCCESS",balance);
         } catch (DecoderException e) {
-            e.printStackTrace();
-            return 0;
+            return APIResult.newFailResult(-1," ERROR");
         }
     }
 
     @Override
-    public long getNonce(String pubkeyhash) {
+    public Object getNonce(String pubkeyhash) {
         try {
             byte[] pubkey= Hex.decodeHex(pubkeyhash.toCharArray());
             long nonce=accountDB.getNonce(pubkey);
-            return nonce;
+            return APIResult.newFailResult(1,"SUCCESS",nonce);
         } catch (DecoderException e) {
-            e.printStackTrace();
-            return 0;
+            return APIResult.newFailResult(-1," ERROR");
         }
     }
 
@@ -107,7 +122,6 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(1,"SUCCESS",jsonArray);
         }catch (Exception e){
-            e.printStackTrace();
             return APIResult.newFailResult(-1,"Data acquisition error");
         }
     }
@@ -125,7 +139,6 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(1,"SUCCESS",jsonArray);
         }catch (Exception e){
-            e.printStackTrace();
             return APIResult.newFailResult(-1,"Data acquisition error");
         }
     }
@@ -145,7 +158,50 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(1,"SUCCESS",jsonArray);
         }catch (Exception e){
-            e.printStackTrace();
+            return APIResult.newFailResult(-1,"Data acquisition error");
+        }
+    }
+
+    @Override
+    public Object getNowInterest(String tranhash) {
+        try{
+            byte[] trhash= Hex.decodeHex(tranhash.toCharArray());
+            //查询当前孵化记录
+            Incubator incubator=incubatorDB.selectIncubator(trhash);
+            if(incubator==null){
+                return APIResult.newFailResult(-1,"The transaction cannot be queried");
+            }
+            //孵化事务
+            Transaction transaction=wisdomBlockChain.getTransaction(trhash);
+            if(transaction==null){
+                return APIResult.newFailResult(-1,"The transaction cannot be queried");
+            }
+            HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
+            int days=payloadproto.getType();
+            double nowrate=rateTable.selectrate(transaction.height,days);
+            //当前最高高度
+            long maxhieght=wisdomBlockChain.getCurrentTotalWeight();
+            long differheight=maxhieght-incubator.getLast_blockheight_interest();
+            int differdays=(int)(differheight/configuration.getDay_count());
+            if(differdays==0){
+                return APIResult.newFailResult(-1,"Current interest rates are not desirable");
+            }
+            long dayrate=(long)(transaction.amount*nowrate);
+            int maxdays=(int)(incubator.getInterest_amount()/dayrate);
+            long lastheight=0;
+            if(maxdays>differdays){
+                lastheight=differdays;
+            }else{
+                lastheight=maxdays;
+            }
+            //当前可获取利息
+            long interset=dayrate*differheight;
+            JSONObject jsonObject=new JSONObject();
+            jsonObject.put("interset",interset);
+            jsonObject.put("nowintersetheight",incubator.getLast_blockheight_interest());
+            jsonObject.put("nowintersetamount",incubator.getInterest_amount());
+            return APIResult.newFailResult(1,"SUCCESS",jsonObject);
+        }catch (Exception e){
             return APIResult.newFailResult(-1,"Data acquisition error");
         }
     }

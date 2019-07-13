@@ -105,7 +105,7 @@ public class AccountDB {
 
     public int[] insertAccountList(List<Object[]> Object){
         try{
-            String sql="insert into account(id,blockheight,pubkeyhash,nonce,balance,incubatecost,mortgage) VALUES(?,?,?,?,?,?,?) on conflict(id) do nothing";
+            String sql="insert into account(id,blockheight,pubkeyhash,nonce,balance,incubatecost,mortgage,vote) VALUES(?,?,?,?,?,?,?,?) on conflict(id) do nothing";
             return tmpl.batchUpdate(sql,Object);
         }catch (Exception e){
             e.printStackTrace();

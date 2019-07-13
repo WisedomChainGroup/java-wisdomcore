@@ -126,6 +126,19 @@ public class TransactionCheck {
                 apiResult.setMessage("Not sufficient funds");
                 return apiResult;
             }
+        }else if(type[0]==0x02){//vote
+            if((amount+gasPrice*gas)>nowbalance){
+                apiResult.setCode(-1);
+                apiResult.setMessage("Not sufficient funds");
+                return apiResult;
+            }
+            //求余
+            int remainder=(int)amount % 100000000;
+            if(remainder!=0){
+                apiResult.setCode(-1);
+                apiResult.setMessage("Illegal number of votes");
+                return apiResult;
+            }
         }
         tranlast=ByteUtil.bytearraycopy(tranlast,8,tranlast.length-8);
         //sig
@@ -144,7 +157,7 @@ public class TransactionCheck {
         //bytelength
         byte[] date=ByteUtil.bytearraycopy(tranlast,0,4);
         int legnth=ByteUtil.byteArrayToInt(date);
-        if(type[0]!=0x01){
+        if(type[0]!=0x01 && type[0]!=0x02){
             if(legnth==0){
                 apiResult.setCode(-1);
                 apiResult.setMessage("Payload is not null");

@@ -36,10 +36,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class MerkleRule {
@@ -73,7 +70,7 @@ public class MerkleRule {
             } else {
                 toaccount = accountDB.selectaccount(tran.to);
                 if (toaccount == null) {
-                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0);
+                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0,0);
                 }
             }
             if (tran.type == 0x00) {//CoinBase
@@ -160,12 +157,18 @@ public class MerkleRule {
                 fromaccount.setBalance(frombalance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                long tobalance = toaccount.getBalance();
-                tobalance += tran.amount;
-                toaccount.setBalance(tobalance);
-                toaccount.setBlockHeight(nowheight);
-                accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
-                accmap.put(Hex.encodeHexString(tran.to), toaccount);
+                if(!Arrays.equals(frompubhash,tran.to)){//转账from和to相同
+                    long tobalance = toaccount.getBalance();
+                    tobalance += tran.amount;
+                    toaccount.setBalance(tobalance);
+                    toaccount.setBlockHeight(nowheight);
+                    accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+                    accmap.put(Hex.encodeHexString(tran.to), toaccount);
+                }else{
+                    frombalance+=tran.amount;
+                    fromaccount.setBalance(frombalance);
+                    accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+                }
             } else if (tran.type == 0x0c) {//extract cost
                 long balance = toaccount.getBalance();
                 balance += tran.amount;
@@ -195,6 +198,31 @@ public class MerkleRule {
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+            }else if(tran.type == 0x02){//投票
+                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                    fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                } else {
+                    fromaccount = accountDB.selectaccount(frompubhash);
+                }
+                long balance=fromaccount.getBalance();
+                balance-=tran.amount;
+                balance-=tran.getFee();
+                fromaccount.setBalance(balance);
+                fromaccount.setNonce(tran.nonce);
+                fromaccount.setBlockHeight(nowheight);
+                if(!Arrays.equals(frompubhash,tran.to)){//投票自己投给自己
+                    long vote=toaccount.getVote();
+                    vote+=tran.amount;
+                    toaccount.setVote(vote);
+                    accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+                    accmap.put(Hex.encodeHexString(tran.to), toaccount);
+                }else{
+                    long vote=fromaccount.getVote();
+                    vote+=tran.amount;
+                    fromaccount.setVote(vote);
+                    accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+                }
             }
         }
         if (isdisplay) {
