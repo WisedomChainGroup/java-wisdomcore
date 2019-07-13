@@ -67,7 +67,21 @@ public class CommandController {
         } catch (DecoderException e) {
             e.printStackTrace();
             APIResult apiResult = new APIResult();
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
+            apiResult.setMessage("Data parsing error");
+            return apiResult;
+        }
+    }
+
+    @RequestMapping(value={"/sendDeposit","/sendVote"},method = RequestMethod.GET)
+    public Object sendTransaction2(@RequestParam(value = "traninfo", required = true) String traninfo){
+        try {
+            byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
+            return commandService.verifyTransfer(traninfos);
+        } catch (DecoderException e) {
+            e.printStackTrace();
+            APIResult apiResult = new APIResult();
+            apiResult.setCode(-1);
             apiResult.setMessage("Data parsing error");
             return apiResult;
         }

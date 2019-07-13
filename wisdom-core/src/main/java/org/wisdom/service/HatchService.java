@@ -20,9 +20,9 @@ package org.wisdom.service;
 
 public interface HatchService {
 
-    long getBalance(String pubkeyhash);
+    Object getBalance(String pubkeyhash);
 
-    long getNonce(String pubkeyhash);
+    Object getNonce(String pubkeyhash);
 
     Object getTransfer(int height);
 
@@ -31,4 +31,6 @@ public interface HatchService {
     Object getInterest(int height);
 
     Object getShare(int height);
+
+    Object getNowInterest(String tranhash);
 }

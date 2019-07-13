@@ -29,13 +29,18 @@ public class HatchController {
     HatchServiceImpl hatchService;
 
     @RequestMapping(value="/sendBalance",method = RequestMethod.POST)
-    public long sendBalance(@RequestParam("pubkeyhash") String pubkeyhash){
+    public Object sendBalance(@RequestParam("pubkeyhash") String pubkeyhash){
         return hatchService.getBalance(pubkeyhash);
     }
 
     @RequestMapping(value="/sendNonce",method =RequestMethod.POST )
-    public long sendNonce(@RequestParam("pubkeyhash") String pubkeyhash){
+    public Object sendNonce(@RequestParam("pubkeyhash") String pubkeyhash){
         return hatchService.getNonce(pubkeyhash);
+    }
+
+    @RequestMapping(value="/WisdomCore/getNowInterest",method = RequestMethod.POST)
+    public Object getNowInterest(@RequestParam("tranhash") String tranhash){
+        return hatchService.getNowInterest(tranhash);
     }
 
     @GetMapping(value = "/WisdomCore/sendTransferList")

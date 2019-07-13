@@ -66,12 +66,12 @@ public class CommandServiceImpl implements CommandService {
         try {
             long nowheight=wisdomBlockChain.currentHeader().nHeight;
             apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,true);
-            if(apiResult.getStatusCode()==-1){
+            if(apiResult.getCode()==-1){
                 return apiResult;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
             apiResult.setMessage("Data error");
             return apiResult;
         }

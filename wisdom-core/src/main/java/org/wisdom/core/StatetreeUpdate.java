@@ -63,7 +63,7 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
             for (Account account : accountList) {
                 accountobject.add(new Object[]{
                         account.getId(),account.getBlockHeight(),account.getPubkeyHash(),account.getNonce()
-                        ,account.getBalance(),account.getIncubatecost(),account.getMortgage()
+                        ,account.getBalance(),account.getIncubatecost(),account.getMortgage(),account.getVote()
                 });
             }
             accountDB.insertAccountList(accountobject);

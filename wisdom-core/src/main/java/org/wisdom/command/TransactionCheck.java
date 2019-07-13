@@ -47,7 +47,7 @@ public class TransactionCheck {
         //version
         byte[] version = ByteUtil.bytearraycopy(transfer,0,1);
         if (version[0] != 0x01) {
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
             apiResult.setMessage("Failed to verify version number");
             return apiResult;
         }
@@ -57,7 +57,7 @@ public class TransactionCheck {
         byte[] tranlast = ByteUtil.bytearraycopy(transfer, 33, transfer.length - 33);
         byte[] trannew = ByteUtil.prepend(tranlast, version[0]);
         if (!Arrays.equals(transha, SHA3Utility.keccak256(trannew))) {
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
             apiResult.setMessage("Failed to check hash value");
             return apiResult;
         }
@@ -77,7 +77,7 @@ public class TransactionCheck {
         String s=Hex.encodeHexString(frompubhash);
         long maxnonce=accountDB.getNonce(frompubhash);
         if((maxnonce+1)!=nonce){
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
             apiResult.setMessage("Nonce don't match");
             return apiResult;
         }
@@ -90,14 +90,14 @@ public class TransactionCheck {
         if(12>=type[0] && type[0]>=0){
             gas= Transaction.GAS_TABLE[type[0]];
         }else{
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
             apiResult.setMessage("Not matching the right type of thing");
             return apiResult;
         }
         //fee
         if(b){
             if((gasPrice*gas)<configuration.getMin_procedurefee()){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("Low commission");
                 return apiResult;
             }
@@ -108,7 +108,7 @@ public class TransactionCheck {
         long amount=ByteUtil.byteArrayToLong(amountbyte);
         if(type[0]==0x03){//存证
             if(amount!=0){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("The amount of the deposit transaction is 0");
                 return apiResult;
             }
@@ -116,14 +116,27 @@ public class TransactionCheck {
         long nowbalance=accountDB.getBalance(frompubhash);
         if(type[0]==0x01 || type[0]==0x09 ){
             if((amount+gasPrice*gas)>nowbalance){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("Not sufficient funds");
                 return apiResult;
             }
         }else if(type[0]==0x03 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
             if(gasPrice*gas>nowbalance){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("Not sufficient funds");
+                return apiResult;
+            }
+        }else if(type[0]==0x02){//vote
+            if((amount+gasPrice*gas)>nowbalance){
+                apiResult.setCode(-1);
+                apiResult.setMessage("Not sufficient funds");
+                return apiResult;
+            }
+            //求余
+            int remainder=(int)amount % 100000000;
+            if(remainder!=0){
+                apiResult.setCode(-1);
+                apiResult.setMessage("Illegal number of votes");
                 return apiResult;
             }
         }
@@ -135,7 +148,7 @@ public class TransactionCheck {
         byte[] topubkeyhash=ByteUtil.bytearraycopy(tranlast,0,20);
         if( type[0]==0x09 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
             if(!Arrays.equals(frompubhash,topubkeyhash)){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("From and To address inconsistency");
                 return apiResult;
             }
@@ -144,9 +157,9 @@ public class TransactionCheck {
         //bytelength
         byte[] date=ByteUtil.bytearraycopy(tranlast,0,4);
         int legnth=ByteUtil.byteArrayToInt(date);
-        if(type[0]!=0x01){
+        if(type[0]!=0x01 && type[0]!=0x02){
             if(legnth==0){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("Payload is not null");
                 return apiResult;
             }
@@ -156,7 +169,7 @@ public class TransactionCheck {
             byte[] Payload=ByteUtil.bytearraycopy(tranlast,0,legnth);
             boolean result=PayloadCheck(Payload,type,amount,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight);
             if(!result){
-                apiResult.setStatusCode(-1);
+                apiResult.setCode(-1);
                 apiResult.setMessage("Payload data illegal");
                 return apiResult;
             }
@@ -168,11 +181,11 @@ public class TransactionCheck {
         Ed25519PublicKey ed25519PublicKey=new Ed25519PublicKey(frompubkey);
         boolean result=ed25519PublicKey.verify(nosig,sigdate);
         if(!result){
-            apiResult.setStatusCode(-1);
+            apiResult.setCode(-1);
             apiResult.setMessage("Signature verification failed");
             return apiResult;
         }
-        apiResult.setStatusCode(1);
+        apiResult.setCode(1);
         apiResult.setMessage("SUCCESS");
         return apiResult;
     }
