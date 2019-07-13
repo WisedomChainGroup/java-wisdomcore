@@ -45,9 +45,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     @Autowired
     private PendingBlocksManager pool;
 
-    @Autowired
-    private JSONEncodeDecoder codec;
-
     private static final Logger logger = LoggerFactory.getLogger(OrphanBlocksManager.class);
 
 
