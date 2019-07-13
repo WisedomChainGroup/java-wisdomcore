@@ -108,15 +108,9 @@ public class ConsensusConfig {
 
     public static void main(String[] args) throws Exception {
         ConsensusConfig cfg = new ConsensusConfig(new JSONEncodeDecoder(), "1pQfDX4fvz7uzBQuM9FbuoKWohmhg9TmY", "genesis/validators.json", true);
-        for (String v : cfg.getValidators()) {
-            System.out.println(v);
-        }
-        for (String v : cfg.getValidatorPubKeyHashes()) {
-            System.out.println(v);
-        }
-        for (String url : cfg.getPeers()) {
-            System.out.println(url);
-        }
+        Block p = new Block();
+        p.nTime = 1562875891;
+        System.out.println(cfg.getProposer(p, 1562875906).pubkeyHash);
     }
 
     public Proposer getProposer(Block parentBlock, long timeStamp) {
