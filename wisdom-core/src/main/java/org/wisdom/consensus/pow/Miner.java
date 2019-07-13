@@ -39,9 +39,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 public class Miner implements ApplicationListener {
