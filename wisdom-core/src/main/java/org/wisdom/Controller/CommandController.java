@@ -67,8 +67,8 @@ public class CommandController {
         } catch (DecoderException e) {
             e.printStackTrace();
             APIResult apiResult = new APIResult();
-            apiResult.setCode(-1);
-            apiResult.setMessage("Data parsing error");
+            apiResult.setCode(5000);
+            apiResult.setMessage("Error");
             return apiResult;
         }
     }
@@ -81,8 +81,8 @@ public class CommandController {
         } catch (DecoderException e) {
             e.printStackTrace();
             APIResult apiResult = new APIResult();
-            apiResult.setCode(-1);
-            apiResult.setMessage("Data parsing error");
+            apiResult.setCode(5000);
+            apiResult.setMessage("Error");
             return apiResult;
         }
     }

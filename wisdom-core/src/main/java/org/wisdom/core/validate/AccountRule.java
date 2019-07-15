@@ -75,7 +75,7 @@ public class AccountRule implements BlockRule{
             if(tx.type!=Transaction.Type.COINBASE.ordinal()){
                 byte[] transfer=tx.toRPCBytes();
                 APIResult apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,false);
-                if(apiResult.getCode()==-1){
+                if(apiResult.getCode()==5000){
                     return Result.Error("Transaction validation failed");
                 }
             }

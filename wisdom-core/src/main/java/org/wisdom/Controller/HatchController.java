@@ -18,7 +18,7 @@
 
 package org.wisdom.Controller;
 
-import org.wisdom.service.Impl.HatchServiceImpl;
+import org.wisdom.service.HatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class HatchController {
 
     @Autowired
-    HatchServiceImpl hatchService;
+    HatchService hatchService;
 
     @RequestMapping(value="/sendBalance",method = RequestMethod.POST)
     public Object sendBalance(@RequestParam("pubkeyhash") String pubkeyhash){
@@ -39,8 +39,8 @@ public class HatchController {
     }
 
     @RequestMapping(value="/WisdomCore/getNowInterest",method = RequestMethod.POST)
-    public Object getNowInterest(@RequestParam("tranhash") String tranhash){
-        return hatchService.getNowInterest(tranhash);
+    public Object getNowInterest(@RequestParam("coinHash") String coinHash){
+        return hatchService.getNowInterest(coinHash);
     }
 
     @GetMapping(value = "/WisdomCore/sendTransferList")

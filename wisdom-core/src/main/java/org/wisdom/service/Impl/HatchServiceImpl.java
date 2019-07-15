@@ -64,9 +64,9 @@ public class HatchServiceImpl implements HatchService {
         try {
             byte[] pubkey= Hex.decodeHex(pubkeyhash.toCharArray());
             long balance=accountDB.getBalance(pubkey);
-            return APIResult.newFailResult(1,"SUCCESS",balance);
+            return APIResult.newFailResult(2000,"SUCCESS",balance);
         } catch (DecoderException e) {
-            return APIResult.newFailResult(-1," ERROR");
+            return APIResult.newFailResult(5000,"ERROR");
         }
     }
 
@@ -75,9 +75,9 @@ public class HatchServiceImpl implements HatchService {
         try {
             byte[] pubkey= Hex.decodeHex(pubkeyhash.toCharArray());
             long nonce=accountDB.getNonce(pubkey);
-            return APIResult.newFailResult(1,"SUCCESS",nonce);
+            return APIResult.newFailResult(2000,"SUCCESS",nonce);
         } catch (DecoderException e) {
-            return APIResult.newFailResult(-1," ERROR");
+            return APIResult.newFailResult(5000,"ERROR");
         }
     }
 
@@ -93,7 +93,7 @@ public class HatchServiceImpl implements HatchService {
             json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
             jsonArray.add(json);
         }
-        return APIResult.newFailResult(1,"SUCCESS",jsonArray);
+        return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
     }
 
     @Override
@@ -120,9 +120,9 @@ public class HatchServiceImpl implements HatchService {
                 json.remove("payload");
                 jsonArray.add(json);
             }
-            return APIResult.newFailResult(1,"SUCCESS",jsonArray);
+            return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(-1,"Data acquisition error");
+            return APIResult.newFailResult(5000,"ERROR");
         }
     }
 
@@ -137,9 +137,9 @@ public class HatchServiceImpl implements HatchService {
                 json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
                 jsonArray.add(json);
             }
-            return APIResult.newFailResult(1,"SUCCESS",jsonArray);
+            return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(-1,"Data acquisition error");
+            return APIResult.newFailResult(5000,"ERROR");
         }
     }
 
@@ -156,9 +156,9 @@ public class HatchServiceImpl implements HatchService {
                 json.put("inviteAddress",KeystoreAction.pubkeyHashToAddress(invite,(byte)0x00));
                 jsonArray.add(json);
             }
-            return APIResult.newFailResult(1,"SUCCESS",jsonArray);
+            return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(-1,"Data acquisition error");
+            return APIResult.newFailResult(5000,"ERROR");
         }
     }
 
@@ -169,12 +169,12 @@ public class HatchServiceImpl implements HatchService {
             //查询当前孵化记录
             Incubator incubator=incubatorDB.selectIncubator(trhash);
             if(incubator==null){
-                return APIResult.newFailResult(-1,"The transaction cannot be queried");
+                return APIResult.newFailResult(5000,"ERROR");
             }
             //孵化事务
             Transaction transaction=wisdomBlockChain.getTransaction(trhash);
             if(transaction==null){
-                return APIResult.newFailResult(-1,"The transaction cannot be queried");
+                return APIResult.newFailResult(5000,"ERROR");
             }
             HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
             int days=payloadproto.getType();
@@ -184,25 +184,24 @@ public class HatchServiceImpl implements HatchService {
             long differheight=maxhieght-incubator.getLast_blockheight_interest();
             int differdays=(int)(differheight/configuration.getDay_count());
             if(differdays==0){
-                return APIResult.newFailResult(-1,"Current interest rates are not desirable");
+                return APIResult.newFailResult(5000,"ERROR");
             }
             long dayrate=(long)(transaction.amount*nowrate);
             int maxdays=(int)(incubator.getInterest_amount()/dayrate);
-            long lastheight=0;
+            long lastdays=0;
             if(maxdays>differdays){
-                lastheight=differdays;
+                lastdays=differdays;
             }else{
-                lastheight=maxdays;
+                lastdays=maxdays;
             }
             //当前可获取利息
-            long interset=dayrate*differheight;
+            long interset=dayrate*lastdays;
             JSONObject jsonObject=new JSONObject();
-            jsonObject.put("interset",interset);
-            jsonObject.put("nowintersetheight",incubator.getLast_blockheight_interest());
-            jsonObject.put("nowintersetamount",incubator.getInterest_amount());
-            return APIResult.newFailResult(1,"SUCCESS",jsonObject);
+            jsonObject.put("dueinAmount",interset);
+            jsonObject.put("capitalAmount",incubator.getInterest_amount());
+            return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
         }catch (Exception e){
-            return APIResult.newFailResult(-1,"Data acquisition error");
+            return APIResult.newFailResult(5000,"ERROR");
         }
     }
 }
