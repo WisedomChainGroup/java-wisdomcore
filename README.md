@@ -115,7 +115,11 @@ ENABLE_MINING indicates whether to start mining.
 
 WDC_MINER_COINBASE must be set for mining coinbase address, otherwise the node cannot start. 
 
-For fullnode that do not participate in mining, an initialization setting is also made.
+For fullnode that do not participate in mining, an initialization setting is also made.  
+
+The value of DATA_SOURCE_URL is interconnected by docker containers without modification.   
+If you need to modify, make sure that the host name in the URL is the PgSQL container name and that the port is the same as the database port inside the PgSQL container.
+
 
 
 ## 3.	Start docker image
