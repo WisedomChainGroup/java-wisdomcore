@@ -56,17 +56,17 @@ public class Transaction {
             100000, 50000, 50000,
             50000, 50000, 50000,
             100000, 100000, 100000,
-            100000
+            100000, 20000, 20000, 20000
     };
 
-    public static final int TYPE_MAX = 12;
+    public static final int TYPE_MAX = 16;
 
     public enum Type {
         COINBASE, TRANSFER, VOTE,
         DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
         TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
         INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-        EXTRACT_COST, TERMINATE_INCUBATE
+        EXTRACT_COST, EXIT_VOTE, PLEDGE, EXIT_PLEDGE
     }
 
     public static Transaction createEmpty() {
@@ -348,14 +348,13 @@ public class Transaction {
         //payloadlen
         byte[] payloadlen = ByteUtil.bytearraycopy(msg, 0, 4);
         tran.setPayloadlen(ByteUtil.byteArrayToInt(payloadlen));
-        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c) {//孵化器、提取利息
+        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0d || type[0] == 0x03) {//孵化器、提取利息
             msg = ByteUtil.bytearraycopy(msg, 4, msg.length - 4);
             byte[] payload = ByteUtil.bytearraycopy(msg, 0, ByteUtil.byteArrayToInt(payloadlen));
             tran.setPayload(ByteString.copyFrom(payload));
         }
         return tran.build();
     }
-
 
     public static void main(String[] args) {
         String json = "{\n" +

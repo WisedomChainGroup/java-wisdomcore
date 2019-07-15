@@ -18,6 +18,9 @@
 
 package org.wisdom.Controller;
 
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.ApiResult.APIResult;
+import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.service.HatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +35,19 @@ public class HatchController {
     public Object sendBalance(@RequestParam("pubkeyhash") String pubkeyhash){
         return hatchService.getBalance(pubkeyhash);
     }
+
+    @RequestMapping(value="/getAddressBalance",method = RequestMethod.POST)
+    public Object getAddressBalance(@RequestParam("address") String address){
+        try{
+            byte[] pubhash=KeystoreAction.addressToPubkeyHash(address);
+            String pubkeyhash= Hex.encodeHexString(pubhash);
+            return hatchService.getBalance(pubkeyhash);
+        }catch (Exception e){
+            return APIResult.newFailResult(5000,"ERROR");
+        }
+
+    }
+
 
     @RequestMapping(value="/sendNonce",method =RequestMethod.POST )
     public Object sendNonce(@RequestParam("pubkeyhash") String pubkeyhash){

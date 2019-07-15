@@ -31,8 +31,8 @@ public class GenerateClass {
          *
          * */
         String protoFile = "Protocol.proto";
-        String path = "E:/WisdomCore-J/wisdom-core/src/main/java/org/ethereum/protobuf/tcp";
-        String out = "E:/WisdomCore-J/wisdom-core/src/main/java";
+        String path = "C:/Users/Administrator/IdeaProjects/java-wisdomcore/wisdom-core/src/main/java/org/wisdom/protobuf/tcp";
+        String out = "C:/Users/Administrator/IdeaProjects/java-wisdomcore/wisdom-core/src/main/java";
         String strCmd = "D:/protoc-3.7.0-win64/bin/protoc.exe -I=" + path + " --java_out=" + out + " " + path + "/" + protoFile;
         System.out.println(strCmd);
         Runtime.getRuntime().exec(strCmd);

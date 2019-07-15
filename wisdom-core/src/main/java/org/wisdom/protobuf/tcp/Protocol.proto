@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 
-package org.ethereum.protobuf.tcp;
+package org.wisdom.protobuf.tcp;
 option java_outer_classname = "ProtocolModel";
 option optimize_for = SPEED;
 
@@ -75,7 +75,10 @@ message Transaction {
         INCUBATE = 9; // 申请孵化
         EXTRACT_INTEREST = 10; // 获取利息收益
         EXTRACT_SHARING_PROFIT = 11; // 获取分享收益
-        TERMINATE_INCUBATE = 12; // 停止孵化
+        EXTRACT_COST = 12; //提取本金
+        EXIT_VOTE = 13;//撤回投票
+        PLEDGE = 14;//抵押
+        EXIT_PLEDGE = 15;//撤回抵押
     }
     Type type = 3;
     uint64 nonce = 4;

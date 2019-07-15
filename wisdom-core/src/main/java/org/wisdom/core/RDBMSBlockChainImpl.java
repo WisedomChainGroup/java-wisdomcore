@@ -19,6 +19,7 @@
 package org.wisdom.core;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.wisdom.core.account.InitializeAccount;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBestBlockEvent;
@@ -60,7 +61,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return res.get(0);
     }
 
-    private void clearData() {
+    public void clearData() {
         tmpl.batchUpdate("delete  from header where 1 = 1",
                 "delete from transaction where 1 = 1",
                 "delete from transaction_index where 1 = 1",
@@ -222,12 +223,16 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Autowired
-    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname) {
+    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname,InitializeAccount account) {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
         this.ctx = ctx;
         this.dataname = dataname;
+        //增加account vote字段
+        String sql="ALTER TABLE account OWNER TO "+dataname;
+        tmpl.execute(sql);//更换属主
+        tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
         if (!dbHasGenesis()) {
             clearData();
             writeGenesis(genesis);
@@ -238,10 +243,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             clearData();
             writeGenesis(genesis);
         }
-        //增加account vote字段
-       String sql="ALTER TABLE account OWNER TO "+dataname;
-       tmpl.execute(sql);//更换属主
-       tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
     }
 
     @Override

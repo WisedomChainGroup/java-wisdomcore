@@ -197,6 +197,7 @@ public class MerkleRule {
                 balance-=tran.getFee();
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
+                fromaccount.setBlockHeight(nowheight);
                 accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
             }else if(tran.type == 0x02){//投票
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
@@ -215,6 +216,7 @@ public class MerkleRule {
                     long vote=toaccount.getVote();
                     vote+=tran.amount;
                     toaccount.setVote(vote);
+                    toaccount.setBlockHeight(nowheight);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                     accmap.put(Hex.encodeHexString(tran.to), toaccount);
                 }else{
@@ -223,6 +225,25 @@ public class MerkleRule {
                     fromaccount.setVote(vote);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                 }
+            }else if(tran.type == 0x0d){//撤销投票
+                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                    fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                } else {
+                    fromaccount = accountDB.selectaccount(frompubhash);
+                }
+                long balance=fromaccount.getBalance();
+                balance-=tran.getFee();
+                balance+=tran.amount;
+                fromaccount.setBalance(balance);
+                fromaccount.setNonce(tran.nonce);
+                fromaccount.setBlockHeight(nowheight);
+                long vote=toaccount.getVote();
+                vote-=tran.amount;
+                toaccount.setVote(vote);
+                toaccount.setBlockHeight(nowheight);
+                accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+                accmap.put(Hex.encodeHexString(tran.to), toaccount);
             }
         }
         if (isdisplay) {

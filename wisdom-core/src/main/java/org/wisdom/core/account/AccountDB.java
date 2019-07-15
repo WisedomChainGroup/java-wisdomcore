@@ -182,4 +182,55 @@ public class AccountDB {
             return null;
         }
     }
+
+    public boolean hasExitVote(byte[] tranbyte){
+        try{
+            String sql="select count(*) from transaction t where t.payload=? and t.type=13";
+            int count=tmpl.queryForObject(sql,new Object[] {tranbyte},Integer.class);
+            return count==1?false:true;
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<Map<String,Object>> getTranList(int height,int type){
+        if(type==100){//全部
+            String sql="select encode(h.block_hash,'hex') as block_hash,h.height,t.version,encode(t.tx_hash,'hex') as tx_hash,t.type,t.nonce,encode(t.from,'hex') as from,t.gas_price,t.amount,encode(t.payload,'hex') as payload,\n" +
+                    "encode(t.signature,'hex') as signature,encode(t.to,'hex') as to from transaction t \n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash  \n" +
+                    "left join header h on i.block_hash=h.block_hash\n" +
+                    "where h.height=?";
+            return tmpl.queryForList(sql,new Object[] { height});
+        }else{
+            String sql="select encode(h.block_hash,'hex') as block_hash,h.height,t.version,encode(t.tx_hash,'hex') as tx_hash,t.type,t.nonce,encode(t.from,'hex') as from,t.gas_price,t.amount,encode(t.payload,'hex') as payload,\n" +
+                    "encode(t.signature,'hex') as signature,encode(t.to,'hex') as to from transaction t \n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash  \n" +
+                    "left join header h on i.block_hash=h.block_hash\n" +
+                    "where h.height=? and t.type=?";
+            return tmpl.queryForList(sql,new Object[] { height,type});
+        }
+
+    }
+
+    public List<Map<String,Object>> getTranBlockList(byte[] blockhash,int type){
+        if(type==100){//全部
+            String sql="select encode(h.block_hash,'hex') as block_hash,h.height,t.version,encode(t.tx_hash,'hex') as tx_hash,t.type,t.nonce,encode(t.from,'hex') as from,\n" +
+                    "t.gas_price,t.amount,encode(t.payload,'hex') as payload,\n" +
+                    "encode(t.signature,'hex') as signature,encode(t.to,'hex') as to from transaction t \n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash \n" +
+                    "left join header h on i.block_hash=h.block_hash\n" +
+                    "where h.block_hash=?";
+            return tmpl.queryForList(sql,new Object[] { blockhash});
+        }else{
+            String sql="select encode(h.block_hash,'hex') as block_hash,h.height,t.version,encode(t.tx_hash,'hex') as tx_hash,t.type,t.nonce,encode(t.from,'hex') as from,\n" +
+                    "t.gas_price,t.amount,encode(t.payload,'hex') as payload,\n" +
+                    "encode(t.signature,'hex') as signature,encode(t.to,'hex') as to from transaction t \n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash \n" +
+                    "left join header h on i.block_hash=h.block_hash\n" +
+                    "where h.block_hash=? and type=?";
+            return tmpl.queryForList(sql,new Object[] { blockhash,type});
+        }
+    }
+
 }

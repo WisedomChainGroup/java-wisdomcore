@@ -65,7 +65,6 @@ public class CommandController {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
             return commandService.verifyTransfer(traninfos);
         } catch (DecoderException e) {
-            e.printStackTrace();
             APIResult apiResult = new APIResult();
             apiResult.setCode(5000);
             apiResult.setMessage("Error");
@@ -73,19 +72,41 @@ public class CommandController {
         }
     }
 
-    @RequestMapping(value={"/sendDeposit","/sendVote"},method = RequestMethod.GET)
-    public Object sendTransaction2(@RequestParam(value = "traninfo", required = true) String traninfo){
+    @RequestMapping(value="/getTransactionHeight",method = RequestMethod.POST)
+    public Object getTransactionHeight(@RequestParam("height") int height,String type){
         try {
-            byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
-            return commandService.verifyTransfer(traninfos);
-        } catch (DecoderException e) {
-            e.printStackTrace();
+            if(type==null || type==""){//默认转账事务
+                return commandService.getTransactionList(height,1);
+            }else{//全部事务
+                int types=Integer.valueOf(type);
+                return commandService.getTransactionList(height,types);
+            }
+        } catch (Exception e) {
             APIResult apiResult = new APIResult();
             apiResult.setCode(5000);
             apiResult.setMessage("Error");
             return apiResult;
         }
     }
+
+    @RequestMapping(value="/getTransactionBlcok",method = RequestMethod.POST)
+    public Object getTransactionBlcok(@RequestParam("blockhash") String blockhash,String type){
+        try {
+            byte[] block_hash=Hex.decodeHex(blockhash.toCharArray());
+            if(type==null || type==""){//默认转账事务
+                return commandService.getTransactionBlcok(block_hash,1);
+            }else{
+                int types=Integer.valueOf(type);
+                return commandService.getTransactionBlcok(block_hash,types);
+            }
+        } catch (DecoderException e) {
+            APIResult apiResult = new APIResult();
+            apiResult.setCode(5000);
+            apiResult.setMessage("Error");
+            return apiResult;
+        }
+    }
+
 
     @RequestMapping(method = RequestMethod.GET, value = "/block/{id}", produces = "application/json")
     public Object getBlock(@PathVariable("id") String id) {

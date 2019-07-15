@@ -22,6 +22,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.core.account.Account;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -87,7 +88,7 @@ public class TransactionCheck {
         long gasPrice=BigEndian.decodeUint64(gasbyte);
         //gas
         long gas=0;
-        if(12>=type[0] && type[0]>=0){
+        if(15>=type[0] && type[0]>=0){
             gas= Transaction.GAS_TABLE[type[0]];
         }else{
             apiResult.setCode(5000);
@@ -120,7 +121,7 @@ public class TransactionCheck {
                 apiResult.setMessage("Error");
                 return apiResult;
             }
-        }else if(type[0]==0x03 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
+        }else if(type[0]==0x03 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c || type[0]==0x0d){
             if(gasPrice*gas>nowbalance){
                 apiResult.setCode(5000);
                 apiResult.setMessage("Error");
@@ -133,7 +134,7 @@ public class TransactionCheck {
                 return apiResult;
             }
             //求余
-            int remainder=(int)amount % 100000000;
+            long remainder=(long)(amount % 100000000);
             if(remainder!=0){
                 apiResult.setCode(5000);
                 apiResult.setMessage("Error");
@@ -285,6 +286,31 @@ public class TransactionCheck {
                     return false;
                 }
                 if(amount!=incubator.getCost() || amount==0){
+                    return false;
+                }
+            }else if(type[0]==0x0d){//撤回投票
+                if(payload.length!=32){//投票事务哈希
+                    return false;
+                }
+                boolean hasvote=accountDB.hasExitVote(payload);
+                if(!hasvote){
+                    return false;
+                }
+                Transaction transaction=wisdomBlockChain.getTransaction(payload);
+                if(transaction==null){
+                    return false;
+                }
+                if(!Arrays.equals(transaction.to,topubkeyhash)){
+                    return false;
+                }
+                if(transaction.amount!=amount){
+                    return false;
+                }
+                Account account=accountDB.selectaccount(topubkeyhash);
+                if(account==null){
+                    return false;
+                }
+                if(account.getVote()<amount){
                     return false;
                 }
             }

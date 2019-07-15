@@ -35,6 +35,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class CommandServiceImpl implements CommandService {
@@ -80,5 +82,17 @@ public class CommandServiceImpl implements CommandService {
         transactionPool.add(tran);
         client.broascastTransactions(Collections.singletonList(tran));
         return apiResult;
+    }
+
+    @Override
+    public Object getTransactionList(int height,int type) {
+        List<Map<String,Object>> transactionList=accountDB.getTranList(height,type);
+        return APIResult.newFailResult(2000,"SUCCESS",transactionList);
+    }
+
+    @Override
+    public Object getTransactionBlcok(byte[] blockhash, int type) {
+        List<Map<String,Object>> transactionList=accountDB.getTranBlockList(blockhash,type);
+        return APIResult.newFailResult(2000,"SUCCESS",transactionList);
     }
 }
