@@ -247,13 +247,13 @@ public class TransactionCheck {
                 //最后提取时间
                 long inheight=0;
                 if(type[0]==0x0b){//提取分享收益
-                    if(incubator.getLast_blockheight_interest()==0 || incubator.getInterest_amount()<amount){
+                    if(incubator.getLast_blockheight_interest()==0 || incubator.getShare_amount()<amount){
                         return false;
                     }
                     totalrate=(long)(totalrate*0.1);
                     inheight=incubator.getLast_blockheight_share();
                 }else{//提取利息
-                    if(incubator.getLast_blockheight_interest()==0 || incubator.getShare_amount()<amount){
+                    if(incubator.getLast_blockheight_interest()==0 || incubator.getInterest_amount()<amount){
                         return false;
                     }
                     inheight=incubator.getLast_blockheight_interest();

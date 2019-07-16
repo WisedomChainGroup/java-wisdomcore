@@ -143,7 +143,7 @@ public class AccountDB {
 
     public List<Map<String,Object>> selectlistHacth(int height, int type) {
         try{
-            String sql="select encode(t.tx_hash::bytea,'hex') as \"coinHash\",t.to as \"coinAddress\",t.amount as \"coinAccount\",h.height as \"blockHeight\",encode(t.payload::bytea,'hex')as payload \n" +
+            String sql="select encode(t.tx_hash::bytea,'hex') as \"coinHash\",encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"coinAccount\",h.height as \"blockHeight\",encode(t.payload::bytea,'hex')as payload \n" +
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height>? and TYPE=? order by h.height limit 1000";
@@ -189,7 +189,6 @@ public class AccountDB {
             int count=tmpl.queryForObject(sql,new Object[] {tranbyte},Integer.class);
             return count==1?false:true;
         }catch (Exception e){
-            e.printStackTrace();
             return false;
         }
     }

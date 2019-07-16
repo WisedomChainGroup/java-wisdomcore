@@ -111,7 +111,7 @@ public class HatchServiceImpl implements HatchService {
                 String sharpubkeyhex=payloadproto.getSharePubkeyHash();
                 String sharpubkey="";
                 if(sharpubkeyhex!=null && sharpubkeyhex!=""){
-                    byte[] sharepubkeyhash=Hex.decodeHex(sharpubkey.toCharArray());
+                    byte[] sharepubkeyhash=Hex.decodeHex(sharpubkeyhex.toCharArray());
                     sharpubkey=KeystoreAction.pubkeyHashToAddress(sharepubkeyhash,(byte)0x00);
                 }
                 json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(tohash,(byte)0x00));
@@ -132,10 +132,23 @@ public class HatchServiceImpl implements HatchService {
             List<Map<String,Object>> list=accountDB.selectlistInterest(height,10);
             JSONArray jsonArray = new JSONArray();
             for(Map<String,Object> map:list){
-                JSONObject json = JSONObject.fromObject( map );
-                byte[] to=json.getString("coinAddress").getBytes();
-                json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
-                jsonArray.add(json);
+                byte[] to= (byte[]) map.get("coinAddress");
+                map.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
+                //分享者
+                String tranhex=map.get("coinHash").toString();
+                byte[] tranhash=Hex.decodeHex(tranhex.toCharArray());
+                Incubator incubator=incubatorDB.selectIncubator(tranhash);
+                if(incubator!=null){
+                    byte[] share=incubator.getShare_pubkeyhash();
+                    if(share!=null && share.length>0){
+                        map.put("inviteAddress",KeystoreAction.pubkeyHashToAddress(share,(byte)0x00));
+                    }else{
+                        map.put("inviteAddress","");
+                    }
+                }else{
+                    return APIResult.newFailResult(5000,"ERROR");
+                }
+                jsonArray.add(map);
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
@@ -149,12 +162,11 @@ public class HatchServiceImpl implements HatchService {
             List<Map<String,Object>> list=accountDB.selectlistShare(height,11);
             JSONArray jsonArray = new JSONArray();
             for(Map<String,Object> map:list){
-                JSONObject json = JSONObject.fromObject( map );
-                byte[] to=json.getString("coinAddress").getBytes();
-                byte[] invite=json.getString("inviteAddress").getBytes();
-                json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
-                json.put("inviteAddress",KeystoreAction.pubkeyHashToAddress(invite,(byte)0x00));
-                jsonArray.add(json);
+                byte[] to= (byte[]) map.get("coinAddress");
+                byte[] invite= (byte[]) map.get("inviteAddress");
+                map.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
+                map.put("inviteAddress",KeystoreAction.pubkeyHashToAddress(invite,(byte)0x00));
+                jsonArray.add(map);
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){

@@ -38,7 +38,6 @@ public class IncubatorDB {
             String sql="select count(*) from incubator_state";
             return tmpl.queryForObject(sql,Integer.class);
         }catch (Exception e){
-            e.printStackTrace();
             return 0;
         }
     }
@@ -49,7 +48,6 @@ public class IncubatorDB {
                     "select max(i.height) from incubator_state i where i.txid_issue=?) ";
             return tmpl.queryForObject(sql,new Object[] { tx,tx },new IncubatorRowMapper());
         }catch (Exception e){
-            e.printStackTrace();
             return null;
         }
     }
@@ -60,7 +58,6 @@ public class IncubatorDB {
             String sql="insert into incubator_state VALUES(?,?,?,?,?,?,?,?,?,?)";
             return tmpl.update(sql,new Object[]{incubator.getId(),incubator.getShare_pubkeyhash(),incubator.getPubkeyhash(),incubator.getTxid_issue(),incubator.getHeight(),incubator.getCost(),incubator.getInterest_amount(),incubator.getShare_pubkeyhash(),incubator.getLast_blockheight_interest(),incubator.getLast_blockheight_share()});
         }catch (Exception e){
-            e.printStackTrace();
             return 0;
         }
     }
@@ -70,7 +67,6 @@ public class IncubatorDB {
             String sql="insert into incubator_state(id,share_pubkeyhash,pubkeyhash,txid_issue,height,cost,interest_amount,share_amount,last_blockheight_interest,last_blockheight_share) VALUES(?,?,?,?,?,?,?,?,?,?) on conflict(id) do nothing";
             return tmpl.batchUpdate(sql,Object);
         }catch (Exception e){
-            e.printStackTrace();
             return null;
         }
     }
