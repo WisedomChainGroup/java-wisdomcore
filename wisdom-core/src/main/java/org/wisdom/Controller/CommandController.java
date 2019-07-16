@@ -56,7 +56,7 @@ public class CommandController {
     Block genesis;
 
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
-            "/sendShare", "/sendDeposit", "/sendCost"})
+            "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
     public Object sendTransaction(@RequestParam(value = "traninfo", required = true) String traninfo) {
         if (!enableMining) {
             return ConsensusResult.ERROR("this node cannot process transaction");
