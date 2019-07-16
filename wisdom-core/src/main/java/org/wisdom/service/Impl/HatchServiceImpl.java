@@ -86,12 +86,11 @@ public class HatchServiceImpl implements HatchService {
         List<Map<String,Object>> list=accountDB.selectlistTran(height,1, Transaction.GAS_TABLE[1]);
         JSONArray jsonArray = new JSONArray();
         for(Map<String,Object> map:list){
-            JSONObject json = JSONObject.fromObject( map );
-            byte[] from=json.getString("fromAddress").getBytes();
-            byte[] to=json.getString("coinAddress").getBytes();
-            json.put("fromAddress",KeystoreAction.pubkeyHashToAddress(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)),(byte)0x00));
-            json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
-            jsonArray.add(json);
+            byte[] from= (byte[]) map.get("fromAddress");
+            byte[] to= (byte[]) map.get("coinAddress");
+            map.put("fromAddress",KeystoreAction.pubkeyHashToAddress(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)),(byte)0x00));
+            map.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
+            jsonArray.add(map);
         }
         return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
     }
@@ -103,7 +102,8 @@ public class HatchServiceImpl implements HatchService {
             JSONArray jsonArray = new JSONArray();
             for(Map<String,Object> map:list){
                 JSONObject json = JSONObject.fromObject( map );
-                byte[] to=json.getString("coinAddress").getBytes();
+                String to=json.getString("coinAddress");
+                byte[] tohash=Hex.decodeHex(to.toCharArray());
                 String payload=json.getString("payload");
                 byte[] payloadbyte=Hex.decodeHex(payload);
                 HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(payloadbyte);
@@ -114,7 +114,7 @@ public class HatchServiceImpl implements HatchService {
                     byte[] sharepubkeyhash=Hex.decodeHex(sharpubkey.toCharArray());
                     sharpubkey=KeystoreAction.pubkeyHashToAddress(sharepubkeyhash,(byte)0x00);
                 }
-                json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(to,(byte)0x00));
+                json.put("coinAddress",KeystoreAction.pubkeyHashToAddress(tohash,(byte)0x00));
                 json.put("blockType",days);
                 json.put("inviteAddress",sharpubkey);
                 json.remove("payload");

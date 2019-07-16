@@ -39,7 +39,7 @@ public class Address {
     3. 取得s1的后面22字节，并且在前面附加3个字符（WXC，大写字符），共25字节，结果为s2
     */
     public  String pubkeyToAddress(PublicKey publicKey){
-        return KeystoreAction.pubkeyHashToAddress(publicKey.getEncoded(),numb);
+        return KeystoreAction.pubkeyToAddress(publicKey.getEncoded(),numb);
     }
 
     public Address(){

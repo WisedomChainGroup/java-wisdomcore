@@ -52,8 +52,11 @@ public class InitializeAccount {
         if(!this.miner){
             long height=tmpl.queryForObject("select count(*) from header",Integer.class);
             String path=System.getProperty("user.dir")+ File.separator+"version.json";
-//            String path=System.getProperty("user.dir")+ File.separator+"wisdom-core"+File.separator+"version.json";
             File file = new File(path);
+            if(!file.exists()){
+                path=System.getProperty("user.dir")+ File.separator+"wisdom-core"+File.separator+"version.json";
+                file = new File(path);
+            }
             Resource resource = new FileSystemResource(file);
             String str = IOUtils.toString(new InputStreamReader(resource.getInputStream(),"UTF-8"));
             Initilize initilize=JSONObject.parseObject(str, Initilize.class);
