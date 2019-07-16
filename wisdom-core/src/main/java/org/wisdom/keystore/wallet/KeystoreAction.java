@@ -276,7 +276,7 @@ public class KeystoreAction {
       6.r6就是地址
 
    */
-    public static String pubkeyHashToAddress(byte[] pubkey,byte numb){
+    public static String pubkeyToAddress(byte[] pubkey,byte numb){
         byte[] pub256 = SHA3Utility.keccak256(pubkey);
         byte[] r1 = RipemdUtility.ripemd160(pub256);
         byte[] r2 = ByteUtil.prepend(r1,numb);
@@ -286,6 +286,22 @@ public class KeystoreAction {
         String s6 = Base58Utility.encode(b5);
         return s6 ;
     }
+
+    /**
+     * 公钥哈希转地址
+     * @param pubkey
+     * @param numb
+     * @return
+     */
+    public static String pubkeyHashToAddress(byte[] pubkey,byte numb){
+        byte[] r2 = ByteUtil.prepend(pubkey,numb);
+        byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(pubkey));
+        byte[] b4 = ByteUtil.bytearraycopy(r3,0,4);
+        byte[] b5 = ByteUtil.byteMerger(r2,b4);
+        String s6 = Base58Utility.encode(b5);
+        return s6 ;
+    }
+
 
     /**
      *    1.将地址进行base58解码，得到结果r5
@@ -319,42 +335,5 @@ public class KeystoreAction {
         }else {//地址格式错误
             return  -2;
         }
-    }
-
-    public static void main(String[] args) throws Exception {
-//        generateKeystore("111111111");
-//        String json = "{\n" +
-//                "\t\"address\": \"19RV9M4oCuXcrm79ykSk2CyWGxFyufRk3x\",\n" +
-//                "\t\"crypto\": {\n" +
-//                "\t\t\"cipher\": \"aes-256-ctr\",\n" +
-//                "\t\t\"cipherparams\": {\n" +
-//                "\t\t\t\"iv\": \"3c4b696f83ee5e604cc2c33523adac9b\"\n" +
-//                "\t\t},\n" +
-//                "\t\t\"ciphertext\": \"70065eb92dd48a6e4b646f6aa101231b8438287a5691083a08c535cc91476b3a\"\n" +
-//                "\t},\n" +
-//                "\t\"id\": \"5579022c-23ea-43d8-b49f-2e7802e7025e\",\n" +
-//                "\t\"kdf\": \"argon2id\",\n" +
-//                "\t\"kdfparams\": {\n" +
-//                "\t\t\"memoryCost\": 20480,\n" +
-//                "\t\t\"parallelism\": 2,\n" +
-//                "\t\t\"salt\": \"2363b4f8522cd70e266549de454c4c63eb1d6aa48af755a45e6eacc1fbbe26f5\",\n" +
-//                "\t\t\"timeCost\": 4\n" +
-//                "\t},\n" +
-//                "\t\"mac\": \"7391cdea77c1ea9fb6f0803a0a18db70431de622ee591042606e30e98f8ad92f\",\n" +
-//                "\t\"version\": \"1\"\n" +
-//                "}";
-//        System.out.println(obtainPrikey2(json,"111111111"));
-        //f212e95523c2154f28d51a5f49d1fd36edc4f7618d65e9af4e7d365b8c4eb7f3
-
-//        System.out.println(readKeystoreByFileName("111111111","19RV9M4oCuXcrm79ykSk2CyWGxFyufRk3x1561947793"));
-//"TEST1".getBytes()
-//        System.out.println(Hex.encodeHexString(SHA3Utility.keccak256(Hex.decodeHex("123a".toCharArray()))));
-
-//
-//        String awe = Hex.encodeHexString(SHA3Utility.keccak256(ByteUtil.prepend(ByteUtil.byteMerger(Hex.encodeHexString(SHA3Utility.keccak256("TEST1".getBytes())).getBytes(),Hex.encodeHexString(SHA3Utility.keccak256("TEST2".getBytes())).getBytes()),(byte)1)));
-//        String e = Hex.encodeHexString(SHA3Utility.keccak256(ByteUtil.prepend(ByteUtil.byteMerger(awe.getBytes(),awe.getBytes()),(byte)2)));
-//
-//        System.out.println(Hex.encodeHexString(SHA3Utility.keccak256(ByteUtil.prepend(ByteUtil.byteMerger("c5e68c8167fdefa48329e0660fe702ff6ba3285524f62b0c00a9e9de6d624fde".getBytes(),"c5e68c8167fdefa48329e0660fe702ff6ba3285524f62b0c00a9e9de6d624fde".getBytes()),(byte)2))));
-//System.out.println(e);
     }
 }
