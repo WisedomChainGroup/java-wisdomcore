@@ -33,9 +33,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 public class CommandController {
     private static Logger logger = LoggerFactory.getLogger(CommandController.class);
+
+    public static final int CONFIRMED = 2100;
+    public static final int NOT_CONFIRMED = 2100;
 
     @Value("${wisdom.consensus.enable-mining}")
     boolean enableMining;
@@ -72,14 +78,14 @@ public class CommandController {
         }
     }
 
-    @RequestMapping(value="/getTransactionHeight",method = RequestMethod.POST)
-    public Object getTransactionHeight(@RequestParam("height") int height,String type){
+    @RequestMapping(value = "/getTransactionHeight", method = RequestMethod.POST)
+    public Object getTransactionHeight(@RequestParam("height") int height, String type) {
         try {
-            if(type==null || type==""){//默认转账事务
-                return commandService.getTransactionList(height,1);
-            }else{//全部事务
-                int types=Integer.valueOf(type);
-                return commandService.getTransactionList(height,types);
+            if (type == null || type == "") {//默认转账事务
+                return commandService.getTransactionList(height, 1);
+            } else {//全部事务
+                int types = Integer.valueOf(type);
+                return commandService.getTransactionList(height, types);
             }
         } catch (Exception e) {
             APIResult apiResult = new APIResult();
@@ -89,15 +95,15 @@ public class CommandController {
         }
     }
 
-    @RequestMapping(value="/getTransactionBlcok",method = RequestMethod.POST)
-    public Object getTransactionBlcok(@RequestParam("blockhash") String blockhash,String type){
+    @RequestMapping(value = "/getTransactionBlcok", method = RequestMethod.POST)
+    public Object getTransactionBlcok(@RequestParam("blockhash") String blockhash, String type) {
         try {
-            byte[] block_hash=Hex.decodeHex(blockhash.toCharArray());
-            if(type==null || type==""){//默认转账事务
-                return commandService.getTransactionBlcok(block_hash,1);
-            }else{
-                int types=Integer.valueOf(type);
-                return commandService.getTransactionBlcok(block_hash,types);
+            byte[] block_hash = Hex.decodeHex(blockhash.toCharArray());
+            if (type == null || type == "") {//默认转账事务
+                return commandService.getTransactionBlcok(block_hash, 1);
+            } else {
+                int types = Integer.valueOf(type);
+                return commandService.getTransactionBlcok(block_hash, types);
             }
         } catch (DecoderException e) {
             APIResult apiResult = new APIResult();
@@ -121,7 +127,7 @@ public class CommandController {
             if (b == null) {
                 return ConsensusResult.ERROR("cannot find block at height = " + height);
             }
-            if(b.nHeight == 0){
+            if (b.nHeight == 0) {
                 b = b.toHeader();
             }
             return encodeDecoder.encode(b);
@@ -171,4 +177,37 @@ public class CommandController {
         return ConsensusResult.ERROR("the transaction where to = " + hash + " not exists");
     }
 
+    @RequestMapping(method = RequestMethod.GET, value = "/height")
+    public Object getCurrentHeight() {
+        Block current = bc.currentHeader();
+        return APIResult.newFailResult(2000, "success", current.nHeight);
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/transactionConfirmed")
+    public Object getConfirms(@RequestParam("txHash") String hash) {
+        try {
+            Block current = bc.currentHeader();
+            Transaction tx = bc.getTransaction(Hex.decodeHex(hash));
+            long res = NOT_CONFIRMED;
+            if (current.nHeight - tx.height > 2) {
+                res = CONFIRMED;
+            }
+            return APIResult.newFailResult(2000, "success", res);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "fail");
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/blockHash")
+    public Object getBlockHash(@RequestParam("txHash") String hash) {
+        try {
+            Transaction tx = bc.getTransaction(Hex.decodeHex(hash));
+            Map<String, Object> res = new HashMap<>();
+            res.put("blockHash", Hex.encodeHexString(tx.blockHash));
+            res.put("height", tx.height);
+            return APIResult.newFailResult(2000, "success", res);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "fail");
+        }
+    }
 }
