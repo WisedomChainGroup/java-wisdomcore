@@ -230,8 +230,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         this.ctx = ctx;
         this.dataname = dataname;
         //增加account vote字段
-        String sql="ALTER TABLE account OWNER TO "+dataname;
-        tmpl.execute(sql);//更换属主
+        if(dataname!=null && dataname!=""){
+            String sql="ALTER TABLE account OWNER TO "+dataname;
+            tmpl.execute(sql);//更换属主
+        }
         tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
         if (!dbHasGenesis()) {
             clearData();
