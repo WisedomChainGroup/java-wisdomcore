@@ -46,7 +46,7 @@ public class InitializeAccount {
     }
 
     @Autowired
-    public InitializeAccount(JdbcTemplate tmpl, @Value("{wisdom.consensus.enable-mining}") String miner) throws IOException {
+    public InitializeAccount(JdbcTemplate tmpl, @Value("${wisdom.consensus.enable-mining}") String miner ) throws IOException {
         this.tmpl=tmpl;
         this.miner= Boolean.parseBoolean(miner);
         if(!this.miner){
