@@ -183,6 +183,20 @@ public class AccountDB {
         }
     }
 
+    public List<Map<String,Object>> selectlistCost(int height, int type) {
+        try{
+            String sql="select encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"tranHash\",h.height as \"coinHeigth\",encode(t.payload::bytea,'hex') as \"tradeHash\" \n" +
+                    "from transaction t\n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height>? and t.type=? order by h.height limit 1000";
+            return tmpl.queryForList(sql,new Object[]{height,type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public boolean hasExitVote(byte[] tranbyte){
         try{
             String sql="select count(*) from transaction t where t.payload=? and t.type=13";

@@ -78,4 +78,9 @@ public class HatchController {
     public Object sendShareList(@RequestParam("height") int height){
         return hatchService.getShare(height);
     }
+
+    @GetMapping(value = "/WisdomCore/sendCostList")
+    public Object sendCostList(@RequestParam("height") int height){
+        return hatchService.getCost(height);
+    }
 }

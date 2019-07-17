@@ -175,6 +175,23 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
+    public Object getCost(int height) {
+        try{
+            List<Map<String,Object>> list=accountDB.selectlistCost(height,12);
+            JSONArray jsonArray = new JSONArray();
+            for(Map<String,Object> map:list){
+                String coinAddress=map.get("coinAddress").toString();
+                byte[] pubkeyhash=Hex.decodeHex(coinAddress.toCharArray());
+                map.put("coinAddress",KeystoreAction.pubkeyHashToAddress(pubkeyhash,(byte)0x00));
+                jsonArray.add(map);
+            }
+            return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
+        }catch (Exception e){
+            return APIResult.newFailResult(5000,"ERROR");
+        }
+    }
+
+    @Override
     public Object getNowInterest(String tranhash) {
         try{
             byte[] trhash= Hex.decodeHex(tranhash.toCharArray());

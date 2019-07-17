@@ -32,5 +32,7 @@ public interface HatchService {
 
     Object getShare(int height);
 
+    Object getCost(int height);
+
     Object getNowInterest(String tranhash);
 }
