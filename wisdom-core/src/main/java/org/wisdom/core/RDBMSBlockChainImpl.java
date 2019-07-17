@@ -230,7 +230,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         this.ctx = ctx;
         this.dataname = dataname;
         //增加account vote字段
-        if(this.dataname!=null || this.dataname!=""){
+        if(this.dataname!=null && this.dataname!="" && !this.dataname.equals("")){
             String sql="ALTER TABLE account OWNER TO "+dataname;
             tmpl.execute(sql);//更换属主
         }
