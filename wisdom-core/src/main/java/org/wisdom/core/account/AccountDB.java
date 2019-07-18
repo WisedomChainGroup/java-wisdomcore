@@ -118,7 +118,7 @@ public class AccountDB {
             String sql="select encode(t.tx_hash::bytea,'hex') as \"tranHash\",t.from as \"fromAddress\",t.to as \"coinAddress\",t.amount as \"amount\",h.height as \"coinHeigth\",t.gas_price*? as \"fee\" \n" +
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height>? and TYPE=? order by h.height limit 1000";
+                    "where  h.height=? and TYPE=? order by h.height";
             return tmpl.queryForList(sql,new Object[]{gas,height,type});
         }catch (Exception e){
             e.printStackTrace();
@@ -146,7 +146,7 @@ public class AccountDB {
             String sql="select encode(t.tx_hash::bytea,'hex') as \"coinHash\",encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"coinAccount\",h.height as \"blockHeight\",encode(t.payload::bytea,'hex')as payload \n" +
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height>? and TYPE=? order by h.height limit 1000";
+                    "where  h.height=? and TYPE=? order by h.height";
             return tmpl.queryForList(sql,new Object[]{height,type});
         }catch (Exception e){
             e.printStackTrace();
@@ -159,7 +159,7 @@ public class AccountDB {
             String sql="select encode(t.tx_hash::bytea,'hex') as \"tranHash\",t.to as \"coinAddress\",t.amount as \"amount\",h.height as \"coinHeigth\",encode(t.payload::bytea,'hex') as \"coinHash\"\n" +
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height>? and TYPE=? order by h.height limit 1000";
+                    "where  h.height=? and TYPE=? order by h.height";
             return tmpl.queryForList(sql,new Object[]{height,type});
         }catch (Exception e){
             e.printStackTrace();
@@ -175,7 +175,7 @@ public class AccountDB {
                     "left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "left join transaction r on t.payload=r.tx_hash\n" +
-                    "where  h.height>? and t.type=? order by h.height limit 1000";
+                    "where  h.height=? and t.type=? order by h.height";
             return tmpl.queryForList(sql,new Object[]{height,type});
         }catch (Exception e){
             e.printStackTrace();
@@ -189,7 +189,7 @@ public class AccountDB {
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height>? and t.type=? order by h.height limit 1000";
+                    "where  h.height=? and t.type=? order by h.height";
             return tmpl.queryForList(sql,new Object[]{height,type});
         }catch (Exception e){
             e.printStackTrace();
