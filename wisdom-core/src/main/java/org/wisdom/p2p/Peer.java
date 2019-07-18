@@ -18,9 +18,45 @@
 
 package org.wisdom.p2p;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 public class Peer {
+    @NotNull
+    @Size(min = 1)
     public String host;
+
+    @Max(65535)
+    @Min(0)
     public int port;
+
     public byte[] privateKey;
-    public byte[] publicKey;
+
+
+    @Size(max = 32, min = 32)
+    @NotNull
+    public byte[] peerID;
+
+    public String toString() {
+        return null;
+    }
+
+    public int subTree(Peer that) {
+        byte[] bits = new byte[32];
+        for (int i = 0; i < 32; i++) {
+            bits[i] = (byte) (peerID[i] ^ that.peerID[i]);
+        }
+        for(int i = 0; i < 256; i++){
+            if((bits[i/8] & (1 << (8 - i%8))) != 0){
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    public String hostPort() {
+        return host + port;
+    }
 }
