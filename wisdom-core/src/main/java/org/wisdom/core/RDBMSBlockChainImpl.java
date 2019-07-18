@@ -338,6 +338,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             // cannot find parent, write fail
             return;
         }
+        // 单机挖矿时防止分叉
+        if (getCanonicalHeader(block.nHeight) != null){
+            return;
+        }
         long ptw = parentHeader.totalWeight;
         Block headHeader = currentHeader();
         long localTW = getTotalWeight(headHeader.getHash());

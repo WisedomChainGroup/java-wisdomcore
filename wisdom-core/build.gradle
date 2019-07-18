@@ -13,7 +13,6 @@ buildscript {
     }
 }
 
-
 plugins {
     id 'application'
     id 'jacoco'
@@ -26,6 +25,7 @@ plugins {
 apply plugin: 'propdeps-maven'
 apply plugin: 'com.jfrog.artifactory-upload'
 apply plugin: 'docker'
+
 
 //apply plugin: 'io.spring.dependency-management'
 
@@ -117,7 +117,7 @@ task buildDockerJdk(type: Docker) {
 task buildDockerCore(type: Docker, dependsOn: jar) {
     push = false
     tag="wisdomchain/wdc_core"
-    tagVersion='test'
+    tagVersion='v0.0.2'
     applicationName = 'wdc_core'
     dockerfile = file('src/main/docker/core/Dockerfile')
 
@@ -130,6 +130,9 @@ task buildDockerCore(type: Docker, dependsOn: jar) {
         }
         copy {
             from 'src/main/docker/core/run_wdc_core.sh' into stageDir
+        }
+        copy {
+            from 'src/main/docker/core/version.json' into stageDir
         }
     }
 }
@@ -268,6 +271,10 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.6.0'
     compile group: 'org.hibernate.validator', name: 'hibernate-validator', version: '6.0.17.Final'
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.8'
+
+    implementation 'io.grpc:grpc-netty-shaded:1.22.1'
+    implementation 'io.grpc:grpc-protobuf:1.22.1'
+    implementation 'io.grpc:grpc-stub:1.22.1'
 }
 
 
@@ -404,7 +411,6 @@ task publish {
     description = "Publishes snapshots to oss.jfrog.org and releases to Bintray/JCenter"
     dependsOn artifactoryPublish, bintrayUpload
 }
-
 
 def customizePom(pom, gradleProject) {
     pom.whenConfigured { generatedPom ->

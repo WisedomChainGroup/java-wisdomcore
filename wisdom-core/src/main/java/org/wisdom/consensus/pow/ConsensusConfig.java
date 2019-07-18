@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.keystore.wallet.Keystore;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.core.Block;
 import org.slf4j.Logger;
@@ -113,6 +114,7 @@ public class ConsensusConfig {
 
     public static void main(String[] args) throws Exception {
         ConsensusConfig cfg = new ConsensusConfig(new JSONEncodeDecoder(), "1pQfDX4fvz7uzBQuM9FbuoKWohmhg9TmY", "genesis/validators.json", true);
+
         cfg.setPowWait(90);
         Block p = new Block();
         p.nHeight = 9005;
@@ -131,6 +133,9 @@ public class ConsensusConfig {
         }
         if (parentBlock.nHeight == 0) {
             return new Proposer(getValidatorPubKeyHashes().get(0), 0, Integer.MAX_VALUE);
+        }
+        if (parentBlock.nHeight >= 9235) {
+            return new Proposer(getValidatorPubKeyHashes().get(0), -1, Integer.MAX_VALUE);
         }
         long step = (timeStamp - parentBlock.nTime)
                 / powWait + 1;

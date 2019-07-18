@@ -70,4 +70,5 @@ public class Ed25519PrivateKey implements PrivateKey {
     public Ed25519PublicKey generatePublicKey(){
         return new Ed25519PublicKey(this.privateKey.generatePublicKey());
     }
+
 }
