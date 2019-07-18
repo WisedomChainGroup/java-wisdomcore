@@ -27,6 +27,7 @@ import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.WisdomBlockChain;
@@ -35,12 +36,9 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
-import org.springframework.scheduling.annotation.Async;
-
 
 import java.util.Arrays;
 
-@Async
 public class TransactionCheck {
 
     public static APIResult TransactionVerifyResult(byte[] transfer, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight, boolean b){
@@ -149,6 +147,22 @@ public class TransactionCheck {
         byte[] topubkeyhash=ByteUtil.bytearraycopy(tranlast,0,20);
         if( type[0]==0x09 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
             if(!Arrays.equals(frompubhash,topubkeyhash)){
+                apiResult.setCode(5000);
+                apiResult.setMessage("Error");
+                return apiResult;
+            }
+        }
+        //fromaddress
+        boolean verifyfrom=(KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte)0x00))==0);
+        if(!verifyfrom){
+            apiResult.setCode(5000);
+            apiResult.setMessage("Error");
+            return apiResult;
+        }
+        //toaddress
+        if(type[0]!=0x03){//非存证
+            boolean verifyto=(KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte)0x00))==0);
+            if(!verifyto){
                 apiResult.setCode(5000);
                 apiResult.setMessage("Error");
                 return apiResult;
