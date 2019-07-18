@@ -43,4 +43,6 @@ public class Ed25519 {
         nkp.setPublicKey(new Ed25519PublicKey(publicKey));
         return nkp;
     }
+
+    
 }
