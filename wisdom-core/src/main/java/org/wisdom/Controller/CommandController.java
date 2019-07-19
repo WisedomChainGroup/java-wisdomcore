@@ -63,10 +63,7 @@ public class CommandController {
 
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
             "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
-    public Object sendTransaction(@RequestParam(value = "traninfo", required = true) String traninfo) {
-        if (!enableMining) {
-            return ConsensusResult.ERROR("this node cannot process transaction");
-        }
+    public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
         try {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
             return commandService.verifyTransfer(traninfos);
@@ -99,7 +96,7 @@ public class CommandController {
     public Object getTransactionBlcok(@RequestParam("blockhash") String blockhash, String type) {
         try {
             byte[] block_hash = Hex.decodeHex(blockhash.toCharArray());
-            if (type == null || type == "") {//默认转账事务
+            if (type == null || type.equals("")) {//默认转账事务
                 return commandService.getTransactionBlcok(block_hash, 1);
             } else {
                 int types = Integer.valueOf(type);
