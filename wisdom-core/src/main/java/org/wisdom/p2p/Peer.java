@@ -18,12 +18,23 @@
 
 package org.wisdom.p2p;
 
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.crypto.PrivateKey;
+import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
+
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.net.URI;
+import java.util.Arrays;
 
 public class Peer {
+    private static final int DEFAULT_PORT = 9235;
+    private static final int PUBLIC_KEY_LENGTH = 32;
+    private static final int PRIVATE_KEY_LENGTH = 64;
+    public static final String PROTOCOL_NAME = "wisdom";
+
     @NotNull
     @Size(min = 1)
     public String host;
@@ -31,25 +42,22 @@ public class Peer {
     @Max(65535)
     @Min(0)
     public int port;
+    public int score;
 
-    public byte[] privateKey;
-
+    public PrivateKey privateKey;
 
     @Size(max = 32, min = 32)
     @NotNull
     public byte[] peerID;
 
-    public String toString() {
-        return null;
-    }
-
     public int subTree(Peer that) {
         byte[] bits = new byte[32];
-        for (int i = 0; i < 32; i++) {
+        byte mask = (byte) (1 << 7);
+        for (int i = 0; i < bits.length; i++) {
             bits[i] = (byte) (peerID[i] ^ that.peerID[i]);
         }
-        for(int i = 0; i < 256; i++){
-            if((bits[i/8] & (1 << (8 - i%8))) != 0){
+        for (int i = 0; i < 256; i++) {
+            if ((bits[i / 8] & (mask >>> (i % 8))) != 0) {
                 return i;
             }
         }
@@ -57,6 +65,64 @@ public class Peer {
     }
 
     public String hostPort() {
-        return host + port;
+        return host + ":" + port;
+    }
+
+    public static void main(String[] args) throws Exception {
+        URI u = new URI("chino://192.168.0.104");
+        System.out.println(u.getHost());
+        System.out.println(u.getPort());
+    }
+
+    public int distance(Peer that) {
+        int res = 0;
+        byte[] bits = new byte[32];
+        for (int i = 0; i < bits.length; i++) {
+            bits[i] = (byte) (peerID[i] ^ that.peerID[i]);
+        }
+        for (int i = 0; i < bits.length; i++) {
+            for (int j = 0; j < 7; j++) {
+                res += ((1 << j) & bits[i]) >>> j;
+            }
+        }
+        return res;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Peer peer = (Peer) o;
+
+        return Arrays.equals(peerID, peer.peerID);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(peerID);
+    }
+
+    public Peer(String url) throws Exception {
+        URI u = new URI(url);
+        port = u.getPort();
+        if (port <= 0) {
+            port = DEFAULT_PORT;
+        }
+        host = u.getHost();
+        byte[] info = Hex.decodeHex(u.getRawUserInfo());
+        if (info.length != PRIVATE_KEY_LENGTH && info.length != PUBLIC_KEY_LENGTH) {
+            throw new Exception("invalid key length");
+        }
+        peerID = info;
+        if (info.length == PRIVATE_KEY_LENGTH) {
+            privateKey = new Ed25519PrivateKey(Arrays.copyOfRange(info, 0, 32));
+            peerID = Arrays.copyOfRange(info, 32, 64);
+        }
+    }
+
+    public String toString() {
+        return String.format("%s://%s@%s", PROTOCOL_NAME, Hex.encodeHexString(peerID), hostPort());
     }
 }
