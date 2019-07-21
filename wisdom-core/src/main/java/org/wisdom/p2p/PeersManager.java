@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+// 邻居节点管理中间件
 @Component
 public class PeersManager implements Plugin {
     private static final Logger logger = LoggerFactory.getLogger(PeersManager.class);
