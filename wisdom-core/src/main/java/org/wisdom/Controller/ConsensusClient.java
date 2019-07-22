@@ -202,7 +202,7 @@ public class ConsensusClient {
             validBlocks.add(b);
         }
         if (validBlocks.size() > 0) {
-            logger.info("receive blocks start from " + validBlocks.get(0).nHeight + " stop at " + validBlocks.get(validBlocks.size() - 1).nHeight);
+            logger.info("receive blocks startListening from " + validBlocks.get(0).nHeight + " stop at " + validBlocks.get(validBlocks.size() - 1).nHeight);
             BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
             pendingBlocksManager.addPendingBlocks(blocksWritable);
         }

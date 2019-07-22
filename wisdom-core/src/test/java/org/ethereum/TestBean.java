@@ -29,7 +29,7 @@ public class TestBean {
 
         public void start() {
 
-            logger.info("Benz start...");
+            logger.info("Benz startListening...");
         }
 
         public void stop() {

@@ -912,7 +912,7 @@ public final class Arrays
      * be padded with zeroes.
      *
      * @param data the array from which the data is to be copied.
-     * @param from the start index at which the copying should take place.
+     * @param from the startListening index at which the copying should take place.
      * @param to the final index of the range (exclusive).
      *
      * @return a new byte array containing the range given.

@@ -7,7 +7,10 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-// 邻居节点管理中间件
+/**
+ * @author sal 1564319846@qq.com
+ * peers manager plugin
+ */
 @Component
 public class PeersManager implements Plugin {
     private static final Logger logger = LoggerFactory.getLogger(PeersManager.class);
@@ -55,6 +58,10 @@ public class PeersManager implements Plugin {
         WisdomOuterClass.Ping ping = WisdomOuterClass.Ping.newBuilder().build();
         try {
             for (String p : context.getPayload().getPeers().getPeersList()) {
+                Peer pr = Peer.parse(p);
+                if(pr.equals(server.getSelf())){
+                    continue;
+                }
                 server.dial(Peer.parse(p), ping);
             }
         } catch (Exception e) {

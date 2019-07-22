@@ -45,7 +45,7 @@ public class MockNode {
         }
     }
 
-    // start height must great than 0
+    // startListening height must great than 0
     private void handleStatus(ProtocolModel.StatusMessage msg, MockNode sender) {
         Block header = bc.currentHeader();
         if (header.nHeight > msg.getCurrentHeight()) {
@@ -65,7 +65,7 @@ public class MockNode {
         if (stopHeight - startHeight + 1 > MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             stopHeight = startHeight + MAX_BLOCKS_IN_TRANSIT_PER_PEER - 1;
         }
-        System.out.println(name + ": " + "status message received, try to fetch blocks start height = " + startHeight + " stop height = " + stopHeight);
+        System.out.println(name + ": " + "status message received, try to fetch blocks startListening height = " + startHeight + " stop height = " + stopHeight);
         sendGetBlocks(startHeight, stopHeight, false, sender);
     }
 
@@ -80,7 +80,7 @@ public class MockNode {
             Block newBlock = Block.fromProto(b);
             blocks.add(newBlock);
         }
-        System.out.println(name + ": receive blocks from " + sender.name + " start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
+        System.out.println(name + ": receive blocks from " + sender.name + " startListening from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         BlocksCache cache = new BlocksCache(blocks);
         for (Block init : cache.getInitials()) {
             List<Block> descendantBlocks = new ArrayList<>();
@@ -88,7 +88,7 @@ public class MockNode {
             descendantBlocks.addAll(cache.getDescendantBlocks(init));
             if (!bc.hasBlock(init.hashPrevBlock)) {
 //                orphanBlocksManager.addBlocks(descendantBlocks);
-                System.out.println(name + ": orphans received start from " + init.nHeight + " stop at " + descendantBlocks.get(descendantBlocks.size() - 1).nHeight);
+                System.out.println(name + ": orphans received startListening from " + init.nHeight + " stop at " + descendantBlocks.get(descendantBlocks.size() - 1).nHeight);
                 continue;
             }
             BlocksCache cache1 = new BlocksCache(descendantBlocks);
@@ -97,7 +97,7 @@ public class MockNode {
                 if (bc.hasBlock(fork.get(fork.size() - 1).getHash())) {
                     continue;
                 }
-                System.out.println(name + ": writable chain found start from " + fork.get(0).nHeight + " stop at " + fork.get(fork.size() - 1).nHeight);
+                System.out.println(name + ": writable chain found startListening from " + fork.get(0).nHeight + " stop at " + fork.get(fork.size() - 1).nHeight);
 //                pendingBlocksManager.addPendingBlocks(fork);
             }
         }
@@ -106,12 +106,12 @@ public class MockNode {
 
     // 从后往前同步
     private void handleGetBlocks(ProtocolModel.GetBlocksMessage msg, MockNode sender) {
-        // cannot locate start block hash
+        // cannot locate startListening block hash
         long startHeight = msg.getStartHeight();
         long stopHeight = msg.getStopHeight();
         boolean clipFromStop = msg.getClipFromStop();
 
-        System.out.println(name + ": get blocks received from " + sender.name + " start height = " + startHeight + " stop height = " + stopHeight);
+        System.out.println(name + ": get blocks received from " + sender.name + " startListening height = " + startHeight + " stop height = " + stopHeight);
 
         if (startHeight <= 0) {
             startHeight = 1;
@@ -133,7 +133,7 @@ public class MockNode {
         List<Block> blocksToSend = bc.getBlocks(startHeight, stopHeight, MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
         if (blocksToSend != null && blocksToSend.size() > 0) {
             sendBlocks(blocksToSend, sender);
-            System.out.println(name + ": send blocks to " + sender.name + " blocks start from " + blocksToSend.get(0).nHeight + " stop at " + blocksToSend.get(blocksToSend.size() - 1).nHeight);
+            System.out.println(name + ": send blocks to " + sender.name + " blocks startListening from " + blocksToSend.get(0).nHeight + " stop at " + blocksToSend.get(blocksToSend.size() - 1).nHeight);
         }
     }
 

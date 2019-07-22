@@ -116,7 +116,7 @@ public class BlocksCacheTest {
     public void testFromDB(){
         BlocksCache cache = new BlocksCache(getBlocks());
         for(List<Block> fork: cache.getAllForks()){
-            System.out.println("start block height = " + fork.get(0).nHeight);
+            System.out.println("startListening block height = " + fork.get(0).nHeight);
             System.out.println("end block height = " + fork.get(fork.size() - 1).nHeight);
             System.out.println("========");
             assert isChain(fork);

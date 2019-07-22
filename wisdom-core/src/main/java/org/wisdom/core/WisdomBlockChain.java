@@ -47,7 +47,7 @@ public interface WisdomBlockChain {
 
     List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit);
 
-    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipFromStop);
+    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
 
     // retrieves the header assigned to a canonical block number
     Block getCanonicalHeader(long height);

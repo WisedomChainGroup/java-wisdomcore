@@ -38,7 +38,7 @@ public class Peer {
     public static final String PROTOCOL_NAME = "wisdom";
 
     public static Peer parse(String url) throws Exception {
-        URI u = new URI(url);
+        URI u = new URI(url.trim());
         Peer p = new Peer();
         p.port = u.getPort();
         if (p.port <= 0) {
@@ -91,9 +91,7 @@ public class Peer {
     }
 
     public static void main(String[] args) throws Exception {
-        URI u = new URI("chino://192.168.0.104");
-        System.out.println(u.getHost());
-        System.out.println(u.getPort());
+        Peer.parse("wisdom://ff25eab70c89aa65e87de75dab7c20011eaa9ba217689aab5d2b7a9dd80ab704@192.168.0.104:9090");
     }
 
     public int distance(Peer that) {

@@ -288,8 +288,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipFromStop) {
-        if (!clipFromStop) {
+    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        if (!clipInitial) {
             return getBlocks(startHeight, stopHeight, sizeLimit);
         }
         List<Block> blocks = getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height desc limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));

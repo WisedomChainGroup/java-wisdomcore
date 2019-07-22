@@ -1,5 +1,9 @@
 package org.wisdom.p2p;
 
+/**
+ * @author sal 1564319846@qq.com
+ * wisdom protocol context for multi-thread communication
+ */
 public class Context {
     boolean broken;
     boolean remove;

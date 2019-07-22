@@ -816,7 +816,7 @@ public class ByteUtil {
      * thus, result will be right-padded with zero bytes if there is not enough bytes in {@code input}
      *
      * @param idx an index of the word starting from {@code 0}
-     * @param offset an offset in {@code input} array to start parsing from
+     * @param offset an offset in {@code input} array to startListening parsing from
      */
     public static byte[] parseWord(byte[] input, int offset, int idx) {
         return parseBytes(input, offset + 32 * idx, 32);

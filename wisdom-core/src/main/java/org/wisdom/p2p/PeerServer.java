@@ -1,7 +1,9 @@
 package org.wisdom.p2p;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -19,11 +21,30 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * @author sal 1564319846@qq.com
+ * wisdom protocol implementation
+ */
 @Component
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
     static final int PEER_SCORE = 4;
     static final int HALF_RATE = 30;
     static final int EVIL_SCORE = -(1 << 10);
+    static final int MAX_PEERS = 32;
+
+    private static class TestLogger {
+        public void info(String msg) {
+            System.out.println(msg);
+        }
+
+        public void warn(String msg) {
+            System.out.println(msg);
+        }
+
+        public void error(String msg) {
+            System.out.println(msg);
+        }
+    }
 
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
@@ -38,9 +59,15 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private Map<String, Peer> pended;
 
     @Autowired
+    private MessageFilter filter;
+
+    @Autowired
+    private PeersManager pmgr;
+
+    @Autowired
+    private MessageLogger messageLogger;
+
     public PeerServer(
-            MessageFilter filter,
-            PeersManager pmgr,
             @Value("${p2p.address}") String self,
             @Value("${p2p.bootstraps}") String[] bootstraps,
             @Value("${p2p.trusted}") String[] trusted
@@ -67,7 +94,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             }
             this.trusted.put(p.key(), p);
         }
-        use(filter).use(pmgr);
     }
 
     public PeerServer use(Plugin plugin) {
@@ -78,49 +104,26 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     /**
      * 启动服务
      *
-     * @param port
-     * @throws IOException
      */
     @PostConstruct
-    private void start(@Value("${p2p.port}") int port) throws Exception {
-        server = ServerBuilder.forPort(port).addService(this).build().start();
-        logger.info("peer server is listening on" + port);
+    public void init() throws Exception{
+        use(messageLogger).use(filter).use(pmgr);
+        startListening();
+    }
+
+    public void startListening() throws Exception {
+        logger.info("peer server is listening on" + self.port);
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
-        blockUnitShutdown();
-        Runtime.getRuntime()
-                .addShutdownHook(
-                        new Thread(
-                                () -> {
-                                    logger.warn("shut down p2p service....");
-                                    stop();
-                                    logger.warn("p2p service is shutdown");
-                                }));
-
-    }
-
-    /**
-     * 关闭服务
-     */
-    private void stop() {
-        Optional.of(server).map(Server::shutdown);
-    }
-
-    /**
-     * 循环运行服务,封锁停止
-     *
-     * @throws InterruptedException
-     */
-    public void blockUnitShutdown() throws InterruptedException {
-        if (server != null) {
-            server.awaitTermination();
-        }
+        server = ServerBuilder.forPort(self.port).addService(this).build().start();
+        server.awaitTermination();
     }
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void startHalf() {
         for (Peer p : pended.values()) {
+            pended.remove(p.key());
             dial(p, WisdomOuterClass.Ping.newBuilder().build());
         }
         for (Peer p : blocked.values()) {
@@ -137,6 +140,20 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             }
             dial(p, WisdomOuterClass.Ping.newBuilder().build());
         }
+        if (peers.size() == 0) {
+            for (Peer p : bootstraps.values()) {
+                dial(p, WisdomOuterClass.Ping.newBuilder().build());
+            }
+        }
+        // peers discovery
+        for (Peer p : getPeers()) {
+            logger.info("peer found, address = " + p.toString() + " score = " + p.score);
+            dial(p, WisdomOuterClass.Lookup.newBuilder().build());
+        }
+    }
+
+    public Peer getSelf() {
+        return self;
     }
 
     private WisdomOuterClass.Message onMessage(WisdomOuterClass.Message message) {
@@ -187,12 +204,28 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        WisdomOuterClass.Message resp = WisdomGrpc.
-                newBlockingStub(
-                        ManagedChannelBuilder.forAddress(peer.host, peer.port
-                        ).build())
-                .entry(msg);
-        onMessage(resp);
+        ManagedChannel ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
+        ).usePlaintext().build();
+        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
+                ch);
+        stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
+            @Override
+            public void onNext(WisdomOuterClass.Message value) {
+                onMessage(value);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                ch.shutdownNow();
+                logger.error("cannot connect to peer " + peer.toString() + " remove it");
+                removePeer(peer);
+            }
+
+            @Override
+            public void onCompleted() {
+                ch.shutdownNow();
+            }
+        });
     }
 
     public void dial(Peer p, Object msg) {
@@ -234,7 +267,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private void pendPeer(Peer peer) {
         String k = peer.key();
-        if (hasPeer(peer) || blocked.containsKey(k)) {
+        if (hasPeer(peer) || blocked.containsKey(k) || bootstraps.containsKey(k)) {
             return;
         }
         pended.put(k, peer);
@@ -248,7 +281,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         peer.score = PEER_SCORE;
         int idx = self.subTree(peer);
         Peer p = peers.get(idx);
-        if (p == null) {
+        if (p == null && peers.size() + trusted.size() < MAX_PEERS) {
             peers.put(idx, peer);
             return;
         }
@@ -265,14 +298,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void removePeer(Peer peer) {
-        String k = peer.key();
         int idx = self.subTree(peer);
         Peer p = peers.get(idx);
         if (p == null) {
             return;
         }
         if (p.equals(peer)) {
-            peers.remove(k);
+            peers.remove(idx);
         }
     }
 
