@@ -1,6 +1,5 @@
 package org.wisdom.p2p;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import io.grpc.ManagedChannel;

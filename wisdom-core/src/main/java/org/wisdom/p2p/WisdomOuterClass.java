@@ -305,24 +305,136 @@ public final class WisdomOuterClass {
   public enum TransactionType
       implements com.google.protobuf.ProtocolMessageEnum {
     /**
-     * <code>COIN_BASE = 0;</code>
+     * <code>COINBASE = 0;</code>
      */
-    COIN_BASE(0),
+    COINBASE(0),
     /**
      * <code>TRANSFER = 1;</code>
      */
     TRANSFER(1),
+    /**
+     * <code>VOTE = 2;</code>
+     */
+    VOTE(2),
+    /**
+     * <code>DEPOSIT = 3;</code>
+     */
+    DEPOSIT(3),
+    /**
+     * <code>TRANSFER_MULTISIG_MULTISIG = 4;</code>
+     */
+    TRANSFER_MULTISIG_MULTISIG(4),
+    /**
+     * <code>TRANSFER_MULTISIG_NORMAL = 5;</code>
+     */
+    TRANSFER_MULTISIG_NORMAL(5),
+    /**
+     * <code>TRANSFER_NORMAL_MULTISIG = 6;</code>
+     */
+    TRANSFER_NORMAL_MULTISIG(6),
+    /**
+     * <code>ASSET_DEFINE = 7;</code>
+     */
+    ASSET_DEFINE(7),
+    /**
+     * <code>ATOMIC_EXCHANGE = 8;</code>
+     */
+    ATOMIC_EXCHANGE(8),
+    /**
+     * <code>INCUBATE = 9;</code>
+     */
+    INCUBATE(9),
+    /**
+     * <code>EXTRACT_INTEREST = 10;</code>
+     */
+    EXTRACT_INTEREST(10),
+    /**
+     * <code>EXTRACT_SHARING_PROFIT = 11;</code>
+     */
+    EXTRACT_SHARING_PROFIT(11),
+    /**
+     * <code>EXTRACT_COST = 12;</code>
+     */
+    EXTRACT_COST(12),
+    /**
+     * <code>EXIT_VOTE = 13;</code>
+     */
+    EXIT_VOTE(13),
+    /**
+     * <code>PLEDGE = 14;</code>
+     */
+    PLEDGE(14),
+    /**
+     * <code>EXIT_PLEDGE = 15;</code>
+     */
+    EXIT_PLEDGE(15),
     UNRECOGNIZED(-1),
     ;
 
     /**
-     * <code>COIN_BASE = 0;</code>
+     * <code>COINBASE = 0;</code>
      */
-    public static final int COIN_BASE_VALUE = 0;
+    public static final int COINBASE_VALUE = 0;
     /**
      * <code>TRANSFER = 1;</code>
      */
     public static final int TRANSFER_VALUE = 1;
+    /**
+     * <code>VOTE = 2;</code>
+     */
+    public static final int VOTE_VALUE = 2;
+    /**
+     * <code>DEPOSIT = 3;</code>
+     */
+    public static final int DEPOSIT_VALUE = 3;
+    /**
+     * <code>TRANSFER_MULTISIG_MULTISIG = 4;</code>
+     */
+    public static final int TRANSFER_MULTISIG_MULTISIG_VALUE = 4;
+    /**
+     * <code>TRANSFER_MULTISIG_NORMAL = 5;</code>
+     */
+    public static final int TRANSFER_MULTISIG_NORMAL_VALUE = 5;
+    /**
+     * <code>TRANSFER_NORMAL_MULTISIG = 6;</code>
+     */
+    public static final int TRANSFER_NORMAL_MULTISIG_VALUE = 6;
+    /**
+     * <code>ASSET_DEFINE = 7;</code>
+     */
+    public static final int ASSET_DEFINE_VALUE = 7;
+    /**
+     * <code>ATOMIC_EXCHANGE = 8;</code>
+     */
+    public static final int ATOMIC_EXCHANGE_VALUE = 8;
+    /**
+     * <code>INCUBATE = 9;</code>
+     */
+    public static final int INCUBATE_VALUE = 9;
+    /**
+     * <code>EXTRACT_INTEREST = 10;</code>
+     */
+    public static final int EXTRACT_INTEREST_VALUE = 10;
+    /**
+     * <code>EXTRACT_SHARING_PROFIT = 11;</code>
+     */
+    public static final int EXTRACT_SHARING_PROFIT_VALUE = 11;
+    /**
+     * <code>EXTRACT_COST = 12;</code>
+     */
+    public static final int EXTRACT_COST_VALUE = 12;
+    /**
+     * <code>EXIT_VOTE = 13;</code>
+     */
+    public static final int EXIT_VOTE_VALUE = 13;
+    /**
+     * <code>PLEDGE = 14;</code>
+     */
+    public static final int PLEDGE_VALUE = 14;
+    /**
+     * <code>EXIT_PLEDGE = 15;</code>
+     */
+    public static final int EXIT_PLEDGE_VALUE = 15;
 
 
     public final int getNumber() {
@@ -343,8 +455,22 @@ public final class WisdomOuterClass {
 
     public static TransactionType forNumber(int value) {
       switch (value) {
-        case 0: return COIN_BASE;
+        case 0: return COINBASE;
         case 1: return TRANSFER;
+        case 2: return VOTE;
+        case 3: return DEPOSIT;
+        case 4: return TRANSFER_MULTISIG_MULTISIG;
+        case 5: return TRANSFER_MULTISIG_NORMAL;
+        case 6: return TRANSFER_NORMAL_MULTISIG;
+        case 7: return ASSET_DEFINE;
+        case 8: return ATOMIC_EXCHANGE;
+        case 9: return INCUBATE;
+        case 10: return EXTRACT_INTEREST;
+        case 11: return EXTRACT_SHARING_PROFIT;
+        case 12: return EXTRACT_COST;
+        case 13: return EXIT_VOTE;
+        case 14: return PLEDGE;
+        case 15: return EXIT_PLEDGE;
         default: return null;
       }
     }
@@ -7038,27 +7164,23 @@ public final class WisdomOuterClass {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>uint64 amount = 1;</code>
+     * <code>int32 version = 1;</code>
      */
-    long getAmount();
+    int getVersion();
 
     /**
-     * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * <code>.TransactionType transaction_type = 2;</code>
      */
-    boolean hasCreatedAt();
+    int getTransactionTypeValue();
     /**
-     * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * <code>.TransactionType transaction_type = 2;</code>
      */
-    com.google.protobuf.Timestamp getCreatedAt();
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 2;</code>
-     */
-    com.google.protobuf.TimestampOrBuilder getCreatedAtOrBuilder();
+    org.wisdom.p2p.WisdomOuterClass.TransactionType getTransactionType();
 
     /**
-     * <code>bytes data = 3;</code>
+     * <code>uint64 nonce = 3;</code>
      */
-    com.google.protobuf.ByteString getData();
+    long getNonce();
 
     /**
      * <code>bytes from = 4;</code>
@@ -7066,43 +7188,29 @@ public final class WisdomOuterClass {
     com.google.protobuf.ByteString getFrom();
 
     /**
-     * <code>uint64 gasPrice = 5;</code>
+     * <code>uint64 gas_price = 5;</code>
      */
     long getGasPrice();
 
     /**
-     * <code>uint64 nonce = 6;</code>
+     * <code>uint64 amount = 6;</code>
      */
-    long getNonce();
+    long getAmount();
 
     /**
-     * <code>string to = 7;</code>
-     */
-    java.lang.String getTo();
-    /**
-     * <code>string to = 7;</code>
-     */
-    com.google.protobuf.ByteString
-        getToBytes();
-
-    /**
-     * <code>.TransactionType type = 8;</code>
-     */
-    int getTypeValue();
-    /**
-     * <code>.TransactionType type = 8;</code>
-     */
-    org.wisdom.p2p.WisdomOuterClass.TransactionType getType();
-
-    /**
-     * <code>uint32 Version = 9;</code>
-     */
-    int getVersion();
-
-    /**
-     * <code>bytes signature = 10;</code>
+     * <code>bytes signature = 7;</code>
      */
     com.google.protobuf.ByteString getSignature();
+
+    /**
+     * <code>bytes to = 8;</code>
+     */
+    com.google.protobuf.ByteString getTo();
+
+    /**
+     * <code>bytes payload = 9;</code>
+     */
+    com.google.protobuf.ByteString getPayload();
   }
   /**
    * Protobuf type {@code Transaction}
@@ -7117,15 +7225,15 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Transaction() {
-      amount_ = 0L;
-      data_ = com.google.protobuf.ByteString.EMPTY;
+      version_ = 0;
+      transactionType_ = 0;
+      nonce_ = 0L;
       from_ = com.google.protobuf.ByteString.EMPTY;
       gasPrice_ = 0L;
-      nonce_ = 0L;
-      to_ = "";
-      type_ = 0;
-      version_ = 0;
+      amount_ = 0L;
       signature_ = com.google.protobuf.ByteString.EMPTY;
+      to_ = com.google.protobuf.ByteString.EMPTY;
+      payload_ = com.google.protobuf.ByteString.EMPTY;
     }
 
     @java.lang.Override
@@ -7154,25 +7262,18 @@ public final class WisdomOuterClass {
               break;
             case 8: {
 
-              amount_ = input.readUInt64();
+              version_ = input.readInt32();
               break;
             }
-            case 18: {
-              com.google.protobuf.Timestamp.Builder subBuilder = null;
-              if (createdAt_ != null) {
-                subBuilder = createdAt_.toBuilder();
-              }
-              createdAt_ = input.readMessage(com.google.protobuf.Timestamp.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(createdAt_);
-                createdAt_ = subBuilder.buildPartial();
-              }
+            case 16: {
+              int rawValue = input.readEnum();
 
+              transactionType_ = rawValue;
               break;
             }
-            case 26: {
+            case 24: {
 
-              data_ = input.readBytes();
+              nonce_ = input.readUInt64();
               break;
             }
             case 34: {
@@ -7187,29 +7288,22 @@ public final class WisdomOuterClass {
             }
             case 48: {
 
-              nonce_ = input.readUInt64();
+              amount_ = input.readUInt64();
               break;
             }
             case 58: {
-              java.lang.String s = input.readStringRequireUtf8();
-
-              to_ = s;
-              break;
-            }
-            case 64: {
-              int rawValue = input.readEnum();
-
-              type_ = rawValue;
-              break;
-            }
-            case 72: {
-
-              version_ = input.readUInt32();
-              break;
-            }
-            case 82: {
 
               signature_ = input.readBytes();
+              break;
+            }
+            case 66: {
+
+              to_ = input.readBytes();
+              break;
+            }
+            case 74: {
+
+              payload_ = input.readBytes();
               break;
             }
             default: {
@@ -7244,43 +7338,39 @@ public final class WisdomOuterClass {
               org.wisdom.p2p.WisdomOuterClass.Transaction.class, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder.class);
     }
 
-    public static final int AMOUNT_FIELD_NUMBER = 1;
-    private long amount_;
+    public static final int VERSION_FIELD_NUMBER = 1;
+    private int version_;
     /**
-     * <code>uint64 amount = 1;</code>
+     * <code>int32 version = 1;</code>
      */
-    public long getAmount() {
-      return amount_;
+    public int getVersion() {
+      return version_;
     }
 
-    public static final int CREATED_AT_FIELD_NUMBER = 2;
-    private com.google.protobuf.Timestamp createdAt_;
+    public static final int TRANSACTION_TYPE_FIELD_NUMBER = 2;
+    private int transactionType_;
     /**
-     * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * <code>.TransactionType transaction_type = 2;</code>
      */
-    public boolean hasCreatedAt() {
-      return createdAt_ != null;
+    public int getTransactionTypeValue() {
+      return transactionType_;
     }
     /**
-     * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * <code>.TransactionType transaction_type = 2;</code>
      */
-    public com.google.protobuf.Timestamp getCreatedAt() {
-      return createdAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
-    }
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 2;</code>
-     */
-    public com.google.protobuf.TimestampOrBuilder getCreatedAtOrBuilder() {
-      return getCreatedAt();
+    public org.wisdom.p2p.WisdomOuterClass.TransactionType getTransactionType() {
+      @SuppressWarnings("deprecation")
+      org.wisdom.p2p.WisdomOuterClass.TransactionType result = org.wisdom.p2p.WisdomOuterClass.TransactionType.valueOf(transactionType_);
+      return result == null ? org.wisdom.p2p.WisdomOuterClass.TransactionType.UNRECOGNIZED : result;
     }
 
-    public static final int DATA_FIELD_NUMBER = 3;
-    private com.google.protobuf.ByteString data_;
+    public static final int NONCE_FIELD_NUMBER = 3;
+    private long nonce_;
     /**
-     * <code>bytes data = 3;</code>
+     * <code>uint64 nonce = 3;</code>
      */
-    public com.google.protobuf.ByteString getData() {
-      return data_;
+    public long getNonce() {
+      return nonce_;
     }
 
     public static final int FROM_FIELD_NUMBER = 4;
@@ -7292,91 +7382,49 @@ public final class WisdomOuterClass {
       return from_;
     }
 
-    public static final int GASPRICE_FIELD_NUMBER = 5;
+    public static final int GAS_PRICE_FIELD_NUMBER = 5;
     private long gasPrice_;
     /**
-     * <code>uint64 gasPrice = 5;</code>
+     * <code>uint64 gas_price = 5;</code>
      */
     public long getGasPrice() {
       return gasPrice_;
     }
 
-    public static final int NONCE_FIELD_NUMBER = 6;
-    private long nonce_;
+    public static final int AMOUNT_FIELD_NUMBER = 6;
+    private long amount_;
     /**
-     * <code>uint64 nonce = 6;</code>
+     * <code>uint64 amount = 6;</code>
      */
-    public long getNonce() {
-      return nonce_;
+    public long getAmount() {
+      return amount_;
     }
 
-    public static final int TO_FIELD_NUMBER = 7;
-    private volatile java.lang.Object to_;
-    /**
-     * <code>string to = 7;</code>
-     */
-    public java.lang.String getTo() {
-      java.lang.Object ref = to_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        to_ = s;
-        return s;
-      }
-    }
-    /**
-     * <code>string to = 7;</code>
-     */
-    public com.google.protobuf.ByteString
-        getToBytes() {
-      java.lang.Object ref = to_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        to_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    public static final int TYPE_FIELD_NUMBER = 8;
-    private int type_;
-    /**
-     * <code>.TransactionType type = 8;</code>
-     */
-    public int getTypeValue() {
-      return type_;
-    }
-    /**
-     * <code>.TransactionType type = 8;</code>
-     */
-    public org.wisdom.p2p.WisdomOuterClass.TransactionType getType() {
-      @SuppressWarnings("deprecation")
-      org.wisdom.p2p.WisdomOuterClass.TransactionType result = org.wisdom.p2p.WisdomOuterClass.TransactionType.valueOf(type_);
-      return result == null ? org.wisdom.p2p.WisdomOuterClass.TransactionType.UNRECOGNIZED : result;
-    }
-
-    public static final int VERSION_FIELD_NUMBER = 9;
-    private int version_;
-    /**
-     * <code>uint32 Version = 9;</code>
-     */
-    public int getVersion() {
-      return version_;
-    }
-
-    public static final int SIGNATURE_FIELD_NUMBER = 10;
+    public static final int SIGNATURE_FIELD_NUMBER = 7;
     private com.google.protobuf.ByteString signature_;
     /**
-     * <code>bytes signature = 10;</code>
+     * <code>bytes signature = 7;</code>
      */
     public com.google.protobuf.ByteString getSignature() {
       return signature_;
+    }
+
+    public static final int TO_FIELD_NUMBER = 8;
+    private com.google.protobuf.ByteString to_;
+    /**
+     * <code>bytes to = 8;</code>
+     */
+    public com.google.protobuf.ByteString getTo() {
+      return to_;
+    }
+
+    public static final int PAYLOAD_FIELD_NUMBER = 9;
+    private com.google.protobuf.ByteString payload_;
+    /**
+     * <code>bytes payload = 9;</code>
+     */
+    public com.google.protobuf.ByteString getPayload() {
+      return payload_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -7393,14 +7441,14 @@ public final class WisdomOuterClass {
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (amount_ != 0L) {
-        output.writeUInt64(1, amount_);
+      if (version_ != 0) {
+        output.writeInt32(1, version_);
       }
-      if (createdAt_ != null) {
-        output.writeMessage(2, getCreatedAt());
+      if (transactionType_ != org.wisdom.p2p.WisdomOuterClass.TransactionType.COINBASE.getNumber()) {
+        output.writeEnum(2, transactionType_);
       }
-      if (!data_.isEmpty()) {
-        output.writeBytes(3, data_);
+      if (nonce_ != 0L) {
+        output.writeUInt64(3, nonce_);
       }
       if (!from_.isEmpty()) {
         output.writeBytes(4, from_);
@@ -7408,20 +7456,17 @@ public final class WisdomOuterClass {
       if (gasPrice_ != 0L) {
         output.writeUInt64(5, gasPrice_);
       }
-      if (nonce_ != 0L) {
-        output.writeUInt64(6, nonce_);
-      }
-      if (!getToBytes().isEmpty()) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 7, to_);
-      }
-      if (type_ != org.wisdom.p2p.WisdomOuterClass.TransactionType.COIN_BASE.getNumber()) {
-        output.writeEnum(8, type_);
-      }
-      if (version_ != 0) {
-        output.writeUInt32(9, version_);
+      if (amount_ != 0L) {
+        output.writeUInt64(6, amount_);
       }
       if (!signature_.isEmpty()) {
-        output.writeBytes(10, signature_);
+        output.writeBytes(7, signature_);
+      }
+      if (!to_.isEmpty()) {
+        output.writeBytes(8, to_);
+      }
+      if (!payload_.isEmpty()) {
+        output.writeBytes(9, payload_);
       }
       unknownFields.writeTo(output);
     }
@@ -7432,17 +7477,17 @@ public final class WisdomOuterClass {
       if (size != -1) return size;
 
       size = 0;
-      if (amount_ != 0L) {
+      if (version_ != 0) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(1, amount_);
+          .computeInt32Size(1, version_);
       }
-      if (createdAt_ != null) {
+      if (transactionType_ != org.wisdom.p2p.WisdomOuterClass.TransactionType.COINBASE.getNumber()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(2, getCreatedAt());
+          .computeEnumSize(2, transactionType_);
       }
-      if (!data_.isEmpty()) {
+      if (nonce_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, data_);
+          .computeUInt64Size(3, nonce_);
       }
       if (!from_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
@@ -7452,24 +7497,21 @@ public final class WisdomOuterClass {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt64Size(5, gasPrice_);
       }
-      if (nonce_ != 0L) {
+      if (amount_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(6, nonce_);
-      }
-      if (!getToBytes().isEmpty()) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(7, to_);
-      }
-      if (type_ != org.wisdom.p2p.WisdomOuterClass.TransactionType.COIN_BASE.getNumber()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(8, type_);
-      }
-      if (version_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeUInt32Size(9, version_);
+          .computeUInt64Size(6, amount_);
       }
       if (!signature_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(10, signature_);
+          .computeBytesSize(7, signature_);
+      }
+      if (!to_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(8, to_);
+      }
+      if (!payload_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(9, payload_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -7487,28 +7529,23 @@ public final class WisdomOuterClass {
       org.wisdom.p2p.WisdomOuterClass.Transaction other = (org.wisdom.p2p.WisdomOuterClass.Transaction) obj;
 
       boolean result = true;
-      result = result && (getAmount()
-          == other.getAmount());
-      result = result && (hasCreatedAt() == other.hasCreatedAt());
-      if (hasCreatedAt()) {
-        result = result && getCreatedAt()
-            .equals(other.getCreatedAt());
-      }
-      result = result && getData()
-          .equals(other.getData());
+      result = result && (getVersion()
+          == other.getVersion());
+      result = result && transactionType_ == other.transactionType_;
+      result = result && (getNonce()
+          == other.getNonce());
       result = result && getFrom()
           .equals(other.getFrom());
       result = result && (getGasPrice()
           == other.getGasPrice());
-      result = result && (getNonce()
-          == other.getNonce());
-      result = result && getTo()
-          .equals(other.getTo());
-      result = result && type_ == other.type_;
-      result = result && (getVersion()
-          == other.getVersion());
+      result = result && (getAmount()
+          == other.getAmount());
       result = result && getSignature()
           .equals(other.getSignature());
+      result = result && getTo()
+          .equals(other.getTo());
+      result = result && getPayload()
+          .equals(other.getPayload());
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -7520,31 +7557,27 @@ public final class WisdomOuterClass {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (37 * hash) + AMOUNT_FIELD_NUMBER;
-      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-          getAmount());
-      if (hasCreatedAt()) {
-        hash = (37 * hash) + CREATED_AT_FIELD_NUMBER;
-        hash = (53 * hash) + getCreatedAt().hashCode();
-      }
-      hash = (37 * hash) + DATA_FIELD_NUMBER;
-      hash = (53 * hash) + getData().hashCode();
-      hash = (37 * hash) + FROM_FIELD_NUMBER;
-      hash = (53 * hash) + getFrom().hashCode();
-      hash = (37 * hash) + GASPRICE_FIELD_NUMBER;
-      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-          getGasPrice());
+      hash = (37 * hash) + VERSION_FIELD_NUMBER;
+      hash = (53 * hash) + getVersion();
+      hash = (37 * hash) + TRANSACTION_TYPE_FIELD_NUMBER;
+      hash = (53 * hash) + transactionType_;
       hash = (37 * hash) + NONCE_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getNonce());
-      hash = (37 * hash) + TO_FIELD_NUMBER;
-      hash = (53 * hash) + getTo().hashCode();
-      hash = (37 * hash) + TYPE_FIELD_NUMBER;
-      hash = (53 * hash) + type_;
-      hash = (37 * hash) + VERSION_FIELD_NUMBER;
-      hash = (53 * hash) + getVersion();
+      hash = (37 * hash) + FROM_FIELD_NUMBER;
+      hash = (53 * hash) + getFrom().hashCode();
+      hash = (37 * hash) + GAS_PRICE_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getGasPrice());
+      hash = (37 * hash) + AMOUNT_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getAmount());
       hash = (37 * hash) + SIGNATURE_FIELD_NUMBER;
       hash = (53 * hash) + getSignature().hashCode();
+      hash = (37 * hash) + TO_FIELD_NUMBER;
+      hash = (53 * hash) + getTo().hashCode();
+      hash = (37 * hash) + PAYLOAD_FIELD_NUMBER;
+      hash = (53 * hash) + getPayload().hashCode();
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -7678,29 +7711,23 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        amount_ = 0L;
+        version_ = 0;
 
-        if (createdAtBuilder_ == null) {
-          createdAt_ = null;
-        } else {
-          createdAt_ = null;
-          createdAtBuilder_ = null;
-        }
-        data_ = com.google.protobuf.ByteString.EMPTY;
+        transactionType_ = 0;
+
+        nonce_ = 0L;
 
         from_ = com.google.protobuf.ByteString.EMPTY;
 
         gasPrice_ = 0L;
 
-        nonce_ = 0L;
-
-        to_ = "";
-
-        type_ = 0;
-
-        version_ = 0;
+        amount_ = 0L;
 
         signature_ = com.google.protobuf.ByteString.EMPTY;
+
+        to_ = com.google.protobuf.ByteString.EMPTY;
+
+        payload_ = com.google.protobuf.ByteString.EMPTY;
 
         return this;
       }
@@ -7728,20 +7755,15 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public org.wisdom.p2p.WisdomOuterClass.Transaction buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.Transaction result = new org.wisdom.p2p.WisdomOuterClass.Transaction(this);
-        result.amount_ = amount_;
-        if (createdAtBuilder_ == null) {
-          result.createdAt_ = createdAt_;
-        } else {
-          result.createdAt_ = createdAtBuilder_.build();
-        }
-        result.data_ = data_;
+        result.version_ = version_;
+        result.transactionType_ = transactionType_;
+        result.nonce_ = nonce_;
         result.from_ = from_;
         result.gasPrice_ = gasPrice_;
-        result.nonce_ = nonce_;
-        result.to_ = to_;
-        result.type_ = type_;
-        result.version_ = version_;
+        result.amount_ = amount_;
         result.signature_ = signature_;
+        result.to_ = to_;
+        result.payload_ = payload_;
         onBuilt();
         return result;
       }
@@ -7790,14 +7812,14 @@ public final class WisdomOuterClass {
 
       public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.Transaction other) {
         if (other == org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance()) return this;
-        if (other.getAmount() != 0L) {
-          setAmount(other.getAmount());
+        if (other.getVersion() != 0) {
+          setVersion(other.getVersion());
         }
-        if (other.hasCreatedAt()) {
-          mergeCreatedAt(other.getCreatedAt());
+        if (other.transactionType_ != 0) {
+          setTransactionTypeValue(other.getTransactionTypeValue());
         }
-        if (other.getData() != com.google.protobuf.ByteString.EMPTY) {
-          setData(other.getData());
+        if (other.getNonce() != 0L) {
+          setNonce(other.getNonce());
         }
         if (other.getFrom() != com.google.protobuf.ByteString.EMPTY) {
           setFrom(other.getFrom());
@@ -7805,21 +7827,17 @@ public final class WisdomOuterClass {
         if (other.getGasPrice() != 0L) {
           setGasPrice(other.getGasPrice());
         }
-        if (other.getNonce() != 0L) {
-          setNonce(other.getNonce());
-        }
-        if (!other.getTo().isEmpty()) {
-          to_ = other.to_;
-          onChanged();
-        }
-        if (other.type_ != 0) {
-          setTypeValue(other.getTypeValue());
-        }
-        if (other.getVersion() != 0) {
-          setVersion(other.getVersion());
+        if (other.getAmount() != 0L) {
+          setAmount(other.getAmount());
         }
         if (other.getSignature() != com.google.protobuf.ByteString.EMPTY) {
           setSignature(other.getSignature());
+        }
+        if (other.getTo() != com.google.protobuf.ByteString.EMPTY) {
+          setTo(other.getTo());
+        }
+        if (other.getPayload() != com.google.protobuf.ByteString.EMPTY) {
+          setPayload(other.getPayload());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -7850,174 +7868,99 @@ public final class WisdomOuterClass {
         return this;
       }
 
-      private long amount_ ;
+      private int version_ ;
       /**
-       * <code>uint64 amount = 1;</code>
+       * <code>int32 version = 1;</code>
        */
-      public long getAmount() {
-        return amount_;
+      public int getVersion() {
+        return version_;
       }
       /**
-       * <code>uint64 amount = 1;</code>
+       * <code>int32 version = 1;</code>
        */
-      public Builder setAmount(long value) {
+      public Builder setVersion(int value) {
         
-        amount_ = value;
+        version_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>uint64 amount = 1;</code>
+       * <code>int32 version = 1;</code>
        */
-      public Builder clearAmount() {
+      public Builder clearVersion() {
         
-        amount_ = 0L;
+        version_ = 0;
         onChanged();
         return this;
       }
 
-      private com.google.protobuf.Timestamp createdAt_ = null;
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> createdAtBuilder_;
+      private int transactionType_ = 0;
       /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
+       * <code>.TransactionType transaction_type = 2;</code>
        */
-      public boolean hasCreatedAt() {
-        return createdAtBuilder_ != null || createdAt_ != null;
+      public int getTransactionTypeValue() {
+        return transactionType_;
       }
       /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
+       * <code>.TransactionType transaction_type = 2;</code>
        */
-      public com.google.protobuf.Timestamp getCreatedAt() {
-        if (createdAtBuilder_ == null) {
-          return createdAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
-        } else {
-          return createdAtBuilder_.getMessage();
-        }
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
-       */
-      public Builder setCreatedAt(com.google.protobuf.Timestamp value) {
-        if (createdAtBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          createdAt_ = value;
-          onChanged();
-        } else {
-          createdAtBuilder_.setMessage(value);
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
-       */
-      public Builder setCreatedAt(
-          com.google.protobuf.Timestamp.Builder builderForValue) {
-        if (createdAtBuilder_ == null) {
-          createdAt_ = builderForValue.build();
-          onChanged();
-        } else {
-          createdAtBuilder_.setMessage(builderForValue.build());
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
-       */
-      public Builder mergeCreatedAt(com.google.protobuf.Timestamp value) {
-        if (createdAtBuilder_ == null) {
-          if (createdAt_ != null) {
-            createdAt_ =
-              com.google.protobuf.Timestamp.newBuilder(createdAt_).mergeFrom(value).buildPartial();
-          } else {
-            createdAt_ = value;
-          }
-          onChanged();
-        } else {
-          createdAtBuilder_.mergeFrom(value);
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
-       */
-      public Builder clearCreatedAt() {
-        if (createdAtBuilder_ == null) {
-          createdAt_ = null;
-          onChanged();
-        } else {
-          createdAt_ = null;
-          createdAtBuilder_ = null;
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
-       */
-      public com.google.protobuf.Timestamp.Builder getCreatedAtBuilder() {
-        
+      public Builder setTransactionTypeValue(int value) {
+        transactionType_ = value;
         onChanged();
-        return getCreatedAtFieldBuilder().getBuilder();
+        return this;
       }
       /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
+       * <code>.TransactionType transaction_type = 2;</code>
        */
-      public com.google.protobuf.TimestampOrBuilder getCreatedAtOrBuilder() {
-        if (createdAtBuilder_ != null) {
-          return createdAtBuilder_.getMessageOrBuilder();
-        } else {
-          return createdAt_ == null ?
-              com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
-        }
+      public org.wisdom.p2p.WisdomOuterClass.TransactionType getTransactionType() {
+        @SuppressWarnings("deprecation")
+        org.wisdom.p2p.WisdomOuterClass.TransactionType result = org.wisdom.p2p.WisdomOuterClass.TransactionType.valueOf(transactionType_);
+        return result == null ? org.wisdom.p2p.WisdomOuterClass.TransactionType.UNRECOGNIZED : result;
       }
       /**
-       * <code>.google.protobuf.Timestamp created_at = 2;</code>
+       * <code>.TransactionType transaction_type = 2;</code>
        */
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> 
-          getCreatedAtFieldBuilder() {
-        if (createdAtBuilder_ == null) {
-          createdAtBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder>(
-                  getCreatedAt(),
-                  getParentForChildren(),
-                  isClean());
-          createdAt_ = null;
-        }
-        return createdAtBuilder_;
-      }
-
-      private com.google.protobuf.ByteString data_ = com.google.protobuf.ByteString.EMPTY;
-      /**
-       * <code>bytes data = 3;</code>
-       */
-      public com.google.protobuf.ByteString getData() {
-        return data_;
-      }
-      /**
-       * <code>bytes data = 3;</code>
-       */
-      public Builder setData(com.google.protobuf.ByteString value) {
+      public Builder setTransactionType(org.wisdom.p2p.WisdomOuterClass.TransactionType value) {
         if (value == null) {
-    throw new NullPointerException();
-  }
-  
-        data_ = value;
+          throw new NullPointerException();
+        }
+        
+        transactionType_ = value.getNumber();
         onChanged();
         return this;
       }
       /**
-       * <code>bytes data = 3;</code>
+       * <code>.TransactionType transaction_type = 2;</code>
        */
-      public Builder clearData() {
+      public Builder clearTransactionType() {
         
-        data_ = getDefaultInstance().getData();
+        transactionType_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private long nonce_ ;
+      /**
+       * <code>uint64 nonce = 3;</code>
+       */
+      public long getNonce() {
+        return nonce_;
+      }
+      /**
+       * <code>uint64 nonce = 3;</code>
+       */
+      public Builder setNonce(long value) {
+        
+        nonce_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>uint64 nonce = 3;</code>
+       */
+      public Builder clearNonce() {
+        
+        nonce_ = 0L;
         onChanged();
         return this;
       }
@@ -8053,13 +7996,13 @@ public final class WisdomOuterClass {
 
       private long gasPrice_ ;
       /**
-       * <code>uint64 gasPrice = 5;</code>
+       * <code>uint64 gas_price = 5;</code>
        */
       public long getGasPrice() {
         return gasPrice_;
       }
       /**
-       * <code>uint64 gasPrice = 5;</code>
+       * <code>uint64 gas_price = 5;</code>
        */
       public Builder setGasPrice(long value) {
         
@@ -8068,7 +8011,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>uint64 gasPrice = 5;</code>
+       * <code>uint64 gas_price = 5;</code>
        */
       public Builder clearGasPrice() {
         
@@ -8077,181 +8020,41 @@ public final class WisdomOuterClass {
         return this;
       }
 
-      private long nonce_ ;
+      private long amount_ ;
       /**
-       * <code>uint64 nonce = 6;</code>
+       * <code>uint64 amount = 6;</code>
        */
-      public long getNonce() {
-        return nonce_;
+      public long getAmount() {
+        return amount_;
       }
       /**
-       * <code>uint64 nonce = 6;</code>
+       * <code>uint64 amount = 6;</code>
        */
-      public Builder setNonce(long value) {
+      public Builder setAmount(long value) {
         
-        nonce_ = value;
+        amount_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>uint64 nonce = 6;</code>
+       * <code>uint64 amount = 6;</code>
        */
-      public Builder clearNonce() {
+      public Builder clearAmount() {
         
-        nonce_ = 0L;
-        onChanged();
-        return this;
-      }
-
-      private java.lang.Object to_ = "";
-      /**
-       * <code>string to = 7;</code>
-       */
-      public java.lang.String getTo() {
-        java.lang.Object ref = to_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          to_ = s;
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>string to = 7;</code>
-       */
-      public com.google.protobuf.ByteString
-          getToBytes() {
-        java.lang.Object ref = to_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          to_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>string to = 7;</code>
-       */
-      public Builder setTo(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  
-        to_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>string to = 7;</code>
-       */
-      public Builder clearTo() {
-        
-        to_ = getDefaultInstance().getTo();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>string to = 7;</code>
-       */
-      public Builder setToBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-        
-        to_ = value;
-        onChanged();
-        return this;
-      }
-
-      private int type_ = 0;
-      /**
-       * <code>.TransactionType type = 8;</code>
-       */
-      public int getTypeValue() {
-        return type_;
-      }
-      /**
-       * <code>.TransactionType type = 8;</code>
-       */
-      public Builder setTypeValue(int value) {
-        type_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>.TransactionType type = 8;</code>
-       */
-      public org.wisdom.p2p.WisdomOuterClass.TransactionType getType() {
-        @SuppressWarnings("deprecation")
-        org.wisdom.p2p.WisdomOuterClass.TransactionType result = org.wisdom.p2p.WisdomOuterClass.TransactionType.valueOf(type_);
-        return result == null ? org.wisdom.p2p.WisdomOuterClass.TransactionType.UNRECOGNIZED : result;
-      }
-      /**
-       * <code>.TransactionType type = 8;</code>
-       */
-      public Builder setType(org.wisdom.p2p.WisdomOuterClass.TransactionType value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        
-        type_ = value.getNumber();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>.TransactionType type = 8;</code>
-       */
-      public Builder clearType() {
-        
-        type_ = 0;
-        onChanged();
-        return this;
-      }
-
-      private int version_ ;
-      /**
-       * <code>uint32 Version = 9;</code>
-       */
-      public int getVersion() {
-        return version_;
-      }
-      /**
-       * <code>uint32 Version = 9;</code>
-       */
-      public Builder setVersion(int value) {
-        
-        version_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>uint32 Version = 9;</code>
-       */
-      public Builder clearVersion() {
-        
-        version_ = 0;
+        amount_ = 0L;
         onChanged();
         return this;
       }
 
       private com.google.protobuf.ByteString signature_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>bytes signature = 10;</code>
+       * <code>bytes signature = 7;</code>
        */
       public com.google.protobuf.ByteString getSignature() {
         return signature_;
       }
       /**
-       * <code>bytes signature = 10;</code>
+       * <code>bytes signature = 7;</code>
        */
       public Builder setSignature(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -8263,11 +8066,69 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>bytes signature = 10;</code>
+       * <code>bytes signature = 7;</code>
        */
       public Builder clearSignature() {
         
         signature_ = getDefaultInstance().getSignature();
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.ByteString to_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes to = 8;</code>
+       */
+      public com.google.protobuf.ByteString getTo() {
+        return to_;
+      }
+      /**
+       * <code>bytes to = 8;</code>
+       */
+      public Builder setTo(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        to_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes to = 8;</code>
+       */
+      public Builder clearTo() {
+        
+        to_ = getDefaultInstance().getTo();
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.ByteString payload_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes payload = 9;</code>
+       */
+      public com.google.protobuf.ByteString getPayload() {
+        return payload_;
+      }
+      /**
+       * <code>bytes payload = 9;</code>
+       */
+      public Builder setPayload(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        payload_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes payload = 9;</code>
+       */
+      public Builder clearPayload() {
+        
+        payload_ = getDefaultInstance().getPayload();
         onChanged();
         return this;
       }
@@ -8329,68 +8190,70 @@ public final class WisdomOuterClass {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>.google.protobuf.Timestamp created_at = 1;</code>
-     */
-    boolean hasCreatedAt();
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 1;</code>
-     */
-    com.google.protobuf.Timestamp getCreatedAt();
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 1;</code>
-     */
-    com.google.protobuf.TimestampOrBuilder getCreatedAtOrBuilder();
-
-    /**
-     * <code>uint64 height = 2;</code>
-     */
-    long getHeight();
-
-    /**
-     * <code>bytes merkle_root = 3;</code>
-     */
-    com.google.protobuf.ByteString getMerkleRoot();
-
-    /**
-     * <code>bytes nonce = 4;</code>
-     */
-    com.google.protobuf.ByteString getNonce();
-
-    /**
-     * <code>bytes parent_hash = 5;</code>
-     */
-    com.google.protobuf.ByteString getParentHash();
-
-    /**
-     * <code>bytes target = 6;</code>
-     */
-    com.google.protobuf.ByteString getTarget();
-
-    /**
-     * <code>uint32 version = 7;</code>
+     * <code>uint32 version = 1;</code>
      */
     int getVersion();
 
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>bytes hash_prev_block = 2;</code>
+     */
+    com.google.protobuf.ByteString getHashPrevBlock();
+
+    /**
+     * <code>bytes hash_merkle_root = 3;</code>
+     */
+    com.google.protobuf.ByteString getHashMerkleRoot();
+
+    /**
+     * <code>bytes hash_merkle_state = 4;</code>
+     */
+    com.google.protobuf.ByteString getHashMerkleState();
+
+    /**
+     * <code>bytes hash_merkle_incubate = 5;</code>
+     */
+    com.google.protobuf.ByteString getHashMerkleIncubate();
+
+    /**
+     * <code>uint32 height = 6;</code>
+     */
+    int getHeight();
+
+    /**
+     * <code>uint32 created_at = 7;</code>
+     */
+    int getCreatedAt();
+
+    /**
+     * <code>bytes n_bits = 8;</code>
+     */
+    com.google.protobuf.ByteString getNBits();
+
+    /**
+     * <code>bytes nonce = 9;</code>
+     */
+    com.google.protobuf.ByteString getNonce();
+
+    /**
+     * <code>repeated .Transaction body = 10;</code>
      */
     java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> 
         getBodyList();
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     org.wisdom.p2p.WisdomOuterClass.Transaction getBody(int index);
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     int getBodyCount();
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
         getBodyOrBuilderList();
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getBodyOrBuilder(
         int index);
@@ -8408,12 +8271,15 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Block() {
-      height_ = 0L;
-      merkleRoot_ = com.google.protobuf.ByteString.EMPTY;
-      nonce_ = com.google.protobuf.ByteString.EMPTY;
-      parentHash_ = com.google.protobuf.ByteString.EMPTY;
-      target_ = com.google.protobuf.ByteString.EMPTY;
       version_ = 0;
+      hashPrevBlock_ = com.google.protobuf.ByteString.EMPTY;
+      hashMerkleRoot_ = com.google.protobuf.ByteString.EMPTY;
+      hashMerkleState_ = com.google.protobuf.ByteString.EMPTY;
+      hashMerkleIncubate_ = com.google.protobuf.ByteString.EMPTY;
+      height_ = 0;
+      createdAt_ = 0;
+      nBits_ = com.google.protobuf.ByteString.EMPTY;
+      nonce_ = com.google.protobuf.ByteString.EMPTY;
       body_ = java.util.Collections.emptyList();
     }
 
@@ -8441,53 +8307,55 @@ public final class WisdomOuterClass {
             case 0:
               done = true;
               break;
-            case 10: {
-              com.google.protobuf.Timestamp.Builder subBuilder = null;
-              if (createdAt_ != null) {
-                subBuilder = createdAt_.toBuilder();
-              }
-              createdAt_ = input.readMessage(com.google.protobuf.Timestamp.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(createdAt_);
-                createdAt_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 16: {
-
-              height_ = input.readUInt64();
-              break;
-            }
-            case 26: {
-
-              merkleRoot_ = input.readBytes();
-              break;
-            }
-            case 34: {
-
-              nonce_ = input.readBytes();
-              break;
-            }
-            case 42: {
-
-              parentHash_ = input.readBytes();
-              break;
-            }
-            case 50: {
-
-              target_ = input.readBytes();
-              break;
-            }
-            case 56: {
+            case 8: {
 
               version_ = input.readUInt32();
               break;
             }
+            case 18: {
+
+              hashPrevBlock_ = input.readBytes();
+              break;
+            }
+            case 26: {
+
+              hashMerkleRoot_ = input.readBytes();
+              break;
+            }
+            case 34: {
+
+              hashMerkleState_ = input.readBytes();
+              break;
+            }
+            case 42: {
+
+              hashMerkleIncubate_ = input.readBytes();
+              break;
+            }
+            case 48: {
+
+              height_ = input.readUInt32();
+              break;
+            }
+            case 56: {
+
+              createdAt_ = input.readUInt32();
+              break;
+            }
             case 66: {
-              if (!((mutable_bitField0_ & 0x00000080) == 0x00000080)) {
+
+              nBits_ = input.readBytes();
+              break;
+            }
+            case 74: {
+
+              nonce_ = input.readBytes();
+              break;
+            }
+            case 82: {
+              if (!((mutable_bitField0_ & 0x00000200) == 0x00000200)) {
                 body_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>();
-                mutable_bitField0_ |= 0x00000080;
+                mutable_bitField0_ |= 0x00000200;
               }
               body_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.Transaction.parser(), extensionRegistry));
@@ -8508,7 +8376,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000080) == 0x00000080)) {
+        if (((mutable_bitField0_ & 0x00000200) == 0x00000200)) {
           body_ = java.util.Collections.unmodifiableList(body_);
         }
         this.unknownFields = unknownFields.build();
@@ -8529,110 +8397,116 @@ public final class WisdomOuterClass {
     }
 
     private int bitField0_;
-    public static final int CREATED_AT_FIELD_NUMBER = 1;
-    private com.google.protobuf.Timestamp createdAt_;
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 1;</code>
-     */
-    public boolean hasCreatedAt() {
-      return createdAt_ != null;
-    }
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 1;</code>
-     */
-    public com.google.protobuf.Timestamp getCreatedAt() {
-      return createdAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
-    }
-    /**
-     * <code>.google.protobuf.Timestamp created_at = 1;</code>
-     */
-    public com.google.protobuf.TimestampOrBuilder getCreatedAtOrBuilder() {
-      return getCreatedAt();
-    }
-
-    public static final int HEIGHT_FIELD_NUMBER = 2;
-    private long height_;
-    /**
-     * <code>uint64 height = 2;</code>
-     */
-    public long getHeight() {
-      return height_;
-    }
-
-    public static final int MERKLE_ROOT_FIELD_NUMBER = 3;
-    private com.google.protobuf.ByteString merkleRoot_;
-    /**
-     * <code>bytes merkle_root = 3;</code>
-     */
-    public com.google.protobuf.ByteString getMerkleRoot() {
-      return merkleRoot_;
-    }
-
-    public static final int NONCE_FIELD_NUMBER = 4;
-    private com.google.protobuf.ByteString nonce_;
-    /**
-     * <code>bytes nonce = 4;</code>
-     */
-    public com.google.protobuf.ByteString getNonce() {
-      return nonce_;
-    }
-
-    public static final int PARENT_HASH_FIELD_NUMBER = 5;
-    private com.google.protobuf.ByteString parentHash_;
-    /**
-     * <code>bytes parent_hash = 5;</code>
-     */
-    public com.google.protobuf.ByteString getParentHash() {
-      return parentHash_;
-    }
-
-    public static final int TARGET_FIELD_NUMBER = 6;
-    private com.google.protobuf.ByteString target_;
-    /**
-     * <code>bytes target = 6;</code>
-     */
-    public com.google.protobuf.ByteString getTarget() {
-      return target_;
-    }
-
-    public static final int VERSION_FIELD_NUMBER = 7;
+    public static final int VERSION_FIELD_NUMBER = 1;
     private int version_;
     /**
-     * <code>uint32 version = 7;</code>
+     * <code>uint32 version = 1;</code>
      */
     public int getVersion() {
       return version_;
     }
 
-    public static final int BODY_FIELD_NUMBER = 8;
+    public static final int HASH_PREV_BLOCK_FIELD_NUMBER = 2;
+    private com.google.protobuf.ByteString hashPrevBlock_;
+    /**
+     * <code>bytes hash_prev_block = 2;</code>
+     */
+    public com.google.protobuf.ByteString getHashPrevBlock() {
+      return hashPrevBlock_;
+    }
+
+    public static final int HASH_MERKLE_ROOT_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString hashMerkleRoot_;
+    /**
+     * <code>bytes hash_merkle_root = 3;</code>
+     */
+    public com.google.protobuf.ByteString getHashMerkleRoot() {
+      return hashMerkleRoot_;
+    }
+
+    public static final int HASH_MERKLE_STATE_FIELD_NUMBER = 4;
+    private com.google.protobuf.ByteString hashMerkleState_;
+    /**
+     * <code>bytes hash_merkle_state = 4;</code>
+     */
+    public com.google.protobuf.ByteString getHashMerkleState() {
+      return hashMerkleState_;
+    }
+
+    public static final int HASH_MERKLE_INCUBATE_FIELD_NUMBER = 5;
+    private com.google.protobuf.ByteString hashMerkleIncubate_;
+    /**
+     * <code>bytes hash_merkle_incubate = 5;</code>
+     */
+    public com.google.protobuf.ByteString getHashMerkleIncubate() {
+      return hashMerkleIncubate_;
+    }
+
+    public static final int HEIGHT_FIELD_NUMBER = 6;
+    private int height_;
+    /**
+     * <code>uint32 height = 6;</code>
+     */
+    public int getHeight() {
+      return height_;
+    }
+
+    public static final int CREATED_AT_FIELD_NUMBER = 7;
+    private int createdAt_;
+    /**
+     * <code>uint32 created_at = 7;</code>
+     */
+    public int getCreatedAt() {
+      return createdAt_;
+    }
+
+    public static final int N_BITS_FIELD_NUMBER = 8;
+    private com.google.protobuf.ByteString nBits_;
+    /**
+     * <code>bytes n_bits = 8;</code>
+     */
+    public com.google.protobuf.ByteString getNBits() {
+      return nBits_;
+    }
+
+    public static final int NONCE_FIELD_NUMBER = 9;
+    private com.google.protobuf.ByteString nonce_;
+    /**
+     * <code>bytes nonce = 9;</code>
+     */
+    public com.google.protobuf.ByteString getNonce() {
+      return nonce_;
+    }
+
+    public static final int BODY_FIELD_NUMBER = 10;
     private java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> body_;
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     public java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> getBodyList() {
       return body_;
     }
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
         getBodyOrBuilderList() {
       return body_;
     }
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     public int getBodyCount() {
       return body_.size();
     }
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     public org.wisdom.p2p.WisdomOuterClass.Transaction getBody(int index) {
       return body_.get(index);
     }
     /**
-     * <code>repeated .Transaction body = 8;</code>
+     * <code>repeated .Transaction body = 10;</code>
      */
     public org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getBodyOrBuilder(
         int index) {
@@ -8653,29 +8527,35 @@ public final class WisdomOuterClass {
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (createdAt_ != null) {
-        output.writeMessage(1, getCreatedAt());
+      if (version_ != 0) {
+        output.writeUInt32(1, version_);
       }
-      if (height_ != 0L) {
-        output.writeUInt64(2, height_);
+      if (!hashPrevBlock_.isEmpty()) {
+        output.writeBytes(2, hashPrevBlock_);
       }
-      if (!merkleRoot_.isEmpty()) {
-        output.writeBytes(3, merkleRoot_);
+      if (!hashMerkleRoot_.isEmpty()) {
+        output.writeBytes(3, hashMerkleRoot_);
+      }
+      if (!hashMerkleState_.isEmpty()) {
+        output.writeBytes(4, hashMerkleState_);
+      }
+      if (!hashMerkleIncubate_.isEmpty()) {
+        output.writeBytes(5, hashMerkleIncubate_);
+      }
+      if (height_ != 0) {
+        output.writeUInt32(6, height_);
+      }
+      if (createdAt_ != 0) {
+        output.writeUInt32(7, createdAt_);
+      }
+      if (!nBits_.isEmpty()) {
+        output.writeBytes(8, nBits_);
       }
       if (!nonce_.isEmpty()) {
-        output.writeBytes(4, nonce_);
-      }
-      if (!parentHash_.isEmpty()) {
-        output.writeBytes(5, parentHash_);
-      }
-      if (!target_.isEmpty()) {
-        output.writeBytes(6, target_);
-      }
-      if (version_ != 0) {
-        output.writeUInt32(7, version_);
+        output.writeBytes(9, nonce_);
       }
       for (int i = 0; i < body_.size(); i++) {
-        output.writeMessage(8, body_.get(i));
+        output.writeMessage(10, body_.get(i));
       }
       unknownFields.writeTo(output);
     }
@@ -8686,37 +8566,45 @@ public final class WisdomOuterClass {
       if (size != -1) return size;
 
       size = 0;
-      if (createdAt_ != null) {
+      if (version_ != 0) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, getCreatedAt());
+          .computeUInt32Size(1, version_);
       }
-      if (height_ != 0L) {
+      if (!hashPrevBlock_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(2, height_);
+          .computeBytesSize(2, hashPrevBlock_);
       }
-      if (!merkleRoot_.isEmpty()) {
+      if (!hashMerkleRoot_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, merkleRoot_);
+          .computeBytesSize(3, hashMerkleRoot_);
+      }
+      if (!hashMerkleState_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(4, hashMerkleState_);
+      }
+      if (!hashMerkleIncubate_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(5, hashMerkleIncubate_);
+      }
+      if (height_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32Size(6, height_);
+      }
+      if (createdAt_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32Size(7, createdAt_);
+      }
+      if (!nBits_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(8, nBits_);
       }
       if (!nonce_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(4, nonce_);
-      }
-      if (!parentHash_.isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, parentHash_);
-      }
-      if (!target_.isEmpty()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(6, target_);
-      }
-      if (version_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeUInt32Size(7, version_);
+          .computeBytesSize(9, nonce_);
       }
       for (int i = 0; i < body_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(8, body_.get(i));
+          .computeMessageSize(10, body_.get(i));
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -8734,23 +8622,24 @@ public final class WisdomOuterClass {
       org.wisdom.p2p.WisdomOuterClass.Block other = (org.wisdom.p2p.WisdomOuterClass.Block) obj;
 
       boolean result = true;
-      result = result && (hasCreatedAt() == other.hasCreatedAt());
-      if (hasCreatedAt()) {
-        result = result && getCreatedAt()
-            .equals(other.getCreatedAt());
-      }
-      result = result && (getHeight()
-          == other.getHeight());
-      result = result && getMerkleRoot()
-          .equals(other.getMerkleRoot());
-      result = result && getNonce()
-          .equals(other.getNonce());
-      result = result && getParentHash()
-          .equals(other.getParentHash());
-      result = result && getTarget()
-          .equals(other.getTarget());
       result = result && (getVersion()
           == other.getVersion());
+      result = result && getHashPrevBlock()
+          .equals(other.getHashPrevBlock());
+      result = result && getHashMerkleRoot()
+          .equals(other.getHashMerkleRoot());
+      result = result && getHashMerkleState()
+          .equals(other.getHashMerkleState());
+      result = result && getHashMerkleIncubate()
+          .equals(other.getHashMerkleIncubate());
+      result = result && (getHeight()
+          == other.getHeight());
+      result = result && (getCreatedAt()
+          == other.getCreatedAt());
+      result = result && getNBits()
+          .equals(other.getNBits());
+      result = result && getNonce()
+          .equals(other.getNonce());
       result = result && getBodyList()
           .equals(other.getBodyList());
       result = result && unknownFields.equals(other.unknownFields);
@@ -8764,23 +8653,24 @@ public final class WisdomOuterClass {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      if (hasCreatedAt()) {
-        hash = (37 * hash) + CREATED_AT_FIELD_NUMBER;
-        hash = (53 * hash) + getCreatedAt().hashCode();
-      }
-      hash = (37 * hash) + HEIGHT_FIELD_NUMBER;
-      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-          getHeight());
-      hash = (37 * hash) + MERKLE_ROOT_FIELD_NUMBER;
-      hash = (53 * hash) + getMerkleRoot().hashCode();
-      hash = (37 * hash) + NONCE_FIELD_NUMBER;
-      hash = (53 * hash) + getNonce().hashCode();
-      hash = (37 * hash) + PARENT_HASH_FIELD_NUMBER;
-      hash = (53 * hash) + getParentHash().hashCode();
-      hash = (37 * hash) + TARGET_FIELD_NUMBER;
-      hash = (53 * hash) + getTarget().hashCode();
       hash = (37 * hash) + VERSION_FIELD_NUMBER;
       hash = (53 * hash) + getVersion();
+      hash = (37 * hash) + HASH_PREV_BLOCK_FIELD_NUMBER;
+      hash = (53 * hash) + getHashPrevBlock().hashCode();
+      hash = (37 * hash) + HASH_MERKLE_ROOT_FIELD_NUMBER;
+      hash = (53 * hash) + getHashMerkleRoot().hashCode();
+      hash = (37 * hash) + HASH_MERKLE_STATE_FIELD_NUMBER;
+      hash = (53 * hash) + getHashMerkleState().hashCode();
+      hash = (37 * hash) + HASH_MERKLE_INCUBATE_FIELD_NUMBER;
+      hash = (53 * hash) + getHashMerkleIncubate().hashCode();
+      hash = (37 * hash) + HEIGHT_FIELD_NUMBER;
+      hash = (53 * hash) + getHeight();
+      hash = (37 * hash) + CREATED_AT_FIELD_NUMBER;
+      hash = (53 * hash) + getCreatedAt();
+      hash = (37 * hash) + N_BITS_FIELD_NUMBER;
+      hash = (53 * hash) + getNBits().hashCode();
+      hash = (37 * hash) + NONCE_FIELD_NUMBER;
+      hash = (53 * hash) + getNonce().hashCode();
       if (getBodyCount() > 0) {
         hash = (37 * hash) + BODY_FIELD_NUMBER;
         hash = (53 * hash) + getBodyList().hashCode();
@@ -8919,27 +8809,27 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (createdAtBuilder_ == null) {
-          createdAt_ = null;
-        } else {
-          createdAt_ = null;
-          createdAtBuilder_ = null;
-        }
-        height_ = 0L;
+        version_ = 0;
 
-        merkleRoot_ = com.google.protobuf.ByteString.EMPTY;
+        hashPrevBlock_ = com.google.protobuf.ByteString.EMPTY;
+
+        hashMerkleRoot_ = com.google.protobuf.ByteString.EMPTY;
+
+        hashMerkleState_ = com.google.protobuf.ByteString.EMPTY;
+
+        hashMerkleIncubate_ = com.google.protobuf.ByteString.EMPTY;
+
+        height_ = 0;
+
+        createdAt_ = 0;
+
+        nBits_ = com.google.protobuf.ByteString.EMPTY;
 
         nonce_ = com.google.protobuf.ByteString.EMPTY;
 
-        parentHash_ = com.google.protobuf.ByteString.EMPTY;
-
-        target_ = com.google.protobuf.ByteString.EMPTY;
-
-        version_ = 0;
-
         if (bodyBuilder_ == null) {
           body_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000200);
         } else {
           bodyBuilder_.clear();
         }
@@ -8971,21 +8861,19 @@ public final class WisdomOuterClass {
         org.wisdom.p2p.WisdomOuterClass.Block result = new org.wisdom.p2p.WisdomOuterClass.Block(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (createdAtBuilder_ == null) {
-          result.createdAt_ = createdAt_;
-        } else {
-          result.createdAt_ = createdAtBuilder_.build();
-        }
-        result.height_ = height_;
-        result.merkleRoot_ = merkleRoot_;
-        result.nonce_ = nonce_;
-        result.parentHash_ = parentHash_;
-        result.target_ = target_;
         result.version_ = version_;
+        result.hashPrevBlock_ = hashPrevBlock_;
+        result.hashMerkleRoot_ = hashMerkleRoot_;
+        result.hashMerkleState_ = hashMerkleState_;
+        result.hashMerkleIncubate_ = hashMerkleIncubate_;
+        result.height_ = height_;
+        result.createdAt_ = createdAt_;
+        result.nBits_ = nBits_;
+        result.nonce_ = nonce_;
         if (bodyBuilder_ == null) {
-          if (((bitField0_ & 0x00000080) == 0x00000080)) {
+          if (((bitField0_ & 0x00000200) == 0x00000200)) {
             body_ = java.util.Collections.unmodifiableList(body_);
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000200);
           }
           result.body_ = body_;
         } else {
@@ -9040,32 +8928,38 @@ public final class WisdomOuterClass {
 
       public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.Block other) {
         if (other == org.wisdom.p2p.WisdomOuterClass.Block.getDefaultInstance()) return this;
-        if (other.hasCreatedAt()) {
-          mergeCreatedAt(other.getCreatedAt());
+        if (other.getVersion() != 0) {
+          setVersion(other.getVersion());
         }
-        if (other.getHeight() != 0L) {
+        if (other.getHashPrevBlock() != com.google.protobuf.ByteString.EMPTY) {
+          setHashPrevBlock(other.getHashPrevBlock());
+        }
+        if (other.getHashMerkleRoot() != com.google.protobuf.ByteString.EMPTY) {
+          setHashMerkleRoot(other.getHashMerkleRoot());
+        }
+        if (other.getHashMerkleState() != com.google.protobuf.ByteString.EMPTY) {
+          setHashMerkleState(other.getHashMerkleState());
+        }
+        if (other.getHashMerkleIncubate() != com.google.protobuf.ByteString.EMPTY) {
+          setHashMerkleIncubate(other.getHashMerkleIncubate());
+        }
+        if (other.getHeight() != 0) {
           setHeight(other.getHeight());
         }
-        if (other.getMerkleRoot() != com.google.protobuf.ByteString.EMPTY) {
-          setMerkleRoot(other.getMerkleRoot());
+        if (other.getCreatedAt() != 0) {
+          setCreatedAt(other.getCreatedAt());
+        }
+        if (other.getNBits() != com.google.protobuf.ByteString.EMPTY) {
+          setNBits(other.getNBits());
         }
         if (other.getNonce() != com.google.protobuf.ByteString.EMPTY) {
           setNonce(other.getNonce());
-        }
-        if (other.getParentHash() != com.google.protobuf.ByteString.EMPTY) {
-          setParentHash(other.getParentHash());
-        }
-        if (other.getTarget() != com.google.protobuf.ByteString.EMPTY) {
-          setTarget(other.getTarget());
-        }
-        if (other.getVersion() != 0) {
-          setVersion(other.getVersion());
         }
         if (bodyBuilder_ == null) {
           if (!other.body_.isEmpty()) {
             if (body_.isEmpty()) {
               body_ = other.body_;
-              bitField0_ = (bitField0_ & ~0x00000080);
+              bitField0_ = (bitField0_ & ~0x00000200);
             } else {
               ensureBodyIsMutable();
               body_.addAll(other.body_);
@@ -9078,7 +8972,7 @@ public final class WisdomOuterClass {
               bodyBuilder_.dispose();
               bodyBuilder_ = null;
               body_ = other.body_;
-              bitField0_ = (bitField0_ & ~0x00000080);
+              bitField0_ = (bitField0_ & ~0x00000200);
               bodyBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getBodyFieldBuilder() : null;
@@ -9117,187 +9011,238 @@ public final class WisdomOuterClass {
       }
       private int bitField0_;
 
-      private com.google.protobuf.Timestamp createdAt_ = null;
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> createdAtBuilder_;
+      private int version_ ;
       /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
+       * <code>uint32 version = 1;</code>
        */
-      public boolean hasCreatedAt() {
-        return createdAtBuilder_ != null || createdAt_ != null;
+      public int getVersion() {
+        return version_;
       }
       /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
+       * <code>uint32 version = 1;</code>
        */
-      public com.google.protobuf.Timestamp getCreatedAt() {
-        if (createdAtBuilder_ == null) {
-          return createdAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
-        } else {
-          return createdAtBuilder_.getMessage();
-        }
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
-       */
-      public Builder setCreatedAt(com.google.protobuf.Timestamp value) {
-        if (createdAtBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          createdAt_ = value;
-          onChanged();
-        } else {
-          createdAtBuilder_.setMessage(value);
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
-       */
-      public Builder setCreatedAt(
-          com.google.protobuf.Timestamp.Builder builderForValue) {
-        if (createdAtBuilder_ == null) {
-          createdAt_ = builderForValue.build();
-          onChanged();
-        } else {
-          createdAtBuilder_.setMessage(builderForValue.build());
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
-       */
-      public Builder mergeCreatedAt(com.google.protobuf.Timestamp value) {
-        if (createdAtBuilder_ == null) {
-          if (createdAt_ != null) {
-            createdAt_ =
-              com.google.protobuf.Timestamp.newBuilder(createdAt_).mergeFrom(value).buildPartial();
-          } else {
-            createdAt_ = value;
-          }
-          onChanged();
-        } else {
-          createdAtBuilder_.mergeFrom(value);
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
-       */
-      public Builder clearCreatedAt() {
-        if (createdAtBuilder_ == null) {
-          createdAt_ = null;
-          onChanged();
-        } else {
-          createdAt_ = null;
-          createdAtBuilder_ = null;
-        }
-
-        return this;
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
-       */
-      public com.google.protobuf.Timestamp.Builder getCreatedAtBuilder() {
+      public Builder setVersion(int value) {
         
+        version_ = value;
         onChanged();
-        return getCreatedAtFieldBuilder().getBuilder();
+        return this;
       }
       /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
+       * <code>uint32 version = 1;</code>
        */
-      public com.google.protobuf.TimestampOrBuilder getCreatedAtOrBuilder() {
-        if (createdAtBuilder_ != null) {
-          return createdAtBuilder_.getMessageOrBuilder();
-        } else {
-          return createdAt_ == null ?
-              com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
-        }
-      }
-      /**
-       * <code>.google.protobuf.Timestamp created_at = 1;</code>
-       */
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> 
-          getCreatedAtFieldBuilder() {
-        if (createdAtBuilder_ == null) {
-          createdAtBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder>(
-                  getCreatedAt(),
-                  getParentForChildren(),
-                  isClean());
-          createdAt_ = null;
-        }
-        return createdAtBuilder_;
+      public Builder clearVersion() {
+        
+        version_ = 0;
+        onChanged();
+        return this;
       }
 
-      private long height_ ;
+      private com.google.protobuf.ByteString hashPrevBlock_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>uint64 height = 2;</code>
+       * <code>bytes hash_prev_block = 2;</code>
        */
-      public long getHeight() {
+      public com.google.protobuf.ByteString getHashPrevBlock() {
+        return hashPrevBlock_;
+      }
+      /**
+       * <code>bytes hash_prev_block = 2;</code>
+       */
+      public Builder setHashPrevBlock(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        hashPrevBlock_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes hash_prev_block = 2;</code>
+       */
+      public Builder clearHashPrevBlock() {
+        
+        hashPrevBlock_ = getDefaultInstance().getHashPrevBlock();
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.ByteString hashMerkleRoot_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes hash_merkle_root = 3;</code>
+       */
+      public com.google.protobuf.ByteString getHashMerkleRoot() {
+        return hashMerkleRoot_;
+      }
+      /**
+       * <code>bytes hash_merkle_root = 3;</code>
+       */
+      public Builder setHashMerkleRoot(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        hashMerkleRoot_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes hash_merkle_root = 3;</code>
+       */
+      public Builder clearHashMerkleRoot() {
+        
+        hashMerkleRoot_ = getDefaultInstance().getHashMerkleRoot();
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.ByteString hashMerkleState_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes hash_merkle_state = 4;</code>
+       */
+      public com.google.protobuf.ByteString getHashMerkleState() {
+        return hashMerkleState_;
+      }
+      /**
+       * <code>bytes hash_merkle_state = 4;</code>
+       */
+      public Builder setHashMerkleState(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        hashMerkleState_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes hash_merkle_state = 4;</code>
+       */
+      public Builder clearHashMerkleState() {
+        
+        hashMerkleState_ = getDefaultInstance().getHashMerkleState();
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.ByteString hashMerkleIncubate_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes hash_merkle_incubate = 5;</code>
+       */
+      public com.google.protobuf.ByteString getHashMerkleIncubate() {
+        return hashMerkleIncubate_;
+      }
+      /**
+       * <code>bytes hash_merkle_incubate = 5;</code>
+       */
+      public Builder setHashMerkleIncubate(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        hashMerkleIncubate_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes hash_merkle_incubate = 5;</code>
+       */
+      public Builder clearHashMerkleIncubate() {
+        
+        hashMerkleIncubate_ = getDefaultInstance().getHashMerkleIncubate();
+        onChanged();
+        return this;
+      }
+
+      private int height_ ;
+      /**
+       * <code>uint32 height = 6;</code>
+       */
+      public int getHeight() {
         return height_;
       }
       /**
-       * <code>uint64 height = 2;</code>
+       * <code>uint32 height = 6;</code>
        */
-      public Builder setHeight(long value) {
+      public Builder setHeight(int value) {
         
         height_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>uint64 height = 2;</code>
+       * <code>uint32 height = 6;</code>
        */
       public Builder clearHeight() {
         
-        height_ = 0L;
+        height_ = 0;
         onChanged();
         return this;
       }
 
-      private com.google.protobuf.ByteString merkleRoot_ = com.google.protobuf.ByteString.EMPTY;
+      private int createdAt_ ;
       /**
-       * <code>bytes merkle_root = 3;</code>
+       * <code>uint32 created_at = 7;</code>
        */
-      public com.google.protobuf.ByteString getMerkleRoot() {
-        return merkleRoot_;
+      public int getCreatedAt() {
+        return createdAt_;
       }
       /**
-       * <code>bytes merkle_root = 3;</code>
+       * <code>uint32 created_at = 7;</code>
        */
-      public Builder setMerkleRoot(com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  
-        merkleRoot_ = value;
+      public Builder setCreatedAt(int value) {
+        
+        createdAt_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>bytes merkle_root = 3;</code>
+       * <code>uint32 created_at = 7;</code>
        */
-      public Builder clearMerkleRoot() {
+      public Builder clearCreatedAt() {
         
-        merkleRoot_ = getDefaultInstance().getMerkleRoot();
+        createdAt_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.ByteString nBits_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes n_bits = 8;</code>
+       */
+      public com.google.protobuf.ByteString getNBits() {
+        return nBits_;
+      }
+      /**
+       * <code>bytes n_bits = 8;</code>
+       */
+      public Builder setNBits(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        nBits_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes n_bits = 8;</code>
+       */
+      public Builder clearNBits() {
+        
+        nBits_ = getDefaultInstance().getNBits();
         onChanged();
         return this;
       }
 
       private com.google.protobuf.ByteString nonce_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>bytes nonce = 4;</code>
+       * <code>bytes nonce = 9;</code>
        */
       public com.google.protobuf.ByteString getNonce() {
         return nonce_;
       }
       /**
-       * <code>bytes nonce = 4;</code>
+       * <code>bytes nonce = 9;</code>
        */
       public Builder setNonce(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9309,7 +9254,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>bytes nonce = 4;</code>
+       * <code>bytes nonce = 9;</code>
        */
       public Builder clearNonce() {
         
@@ -9318,96 +9263,12 @@ public final class WisdomOuterClass {
         return this;
       }
 
-      private com.google.protobuf.ByteString parentHash_ = com.google.protobuf.ByteString.EMPTY;
-      /**
-       * <code>bytes parent_hash = 5;</code>
-       */
-      public com.google.protobuf.ByteString getParentHash() {
-        return parentHash_;
-      }
-      /**
-       * <code>bytes parent_hash = 5;</code>
-       */
-      public Builder setParentHash(com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  
-        parentHash_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>bytes parent_hash = 5;</code>
-       */
-      public Builder clearParentHash() {
-        
-        parentHash_ = getDefaultInstance().getParentHash();
-        onChanged();
-        return this;
-      }
-
-      private com.google.protobuf.ByteString target_ = com.google.protobuf.ByteString.EMPTY;
-      /**
-       * <code>bytes target = 6;</code>
-       */
-      public com.google.protobuf.ByteString getTarget() {
-        return target_;
-      }
-      /**
-       * <code>bytes target = 6;</code>
-       */
-      public Builder setTarget(com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  
-        target_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>bytes target = 6;</code>
-       */
-      public Builder clearTarget() {
-        
-        target_ = getDefaultInstance().getTarget();
-        onChanged();
-        return this;
-      }
-
-      private int version_ ;
-      /**
-       * <code>uint32 version = 7;</code>
-       */
-      public int getVersion() {
-        return version_;
-      }
-      /**
-       * <code>uint32 version = 7;</code>
-       */
-      public Builder setVersion(int value) {
-        
-        version_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>uint32 version = 7;</code>
-       */
-      public Builder clearVersion() {
-        
-        version_ = 0;
-        onChanged();
-        return this;
-      }
-
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> body_ =
         java.util.Collections.emptyList();
       private void ensureBodyIsMutable() {
-        if (!((bitField0_ & 0x00000080) == 0x00000080)) {
+        if (!((bitField0_ & 0x00000200) == 0x00000200)) {
           body_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>(body_);
-          bitField0_ |= 0x00000080;
+          bitField0_ |= 0x00000200;
          }
       }
 
@@ -9415,7 +9276,7 @@ public final class WisdomOuterClass {
           org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> bodyBuilder_;
 
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> getBodyList() {
         if (bodyBuilder_ == null) {
@@ -9425,7 +9286,7 @@ public final class WisdomOuterClass {
         }
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public int getBodyCount() {
         if (bodyBuilder_ == null) {
@@ -9435,7 +9296,7 @@ public final class WisdomOuterClass {
         }
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public org.wisdom.p2p.WisdomOuterClass.Transaction getBody(int index) {
         if (bodyBuilder_ == null) {
@@ -9445,7 +9306,7 @@ public final class WisdomOuterClass {
         }
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder setBody(
           int index, org.wisdom.p2p.WisdomOuterClass.Transaction value) {
@@ -9462,7 +9323,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder setBody(
           int index, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
@@ -9476,7 +9337,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder addBody(org.wisdom.p2p.WisdomOuterClass.Transaction value) {
         if (bodyBuilder_ == null) {
@@ -9492,7 +9353,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder addBody(
           int index, org.wisdom.p2p.WisdomOuterClass.Transaction value) {
@@ -9509,7 +9370,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder addBody(
           org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
@@ -9523,7 +9384,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder addBody(
           int index, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
@@ -9537,7 +9398,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder addAllBody(
           java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.Transaction> values) {
@@ -9552,12 +9413,12 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder clearBody() {
         if (bodyBuilder_ == null) {
           body_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000200);
           onChanged();
         } else {
           bodyBuilder_.clear();
@@ -9565,7 +9426,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public Builder removeBody(int index) {
         if (bodyBuilder_ == null) {
@@ -9578,14 +9439,14 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder getBodyBuilder(
           int index) {
         return getBodyFieldBuilder().getBuilder(index);
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getBodyOrBuilder(
           int index) {
@@ -9595,7 +9456,7 @@ public final class WisdomOuterClass {
         }
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
            getBodyOrBuilderList() {
@@ -9606,14 +9467,14 @@ public final class WisdomOuterClass {
         }
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder addBodyBuilder() {
         return getBodyFieldBuilder().addBuilder(
             org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance());
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder addBodyBuilder(
           int index) {
@@ -9621,7 +9482,7 @@ public final class WisdomOuterClass {
             index, org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance());
       }
       /**
-       * <code>repeated .Transaction body = 8;</code>
+       * <code>repeated .Transaction body = 10;</code>
        */
       public java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction.Builder> 
            getBodyBuilderList() {
@@ -9634,7 +9495,7 @@ public final class WisdomOuterClass {
           bodyBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder>(
                   body_,
-                  ((bitField0_ & 0x00000080) == 0x00000080),
+                  ((bitField0_ & 0x00000200) == 0x00000200),
                   getParentForChildren(),
                   isClean());
           body_ = null;
@@ -9781,25 +9642,33 @@ public final class WisdomOuterClass {
       "ht\030\001 \001(\004\022\023\n\013stop_height\030\002 \001(\004\022&\n\016clip_di" +
       "rection\030\003 \001(\0162\016.ClipDirection\" \n\006Blocks\022" +
       "\026\n\006blocks\030\001 \003(\0132\006.Block\"!\n\010Proposal\022\025\n\005b" +
-      "lock\030\001 \001(\0132\006.Block\"\t\n\007Nothing\"\332\001\n\013Transa" +
-      "ction\022\016\n\006amount\030\001 \001(\004\022.\n\ncreated_at\030\002 \001(" +
-      "\0132\032.google.protobuf.Timestamp\022\014\n\004data\030\003 " +
-      "\001(\014\022\014\n\004from\030\004 \001(\014\022\020\n\010gasPrice\030\005 \001(\004\022\r\n\005n" +
-      "once\030\006 \001(\004\022\n\n\002to\030\007 \001(\t\022\036\n\004type\030\010 \001(\0162\020.T" +
-      "ransactionType\022\017\n\007Version\030\t \001(\r\022\021\n\tsigna" +
-      "ture\030\n \001(\014\"\275\001\n\005Block\022.\n\ncreated_at\030\001 \001(\013" +
-      "2\032.google.protobuf.Timestamp\022\016\n\006height\030\002" +
-      " \001(\004\022\023\n\013merkle_root\030\003 \001(\014\022\r\n\005nonce\030\004 \001(\014" +
-      "\022\023\n\013parent_hash\030\005 \001(\014\022\016\n\006target\030\006 \001(\014\022\017\n" +
-      "\007version\030\007 \001(\r\022\032\n\004body\030\010 \003(\0132\014.Transacti" +
-      "on*\226\001\n\004Code\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001\022\010\n\004PO" +
-      "NG\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGET_STAT" +
-      "US\020\005\022\n\n\006STATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n\n\006BLOC" +
-      "KS\020\010\022\014\n\010PROPOSAL\020\t\022\017\n\013TRANSACTION\020\n*0\n\rC" +
-      "lipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_INIT" +
-      "IAL\020\001*.\n\017TransactionType\022\r\n\tCOIN_BASE\020\000\022" +
-      "\014\n\010TRANSFER\020\0012\'\n\006Wisdom\022\035\n\005Entry\022\010.Messa" +
-      "ge\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006proto3"
+      "lock\030\001 \001(\0132\006.Block\"\t\n\007Nothing\"\272\001\n\013Transa" +
+      "ction\022\017\n\007version\030\001 \001(\005\022*\n\020transaction_ty" +
+      "pe\030\002 \001(\0162\020.TransactionType\022\r\n\005nonce\030\003 \001(" +
+      "\004\022\014\n\004from\030\004 \001(\014\022\021\n\tgas_price\030\005 \001(\004\022\016\n\006am" +
+      "ount\030\006 \001(\004\022\021\n\tsignature\030\007 \001(\014\022\n\n\002to\030\010 \001(" +
+      "\014\022\017\n\007payload\030\t \001(\014\"\343\001\n\005Block\022\017\n\007version\030" +
+      "\001 \001(\r\022\027\n\017hash_prev_block\030\002 \001(\014\022\030\n\020hash_m" +
+      "erkle_root\030\003 \001(\014\022\031\n\021hash_merkle_state\030\004 " +
+      "\001(\014\022\034\n\024hash_merkle_incubate\030\005 \001(\014\022\016\n\006hei" +
+      "ght\030\006 \001(\r\022\022\n\ncreated_at\030\007 \001(\r\022\016\n\006n_bits\030" +
+      "\010 \001(\014\022\r\n\005nonce\030\t \001(\014\022\032\n\004body\030\n \003(\0132\014.Tra" +
+      "nsaction*\226\001\n\004Code\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001" +
+      "\022\010\n\004PONG\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGE" +
+      "T_STATUS\020\005\022\n\n\006STATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n" +
+      "\n\006BLOCKS\020\010\022\014\n\010PROPOSAL\020\t\022\017\n\013TRANSACTION\020" +
+      "\n*0\n\rClipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLI" +
+      "P_INITIAL\020\001*\305\002\n\017TransactionType\022\014\n\010COINB" +
+      "ASE\020\000\022\014\n\010TRANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT" +
+      "\020\003\022\036\n\032TRANSFER_MULTISIG_MULTISIG\020\004\022\034\n\030TR" +
+      "ANSFER_MULTISIG_NORMAL\020\005\022\034\n\030TRANSFER_NOR" +
+      "MAL_MULTISIG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOM" +
+      "IC_EXCHANGE\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_I" +
+      "NTEREST\020\n\022\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n" +
+      "\014EXTRACT_COST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE" +
+      "\020\016\022\017\n\013EXIT_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010" +
+      ".Message\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006" +
+      "proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9885,13 +9754,13 @@ public final class WisdomOuterClass {
     internal_static_Transaction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Transaction_descriptor,
-        new java.lang.String[] { "Amount", "CreatedAt", "Data", "From", "GasPrice", "Nonce", "To", "Type", "Version", "Signature", });
+        new java.lang.String[] { "Version", "TransactionType", "Nonce", "From", "GasPrice", "Amount", "Signature", "To", "Payload", });
     internal_static_Block_descriptor =
       getDescriptor().getMessageTypes().get(12);
     internal_static_Block_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Block_descriptor,
-        new java.lang.String[] { "CreatedAt", "Height", "MerkleRoot", "Nonce", "ParentHash", "Target", "Version", "Body", });
+        new java.lang.String[] { "Version", "HashPrevBlock", "HashMerkleRoot", "HashMerkleState", "HashMerkleIncubate", "Height", "CreatedAt", "NBits", "Nonce", "Body", });
     com.google.protobuf.TimestampProto.getDescriptor();
   }
 

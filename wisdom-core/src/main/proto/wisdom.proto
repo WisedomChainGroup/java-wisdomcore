@@ -88,30 +88,45 @@ message Nothing {
 }
 
 enum TransactionType {
-    COIN_BASE = 0;
+    COINBASE = 0;
     TRANSFER = 1;
+    VOTE = 2;
+    DEPOSIT = 3;
+    TRANSFER_MULTISIG_MULTISIG = 4;
+    TRANSFER_MULTISIG_NORMAL = 5;
+    TRANSFER_NORMAL_MULTISIG = 6;
+    ASSET_DEFINE = 7;
+    ATOMIC_EXCHANGE = 8;
+    INCUBATE = 9;
+    EXTRACT_INTEREST = 10;
+    EXTRACT_SHARING_PROFIT = 11;
+    EXTRACT_COST = 12;
+    EXIT_VOTE = 13;
+    PLEDGE = 14;
+    EXIT_PLEDGE = 15;
 }
 
 message Transaction {
-    uint64 amount = 1;
-    google.protobuf.Timestamp created_at = 2;
-    bytes data = 3;
+    int32 version = 1;
+    TransactionType transaction_type = 2;
+    uint64 nonce = 3;
     bytes from = 4;
-    uint64 gasPrice = 5;
-    uint64 nonce = 6;
-    string to = 7;
-    TransactionType type = 8;
-    uint32 Version = 9;
-    bytes signature = 10;
+    uint64 gas_price = 5;
+    uint64 amount = 6;
+    bytes signature = 7;
+    bytes to = 8;
+    bytes payload = 9;
 }
 
 message Block {
-    google.protobuf.Timestamp created_at = 1;
-    uint64 height = 2;
-    bytes merkle_root = 3;
-    bytes nonce = 4;
-    bytes parent_hash = 5;
-    bytes target = 6;
-    uint32 version = 7;
-    repeated Transaction body = 8;
+    uint32 version = 1;
+    bytes hash_prev_block = 2;
+    bytes hash_merkle_root = 3;
+    bytes hash_merkle_state = 4;
+    bytes hash_merkle_incubate = 5;
+    uint32 height = 6;
+    uint32 created_at = 7;
+    bytes n_bits = 8;
+    bytes nonce = 9;
+    repeated Transaction body = 10;
 }

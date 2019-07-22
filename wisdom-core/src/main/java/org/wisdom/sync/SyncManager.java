@@ -1,6 +1,7 @@
 package org.wisdom.sync;
 
 import com.google.protobuf.ByteString;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,15 +18,25 @@ import org.wisdom.p2p.entity.GetBlockQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 
-import static org.wisdom.Controller.ConsensusResult.ERROR;
 
+/**
+ * @author sal 1564319846@qq.com
+ * wisdom protocol block synchronize manager
+ */
 @Component
 public class SyncManager implements Plugin {
     private PeerServer server;
     private static final int MAX_BLOCKS_PER_TRANSFER = 256;
+    private static final int CACHE_SIZE = 64;
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
+
+    private ConcurrentMap<String, Boolean> proposalCache;
+
+    private ConcurrentMap<String, Boolean> transactionCache;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -41,6 +52,11 @@ public class SyncManager implements Plugin {
 
     @Autowired
     private BasicRule rule;
+
+    public SyncManager() {
+        this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
+        this.transactionCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
+    }
 
     @Override
     public void onMessage(Context context, PeerServer server) {
@@ -58,6 +74,18 @@ public class SyncManager implements Plugin {
             return;
         }
         server.broadcast(WisdomOuterClass.GetStatus.newBuilder().build());
+        for (Block b : orphanBlocksManager.getInitials()) {
+            logger.info("try to sync orphans");
+            long startHeight = b.nHeight - MAX_BLOCKS_PER_TRANSFER + 1;
+            if (startHeight <= 0) {
+                startHeight = 1;
+            }
+            WisdomOuterClass.GetBlocks getBlocks = WisdomOuterClass.GetBlocks.newBuilder()
+                    .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
+                    .setStartHeight(startHeight)
+                    .setStopHeight(b.nHeight).build();
+            server.broadcast(getBlocks);
+        }
     }
 
     private void onGetBlocks(Context context, PeerServer server) {
@@ -67,10 +95,27 @@ public class SyncManager implements Plugin {
         logger.info("get blocks received startListening height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend != null && blocksToSend.size() > 0) {
-            Object resp = WisdomOuterClass.Blocks.newBuilder().build();
+            Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend));
             context.response(resp);
         }
     }
+
+    private void onBlocks(Context context, PeerServer server) {
+        WisdomOuterClass.Blocks blocksMessage = context.getPayload().getBlocks();
+        receiveBlocks(Utils.parseBlocks(blocksMessage.getBlocksList()));
+    }
+
+    private void onProposal(Context context, PeerServer server) {
+        WisdomOuterClass.Proposal proposal = context.getPayload().getProposal();
+        Block block = Utils.parseBlock(proposal.getBlock());
+        if (proposalCache.containsKey(block.getHashHexString())) {
+            return;
+        }
+        proposalCache.put(block.getHashHexString(), true);
+        receiveBlocks(Collections.singletonList(block));
+        context.relay();
+    }
+
 
     private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
@@ -126,9 +171,5 @@ public class SyncManager implements Plugin {
             BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
             pendingBlocksManager.addPendingBlocks(blocksWritable);
         }
-    }
-
-    private Block parseBlock(WisdomOuterClass.Block bk){
-        return null;
     }
 }
