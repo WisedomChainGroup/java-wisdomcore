@@ -6,7 +6,7 @@ public class Context {
     boolean block;
     boolean keep;
     boolean pending;
-    WisdomOuterClass.Message respoonse;
+    Object response;
     boolean relay;
     Payload payload;
 
@@ -32,7 +32,7 @@ public class Context {
     }
 
     public void response(Object o) {
-
+        response = o;
     }
 
     public void relay() {

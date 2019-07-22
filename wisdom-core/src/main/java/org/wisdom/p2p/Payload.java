@@ -22,8 +22,8 @@ public class Payload {
     public Payload(WisdomOuterClass.Message msg) throws Exception {
         createdAt = msg.getCreatedAt().getSeconds();
         code = msg.getCode();
-        remote = new Peer(msg.getRemotePeer());
-        recipient = new Peer(msg.getRecipient());
+        remote = Peer.parse(msg.getRemotePeer());
+        recipient = Peer.parse(msg.getRecipient());
         ttl = msg.getTtl();
         nonce = msg.getNonce();
         signature = msg.getSignature().toByteArray();

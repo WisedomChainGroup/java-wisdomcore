@@ -19,7 +19,9 @@
 package org.wisdom.p2p;
 
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.crypto.KeyPair;
 import org.wisdom.crypto.PrivateKey;
+import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 
 import javax.validation.constraints.Max;
@@ -34,6 +36,26 @@ public class Peer {
     private static final int PUBLIC_KEY_LENGTH = 32;
     private static final int PRIVATE_KEY_LENGTH = 64;
     public static final String PROTOCOL_NAME = "wisdom";
+
+    public static Peer parse(String url) throws Exception {
+        URI u = new URI(url);
+        Peer p = new Peer();
+        p.port = u.getPort();
+        if (p.port <= 0) {
+            p.port = DEFAULT_PORT;
+        }
+        p.host = u.getHost();
+        byte[] info = Hex.decodeHex(u.getRawUserInfo());
+        if (info.length != PRIVATE_KEY_LENGTH && info.length != PUBLIC_KEY_LENGTH) {
+            throw new Exception("invalid key length");
+        }
+        p.peerID = info;
+        if (info.length == PRIVATE_KEY_LENGTH) {
+            p.privateKey = new Ed25519PrivateKey(Arrays.copyOfRange(info, 0, 32));
+            p.peerID = Arrays.copyOfRange(info, 32, 64);
+        }
+        return p;
+    }
 
     @NotNull
     @Size(min = 1)
@@ -104,25 +126,26 @@ public class Peer {
         return Arrays.hashCode(peerID);
     }
 
-    public Peer(String url) throws Exception {
+    public Peer() {
+    }
+
+    public static Peer newPeer(String url) throws Exception {
         URI u = new URI(url);
-        port = u.getPort();
-        if (port <= 0) {
-            port = DEFAULT_PORT;
+        if (u.getRawUserInfo() == null || u.getRawUserInfo().equals("")) {
+            KeyPair kp = Ed25519.GenerateKeyPair();
+            url = String.format("%s://%s@%s:%d", PROTOCOL_NAME,
+                    Hex.encodeHexString(kp.getPrivateKey().getEncoded()) + Hex.encodeHexString(kp.getPublicKey().getEncoded()),
+                    u.getHost(), u.getPort()
+            );
         }
-        host = u.getHost();
-        byte[] info = Hex.decodeHex(u.getRawUserInfo());
-        if (info.length != PRIVATE_KEY_LENGTH && info.length != PUBLIC_KEY_LENGTH) {
-            throw new Exception("invalid key length");
-        }
-        peerID = info;
-        if (info.length == PRIVATE_KEY_LENGTH) {
-            privateKey = new Ed25519PrivateKey(Arrays.copyOfRange(info, 0, 32));
-            peerID = Arrays.copyOfRange(info, 32, 64);
-        }
+        return Peer.parse(url);
     }
 
     public String toString() {
         return String.format("%s://%s@%s", PROTOCOL_NAME, Hex.encodeHexString(peerID), hostPort());
+    }
+
+    public String key(){
+        return Hex.encodeHexString(peerID);
     }
 }

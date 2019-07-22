@@ -14,25 +14,58 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-
 
 @Component
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
+    static final int PEER_SCORE = 4;
+    static final int HALF_RATE = 30;
+    static final int EVIL_SCORE = -(1 << 10);
+
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
     private static final int MAX_TTL = 64;
     private AtomicLong nonce;
     private Peer self;
     private List<Plugin> pluginList;
+    private Map<String, Peer> bootstraps;
+    private Map<String, Peer> trusted;
+    private Map<String, Peer> blocked;
+    private Map<Integer, Peer> peers;
+    private Map<String, Peer> pended;
 
     @Autowired
-    public PeerServer(MessageFilter filter, PeersManager pmgr) {
+    public PeerServer(
+            MessageFilter filter,
+            PeersManager pmgr,
+            @Value("${p2p.address}") String self,
+            @Value("${p2p.bootstraps}") String[] bootstraps,
+            @Value("${p2p.trusted}") String[] trusted
+    ) throws Exception {
         nonce = new AtomicLong();
         pluginList = new ArrayList<>();
+        this.self = Peer.newPeer(self);
+        this.bootstraps = new ConcurrentHashMap<>();
+        this.trusted = new ConcurrentHashMap<>();
+        this.blocked = new ConcurrentHashMap<>();
+        this.peers = new HashMap<>();
+        this.pended = new ConcurrentHashMap<>();
+        for (String b : bootstraps) {
+            Peer p = Peer.parse(b);
+            if (p.equals(this.self)) {
+                throw new Exception("cannot treat yourself as bootstrap peer");
+            }
+            this.bootstraps.put(p.key(), p);
+        }
+        for (String b : trusted) {
+            Peer p = Peer.parse(b);
+            if (p.equals(this.self)) {
+                throw new Exception("cannot treat yourself as trusted peer");
+            }
+            this.trusted.put(p.key(), p);
+        }
         use(filter).use(pmgr);
     }
 
@@ -94,8 +127,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 if (ctx.broken) {
                     break;
                 }
-                if (ctx.respoonse != null) {
-                    return ctx.respoonse;
+                if (ctx.response != null) {
+                    return buildMessage(payload.remote, 1, ctx.response);
                 }
             }
             return buildMessage(ctx.payload.remote, 1, WisdomOuterClass.Nothing.newBuilder().build());
@@ -117,7 +150,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        WisdomOuterClass.Message resp = WisdomGrpc.newBlockingStub(ManagedChannelBuilder.forAddress(peer.host, peer.port).build()).entry(msg);
+        WisdomOuterClass.Message resp = WisdomGrpc.
+                newBlockingStub(
+                        ManagedChannelBuilder.forAddress(peer.host, peer.port
+                        ).build())
+                .entry(msg);
         onMessage(resp);
     }
 
@@ -146,30 +183,69 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             }
         }
     }
-
-
-    public void pendPeer(Peer peer) {
-
-    }
-
-    public void keepPeer(Peer peer) {
-
-    }
-
-    public void blockPeer(Peer peer) {
-
-    }
-
-    public void removePeer(Peer peer) {
-
-    }
-
-    public boolean hasPeer(Peer peer) {
-        return false;
-    }
-
+    
     public List<Peer> getPeers() {
-        return null;
+        List<Peer> ps = new ArrayList<>();
+        ps.addAll(peers.values());
+        ps.addAll(trusted.values());
+        if (ps.size() == 0) {
+            ps.addAll(bootstraps.values());
+        }
+        return ps;
+    }
+
+
+    private void pendPeer(Peer peer) {
+        String k = peer.key();
+        if (hasPeer(peer) || blocked.containsKey(k)) {
+            return;
+        }
+        pended.put(k, peer);
+    }
+
+    private void keepPeer(Peer peer) {
+        String k = peer.key();
+        if (trusted.containsKey(k) || blocked.containsKey(k)) {
+            return;
+        }
+        peer.score = PEER_SCORE;
+        int idx = self.subTree(peer);
+        Peer p = peers.get(idx);
+        if (p == null) {
+            peers.put(idx, peer);
+            return;
+        }
+        if (p.score < PEER_SCORE) {
+            peers.put(idx, peer);
+        }
+    }
+
+
+    private void blockPeer(Peer peer) {
+        peer.score = EVIL_SCORE;
+        removePeer(peer);
+        blocked.put(peer.key(), peer);
+    }
+
+    private void removePeer(Peer peer) {
+        String k = peer.key();
+        int idx = self.subTree(peer);
+        Peer p = peers.get(idx);
+        if (p == null) {
+            return;
+        }
+        if (p.equals(peer)) {
+            peers.remove(k);
+        }
+    }
+
+    private boolean hasPeer(Peer peer) {
+        String k = peer.key();
+        if (trusted.containsKey(k)) {
+            return true;
+        }
+        int idx = self.subTree(peer);
+        return peers.containsKey(idx) && peers.get(idx).equals(peer);
     }
 
     private WisdomOuterClass.Message buildMessage(Peer recipient, long ttl, Object msg) {
