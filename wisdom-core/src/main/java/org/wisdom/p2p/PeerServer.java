@@ -106,10 +106,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     /**
      * 加载插件，启动服务
-     *
      */
     @PostConstruct
-    public void init() throws Exception{
+    public void init() throws Exception {
         use(messageLogger).use(filter).use(pmgr).use(syncManager);
         startListening();
     }
@@ -170,25 +169,25 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                     break;
                 }
                 if (ctx.remove) {
-                    removePeer(payload.remote);
+                    removePeer(payload.getRemote());
                 }
                 if (ctx.pending) {
-                    pendPeer(payload.remote);
+                    pendPeer(payload.getRemote());
                 }
                 if (ctx.keep) {
-                    keepPeer(payload.remote);
+                    keepPeer(payload.getRemote());
                 }
                 if (ctx.block) {
-                    blockPeer(payload.remote);
+                    blockPeer(payload.getRemote());
                 }
                 if (ctx.relay) {
                     relay(payload);
                 }
                 if (ctx.response != null) {
-                    return buildMessage(payload.remote, 1, ctx.response);
+                    return buildMessage(payload.getRemote(), 1, ctx.response);
                 }
             }
-            return buildMessage(ctx.payload.remote, 1, WisdomOuterClass.Nothing.newBuilder().build());
+            return buildMessage(ctx.payload.getRemote(), 1, WisdomOuterClass.Nothing.newBuilder().build());
         } catch (Exception e) {
             logger.error("fail to parse message");
         }
@@ -242,15 +241,15 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void relay(Payload payload) {
-        if (payload.ttl <= 0) {
+        if (payload.getTtl() <= 0) {
             return;
         }
         for (Peer p : getPeers()) {
-            if (p.equals(payload.remote)) {
+            if (p.equals(payload.getRemote())) {
                 continue;
             }
             try {
-                grpcCall(p, buildMessage(p, payload.ttl - 1, payload.getBody()));
+                grpcCall(p, buildMessage(p, payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.p2p.Context;
@@ -60,7 +61,25 @@ public class SyncManager implements Plugin {
 
     @Override
     public void onMessage(Context context, PeerServer server) {
-
+        switch (context.getPayload().getCode()) {
+            case GET_STATUS:
+                onGetStatus(context, server);
+                return;
+            case STATUS:
+                onStatus(context, server);
+                return;
+            case GET_BLOCKS:
+                onGetBlocks(context, server);
+                return;
+            case BLOCKS:
+                onBlocks(context, server);
+                return;
+            case PROPOSAL:
+                onProposal(context, server);
+                return;
+            case TRANSACTION:
+                onTransaction(context, server);
+        }
     }
 
     @Override
@@ -116,6 +135,17 @@ public class SyncManager implements Plugin {
         context.relay();
     }
 
+    private void onTransaction(Context context, PeerServer server) {
+        WisdomOuterClass.Transaction tx = context.getPayload().getTransaction();
+        Transaction t = Utils.parseTransaction(tx);
+        if (transactionCache.containsKey(t.getHashHexString())) {
+            return;
+        }
+        transactionCache.put(t.getHashHexString(), true);
+
+        // TODO: 事务进内存池
+        context.relay();
+    }
 
     private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();

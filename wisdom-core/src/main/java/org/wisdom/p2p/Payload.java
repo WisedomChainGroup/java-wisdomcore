@@ -3,13 +3,13 @@ package org.wisdom.p2p;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class Payload {
-    long createdAt;
-    WisdomOuterClass.Code code;
-    Peer remote;
-    Peer recipient;
-    long ttl;
-    long nonce;
-    byte[] signature;
+    private long createdAt;
+    private WisdomOuterClass.Code code;
+    private Peer remote;
+    private Peer recipient;
+    private long ttl;
+    private long nonce;
+    private byte[] signature;
 
     private Object body;
 
@@ -117,5 +117,29 @@ public class Payload {
 
     public Peer getRemote() {
         return remote;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
+
+    public WisdomOuterClass.Code getCode() {
+        return code;
+    }
+
+    public Peer getRecipient() {
+        return recipient;
+    }
+
+    public long getTtl() {
+        return ttl;
+    }
+
+    public long getNonce() {
+        return nonce;
+    }
+
+    public byte[] getSignature() {
+        return signature;
     }
 }

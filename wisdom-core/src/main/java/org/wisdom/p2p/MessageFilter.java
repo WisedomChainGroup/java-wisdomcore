@@ -23,33 +23,33 @@ public class MessageFilter implements Plugin {
 
     @Override
     public void onMessage(Context context, PeerServer server) {
-        if (context.getPayload().remote.peerID.length != 32) {
+        if (context.getPayload().getRemote().peerID.length != 32) {
             context.exit();
             return;
         }
         // 过滤掉签名不合法的包
-        if (!new Ed25519PublicKey(context.getPayload().remote.peerID).verify(
-                Util.getRawForSign(context.getPayload().getMessage()), context.getPayload().signature
+        if (!new Ed25519PublicKey(context.getPayload().getRemote().peerID).verify(
+                Util.getRawForSign(context.getPayload().getMessage()), context.getPayload().getSignature()
         )) {
             context.exit();
             return;
         }
         // 过滤掉自己发的包
-        if (context.getPayload().remote.equals(server.getSelf())) {
+        if (context.getPayload().getRemote().equals(server.getSelf())) {
             context.exit();
             return;
         }
         // 过滤掉ttl小于0的包
-        if (context.getPayload().ttl < 0) {
+        if (context.getPayload().getTtl() < 0) {
             context.exit();
             return;
         }
         // 过滤掉不是发给自己的包
-        if (!context.getPayload().recipient.equals(server.getSelf())) {
+        if (!context.getPayload().getRecipient().equals(server.getSelf())) {
             context.exit();
             return;
         }
-        String k = Hex.encodeHexString(context.getPayload().signature);
+        String k = Hex.encodeHexString(context.getPayload().getSignature());
         // 过滤掉收到过的消息
         if (msgs.containsKey(k)) {
             context.exit();

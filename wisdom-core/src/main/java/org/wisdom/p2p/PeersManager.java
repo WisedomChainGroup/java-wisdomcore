@@ -17,7 +17,7 @@ public class PeersManager implements Plugin {
 
     @Override
     public void onMessage(Context context, PeerServer server) {
-        switch (context.getPayload().code) {
+        switch (context.getPayload().getCode()) {
             case PING:
                 onPing(context, server);
                 break;
