@@ -5,6 +5,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
@@ -87,7 +88,7 @@ public class SyncManager implements Plugin {
         this.server = server;
     }
 
-    @Scheduled(fixedRate = 15 * 1000)
+    @Scheduled(fixedRate = 5 * 1000)
     public void getStatus() {
         if (server == null) {
             return;
@@ -114,7 +115,7 @@ public class SyncManager implements Plugin {
         logger.info("get blocks received startListening height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend != null && blocksToSend.size() > 0) {
-            Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend));
+            Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
             context.response(resp);
         }
     }
@@ -169,7 +170,7 @@ public class SyncManager implements Plugin {
             Object req = WisdomOuterClass.GetBlocks.newBuilder()
                     .setStartHeight(best.nHeight)
                     .setStopHeight(stopHeight)
-                    .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_TAIL);
+                    .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_TAIL).build();
             server.dial(context.getPayload().getRemote(), req);
         }
     }

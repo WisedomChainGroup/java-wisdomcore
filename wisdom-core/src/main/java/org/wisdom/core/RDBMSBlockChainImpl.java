@@ -223,12 +223,15 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Autowired
-    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname,InitializeAccount account) {
+    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname,InitializeAccount account, @Value("${clear-data}") boolean clearData) {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
         this.ctx = ctx;
         this.dataname = dataname;
+        if(clearData){
+            clearData();
+        }
         //增加account vote字段
         if(this.dataname!=null && this.dataname!="" && !this.dataname.equals("")){
             String sql="ALTER TABLE account OWNER TO "+dataname;

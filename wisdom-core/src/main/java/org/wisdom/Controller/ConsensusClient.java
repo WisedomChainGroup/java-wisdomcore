@@ -209,7 +209,7 @@ public class ConsensusClient {
         return null;
     }
 
-    @Scheduled(fixedRate = 15 * 1000)
+//    @Scheduled(fixedRate = 15 * 1000)
     public void sendStatus() {
         if (!enableMining) {
             return;
@@ -223,7 +223,7 @@ public class ConsensusClient {
         broadcast("/consensus/status", codec.encode(status));
     }
 
-    @Scheduled(fixedRate = 30 * 1000)
+//    @Scheduled(fixedRate = 30 * 1000)
     public void getStatus() {
         if (enableMining) {
             return;
@@ -254,7 +254,7 @@ public class ConsensusClient {
         broadcast("/consensus/blocks", codec.encodeBlock(block));
     }
 
-    @Scheduled(fixedRate = 30 * 1000)
+//    @Scheduled(fixedRate = 30 * 1000)
     public void syncOrphan() {
         for (Block b : orphanBlocksManager.getInitials()) {
             logger.info("try to sync orphans");

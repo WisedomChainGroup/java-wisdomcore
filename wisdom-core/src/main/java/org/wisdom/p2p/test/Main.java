@@ -15,15 +15,7 @@ public class Main {
         ScheduledExecutorService service = Executors.newScheduledThreadPool(10);
         PeersManager manager = new PeersManager();
         MessageFilter filter = new MessageFilter();
-        String[] bootstraps = new String[]{};
-        if(System.getenv().containsKey("BOOTSTRAPS")){
-            bootstraps = System.getenv().get("BOOTSTRAPS").split(" ");
-        }
-        String[] trusted = new String[]{};
-        if(System.getenv().containsKey("TRUSTED_PEERS")){
-            bootstraps = System.getenv().get("TRUSTED_PEERS").split(" ");
-        }
-        PeerServer server = new PeerServer(System.getenv("P2P_ADDRESS"), bootstraps, trusted);
+        PeerServer server = new PeerServer(System.getenv("P2P_ADDRESS"), System.getenv().get("BOOTSTRAPS"), System.getenv().get("TRUSTED_PEERS"));
         server.use(filter).use(new MessageLogger()).use(manager);
         service.scheduleAtFixedRate(server::startHalf, 0, 5, TimeUnit.SECONDS);
         server.startListening();

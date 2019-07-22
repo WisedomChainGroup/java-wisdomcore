@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
     static final int PEER_SCORE = 4;
-    static final int HALF_RATE = 30;
+    static final int HALF_RATE = 5;
     static final int EVIL_SCORE = -(1 << 10);
     static final int MAX_PEERS = 32;
 
@@ -72,8 +72,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     public PeerServer(
             @Value("${p2p.address}") String self,
-            @Value("${p2p.bootstraps}") String[] bootstraps,
-            @Value("${p2p.trusted}") String[] trusted
+            @Value("${p2p.bootstraps}") String bootstraps,
+            @Value("${p2p.trustedpeers}") String trusted
     ) throws Exception {
         nonce = new AtomicLong();
         pluginList = new ArrayList<>();
@@ -83,14 +83,22 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.blocked = new ConcurrentHashMap<>();
         this.peers = new HashMap<>();
         this.pended = new ConcurrentHashMap<>();
-        for (String b : bootstraps) {
+        String[] bs = new String[]{};
+        if(bootstraps != null && !bootstraps.equals("")){
+            bs = bootstraps.split(" ");
+        }
+        String[] ts = new String[]{};
+        if(trusted != null && !trusted.equals("")){
+            ts = bootstraps.split(" ");
+        }
+        for (String b : bs) {
             Peer p = Peer.parse(b);
             if (p.equals(this.self)) {
                 throw new Exception("cannot treat yourself as bootstrap peer");
             }
             this.bootstraps.put(p.key(), p);
         }
-        for (String b : trusted) {
+        for (String b : ts) {
             Peer p = Peer.parse(b);
             if (p.equals(this.self)) {
                 throw new Exception("cannot treat yourself as trusted peer");
@@ -114,12 +122,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void startListening() throws Exception {
-        logger.info("peer server is listening on" + self.port);
+        logger.info("peer server is listening on " + self.port);
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
         server = ServerBuilder.forPort(self.port).addService(this).build().start();
-        server.awaitTermination();
     }
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
@@ -326,55 +333,57 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         builder.setRecipient(recipient.toString());
         builder.setTtl(ttl);
         builder.setNonce(nonce.getAndIncrement());
+        if (msg instanceof WisdomOuterClass.Nothing) {
+            builder.setCode(WisdomOuterClass.Code.NOTHING);
+            return sign(builder.setBody(((WisdomOuterClass.Nothing) msg).toByteString())).build();
+        }
         if (msg instanceof WisdomOuterClass.Ping) {
             builder.setCode(WisdomOuterClass.Code.PING);
-            builder.setBody(((WisdomOuterClass.Ping) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Ping) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Pong) {
             builder.setCode(WisdomOuterClass.Code.PONG);
-            builder.setBody(((WisdomOuterClass.Pong) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Pong) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Lookup) {
             builder.setCode(WisdomOuterClass.Code.LOOK_UP);
-            builder.setBody(((WisdomOuterClass.Lookup) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Lookup) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Peers) {
             builder.setCode(WisdomOuterClass.Code.PEERS);
-            builder.setBody(((WisdomOuterClass.Peers) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Peers) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.GetStatus) {
             builder.setCode(WisdomOuterClass.Code.GET_STATUS);
-            builder.setBody(((WisdomOuterClass.GetStatus) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.GetStatus) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Status) {
             builder.setCode(WisdomOuterClass.Code.STATUS);
-            builder.setBody(((WisdomOuterClass.Status) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Status) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.GetBlocks) {
             builder.setCode(WisdomOuterClass.Code.GET_BLOCKS);
-            builder.setBody(((WisdomOuterClass.GetBlocks) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.GetBlocks) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Blocks) {
             builder.setCode(WisdomOuterClass.Code.BLOCKS);
-            builder.setBody(((WisdomOuterClass.Blocks) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Blocks) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Proposal) {
             builder.setCode(WisdomOuterClass.Code.PROPOSAL);
-            builder.setBody(((WisdomOuterClass.Proposal) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Proposal) msg).toByteString())).build();
         }
         if (msg instanceof WisdomOuterClass.Transaction) {
             builder.setCode(WisdomOuterClass.Code.TRANSACTION);
-            builder.setBody(((WisdomOuterClass.Transaction) msg).toByteString());
+            return sign(builder.setBody(((WisdomOuterClass.Transaction) msg).toByteString())).build();
         }
-        if (builder.getCode() == WisdomOuterClass.Code.NOTHING) {
-            builder.setBody(WisdomOuterClass.Nothing.newBuilder().build().toByteString());
-        }
-        sign(builder);
-        return builder.build();
+        logger.error("cannot deduce message type " + msg.getClass().toString());
+        builder.setCode(WisdomOuterClass.Code.NOTHING).setBody(WisdomOuterClass.Nothing.newBuilder().build().toByteString());
+        return sign(builder).build();
     }
 
-    private void sign(WisdomOuterClass.Message.Builder builder) {
-        builder.setSignature(
+    private WisdomOuterClass.Message.Builder sign(WisdomOuterClass.Message.Builder builder) {
+        return builder.setSignature(
                 ByteString.copyFrom(
                         self.privateKey.sign(Util.getRawForSign(builder.build()))
                 )

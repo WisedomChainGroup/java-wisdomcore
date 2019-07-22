@@ -66,10 +66,15 @@ public class MineThread {
             SECURE_RANDOM.nextBytes(tmp);
             block.nNonce = tmp;
             block.nTime = System.currentTimeMillis() / 1000;
-            if (block.nTime <= parentBlockTimeStamp){
-                block.nTime = parentBlockTimeStamp + 1;
+            if (block.nTime <= parentBlockTimeStamp) {
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+
+                }
+                continue;
             }
-            if(block.nTime > endTime){
+            if (block.nTime >= endTime) {
                 logger.error("mining timeout, dead line = " + new Date(endTime * 1000).toString() + "consider upgrade your hardware");
                 return null;
             }

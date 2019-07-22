@@ -68,8 +68,7 @@ create table if not exists header
 */
 
 
-DROP TABLE IF EXISTS "public"."account";
-CREATE TABLE "public"."account" (
+CREATE TABLE if not exists account (
                                     "id" bytea NOT NULL,
                                     "blockheight" int4 NOT NULL,
                                     "pubkeyhash" bytea NOT NULL,
@@ -77,7 +76,8 @@ CREATE TABLE "public"."account" (
                                     "balance" int8 NOT NULL,
                                     "incubatecost" int8,
                                     "mortgage" int8,
-                                    "vote" int8 DEFAULT 0 NOT NULL
+                                    "vote" int8 DEFAULT 0 NOT NULL,
+                                    constraint "pk_utxo" primary key ("id")
 )
 ;
 COMMENT ON COLUMN "public"."account"."id" IS '主键ID';
@@ -89,16 +89,6 @@ COMMENT ON COLUMN "public"."account"."incubatecost" IS '孵化本金';
 COMMENT ON COLUMN "public"."account"."mortgage" IS '抵押金额';
 COMMENT ON COLUMN "public"."account"."vote" IS '投票数';
 COMMENT ON TABLE "public"."account" IS '账户对象';
-
--- ----------------------------
--- Uniques structure for table account
--- ----------------------------
-ALTER TABLE "public"."account" ADD CONSTRAINT "uq_utxo_id" UNIQUE ("id");
-
--- ----------------------------
--- Primary Key structure for table account
--- ----------------------------
-ALTER TABLE "public"."account" ADD CONSTRAINT "pk_utxo" PRIMARY KEY ("id");
 
 
 /*
@@ -122,8 +112,7 @@ ALTER TABLE "public"."account" ADD CONSTRAINT "pk_utxo" PRIMARY KEY ("id");
 -- ----------------------------
 -- Table structure for incubator_state
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."incubator_state";
-CREATE TABLE "public"."incubator_state" (
+CREATE TABLE if not exists incubator_state (
                                             "id" bytea NOT NULL,
                                             "share_pubkeyhash" bytea,
                                             "pubkeyhash" bytea NOT NULL,
@@ -133,7 +122,8 @@ CREATE TABLE "public"."incubator_state" (
                                             "interest_amount" int8 NOT NULL,
                                             "share_amount" int8,
                                             "last_blockheight_interest" int4 NOT NULL,
-                                            "last_blockheight_share" int4
+                                            "last_blockheight_share" int4,
+                                            constraint pk_incubator_state PRIMARY KEY ("id")
 )
 ;
 COMMENT ON COLUMN "public"."incubator_state"."id" IS 'id txhash+height';
@@ -147,14 +137,4 @@ COMMENT ON COLUMN "public"."incubator_state"."share_amount" IS '分享余额';
 COMMENT ON COLUMN "public"."incubator_state"."last_blockheight_interest" IS '上次提取利息高度';
 COMMENT ON COLUMN "public"."incubator_state"."last_blockheight_share" IS '上次提取分享收益高度';
 COMMENT ON TABLE "public"."incubator_state" IS '孵化器状态';
-
--- ----------------------------
--- Uniques structure for table incubator_state
--- ----------------------------
-ALTER TABLE "public"."incubator_state" ADD CONSTRAINT "uq_incubator_state_id" UNIQUE ("id");
-
--- ----------------------------
--- Primary Key structure for table incubator_state
--- ----------------------------
-ALTER TABLE "public"."incubator_state" ADD CONSTRAINT "pk_incubator_state" PRIMARY KEY ("id");
 
