@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.wisdom.sync.SyncManager;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -67,6 +68,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Autowired
     private MessageLogger messageLogger;
 
+    @Autowired
+    private SyncManager syncManager;
+
     public PeerServer(
             @Value("${p2p.address}") String self,
             @Value("${p2p.bootstraps}") String[] bootstraps,
@@ -102,12 +106,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     /**
-     * 启动服务
+     * 加载插件，启动服务
      *
      */
     @PostConstruct
     public void init() throws Exception{
-        use(messageLogger).use(filter).use(pmgr);
+        use(messageLogger).use(filter).use(pmgr).use(syncManager);
         startListening();
     }
 

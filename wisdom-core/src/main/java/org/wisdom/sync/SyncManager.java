@@ -6,14 +6,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.*;
+import org.wisdom.core.validate.BasicRule;
+import org.wisdom.core.validate.Result;
 import org.wisdom.p2p.Context;
 import org.wisdom.p2p.PeerServer;
 import org.wisdom.p2p.Plugin;
 import org.wisdom.p2p.WisdomOuterClass;
 import org.wisdom.p2p.entity.GetBlockQuery;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,9 +30,17 @@ public class SyncManager implements Plugin {
     @Autowired
     private WisdomBlockChain bc;
 
-
     @Autowired
     private Block genesis;
+
+    @Autowired
+    private OrphanBlocksManager orphanBlocksManager;
+
+    @Autowired
+    private PendingBlocksManager pendingBlocksManager;
+
+    @Autowired
+    private BasicRule rule;
 
     @Override
     public void onMessage(Context context, PeerServer server) {
@@ -43,14 +53,14 @@ public class SyncManager implements Plugin {
     }
 
     @Scheduled(fixedRate = 15 * 1000)
-    public void getStatus(){
-        if(server == null){
+    public void getStatus() {
+        if (server == null) {
             return;
         }
         server.broadcast(WisdomOuterClass.GetStatus.newBuilder().build());
     }
 
-    private void onGetBlocks(Context context, PeerServer server){
+    private void onGetBlocks(Context context, PeerServer server) {
         WisdomOuterClass.GetBlocks getBlocks = context.getPayload().getGetBlocks();
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
 
@@ -62,23 +72,23 @@ public class SyncManager implements Plugin {
         }
     }
 
-    private void onStatus(Context context, PeerServer server){
+    private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
         Block best = bc.currentHeader();
 
         // 拉黑创世区块不相同的节点
-        if(!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())){
+        if (!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())) {
             context.block();
             context.exit();
             return;
         }
 
-        if(status.getCurrentHeight() >= best.nHeight
+        if (status.getCurrentHeight() >= best.nHeight
                 && !Arrays.equals(
-                        status.getBestBlockHash().toByteArray(), best.getHash())
-        ){
+                status.getBestBlockHash().toByteArray(), best.getHash())
+        ) {
             long stopHeight = status.getCurrentHeight();
-            if(stopHeight >= best.nHeight + MAX_BLOCKS_PER_TRANSFER){
+            if (stopHeight >= best.nHeight + MAX_BLOCKS_PER_TRANSFER) {
                 stopHeight = best.nHeight + MAX_BLOCKS_PER_TRANSFER - 1;
             }
             Object req = WisdomOuterClass.GetBlocks.newBuilder()
@@ -89,7 +99,7 @@ public class SyncManager implements Plugin {
         }
     }
 
-    private void onGetStatus(Context context, PeerServer server){
+    private void onGetStatus(Context context, PeerServer server) {
         Block best = bc.currentHeader();
         Object resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
@@ -97,5 +107,28 @@ public class SyncManager implements Plugin {
                 .setGenesisHash(ByteString.copyFrom(genesis.getHash()))
                 .build();
         context.response(resp);
+    }
+
+    private void receiveBlocks(List<Block> blocks) {
+        List<Block> validBlocks = new ArrayList<>();
+        for (Block b : blocks) {
+            if (b == null || b.nHeight == 0) {
+                continue;
+            }
+            Result res = rule.validateBlock(b);
+            if (!res.isSuccess()) {
+                logger.error("invalid block received reason = " + res.getMessage());
+                continue;
+            }
+            validBlocks.add(b);
+        }
+        if (validBlocks.size() > 0) {
+            BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
+            pendingBlocksManager.addPendingBlocks(blocksWritable);
+        }
+    }
+
+    private Block parseBlock(WisdomOuterClass.Block bk){
+        return null;
     }
 }
