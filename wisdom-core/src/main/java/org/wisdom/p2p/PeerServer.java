@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -117,6 +118,27 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }
     }
 
+    @Scheduled(fixedRate = HALF_RATE * 1000)
+    public void startHalf() {
+        for (Peer p : pended.values()) {
+            dial(p, WisdomOuterClass.Ping.newBuilder().build());
+        }
+        for (Peer p : blocked.values()) {
+            p.score /= 2;
+            if (p.score == 0) {
+                blocked.remove(p.key());
+            }
+        }
+        for (Peer p : peers.values()) {
+            p.score /= 2;
+            if (p.score == 0) {
+                peers.remove(self.subTree(p));
+                continue;
+            }
+            dial(p, WisdomOuterClass.Ping.newBuilder().build());
+        }
+    }
+
     private WisdomOuterClass.Message onMessage(WisdomOuterClass.Message message) {
         try {
             Payload payload = new Payload(message);
@@ -126,6 +148,21 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 p.onMessage(ctx, this);
                 if (ctx.broken) {
                     break;
+                }
+                if (ctx.remove) {
+                    removePeer(payload.remote);
+                }
+                if (ctx.pending) {
+                    pendPeer(payload.remote);
+                }
+                if (ctx.keep) {
+                    keepPeer(payload.remote);
+                }
+                if (ctx.block) {
+                    blockPeer(payload.remote);
+                }
+                if (ctx.relay) {
+                    relay(payload);
                 }
                 if (ctx.response != null) {
                     return buildMessage(payload.remote, 1, ctx.response);
@@ -183,7 +220,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             }
         }
     }
-    
+
     public List<Peer> getPeers() {
         List<Peer> ps = new ArrayList<>();
         ps.addAll(peers.values());

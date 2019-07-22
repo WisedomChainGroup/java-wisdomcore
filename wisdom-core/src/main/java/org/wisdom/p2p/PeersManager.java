@@ -14,14 +14,16 @@ public class PeersManager implements Plugin {
 
     @Override
     public void onMessage(Context context, PeerServer server) {
-        switch (context.getPayload().code){
+        switch (context.getPayload().code) {
             case PING:
                 onPing(context, server);
                 break;
             case PONG:
-                onPong(context, server);
+                context.keep();
+                break;
             case LOOK_UP:
                 onLookup(context, server);
+                break;
             case PEERS:
                 onPeers(context, server);
         }
@@ -34,11 +36,11 @@ public class PeersManager implements Plugin {
 
     private void onPing(Context context, PeerServer server) {
         context.response(WisdomOuterClass.Pong.newBuilder().build());
-        server.pendPeer(context.getPayload().remote);
+        context.pend();
     }
 
     private void onPong(Context context, PeerServer server) {
-        server.keepPeer(context.getPayload().remote);
+        context.keep();
     }
 
     private void onLookup(Context context, PeerServer server) {
@@ -53,7 +55,7 @@ public class PeersManager implements Plugin {
         WisdomOuterClass.Ping ping = WisdomOuterClass.Ping.newBuilder().build();
         try {
             for (String p : context.getPayload().getPeers().getPeersList()) {
-                server.dial(new Peer(p), ping);
+                server.dial(Peer.parse(p), ping);
             }
         } catch (Exception e) {
             logger.error("parse peer fail");
