@@ -70,14 +70,14 @@ public class ConsensusController {
 
     @GetMapping(value = "/consensus/blocks")
     public Object handleGetBlocks(
-            @RequestParam(name = "startListening") long start,
+            @RequestParam(name = "start") long start,
             @RequestParam(name = "stop") long stop,
             @RequestParam(name = "clipFromStop") boolean clipFromStop
     ) {
         // clip interval
         GetBlockQuery query = new GetBlockQuery(start, stop).clip(MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
 
-        logger.info("get blocks received startListening height = " + start + " stop height = " + stop);
+        logger.info("get blocks received start height = " + start + " stop height = " + stop);
 
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
         if (blocksToSend != null && blocksToSend.size() > 0) {
@@ -124,7 +124,7 @@ public class ConsensusController {
         );
 
         consensusClient.getBlocks(query.start, query.stop, false);
-        return SUCCESS("received, startListening synchronizing");
+        return SUCCESS("received, start synchronizing");
     }
 
     @PostMapping(value = "/consensus/blocks", produces = "application/json")
