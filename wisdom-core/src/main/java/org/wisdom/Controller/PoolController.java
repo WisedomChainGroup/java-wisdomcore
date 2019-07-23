@@ -89,30 +89,13 @@ public class PoolController {
     @RequestMapping(value="/getPoolTranhash",method = RequestMethod.GET)
     public Object getPoolTranhash(@RequestParam("tranhash") String tranhash){
         try {
-            byte[] txhash=Hex.decodeHex(tranhash.toCharArray());
-            TransPool adoptpool=adoptTransPool.getPoolTranHash(txhash);
-            if(adoptpool!=null){
-                Transaction transaction=adoptpool.getTransaction();
-                JSONObject json = new JSONObject();
-                json.put("pool","AdoptTransPool");
-                json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
-                json.put("type",transaction.type);
-                json.put("nonce",transaction.nonce);
-                json.put("from",transaction.from);
-                json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
-                json.put("amount",transaction.amount);
-                json.put("to",Hex.encodeHexString(transaction.to));
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = new Date(adoptpool.getDatetime());
-                json.put("datatime",sdf.format(date));
-                return APIResult.newFailResult(2000,"SUCCESS",json);
-            }
-            List<TransPool> pendingpool=peningTransPool.getAll();
-            for(TransPool transPool:pendingpool){
-                Transaction transaction=transPool.getTransaction();
-                if(Arrays.equals(transaction.getHash(),txhash)){
+            if(tranhash!=null && !tranhash.equals("")){
+                byte[] txhash=Hex.decodeHex(tranhash.toCharArray());
+                TransPool adoptpool=adoptTransPool.getPoolTranHash(txhash);
+                if(adoptpool!=null){
+                    Transaction transaction=adoptpool.getTransaction();
                     JSONObject json = new JSONObject();
-                    json.put("pool","PendingTransPool");
+                    json.put("pool","AdoptTransPool");
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
@@ -120,15 +103,36 @@ public class PoolController {
                     json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                     json.put("amount",transaction.amount);
                     json.put("to",Hex.encodeHexString(transaction.to));
-                    json.put("state",transPool.getState());
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date date = new Date(transPool.getDatetime());
+                    Date date = new Date(adoptpool.getDatetime());
                     json.put("datatime",sdf.format(date));
-                    json.put("height",transPool.getHeight());
                     return APIResult.newFailResult(2000,"SUCCESS",json);
                 }
+                List<TransPool> pendingpool=peningTransPool.getAll();
+                for(TransPool transPool:pendingpool){
+                    Transaction transaction=transPool.getTransaction();
+                    if(Arrays.equals(transaction.getHash(),txhash)){
+                        JSONObject json = new JSONObject();
+                        json.put("pool","PendingTransPool");
+                        json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                        json.put("type",transaction.type);
+                        json.put("nonce",transaction.nonce);
+                        json.put("from",transaction.from);
+                        json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
+                        json.put("amount",transaction.amount);
+                        json.put("to",Hex.encodeHexString(transaction.to));
+                        json.put("state",transPool.getState());
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date date = new Date(transPool.getDatetime());
+                        json.put("datatime",sdf.format(date));
+                        json.put("height",transPool.getHeight());
+                        return APIResult.newFailResult(2000,"SUCCESS",json);
+                    }
+                }
+                return APIResult.newFailResult(2000,"Not in memory pool");
+            }else{
+                return APIResult.newFailResult(5000,"The parameter address cannot be empty or null");
             }
-            return APIResult.newFailResult(2000,"Not in memory pool");
         } catch (DecoderException e) {
             return APIResult.newFailResult(5000,"Exception error");
         }
