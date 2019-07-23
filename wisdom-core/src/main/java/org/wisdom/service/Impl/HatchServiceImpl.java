@@ -66,7 +66,7 @@ public class HatchServiceImpl implements HatchService {
             long balance=accountDB.getBalance(pubkey);
             return APIResult.newFailResult(2000,"SUCCESS",balance);
         } catch (DecoderException e) {
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -77,7 +77,7 @@ public class HatchServiceImpl implements HatchService {
             long nonce=accountDB.getNonce(pubkey);
             return APIResult.newFailResult(2000,"SUCCESS",nonce);
         } catch (DecoderException e) {
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -146,13 +146,13 @@ public class HatchServiceImpl implements HatchService {
                         map.put("inviteAddress","");
                     }
                 }else{
-                    return APIResult.newFailResult(5000,"ERROR");
+                    return APIResult.newFailResult(5000,"Error in incubation state acquisition");
                 }
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -170,7 +170,7 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -187,7 +187,7 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -198,12 +198,12 @@ public class HatchServiceImpl implements HatchService {
             //查询当前孵化记录
             Incubator incubator=incubatorDB.selectIncubator(trhash);
             if(incubator==null){
-                return APIResult.newFailResult(5000,"ERROR");
+                return APIResult.newFailResult(5000,"Error in incubation state acquisition");
             }
             //孵化事务
             Transaction transaction=wisdomBlockChain.getTransaction(trhash);
             if(transaction==null){
-                return APIResult.newFailResult(5000,"ERROR");
+                return APIResult.newFailResult(5000,"Transaction unavailable. Check transaction hash");
             }
             HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
             int days=payloadproto.getType();
@@ -213,7 +213,7 @@ public class HatchServiceImpl implements HatchService {
             long differheight=maxhieght-incubator.getLast_blockheight_interest();
             int differdays=(int)(differheight/configuration.getDay_count());
             if(differdays==0){
-                return APIResult.newFailResult(5000,"ERROR");
+                return APIResult.newFailResult(5000,"Interest less than one day");
             }
             long dayrate=(long)(transaction.amount*nowrate);
             int maxdays=(int)(incubator.getInterest_amount()/dayrate);
@@ -230,7 +230,7 @@ public class HatchServiceImpl implements HatchService {
             jsonObject.put("capitalAmount",incubator.getInterest_amount());
             return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 }

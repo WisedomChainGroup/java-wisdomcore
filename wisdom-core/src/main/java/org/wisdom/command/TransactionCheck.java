@@ -47,7 +47,7 @@ public class TransactionCheck {
         byte[] version = ByteUtil.bytearraycopy(transfer,0,1);
         if (version[0] != 0x01) {
             apiResult.setCode(5000);
-            apiResult.setMessage("Error");
+            apiResult.setMessage("Version number error");
             return apiResult;
         }
 
@@ -57,7 +57,7 @@ public class TransactionCheck {
         byte[] trannew = ByteUtil.prepend(tranlast, version[0]);
         if (!Arrays.equals(transha, SHA3Utility.keccak256(trannew))) {
             apiResult.setCode(5000);
-            apiResult.setMessage("Error");
+            apiResult.setMessage("The transaction hash check error");
             return apiResult;
         }
 
@@ -79,7 +79,7 @@ public class TransactionCheck {
             long maxnonce=nownonce+15;
             if(nownonce>=nonce || nonce>maxnonce){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Nonce too big. Over 15 Max");
                 return apiResult;
             }
         }else{
@@ -87,7 +87,7 @@ public class TransactionCheck {
             nownonce++;
             if(nownonce!=nonce){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Nonce validates errors");
                 return apiResult;
             }
         }
@@ -100,14 +100,14 @@ public class TransactionCheck {
             gas= Transaction.GAS_TABLE[type[0]];
         }else{
             apiResult.setCode(5000);
-            apiResult.setMessage("Error");
+            apiResult.setMessage("Type check error");
             return apiResult;
         }
         //fee
         if(b){
             if((gasPrice*gas)<configuration.getMin_procedurefee()){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Less than minimum handling charge");
                 return apiResult;
             }
         }
@@ -118,7 +118,7 @@ public class TransactionCheck {
         if(type[0]==0x03){//存证
             if(amount!=0){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("The amount of the deposit transaction is not 0");
                 return apiResult;
             }
         }
@@ -126,26 +126,26 @@ public class TransactionCheck {
         if(type[0]==0x01 || type[0]==0x09 ){
             if((amount+gasPrice*gas)>nowbalance){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Not sufficient funds");
                 return apiResult;
             }
         }else if(type[0]==0x03 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c || type[0]==0x0d){
             if(gasPrice*gas>nowbalance){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Not sufficient funds");
                 return apiResult;
             }
         }else if(type[0]==0x02){//vote
             if((amount+gasPrice*gas)>nowbalance){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Not sufficient funds");
                 return apiResult;
             }
             //求余
             long remainder=(long)(amount % 100000000);
             if(remainder!=0){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("The vote is not an integer");
                 return apiResult;
             }
         }
@@ -158,7 +158,7 @@ public class TransactionCheck {
         if( type[0]==0x09 || type[0]==0x0a || type[0]==0x0b || type[0]==0x0c){
             if(!Arrays.equals(frompubhash,topubkeyhash)){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("From and To are different");
                 return apiResult;
             }
         }
@@ -166,7 +166,7 @@ public class TransactionCheck {
         boolean verifyfrom=(KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte)0x00))==0);
         if(!verifyfrom){
             apiResult.setCode(5000);
-            apiResult.setMessage("Error");
+            apiResult.setMessage("From format check error");
             return apiResult;
         }
         //toaddress
@@ -174,7 +174,7 @@ public class TransactionCheck {
             boolean verifyto=(KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte)0x00))==0);
             if(!verifyto){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("To format check error");
                 return apiResult;
             }
         }
@@ -185,7 +185,7 @@ public class TransactionCheck {
         if(type[0]!=0x01 && type[0]!=0x02){
             if(legnth==0){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Payload cannot be empty");
                 return apiResult;
             }
         }
@@ -195,7 +195,7 @@ public class TransactionCheck {
             boolean result=PayloadCheck(Payload,type,amount,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,topubkeyhash);
             if(!result){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Error");
+                apiResult.setMessage("Payload check error");
                 return apiResult;
             }
             date=ByteUtil.merge(date,Payload);
@@ -207,7 +207,7 @@ public class TransactionCheck {
         boolean result=ed25519PublicKey.verify(nosig,sigdate);
         if(!result){
             apiResult.setCode(5000);
-            apiResult.setMessage("Error");
+            apiResult.setMessage("Signature check error");
             return apiResult;
         }
         String key=Hex.encodeHexString(frompubkey)+nonce;
