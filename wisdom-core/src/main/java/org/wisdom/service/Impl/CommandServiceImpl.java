@@ -77,9 +77,9 @@ public class CommandServiceImpl implements CommandService {
             if(apiResult.getCode()==5000){
                 return apiResult;
             }else{//pool校验
-                String key=apiResult.getData().toString();
-                if(adoptTransPool.hasExist(key)){
-                    if(peningTransPool.hasExist(key)){
+                List<String> list= (List<String>) apiResult.getData();
+                if(adoptTransPool.hasExistQueued(list.get(0),list.get(1))){
+                    if(peningTransPool.hasExist(list.get(2))){
                         apiResult.setData(null);
                     }else{
                         apiResult.setCode(5000);

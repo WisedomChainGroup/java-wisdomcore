@@ -116,8 +116,9 @@ public class Miner implements ApplicationListener {
         Set<String> hasValidated = new HashSet<>();
         List<Transaction> notWrittern = new ArrayList<>();
         List<Transaction> transactionList=peningTransPool.compare();
+        int totalpool=transactionList.size();
         int index=0;
-        while (peningTransPool.size() > 0 && block.size() < Block.MAX_BLOCK_SIZE) {
+        while ( totalpool> 0 && block.size() < Block.MAX_BLOCK_SIZE) {
             // TODO: 验证事务池里面的事务
             Transaction tx = transactionList.get(index);
             if (hasValidated.contains(tx.getHashHexString())) {
@@ -135,6 +136,7 @@ public class Miner implements ApplicationListener {
             // nonce 校验
             notWrittern.add(tx);
             index++;
+            totalpool--;
         }
 
         // 校验官方孵化余额

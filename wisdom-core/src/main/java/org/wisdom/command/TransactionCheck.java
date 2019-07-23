@@ -37,7 +37,9 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class TransactionCheck {
 
@@ -210,10 +212,16 @@ public class TransactionCheck {
             apiResult.setMessage("Signature check error");
             return apiResult;
         }
-        String key=Hex.encodeHexString(frompubkey)+nonce;
         apiResult.setCode(2000);
         apiResult.setMessage("SUCCESS");
-        apiResult.setData(key);
+        String from=Hex.encodeHexString(frompubhash);
+        String key=from+nonce;
+        List<String> list=new ArrayList<>();
+        list.add(from);
+        list.add(key);
+        String key2=Hex.encodeHexString(frompubkey)+nonce;
+        list.add(key2);
+        apiResult.setData(list);
         return apiResult;
     }
 

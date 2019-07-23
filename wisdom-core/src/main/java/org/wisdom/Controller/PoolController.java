@@ -42,29 +42,27 @@ public class PoolController {
         int check=KeystoreAction.verifyAddress(address);
         if(check==0){
             byte[] pubkeyhash=KeystoreAction.addressToPubkeyHash(address);
-            List<TransPool> adoptpool=adoptTransPool.getAll();
+            List<TransPool> adoptpool=adoptTransPool.getAllFrom(Hex.encodeHexString(pubkeyhash));
             for(TransPool transPool:adoptpool){
                 Transaction transaction=transPool.getTransaction();
-                if(Arrays.equals(transaction.to,pubkeyhash)){
-                    JSONObject json = new JSONObject();
-                    json.put("pool","AdoptTransPool");
-                    json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
-                    json.put("type",transaction.type);
-                    json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
-                    json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
-                    json.put("amount",transaction.amount);
-                    json.put("to",Hex.encodeHexString(transaction.to));
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date date = new Date(transPool.getDatetime());
-                    json.put("datatime",sdf.format(date));
-                    jsonArray.add(json);
-                }
+                JSONObject json = new JSONObject();
+                json.put("pool","AdoptTransPool");
+                json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                json.put("type",transaction.type);
+                json.put("nonce",transaction.nonce);
+                json.put("from",transaction.from);
+                json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
+                json.put("amount",transaction.amount);
+                json.put("to",Hex.encodeHexString(transaction.to));
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date date = new Date(transPool.getDatetime());
+                json.put("datatime",sdf.format(date));
+                jsonArray.add(json);
             }
             List<TransPool> pendingpool=peningTransPool.getAll();
             for(TransPool transPool:pendingpool){
                 Transaction transaction=transPool.getTransaction();
-                if(Arrays.equals(transaction.to,pubkeyhash)){
+                if(Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from)),pubkeyhash)){
                     JSONObject json = new JSONObject();
                     json.put("pool","PendingTransPool");
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
@@ -78,6 +76,7 @@ public class PoolController {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     Date date = new Date(transPool.getDatetime());
                     json.put("datatime",sdf.format(date));
+                    json.put("height",transPool.getHeight());
                     jsonArray.add(json);
                 }
             }
@@ -87,79 +86,26 @@ public class PoolController {
         }
     }
 
-    @RequestMapping(value="/getPoolFrom",method = RequestMethod.GET)
-    public Object getPoolFrom(@RequestParam("pubkey") String pubkey){
-        JSONArray jsonArray = new JSONArray();
-        try {
-            byte[] from=Hex.decodeHex(pubkey.toCharArray());
-            List<TransPool> adoptpool=adoptTransPool.getAll();
-            for(TransPool transPool:adoptpool){
-                Transaction transaction=transPool.getTransaction();
-                if(Arrays.equals(transaction.from,from)){
-                    JSONObject json = new JSONObject();
-                    json.put("pool","AdoptTransPool");
-                    json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
-                    json.put("type",transaction.type);
-                    json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
-                    json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
-                    json.put("amount",transaction.amount);
-                    json.put("to",Hex.encodeHexString(transaction.to));
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date date = new Date(transPool.getDatetime());
-                    json.put("datatime",sdf.format(date));
-                    jsonArray.add(json);
-                }
-            }
-            List<TransPool> pendingpool=peningTransPool.getAll();
-            for(TransPool transPool:pendingpool){
-                Transaction transaction=transPool.getTransaction();
-                if(Arrays.equals(transaction.from,from)){
-                    JSONObject json = new JSONObject();
-                    json.put("pool","PendingTransPool");
-                    json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
-                    json.put("type",transaction.type);
-                    json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
-                    json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
-                    json.put("amount",transaction.amount);
-                    json.put("to",Hex.encodeHexString(transaction.to));
-                    json.put("state",transPool.getState());
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date date = new Date(transPool.getDatetime());
-                    json.put("datatime",sdf.format(date));
-                    jsonArray.add(json);
-                }
-            }
-            return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
-        } catch (DecoderException e) {
-            return APIResult.newFailResult(5000,"Exception error");
-        }
-    }
-
-
     @RequestMapping(value="/getPoolTranhash",method = RequestMethod.GET)
     public Object getPoolTranhash(@RequestParam("tranhash") String tranhash){
         try {
             byte[] txhash=Hex.decodeHex(tranhash.toCharArray());
-            List<TransPool> adoptpool=adoptTransPool.getAll();
-            for(TransPool transPool:adoptpool){
-                Transaction transaction=transPool.getTransaction();
-                if(Arrays.equals(transaction.getHash(),txhash)){
-                    JSONObject json = new JSONObject();
-                    json.put("pool","AdoptTransPool");
-                    json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
-                    json.put("type",transaction.type);
-                    json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
-                    json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
-                    json.put("amount",transaction.amount);
-                    json.put("to",Hex.encodeHexString(transaction.to));
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date date = new Date(transPool.getDatetime());
-                    json.put("datatime",sdf.format(date));
-                    return APIResult.newFailResult(2000,"SUCCESS",json);
-                }
+            TransPool adoptpool=adoptTransPool.getPoolTranHash(txhash);
+            if(adoptpool!=null){
+                Transaction transaction=adoptpool.getTransaction();
+                JSONObject json = new JSONObject();
+                json.put("pool","AdoptTransPool");
+                json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                json.put("type",transaction.type);
+                json.put("nonce",transaction.nonce);
+                json.put("from",transaction.from);
+                json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
+                json.put("amount",transaction.amount);
+                json.put("to",Hex.encodeHexString(transaction.to));
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date date = new Date(adoptpool.getDatetime());
+                json.put("datatime",sdf.format(date));
+                return APIResult.newFailResult(2000,"SUCCESS",json);
             }
             List<TransPool> pendingpool=peningTransPool.getAll();
             for(TransPool transPool:pendingpool){
@@ -178,6 +124,7 @@ public class PoolController {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     Date date = new Date(transPool.getDatetime());
                     json.put("datatime",sdf.format(date));
+                    json.put("height",transPool.getHeight());
                     return APIResult.newFailResult(2000,"SUCCESS",json);
                 }
             }
@@ -189,7 +136,7 @@ public class PoolController {
 
     @RequestMapping(value="/getPoolCount",method = RequestMethod.GET)
     public Object getPoolCount(){
-        int adoptcount=adoptTransPool.size();
+        int adoptcount=adoptTransPool.getAllFull().size();
         List<Transaction> pengdingcount=peningTransPool.compare();
         int pengcount=pengdingcount.size();
         JSONObject json = new JSONObject();

@@ -4,6 +4,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections.map.LinkedMap;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Component
 public class AdoptTransPool {
 
-    private Map<String,TransPool> atpool;
+    private Map<String,Map<String,TransPool>> atpool;
 
     private ReadWriteLock lock;
 
@@ -25,27 +27,28 @@ public class AdoptTransPool {
     public void add(List<Transaction> txs){
         lock.writeLock().lock();
         for(Transaction t:txs){
-            String key=getKeyTrans(t);
-            if(key!=null){
-                if(hasExist(key)){
-                    TransPool tp=new TransPool(t,0,new Date().getTime());
-                    atpool.put(key,tp);
-                }
+            String from=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
+            if(hasExist(from)){
+                Map<String,TransPool> map=new HashMap<>();
+                TransPool tp=new TransPool(t,0,new Date().getTime());
+                map.put(getKeyTrans(t),tp);
+                atpool.put(from,map);
+            }else{
+                Map<String,TransPool> map=atpool.get(from);
+                TransPool tp=new TransPool(t,0,new Date().getTime());
+                map.put(getKeyTrans(t),tp);
+                atpool.put(from,map);
             }
         }
         lock.writeLock().unlock();
     }
 
-    public int size(){
-        return atpool.size();
-    }
-
     public String getKeyTrans(Transaction t){
         if(t!=null){
             byte[] from=t.from;
-            String froms= Hex.encodeHexString(from);
-            //todo:key=from+nonce
-            String key=froms+t.nonce;
+            String fromhash= Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
+            //todo:key=fromhash+nonce
+            String key=fromhash+t.nonce;
             return key;
         }else{
             return null;
@@ -60,6 +63,16 @@ public class AdoptTransPool {
         }
     }
 
+    public boolean hasExistQueued(String key,String key1){
+        if(atpool.containsKey(key)) {
+            Map<String, TransPool> map = atpool.get(key);
+            if (map.containsKey(key1)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public boolean hasExist(String key){
         if(atpool.containsKey(key)){
            return false;
@@ -68,11 +81,20 @@ public class AdoptTransPool {
         }
     }
 
-    public void remove(List<String> list){
+    public void remove(Map<String,String> maps){
         lock.writeLock().lock();
-        for(String s:list){
-            if(!hasExist(s)){
-                atpool.remove(s);
+        for(Map.Entry<String,String> entry:maps.entrySet()){
+            if(!hasExist(entry.getKey())){
+                Map<String, TransPool> map=atpool.get(entry.getKey());
+                if(map.containsKey(entry.getValue())){
+                    map.remove(entry.getValue());
+                    if(map.size()==0){
+                        atpool.remove(entry.getKey());
+                    }else{
+                        atpool.put(entry.getKey(),map);
+                    }
+                    break;
+                }
             }
         }
         lock.writeLock().unlock();
@@ -80,26 +102,66 @@ public class AdoptTransPool {
 
     public List<TransPool> getAll(){
         List<TransPool> list=new ArrayList<>();
-        for(Map.Entry<String,TransPool> entry:atpool.entrySet()){
-            list.add(entry.getValue());
+        for(Map.Entry<String, Map<String, TransPool>> entry:atpool.entrySet()){
+            Map<String,TransPool> map=compare(entry.getValue());
+            for(Map.Entry<String,TransPool> entry1:map.entrySet()){
+                TransPool t=entry1.getValue();
+                list.add(t);
+                break;
+            }
         }
         return list;
     }
 
-    public Map<String,TransPool> compare(){
-        List<Map.Entry<String,TransPool>> list = new ArrayList<>(atpool.entrySet());
+    public List<TransPool> getAllFrom(String from){
+        List<TransPool> list=new ArrayList<>();
+        if(!hasExist(from)){
+            Map<String, TransPool> map=atpool.get(from);
+            for(Map.Entry<String,TransPool> entry:map.entrySet()){
+                TransPool t=entry.getValue();
+                list.add(t);
+            }
+        }
+        return list;
+    }
+
+    public List<TransPool> getAllFull(){
+        List<TransPool> list=new ArrayList<>();
+        for(Map.Entry<String,Map<String, TransPool>> entry:atpool.entrySet()){
+            for(Map.Entry<String,TransPool> entrys:entry.getValue().entrySet()){
+                list.add(entrys.getValue());
+            }
+        }
+        return list;
+    }
+
+    public TransPool getPoolTranHash(byte[] txhash){
+        for(Map.Entry<String,Map<String, TransPool>> entry:atpool.entrySet()){
+            for(Map.Entry<String,TransPool> entrys:entry.getValue().entrySet()){
+                Transaction t=entrys.getValue().getTransaction();
+                if(Arrays.equals(t.getHash(),txhash)){
+                    return entrys.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    public Map<String,TransPool> getfromPool(String from){
+        if(!hasExist(from)){
+            return atpool.get(from);
+        }
+        return null;
+    }
+
+    public Map<String,TransPool> compare(Map<String,TransPool> maps){
+        List<Map.Entry<String,TransPool>> list = new ArrayList<>(maps.entrySet());
         Collections.sort(list, new Comparator<Map.Entry<String,TransPool>>() {
             @Override
             public int compare(Map.Entry<String,TransPool> o1, Map.Entry<String,TransPool> o2) {
                 Transaction t1=o1.getValue().getTransaction();
                 Transaction t2=o2.getValue().getTransaction();
-                if(t1.getFee()==t2.getFee()){
-                    return (int) (t2.nonce-t1.nonce);
-                }else if(t1.getFee()>t2.getFee()){
-                    return -1;
-                }else{
-                    return 1;
-                }
+                return (int) (t1.nonce-t2.nonce);
             }
         });
         Map<String,TransPool> map = new LinkedMap();
@@ -150,7 +212,7 @@ public class AdoptTransPool {
         l.add(t5);
         AdoptTransPool a=new AdoptTransPool();
         a.add(l);
-        Map<String,TransPool> sss=a.compare();
+        Map<String,TransPool> sss=a.compare(a.getfromPool(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(new byte[32])))));
         for(Map.Entry<String,TransPool> entry:sss.entrySet()){
             System.out.println("key:"+entry.getKey()+"  value:"+entry.getValue().getTransaction().gasPrice+"-->"+entry.getValue().getTransaction().nonce);
         }
