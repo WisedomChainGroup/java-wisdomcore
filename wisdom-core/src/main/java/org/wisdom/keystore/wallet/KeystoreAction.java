@@ -325,7 +325,7 @@ public class KeystoreAction {
         byte[] r5 = Base58Utility.decode(address);
 //        ResultSupport ar = new ResultSupport();
         if(!address.startsWith("1")){//地址不是以"1"开头
-            return  1;
+            return  -1;
         }
         byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(KeystoreAction.addressToPubkeyHash(address)));
         byte[] b4 = ByteUtil.bytearraycopy(r3,0,4);
