@@ -81,15 +81,15 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.bootstraps = new ConcurrentHashMap<>();
         this.trusted = new ConcurrentHashMap<>();
         this.blocked = new ConcurrentHashMap<>();
-        this.peers = new HashMap<>();
+        this.peers = new ConcurrentHashMap<>();
         this.pended = new ConcurrentHashMap<>();
         String[] bs = new String[]{};
-        if(bootstraps != null && !bootstraps.equals("")){
+        if (bootstraps != null && !bootstraps.equals("")) {
             bs = bootstraps.split(" ");
         }
         String[] ts = new String[]{};
-        if(trusted != null && !trusted.equals("")){
-            ts = bootstraps.split(" ");
+        if (trusted != null && !trusted.equals("")) {
+            ts = trusted.split(" ");
         }
         for (String b : bs) {
             Peer p = Peer.parse(b);
@@ -147,6 +147,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 peers.remove(self.subTree(p));
                 continue;
             }
+            logger.info("peer found = " + p.toString() + " score = " + p.score);
             dial(p, WisdomOuterClass.Ping.newBuilder().build());
         }
         if (peers.size() == 0) {
@@ -175,24 +176,24 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 if (ctx.broken) {
                     break;
                 }
-                if (ctx.remove) {
-                    removePeer(payload.getRemote());
-                }
-                if (ctx.pending) {
-                    pendPeer(payload.getRemote());
-                }
-                if (ctx.keep) {
-                    keepPeer(payload.getRemote());
-                }
-                if (ctx.block) {
-                    blockPeer(payload.getRemote());
-                }
-                if (ctx.relay) {
-                    relay(payload);
-                }
-                if (ctx.response != null) {
-                    return buildMessage(payload.getRemote(), 1, ctx.response);
-                }
+            }
+            if (ctx.remove) {
+                removePeer(payload.getRemote());
+            }
+            if (ctx.pending) {
+                pendPeer(payload.getRemote());
+            }
+            if (ctx.keep) {
+                keepPeer(payload.getRemote());
+            }
+            if (ctx.block) {
+                blockPeer(payload.getRemote());
+            }
+            if (ctx.relay) {
+                relay(payload);
+            }
+            if (ctx.response != null) {
+                return buildMessage(payload.getRemote(), 1, ctx.response);
             }
             return buildMessage(ctx.payload.getRemote(), 1, WisdomOuterClass.Nothing.newBuilder().build());
         } catch (Exception e) {
@@ -292,6 +293,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         Peer p = peers.get(idx);
         if (p == null && peers.size() + trusted.size() < MAX_PEERS) {
             peers.put(idx, peer);
+            return;
+        }
+        if (p == null) {
+            return;
+        }
+        if (p.equals(peer)) {
+            p.score += 2 * PEER_SCORE;
             return;
         }
         if (p.score < PEER_SCORE) {

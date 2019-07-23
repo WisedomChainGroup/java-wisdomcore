@@ -20,6 +20,9 @@ package org.wisdom.Controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
+import org.springframework.scheduling.annotation.Async;
+import org.wisdom.p2p.Peer;
+import org.wisdom.p2p.PeerServer;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -34,8 +37,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.wisdom.Controller.ConsensusResult.ERROR;
 import static org.wisdom.Controller.ConsensusResult.SUCCESS;
@@ -63,6 +65,7 @@ public class ConsensusController {
 
     @Autowired
     TransactionPool pool;
+
 
     @GetMapping(value = "/consensus/blocks")
     public Object handleGetBlocks(

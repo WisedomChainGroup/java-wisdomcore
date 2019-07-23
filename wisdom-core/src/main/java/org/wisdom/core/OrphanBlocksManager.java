@@ -18,6 +18,10 @@
 
 package org.wisdom.core;
 
+import org.springframework.lang.NonNull;
+import org.springframework.lang.NonNullApi;
+import org.springframework.lang.Nullable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.event.NewBlockEvent;
 import org.slf4j.Logger;
@@ -26,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +42,7 @@ import java.util.List;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
+    private static final int ORPHAN_HEIGHT_RANGE = 50;
     private BlocksCache orphans;
 
     @Autowired
@@ -46,7 +52,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     private PendingBlocksManager pool;
 
     private static final Logger logger = LoggerFactory.getLogger(OrphanBlocksManager.class);
-
 
 
     public OrphanBlocksManager() {
@@ -69,27 +74,31 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
             if (b.nHeight >= currentHeader.nHeight) {
                 orphans.addBlocks(cache.getAncestors(b));
                 orphans.addBlocks(Collections.singletonList(b));
-                logger.info("add blocks to orphan pool size = " + (cache.getAncestors(b).size()+1));
+                logger.info("add blocks to orphan pool size = " + (cache.getAncestors(b).size() + 1));
                 continue;
             }
             if (orphans.hasChildrenOf(b.getHash())) {
                 orphans.addBlocks(cache.getAncestors(b));
                 orphans.addBlocks(Collections.singletonList(b));
-                logger.info("add blocks to orphan pool size = " + (cache.getAncestors(b).size()+1));
+                logger.info("add blocks to orphan pool size = " + (cache.getAncestors(b).size() + 1));
             }
         }
     }
 
-    // remove orphans return writable blocks
+    // remove orphans return writable blocks，过滤掉孤块
     public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
         BlocksCache cache = new BlocksCache(blocks);
+        Block best = bc.currentHeader();
         for (Block init : cache.getInitials()) {
-            if (isOrphan(init)) {
-                List<Block> descendantBlocks = new ArrayList<>();
-                descendantBlocks.add(init);
-                descendantBlocks.addAll(cache.getDescendantBlocks(init));
+            if (!isOrphan(init)) {
+                continue;
+            }
+            List<Block> descendantBlocks = new ArrayList<>();
+            descendantBlocks.add(init);
+            descendantBlocks.addAll(cache.getDescendantBlocks(init));
+            cache.deleteBlocks(descendantBlocks);
+            if (Math.abs(best.nHeight - init.nHeight) < ORPHAN_HEIGHT_RANGE) {
                 addBlocks(descendantBlocks);
-                cache.deleteBlocks(descendantBlocks);
             }
         }
         logger.info("orphan initials size = " + orphans.getInitials().size());
@@ -101,9 +110,9 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         return orphans.getInitials();
     }
 
-    private void tryWriteNonOrphans(){
-        for(Block ini: orphans.getInitials()){
-            if (!isOrphan(ini)){
+    private void tryWriteNonOrphans() {
+        for (Block ini : orphans.getInitials()) {
+            if (!isOrphan(ini)) {
                 logger.info("writable orphan block found in pool");
                 List<Block> descendants = orphans.getDescendantBlocks(ini);
                 descendants.add(ini);
@@ -116,5 +125,20 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     @Override
     public void onApplicationEvent(NewBlockEvent event) {
         tryWriteNonOrphans();
+    }
+
+
+    // 定时清理距离当前高度超过 50 的孤块
+    @Scheduled(fixedRate = 30 * 1000)
+    public void clearOrphans() {
+        Block best = bc.currentHeader();
+        for (Block init : orphans.getInitials()) {
+            List<Block> descendantBlocks = new ArrayList<>();
+            descendantBlocks.add(init);
+            descendantBlocks.addAll(orphans.getDescendantBlocks(init));
+            if (Math.abs(best.nHeight - init.nHeight) < ORPHAN_HEIGHT_RANGE) {
+                orphans.deleteBlocks(descendantBlocks);
+            }
+        }
     }
 }
