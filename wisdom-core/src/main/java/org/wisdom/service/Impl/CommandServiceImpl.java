@@ -83,17 +83,17 @@ public class CommandServiceImpl implements CommandService {
                         apiResult.setData(null);
                     }else{
                         apiResult.setCode(5000);
-                        apiResult.setMessage("Error");
+                        apiResult.setMessage("Error sending same nonce transaction to From address");
                     }
                 }else{
                     apiResult.setCode(5000);
-                    apiResult.setMessage("Error");
+                    apiResult.setMessage("Error sending same nonce transaction to From address");
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
             apiResult.setCode(5000);
-            apiResult.setMessage("Error");
+            apiResult.setMessage("Exception error");
             return apiResult;
         }
         ProtocolModel.Transaction tranproto= Transaction.changeProtobuf(transfer);
