@@ -84,10 +84,12 @@ public class CommandServiceImpl implements CommandService {
                     }else{
                         apiResult.setCode(5000);
                         apiResult.setMessage("Error sending same nonce transaction to From address");
+                        return apiResult;
                     }
                 }else{
                     apiResult.setCode(5000);
                     apiResult.setMessage("Error sending same nonce transaction to From address");
+                    return apiResult;
                 }
             }
         } catch (Exception e) {
