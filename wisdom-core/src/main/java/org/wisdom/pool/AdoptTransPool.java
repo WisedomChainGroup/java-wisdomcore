@@ -36,6 +36,10 @@ public class AdoptTransPool {
         lock.writeLock().unlock();
     }
 
+    public int size(){
+        return atpool.size();
+    }
+
     public String getKeyTrans(Transaction t){
         if(t!=null){
             byte[] from=t.from;
