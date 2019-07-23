@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.wisdom.pool.PeningTransPool;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,9 +51,13 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
     @Autowired
     ApplicationContext ctx;
 
+    @Autowired
+    PeningTransPool peningTransPool;
+
     @Override
     public void onApplicationEvent(NewBestBlockEvent event) {
         Block b = event.getBlock();
+        peningTransPool.updatePool(b.body,2,b.nHeight);
         Map<String, Object> merklemap = null;
         try {
             merklemap = merkleRule.validateMerkle(b.body, b.nHeight);

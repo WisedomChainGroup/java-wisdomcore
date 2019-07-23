@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author sal 1564319846@qq.com
  * wisdom protocol implementation
  */
-@Component
+//@Component
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
     static final int PEER_SCORE = 4;
     static final int HALF_RATE = 30;

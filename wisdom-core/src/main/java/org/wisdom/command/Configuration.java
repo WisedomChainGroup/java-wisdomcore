@@ -51,6 +51,17 @@ public class Configuration {
     @Value("${min.procedurefee}")
     private long min_procedurefee;
 
+    @Value("${pool.clear.days}")
+    private long poolcleardays;
+
+    public long getPoolcleardays() {
+        return poolcleardays;
+    }
+
+    public void setPoolcleardays(long poolcleardays) {
+        this.poolcleardays = poolcleardays;
+    }
+
     public long getMin_procedurefee() {
         return min_procedurefee;
     }

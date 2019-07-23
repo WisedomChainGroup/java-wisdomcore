@@ -41,7 +41,7 @@ import java.util.Arrays;
 
 public class TransactionCheck {
 
-    public static APIResult TransactionVerifyResult(byte[] transfer, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight, boolean b){
+    public static APIResult TransactionVerifyResult(byte[] transfer, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight, boolean b, boolean state){
         APIResult apiResult=new APIResult();
         //version
         byte[] version = ByteUtil.bytearraycopy(transfer,0,1);
@@ -73,14 +73,24 @@ public class TransactionCheck {
         tranlast=ByteUtil.bytearraycopy(tranlast,32,tranlast.length-32);
         //nownonce
         byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(frompubkey));
-        long maxnonce=accountDB.getNonce(frompubhash);
-        maxnonce++;
-        if(maxnonce!=nonce){
-            apiResult.setCode(5000);
-            apiResult.setMessage("Error");
-            return apiResult;
+        long nownonce=accountDB.getNonce(frompubhash);
+        if(state){
+            //todo:nonce判断不能大于最大15个
+            long maxnonce=nownonce+15;
+            if(nownonce>=nonce || nonce>maxnonce){
+                apiResult.setCode(5000);
+                apiResult.setMessage("Error");
+                return apiResult;
+            }
+        }else{
+            //todo:nonce为DB+1
+            nownonce++;
+            if(nownonce!=nonce){
+                apiResult.setCode(5000);
+                apiResult.setMessage("Error");
+                return apiResult;
+            }
         }
-
         //gasPrice
         byte[] gasbyte=ByteUtil.bytearraycopy(tranlast,0,8);
         long gasPrice=BigEndian.decodeUint64(gasbyte);
@@ -200,8 +210,10 @@ public class TransactionCheck {
             apiResult.setMessage("Error");
             return apiResult;
         }
+        String key=Hex.encodeHexString(frompubkey)+nonce;
         apiResult.setCode(2000);
         apiResult.setMessage("SUCCESS");
+        apiResult.setData(key);
         return apiResult;
     }
 
@@ -333,6 +345,15 @@ public class TransactionCheck {
             return false;
         } catch (DecoderException e) {
             e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean checkoutPool(Transaction t,WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight){
+        byte[] info=t.toRPCBytes();
+        APIResult apiResult=TransactionCheck.TransactionVerifyResult(info,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,true,false);
+        if(apiResult.getCode()==5000){
             return false;
         }
         return true;

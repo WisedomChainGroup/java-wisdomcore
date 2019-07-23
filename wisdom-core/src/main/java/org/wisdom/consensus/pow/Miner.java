@@ -39,6 +39,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
+import org.wisdom.pool.PeningTransPool;
 
 import java.util.*;
 
@@ -80,6 +81,9 @@ public class Miner implements ApplicationListener {
     @Autowired
     OfficialIncubateBalanceRule officialIncubateBalanceRule;
 
+    @Autowired
+    PeningTransPool peningTransPool;
+
     public Miner() {
     }
 
@@ -111,9 +115,11 @@ public class Miner implements ApplicationListener {
         // 防止 account 重复
         Set<String> hasValidated = new HashSet<>();
         List<Transaction> notWrittern = new ArrayList<>();
-        while (txPool.size() > 0 && block.size() < Block.MAX_BLOCK_SIZE) {
+        List<Transaction> transactionList=peningTransPool.compare();
+        int index=0;
+        while (peningTransPool.size() > 0 && block.size() < Block.MAX_BLOCK_SIZE) {
             // TODO: 验证事务池里面的事务
-            Transaction tx = txPool.poll();
+            Transaction tx = transactionList.get(index);
             if (hasValidated.contains(tx.getHashHexString())) {
                 continue;
             }
@@ -128,6 +134,7 @@ public class Miner implements ApplicationListener {
 
             // nonce 校验
             notWrittern.add(tx);
+            index++;
         }
 
         // 校验官方孵化余额
@@ -147,6 +154,7 @@ public class Miner implements ApplicationListener {
         block.hashMerkleRoot = Block.calculateMerkleRoot(block.body);
         block.hashMerkleState = Block.calculateMerkleState(accountList);
         block.hashMerkleIncubate = Block.calculateMerkleIncubate(incubatorList);
+        peningTransPool.updatePool(newTranList,1,block.nHeight);
         return block;
     }
 

@@ -24,6 +24,8 @@ import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.TransactionPool;
 
+import org.wisdom.pool.AdoptTransPool;
+import org.wisdom.pool.PeningTransPool;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.service.CommandService;
 import org.wisdom.core.WisdomBlockChain;
@@ -34,9 +36,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class CommandServiceImpl implements CommandService {
@@ -62,14 +62,33 @@ public class CommandServiceImpl implements CommandService {
     @Autowired
     ConsensusClient client;
 
+    @Autowired
+    AdoptTransPool adoptTransPool;
+
+    @Autowired
+    PeningTransPool peningTransPool;
+
     @Override
     public APIResult verifyTransfer(byte[] transfer) {
         APIResult apiResult=new APIResult();
         try {
             long nowheight=wisdomBlockChain.currentHeader().nHeight;
-            apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,true);
+            apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,true,true);
             if(apiResult.getCode()==5000){
                 return apiResult;
+            }else{//pool校验
+                String key=apiResult.getData().toString();
+                if(adoptTransPool.hasExist(key)){
+                    if(peningTransPool.hasExist(key)){
+                        apiResult.setData(null);
+                    }else{
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("Error");
+                    }
+                }else{
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Error");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -79,7 +98,8 @@ public class CommandServiceImpl implements CommandService {
         }
         ProtocolModel.Transaction tranproto= Transaction.changeProtobuf(transfer);
         Transaction tran=Transaction.fromProto(tranproto);
-        transactionPool.add(tran);
+        adoptTransPool.add(Collections.singletonList(tran));
+//        transactionPool.add(tran);
         client.broascastTransactions(Collections.singletonList(tran));
         return apiResult;
     }

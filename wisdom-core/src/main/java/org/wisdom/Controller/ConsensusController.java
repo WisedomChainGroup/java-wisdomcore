@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.wisdom.service.Impl.CommandServiceImpl;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
@@ -63,6 +64,9 @@ public class ConsensusController {
 
     @Autowired
     TransactionPool pool;
+
+    @Autowired
+    CommandServiceImpl commandService;
 
     @GetMapping(value = "/consensus/blocks")
     public Object handleGetBlocks(
@@ -142,7 +146,8 @@ public class ConsensusController {
             return ERROR("invalid transactions found");
         }
         for(Transaction tran:received){
-            pool.add(tran);
+            byte[] traninfo=tran.toRPCBytes();
+            commandService.verifyTransfer(traninfo);
         }
         return SUCCESS("transaction received successful");
     }

@@ -37,7 +37,7 @@ public class TransferMsgCheck {
         //事务已在内存池中
         if (!transactionPool.has(Hex.encodeHexString(msg.getHash().toByteArray()))) {
             Transaction tran=Transaction.fromProto(msg);
-            APIResult apiResult= TransactionCheck.TransactionVerifyResult(tran.toRPCBytes(), wisdomBlockChain, configuration,accountDB, incubatorDB, rateTable, nowheight, true);
+            APIResult apiResult= TransactionCheck.TransactionVerifyResult(tran.toRPCBytes(), wisdomBlockChain, configuration,accountDB, incubatorDB, rateTable, nowheight, true, true);
             if(apiResult.getCode()==-1){
                 return false;
             }
