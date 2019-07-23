@@ -38,8 +38,8 @@ import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Service
 public class HatchServiceImpl implements HatchService {
@@ -230,6 +230,66 @@ public class HatchServiceImpl implements HatchService {
             jsonObject.put("capitalAmount",incubator.getInterest_amount());
             return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
         }catch (Exception e){
+            return APIResult.newFailResult(5000,"Exception error");
+        }
+    }
+
+    @Override
+    public Object getTxrecordFromAddress(String address) {
+        try {
+            if(KeystoreAction.verifyAddress(address)==0){
+                byte[] pubkeyhash=KeystoreAction.addressToPubkeyHash(address);
+                List<Map<String,Object>> list=new ArrayList<>();
+                List<Map<String,Object>> tolist=accountDB.selectTranto(pubkeyhash);
+                for(Map<String,Object> to:tolist){
+                    Map<String,Object> maps=to;
+                    String from=maps.get("from").toString();
+                    String fromaddress=KeystoreAction.pubkeyToAddress(Hex.decodeHex(from.toCharArray()),(byte)0x00);
+                    maps.put("from",fromaddress);
+                    String topubkeyhash=maps.get("to").toString();
+                    String toaddress=KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()),(byte)0x00);
+                    maps.put("to",toaddress);
+                    long time= Long.valueOf(maps.get("datetime").toString());
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    Date dates = new Date(time*1000);
+                    String date=sdf.format(dates);
+                    maps.put("datetime",date);
+                    maps.put("type","+");
+                    list.add(maps);
+                }
+                List<Map<String,Object>> fromlist=accountDB.selectTranfrom(pubkeyhash);
+                for(Map<String,Object> from:fromlist){
+                    Map<String,Object> maps=from;
+                    String froms=maps.get("from").toString();
+                    byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(Hex.decodeHex(froms.toCharArray())));
+                    if(Arrays.equals(frompubhash,pubkeyhash)){
+                        String fromaddress=KeystoreAction.pubkeyHashToAddress(frompubhash,(byte)0x00);
+                        maps.put("from",fromaddress);
+                        String topubkeyhash=maps.get("to").toString();
+                        String toaddress=KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()),(byte)0x00);
+                        maps.put("to",toaddress);
+                        long time= Long.valueOf(maps.get("datetime").toString());
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date dates = new Date(time*1000);
+                        String date=sdf.format(dates);
+                        maps.put("datetime",date);
+                        maps.put("type","-");
+                        list.add(maps);
+                    }
+                }
+                Collections.sort(list, new Comparator<Map<String, Object>>() {
+                    public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+                        Integer name1 = Integer.valueOf(o1.get("height").toString()) ;
+                        Integer name2 = Integer.valueOf(o2.get("height").toString()) ;
+                        return name2.compareTo(name1);
+                    }
+                });
+                return APIResult.newFailResult(2000,"SUCCESS",list);
+            }else{
+                return APIResult.newFailResult(5000,"Address check error");
+            }
+        } catch (DecoderException e) {
+            e.printStackTrace();
             return APIResult.newFailResult(5000,"Exception error");
         }
     }

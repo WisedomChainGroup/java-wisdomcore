@@ -48,6 +48,10 @@ public class HatchController {
 
     }
 
+    @RequestMapping(value="/getTxrecordFromAddress",method =RequestMethod.GET )
+    public Object getTxrecordFromAddress(@RequestParam("address") String address){
+        return hatchService.getTxrecordFromAddress(address);
+    }
 
     @RequestMapping(value="/sendNonce",method =RequestMethod.POST )
     public Object sendNonce(@RequestParam("pubkeyhash") String pubkeyhash){

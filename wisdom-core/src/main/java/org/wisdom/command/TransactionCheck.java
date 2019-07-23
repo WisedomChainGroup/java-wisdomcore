@@ -81,7 +81,7 @@ public class TransactionCheck {
             long maxnonce=nownonce+15;
             if(nownonce>=nonce || nonce>maxnonce){
                 apiResult.setCode(5000);
-                apiResult.setMessage("Nonce too big. Over 15 Max");
+                apiResult.setMessage("Nonce is too small or Nonce too big. Over 15 Max");
                 return apiResult;
             }
         }else{
