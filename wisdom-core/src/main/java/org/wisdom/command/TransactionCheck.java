@@ -214,14 +214,8 @@ public class TransactionCheck {
         }
         apiResult.setCode(2000);
         apiResult.setMessage("SUCCESS");
-        String from=Hex.encodeHexString(frompubhash);
-        String key=from+nonce;
-        List<String> list=new ArrayList<>();
-        list.add(from);
-        list.add(key);
-        String key2=Hex.encodeHexString(frompubkey)+nonce;
-        list.add(key2);
-        apiResult.setData(list);
+        String key=Hex.encodeHexString(frompubkey)+nonce;
+        apiResult.setData(key);
         return apiResult;
     }
 
@@ -292,7 +286,9 @@ public class TransactionCheck {
                     }
                     inheight=incubator.getLast_blockheight_interest();
                 }
-
+                if(totalrate!=0){
+                    return false;
+                }
                 //天数
                 int mul=(int)(amount/totalrate);
                 if(mul==0){

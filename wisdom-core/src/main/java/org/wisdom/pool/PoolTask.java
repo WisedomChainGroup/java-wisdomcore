@@ -4,6 +4,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.wisdom.Controller.ConsensusClient;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.Block;
@@ -41,6 +42,9 @@ public class PoolTask {
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    ConsensusClient client;
+
     @Scheduled(fixedDelay= 8*1000)
     public void AdoptTopendingTask(){
         List<TransPool> list=adoptTransPool.getAll();
@@ -59,9 +63,11 @@ public class PoolTask {
                     if(index>5000){
                         break;
                     }else{
-                        maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))),adoptTransPool.getKey(t));
-                        newlist.add(t);
-                        index++;
+                        if(peningTransPool.hasExist(adoptTransPool.getKeyTrans(tran))){
+                            maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))),adoptTransPool.getKey(t));
+                            newlist.add(t);
+                            index++;
+                        }
                     }
                 }else{
                     maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))),adoptTransPool.getKey(t));
@@ -160,4 +166,17 @@ public class PoolTask {
             peningTransPool.remove(pendinglists);
         }
     }
+
+    @Scheduled(fixedDelay= 30*1000)
+    public void sendTranPool(){
+        List<TransPool> queuedlist=adoptTransPool.getAllFull();
+        List<Transaction> pengdinglist=peningTransPool.compare();
+        List<Transaction> totallist=new ArrayList<>();
+        for(TransPool transPool:queuedlist){
+            totallist.add(transPool.getTransaction());
+        }
+        totallist.addAll(pengdinglist);
+        client.broascastTransactions(totallist);
+    }
+
 }
