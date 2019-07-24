@@ -290,6 +290,10 @@ public class TransactionCheck {
                     return false;
                 }
                 //天数
+                long remainder=(long)(amount % totalrate);
+                if(remainder!=0){
+                    return false;
+                }
                 int mul=(int)(amount/totalrate);
                 if(mul==0){
                     return false;
