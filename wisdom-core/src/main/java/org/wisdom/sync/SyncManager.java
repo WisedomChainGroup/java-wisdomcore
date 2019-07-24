@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author sal 1564319846@qq.com
  * wisdom protocol block synchronize manager
  */
-@Component
+//@Component
 public class SyncManager implements Plugin {
     private PeerServer server;
     private static final int MAX_BLOCKS_PER_TRANSFER = 256;

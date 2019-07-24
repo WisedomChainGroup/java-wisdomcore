@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author sal 1564319846@qq.com
  * wisdom filter
  */
-@Component
+//@Component
 public class MessageFilter implements Plugin {
 
     private ConcurrentMap<String, Boolean> msgs;

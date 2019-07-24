@@ -8,7 +8,7 @@ services:
     container_name: wdc_pgsql
     privileged: true
     volumes:
-      - /opt/wdc_pgsql:/var/lib/postgresql/data
+      - /Users/sal/wdc_pgsql:/var/lib/postgresql/data
     ports:
       - 127.0.0.1:5433:5432
     environment:
@@ -23,7 +23,7 @@ services:
     container_name: wdc_core
     privileged: true
     volumes:
-      - /opt/wdc_logs:/logs
+      - /Users/sal/wdc_logs:/logs
     ports:
       - 9585:9585
       - 19585:19585
