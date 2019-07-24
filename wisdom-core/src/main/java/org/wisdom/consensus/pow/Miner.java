@@ -118,27 +118,33 @@ public class Miner implements ApplicationListener {
         List<Transaction> transactionList=peningTransPool.compare();
         int totalpool=transactionList.size();
         int index=0;
-        while ( totalpool> 0 && block.size() < Block.MAX_BLOCK_SIZE) {
-            // TODO: 验证事务池里面的事务
-            Transaction tx = transactionList.get(index);
-            if (hasValidated.contains(tx.getHashHexString())) {
-                continue;
-            }
-            hasValidated.add(Hex.encodeHexString(tx.from));
-            // 校验需要事务
-            tx.height = block.nHeight;
+        try{
+            while ( totalpool> 0 && block.size() < Block.MAX_BLOCK_SIZE) {
+                // TODO: 验证事务池里面的事务
+                logger.info("totalpool:"+totalpool+"--->transactionList.size:"+transactionList.size());
+                Transaction tx = transactionList.get(index);
+                if(tx!=null){
+                    if (hasValidated.contains(tx.getHashHexString())) {
+                        continue;
+                    }
+                    hasValidated.add(Hex.encodeHexString(tx.from));
+                    // 校验需要事务
+                    tx.height = block.nHeight;
 
-            // 防止写入重复的事务
-            if (bc.hasTransaction(tx.getHash())) {
-                continue;
-            }
+                    // 防止写入重复的事务
+                    if (bc.hasTransaction(tx.getHash())) {
+                        continue;
+                    }
 
-            // nonce 校验
-            notWrittern.add(tx);
-            index++;
-            totalpool--;
+                    // nonce 校验
+                    notWrittern.add(tx);
+                    index++;
+                    totalpool--;
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
-
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
         for (Transaction tx : newTranList) {
