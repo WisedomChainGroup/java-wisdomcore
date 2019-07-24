@@ -9,23 +9,17 @@ import org.wisdom.keystore.crypto.SHA3Utility;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 public class AdoptTransPool {
 
     private Map<String,Map<String,TransPool>> atpool;
 
-    private ReadWriteLock lock;
-
     public AdoptTransPool(){
         this.atpool=new ConcurrentHashMap();
-        this.lock=new ReentrantReadWriteLock();
     }
 
     public void add(List<Transaction> txs){
-        lock.writeLock().lock();
         for(Transaction t:txs){
             String from=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
             if(hasExist(from)){
@@ -40,7 +34,6 @@ public class AdoptTransPool {
                 atpool.put(from,map);
             }
         }
-        lock.writeLock().unlock();
     }
 
     public String getKeyTrans(Transaction t){
@@ -82,7 +75,6 @@ public class AdoptTransPool {
     }
 
     public void remove(Map<String,String> maps){
-        lock.writeLock().lock();
         for(Map.Entry<String,String> entry:maps.entrySet()){
             if(!hasExist(entry.getKey())){
                 Map<String, TransPool> map=atpool.get(entry.getKey());
@@ -97,7 +89,6 @@ public class AdoptTransPool {
                 }
             }
         }
-        lock.writeLock().unlock();
     }
 
     public List<TransPool> getAll(){

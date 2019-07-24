@@ -14,15 +14,11 @@ public class PeningTransPool {
 
     private Map<String,TransPool> ptpool;
 
-    private ReadWriteLock lock;
-
     public PeningTransPool() {
         this.ptpool = new ConcurrentHashMap();
-        this.lock = new ReentrantReadWriteLock();
     }
 
     public void add(List<TransPool> pools){
-        lock.writeLock().lock();
         for(TransPool transPool:pools){
             byte[] from=transPool.getTransaction().from;
             String fromst= Hex.encodeHexString(from);
@@ -32,7 +28,6 @@ public class PeningTransPool {
                 ptpool.put(key,transPool);
             }
         }
-        lock.writeLock().unlock();
     }
 
     public int size(){
@@ -68,13 +63,11 @@ public class PeningTransPool {
     }
 
     public void remove(List<String> list){
-        lock.writeLock().lock();
         for(String s:list){
             if(!hasExist(s)){
                 ptpool.remove(s);
             }
         }
-        lock.writeLock().unlock();
     }
 
     public  List<Transaction> compare(){
@@ -104,7 +97,6 @@ public class PeningTransPool {
     }
 
     public void updatePool(List<Transaction> txs,int type,long height){
-        lock.writeLock().lock();
         for(Transaction t:txs){
            String key=getKeyTrans(t);
            if(key!=null){
@@ -116,7 +108,6 @@ public class PeningTransPool {
                 }
            }
         }
-        lock.writeLock().unlock();
     }
 
     public static void main(String args[]){
