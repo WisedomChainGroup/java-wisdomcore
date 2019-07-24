@@ -20,6 +20,7 @@ package org.wisdom.Controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
+import org.wisdom.ApiResult.APIResult;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -49,6 +50,8 @@ public class ConsensusController {
     @Value("${wisdom.consensus.enable-mining}")
     boolean enableMining;
 
+    @Value("${wisdom.version}")
+    String version;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -101,12 +104,12 @@ public class ConsensusController {
     public Object handleStatus(@RequestBody byte[] body, HttpServletRequest request) {
         Block header = bc.currentHeader();
         Status status = codec.decode(body, Status.class);
-        if (status == null){
+        if (status == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid request incountered");
         }
         logger.info("receive message type = status, height = " + status.currentHeight + " hash = " + Hex.encodeHexString(status.bestBlockHash));
-        if (!Arrays.areEqual(status.genesisHash, genesis.getHash())){
+        if (!Arrays.areEqual(status.genesisHash, genesis.getHash())) {
             return ERROR("genesis hash not equal");
         }
         if (header.nHeight > status.currentHeight) {
@@ -130,7 +133,7 @@ public class ConsensusController {
     @PostMapping(value = "/consensus/blocks", produces = "application/json")
     public Object handleProposal(@RequestBody byte[] body, HttpServletRequest request) {
         Block b = codec.decodeBlock(body);
-        if(b == null){
+        if (b == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid block proposal");
         }
@@ -141,14 +144,19 @@ public class ConsensusController {
     @PostMapping(value = "/consensus/transactions", produces = "application/json")
     public Object handleTransactions(@RequestBody byte[] body, HttpServletRequest request) {
         Transaction[] received = codec.decode(body, Transaction[].class);
-        if(received == null){
+        if (received == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid transactions found");
         }
-        for(Transaction tran:received){
-            byte[] traninfo=tran.toRPCBytes();
+        for (Transaction tran : received) {
+            byte[] traninfo = tran.toRPCBytes();
             commandService.verifyTransfer(traninfo);
         }
         return SUCCESS("transaction received successful");
+    }
+
+    @GetMapping(value = "/version", produces = "application/json")
+    public Object getVersion() {
+        return APIResult.newFailResult(2000, "SUCCESS", version);
     }
 }
