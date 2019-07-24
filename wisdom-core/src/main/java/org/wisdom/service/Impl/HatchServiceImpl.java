@@ -200,6 +200,9 @@ public class HatchServiceImpl implements HatchService {
             if(incubator==null){
                 return APIResult.newFailResult(5000,"Error in incubation state acquisition");
             }
+            if(incubator.getInterest_amount()==0 || incubator.getCost()==0){
+                return APIResult.newFailResult(5000,"There is no interest to be paid");
+            }
             //孵化事务
             Transaction transaction=wisdomBlockChain.getTransaction(trhash);
             if(transaction==null){
