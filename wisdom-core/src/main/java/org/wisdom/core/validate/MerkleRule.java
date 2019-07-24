@@ -21,6 +21,8 @@ package org.wisdom.core.validate;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -40,6 +42,8 @@ import java.util.*;
 
 @Component
 public class MerkleRule {
+
+    private static final Logger logger = LoggerFactory.getLogger(MerkleRule.class);
 
     @Autowired
     AccountDB accountDB;
@@ -120,6 +124,7 @@ public class MerkleRule {
                 Transaction transaction = wisdomBlockChain.getTransaction(playload);
                 int days = transaction.getdays();
                 double rate = rateTable.selectrate(transaction.height, days);//利率
+
                 if (tran.type == 0x0a) {//interset
                     long dayinterset = (long) (incubator.getCost() * rate);
                     int extractday = (int) (tran.amount / dayinterset);
@@ -133,6 +138,9 @@ public class MerkleRule {
                     incubator.setLast_blockheight_interest(lastheight);
                 } else {//share
                     long dayinterset = (long) (incubator.getCost() * rate * 0.1);
+                    if(dayinterset==0){
+                        logger.error("error："+dayinterset+"-->incubator.getCost():"+incubator.getCost()+"--->rate："+rate+"--->tranhash:"+Hex.encodeHexString(tran.getHash()));
+                    }
                     int extractday = (int) (tran.amount / dayinterset);
                     long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_share();
