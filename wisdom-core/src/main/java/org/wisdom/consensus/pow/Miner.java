@@ -180,13 +180,14 @@ public class Miner implements ApplicationListener {
             Block bestBlock = bc.currentBlock();
             // 判断是否轮到自己出块
             Proposer p = consensusConfig.getProposer(bestBlock, System.currentTimeMillis() / 1000);
-            if (!p.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
+            if (p == null || p.pubkeyHash == null || !p.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
                 return;
             }
             Block b = createBlock();
             thread = ctx.getBean(MineThread.class);
             thread.mine(b, p.startTimeStamp, p.endTimeStamp);
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error("mining failed, exception occurred");
         }
     }
