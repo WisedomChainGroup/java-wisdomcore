@@ -286,7 +286,7 @@ public class TransactionCheck {
                     }
                     inheight=incubator.getLast_blockheight_interest();
                 }
-                if(totalrate!=0){
+                if(totalrate==0){
                     return false;
                 }
                 //天数
