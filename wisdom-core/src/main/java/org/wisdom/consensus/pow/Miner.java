@@ -115,10 +115,10 @@ public class Miner implements ApplicationListener {
         // 防止 account 重复
         Set<String> hasValidated = new HashSet<>();
         List<Transaction> notWrittern = new ArrayList<>();
-        List<Transaction> transactionList=peningTransPool.compare();
-        int totalpool=transactionList.size();
-        int index=0;
         try{
+            List<Transaction> transactionList=peningTransPool.compare();
+            int totalpool=transactionList.size();
+            int index=0;
             while ( totalpool> 0 && block.size() < Block.MAX_BLOCK_SIZE) {
                 // TODO: 验证事务池里面的事务
                 logger.info("totalpool:"+totalpool+"--->transactionList.size:"+transactionList.size());
