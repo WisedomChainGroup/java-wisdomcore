@@ -148,16 +148,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             logger.info("peer found = " + p.toString() + " score = " + p.score);
-            dial(p, WisdomOuterClass.Ping.newBuilder().build());
-        }
-        if (peers.size() == 0) {
-            for (Peer p : bootstraps.values()) {
-                dial(p, WisdomOuterClass.Ping.newBuilder().build());
-            }
         }
         // peers discovery
         for (Peer p : getPeers()) {
             logger.info("peer found, address = " + p.toString() + " score = " + p.score);
+            dial(p, WisdomOuterClass.Ping.newBuilder().build());
             dial(p, WisdomOuterClass.Lookup.newBuilder().build());
         }
     }
