@@ -126,7 +126,7 @@ public class MerkleRule {
                 double rate = rateTable.selectrate(transaction.height, days);//利率
 
                 if (tran.type == 0x0a) {//interset
-                    long dayinterset = (long) (incubator.getCost() * rate);
+                    long dayinterset = (long) (transaction.amount * rate);
                     int extractday = (int) (tran.amount / dayinterset);
                     long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_interest();
@@ -137,10 +137,7 @@ public class MerkleRule {
                     incubator.setInterest_amount(lastinterset);
                     incubator.setLast_blockheight_interest(lastheight);
                 } else {//share
-                    long dayinterset = (long) (incubator.getCost() * rate * 0.1);
-                    if(dayinterset==0){
-                        logger.error("error："+dayinterset+"-->incubator.getCost():"+incubator.getCost()+"--->rate："+rate+"--->tranhash:"+Hex.encodeHexString(tran.getHash()));
-                    }
+                    long dayinterset = (long) (transaction.amount * rate * 0.1);
                     int extractday = (int) (tran.amount / dayinterset);
                     long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_share();

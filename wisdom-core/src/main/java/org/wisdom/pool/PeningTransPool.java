@@ -6,8 +6,6 @@ import org.wisdom.core.account.Transaction;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 public class PeningTransPool {

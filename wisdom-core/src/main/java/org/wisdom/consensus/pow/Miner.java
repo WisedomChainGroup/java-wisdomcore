@@ -121,7 +121,6 @@ public class Miner implements ApplicationListener {
             int index=0;
             while ( totalpool> 0 && block.size() < Block.MAX_BLOCK_SIZE) {
                 // TODO: 验证事务池里面的事务
-                logger.info("totalpool:"+totalpool+"--->transactionList.size:"+transactionList.size());
                 Transaction tx = transactionList.get(index);
                 if(tx!=null){
                     if (hasValidated.contains(tx.getHashHexString())) {
