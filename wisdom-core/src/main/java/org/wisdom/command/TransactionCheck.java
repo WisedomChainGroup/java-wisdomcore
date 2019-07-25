@@ -238,7 +238,8 @@ public class TransactionCheck {
                 BigDecimal amountbig=BigDecimal.valueOf(amount);
                 BigDecimal ratebig=new BigDecimal(nowrate);
                 BigDecimal onemut=amountbig.multiply(ratebig);
-                long interest = (long) (onemut.longValue() * days);
+                BigDecimal daysbig=BigDecimal.valueOf(days);
+                long interest = onemut.multiply(daysbig).longValue();
                 String sharpub = payloadproto.getSharePubkeyHash();
                 byte[] sharbyte = Hex.decodeHex(sharpub);
                 if (Arrays.equals(sharbyte, topubkeyhash)) {

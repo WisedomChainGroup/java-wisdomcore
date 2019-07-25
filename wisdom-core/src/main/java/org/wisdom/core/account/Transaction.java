@@ -269,7 +269,8 @@ public class Transaction {
             BigDecimal amountbig=BigDecimal.valueOf(amount);
             BigDecimal ratebig=new BigDecimal(rate);
             BigDecimal onemut=amountbig.multiply(ratebig);
-            interest=(long)(onemut.longValue()*days);
+            BigDecimal daysbig=BigDecimal.valueOf(days);
+            interest=daysbig.multiply(onemut).longValue();
         }
         return interest;
     }
