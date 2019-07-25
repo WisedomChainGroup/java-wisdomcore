@@ -265,8 +265,11 @@ public class Transaction {
     public long getInterest(long height, RateTable rateTable,int days){
         long interest=0;
         if(type==Type.INCUBATE.ordinal()){
-            double rate=rateTable.selectrate(height,days);
-            interest=(long)(amount*rate*days);
+            String rate=rateTable.selectrate(height,days);
+            BigDecimal amountbig=BigDecimal.valueOf(amount);
+            BigDecimal ratebig=new BigDecimal(rate);
+            BigDecimal onemut=amountbig.multiply(ratebig);
+            interest=(long)(onemut.longValue()*days);
         }
         return interest;
     }

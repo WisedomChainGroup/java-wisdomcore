@@ -22,6 +22,7 @@ import com.alibaba.fastjson.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.math3.fraction.BigFraction;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.WisdomBlockChain;
@@ -38,6 +39,7 @@ import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -210,7 +212,7 @@ public class HatchServiceImpl implements HatchService {
             }
             HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
             int days=payloadproto.getType();
-            double nowrate=rateTable.selectrate(transaction.height,days);
+            String nowrate=rateTable.selectrate(transaction.height,days);
             //当前最高高度
             long maxhieght=wisdomBlockChain.getCurrentTotalWeight();
             long differheight=maxhieght-incubator.getLast_blockheight_interest();
@@ -218,8 +220,10 @@ public class HatchServiceImpl implements HatchService {
             if(differdays==0){
                 return APIResult.newFailResult(5000,"Interest less than one day");
             }
-            long dayrate=(long)(transaction.amount*nowrate);
-            int maxdays=(int)(incubator.getInterest_amount()/dayrate);
+            BigDecimal aount=new BigDecimal(transaction.amount);
+            BigDecimal nowratebig=new BigDecimal(nowrate);
+            BigDecimal dayrate=aount.multiply(nowratebig);
+            int maxdays=(int)(incubator.getInterest_amount()/dayrate.longValue());
             long lastdays=0;
             if(maxdays>differdays){
                 lastdays=differdays;
@@ -227,7 +231,7 @@ public class HatchServiceImpl implements HatchService {
                 lastdays=maxdays;
             }
             //当前可获取利息
-            long interset=dayrate*lastdays;
+            long interset=dayrate.longValue()*lastdays;
             JSONObject jsonObject=new JSONObject();
             jsonObject.put("dueinAmount",interset);
             jsonObject.put("capitalAmount",incubator.getInterest_amount());

@@ -37,6 +37,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -227,15 +228,17 @@ public class TransactionCheck {
                 if (amount < 30000000000L) {
                     return false;
                 }
-                String s = Hex.encodeHexString(payload);
                 HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(payload);
                 int days = payloadproto.getType();
                 if (days != 120 && days != 365) {
                     return false;
                 }
-                double nowrate = rateTable.selectrate(nowheight, days);
+                String nowrate = rateTable.selectrate(nowheight, days);
                 //利息和分享收益
-                long interest = (long) (amount * days * nowrate);
+                BigDecimal amountbig=BigDecimal.valueOf(amount);
+                BigDecimal ratebig=new BigDecimal(nowrate);
+                BigDecimal onemut=amountbig.multiply(ratebig);
+                long interest = (long) (onemut.longValue() * days);
                 String sharpub = payloadproto.getSharePubkeyHash();
                 byte[] sharbyte = Hex.decodeHex(sharpub);
                 if (Arrays.equals(sharbyte, topubkeyhash)) {
@@ -265,20 +268,25 @@ public class TransactionCheck {
                 byte[] tranpayload = transaction.payload;
                 HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tranpayload);
                 int days = payloadproto.getType();
-                double rate = rateTable.selectrate(transaction.height, days);
+                String rate = rateTable.selectrate(transaction.height, days);
                 long capital = transaction.amount;
-                long totalrate = (long) (capital * rate);
+                BigDecimal capitalbig=BigDecimal.valueOf(capital);
+                BigDecimal ratebig=new BigDecimal(rate);
+                BigDecimal totalratebig=capitalbig.multiply(ratebig);
                 Incubator incubator = incubatorDB.selectIncubator(payload);
                 if (incubator == null) {
                     return false;
                 }
                 //最后提取时间
                 long inheight = 0;
+                long totalrate=0;
                 if (type[0] == 0x0b) {//提取分享收益
                     if (incubator.getShare_amount() == 0 || incubator.getShare_amount() < amount) {
                         return false;
                     }
-                    totalrate = (long) (totalrate * 0.1);
+                    BigDecimal bl=BigDecimal.valueOf(0.1);
+                    BigDecimal totalratebigs=totalratebig.multiply(bl);
+                    totalrate = totalratebigs.longValue();
                     inheight = incubator.getLast_blockheight_share();
                 } else {//提取利息
                     if (incubator.getInterest_amount() == 0 || incubator.getInterest_amount() < amount) {

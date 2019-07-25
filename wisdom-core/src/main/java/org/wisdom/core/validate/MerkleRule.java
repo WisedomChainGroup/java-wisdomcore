@@ -38,6 +38,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Component
@@ -123,10 +124,12 @@ public class MerkleRule {
                 Incubator incubator = incubatorDB.selectIncubator(playload);
                 Transaction transaction = wisdomBlockChain.getTransaction(playload);
                 int days = transaction.getdays();
-                double rate = rateTable.selectrate(transaction.height, days);//利率
+                String rate = rateTable.selectrate(transaction.height, days);//利率
 
                 if (tran.type == 0x0a) {//interset
-                    long dayinterset = (long) (transaction.amount * rate);
+                    BigDecimal amounbig=BigDecimal.valueOf(transaction.amount);
+                    BigDecimal ratebig=new BigDecimal(rate);
+                    long dayinterset = ratebig.multiply(amounbig).longValue();
                     int extractday = (int) (tran.amount / dayinterset);
                     long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_interest();
@@ -137,7 +140,11 @@ public class MerkleRule {
                     incubator.setInterest_amount(lastinterset);
                     incubator.setLast_blockheight_interest(lastheight);
                 } else {//share
-                    long dayinterset = (long) (transaction.amount * rate * 0.1);
+                    BigDecimal amounbig=BigDecimal.valueOf(transaction.amount);
+                    BigDecimal ratebig=new BigDecimal(rate);
+                    BigDecimal onemul=amounbig.multiply(ratebig);
+                    BigDecimal bl=BigDecimal.valueOf(0.1);
+                    long dayinterset = onemul.multiply(bl).longValue();
                     int extractday = (int) (tran.amount / dayinterset);
                     long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_share();
