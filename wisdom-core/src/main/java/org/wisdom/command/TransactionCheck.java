@@ -38,9 +38,7 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class TransactionCheck {
 
@@ -195,11 +193,9 @@ public class TransactionCheck {
         if (legnth > 0) {
             tranlast = ByteUtil.bytearraycopy(tranlast, 4, tranlast.length - 4);
             byte[] Payload = ByteUtil.bytearraycopy(tranlast, 0, legnth);
-            boolean result = PayloadCheck(Payload, type, amount, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, topubkeyhash);
-            if (!result) {
-                apiResult.setCode(5000);
-                apiResult.setMessage("Payload check error");
-                return apiResult;
+            APIResult result = PayloadCheck(Payload, type, amount, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, topubkeyhash);
+            if (result.getCode() == 5000) {
+                return result;
             }
             date = ByteUtil.merge(date, Payload);
         }
@@ -221,17 +217,22 @@ public class TransactionCheck {
     }
 
 
-    public static boolean PayloadCheck(byte[] payload, byte[] type, long amount, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight, byte[] topubkeyhash) {
+    public static APIResult PayloadCheck(byte[] payload, byte[] type, long amount, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight, byte[] topubkeyhash) {
+        APIResult apiResult = new APIResult();
         try {
             if (type[0] == 0x09) {//孵化器
                 //本金校验
                 if (amount < 30000000000L) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Minimum incubation amount: 300wdc");
+                    return apiResult;
                 }
                 HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(payload);
                 int days = payloadproto.getType();
                 if (days != 120 && days != 365) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Abnormal incubation days");
+                    return apiResult;
                 }
                 String nowrate = rateTable.selectrate(nowheight, days);
                 //利息和分享收益
@@ -243,11 +244,15 @@ public class TransactionCheck {
                 String sharpub = payloadproto.getSharePubkeyHash();
                 byte[] sharbyte = Hex.decodeHex(sharpub);
                 if (Arrays.equals(sharbyte, topubkeyhash)) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("You cannot promote yourself as a sharer");
+                    return apiResult;
                 }
                 if (sharpub != null && sharpub != "") {
                     if (Hex.decodeHex(sharpub.toCharArray()).length != 20) {
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("Sharer format error");
+                        return apiResult;
                     } else {
                         long sharIncome = (long) (interest * 0.1);
                         interest = interest + sharIncome;
@@ -256,15 +261,21 @@ public class TransactionCheck {
                 //查询总地址余额
                 long total = accountDB.getBalance(IncubatorAddress.resultpubhash());
                 if (total < interest) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The incubation amount is paid out");
+                    return apiResult;
                 }
             } else if (type[0] == 0x0a || type[0] == 0x0b) {//提取利息、提取分享收益
                 if (payload.length != 32) {//事务哈希
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Incorrect transaction hash format");
+                    return apiResult;
                 }
                 Transaction transaction = wisdomBlockChain.getTransaction(payload);
                 if (transaction == null) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The initial incubation transaction could not be queried");
+                    return apiResult;
                 }
                 byte[] tranpayload = transaction.payload;
                 HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tranpayload);
@@ -276,19 +287,25 @@ public class TransactionCheck {
                 BigDecimal totalratebig=capitalbig.multiply(ratebig);
                 Incubator incubator = incubatorDB.selectIncubator(payload);
                 if (incubator == null) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Unable to query incubation status");
+                    return apiResult;
                 }
                 //每天可提取
                 long totalrate=totalratebig.longValue();
                 if (totalrate == 0) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("No amount can be withdrawn per day");
+                    return apiResult;
                 }
                 //最后提取时间
                 long inheight = 0;
                 long nowincub=0;
                 if (type[0] == 0x0b) {//提取分享收益
                     if (incubator.getShare_amount() == 0 || incubator.getShare_amount() < amount) {
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("The sharing income cannot be withdrawn or is greater than the amount that can be withdrawn");
+                        return apiResult;
                     }
                     BigDecimal bl=BigDecimal.valueOf(0.1);
                     BigDecimal totalratebigs=totalratebig.multiply(bl);
@@ -297,7 +314,9 @@ public class TransactionCheck {
                     nowincub=incubator.getShare_amount();
                 } else {//提取利息
                     if (incubator.getInterest_amount() == 0 || incubator.getInterest_amount() < amount) {
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("Interest income cannot be withdrawn or is greater than the amount that can be withdrawn");
+                        return apiResult;
                     }
                     inheight = incubator.getLast_blockheight_interest();
                     nowincub=incubator.getInterest_amount();
@@ -305,10 +324,14 @@ public class TransactionCheck {
                 if(totalrate>amount){//amount小于最小每天可提取
                     if(nowincub<totalrate){
                         if(amount!=nowincub){
-                            return false;
+                            apiResult.setCode(5000);
+                            apiResult.setMessage("Abnormal withdrawal amount");
+                            return apiResult;
                         }
                     }else if(nowincub==totalrate){
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("Abnormal withdrawal amount");
+                        return apiResult;
                     }else{
                         int muls=(int)(nowincub % totalrate);
                         if(muls!=0){//数据不对
@@ -317,81 +340,121 @@ public class TransactionCheck {
                             BigDecimal betotal=totalratebig.multiply(bsbig);
                             long syamount=nowincub-(betotal.longValue());
                             if(syamount!=amount){
-                                return false;
+                                apiResult.setCode(5000);
+                                apiResult.setMessage("Abnormal withdrawal amount");
+                                return apiResult;
                             }
                         }else{
-                            return false;
+                            apiResult.setCode(5000);
+                            apiResult.setMessage("Abnormal withdrawal amount");
+                            return apiResult;
                         }
                     }
                 }else{
                     //天数
                     long remainder = (long) (amount % totalrate);
                     if (remainder != 0) {
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("The withdrawal amount is not a multiple of the daily withdrawal amount");
+                        return apiResult;
                     }
                     int mul = (int) (amount / totalrate);
                     if (mul == 0) {
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("Cannot extract, still less than a day");
+                        return apiResult;
                     }
                     int blockcount = mul * configuration.getDay_count();
 
                     if ((inheight + blockcount) > nowheight) {
-                        return false;
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("In excess of the amount available");
+                        return apiResult;
                     }
                 }
             } else if (type[0] == 0x03) {//存证
                 if (payload.length > 1000) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Memory cannot exceed 1000 bytes");
+                    return apiResult;
                 }
             } else if (type[0] == 0x0c) {//提取本金
                 if (payload.length != 32) {//事务哈希
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Incubate transaction format errors");
+                    return apiResult;
                 }
 
                 Incubator incubator = incubatorDB.selectIncubator(payload);
                 if (incubator == null) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Unable to query incubation status");
+                    return apiResult;
                 }
                 if (incubator.getInterest_amount() != 0 || incubator.getCost() == 0) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The incubation principal has been withdrawn or the interest has not yet been withdrawn");
+                    return apiResult;
                 }
                 if (amount != incubator.getCost() || amount == 0) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Wrong amount of principal withdrawal");
+                    return apiResult;
                 }
             } else if (type[0] == 0x0d) {//撤回投票
                 if (payload.length != 32) {//投票事务哈希
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The voting transaction payload was incorrectly formatted");
+                    return apiResult;
                 }
                 boolean hasvote = accountDB.hasExitVote(payload);
                 if (!hasvote) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("No voting business was withdrawn");
+                    return apiResult;
                 }
                 Transaction transaction = wisdomBlockChain.getTransaction(payload);
                 if (transaction == null) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Unable to get poll transaction");
+                    return apiResult;
                 }
                 if (!Arrays.equals(transaction.to, topubkeyhash)) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("You have to withdraw your vote");
+                    return apiResult;
                 }
                 if (transaction.amount != amount) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The number of votes is not correct");
+                    return apiResult;
                 }
                 Account account = accountDB.selectaccount(topubkeyhash);
                 if (account == null) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Unable to withdraw");
+                    return apiResult;
                 }
                 if (account.getVote() < amount) {
-                    return false;
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The withdrawal amount is incorrect");
+                    return apiResult;
                 }
             }
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
-            return false;
+            apiResult.setCode(5000);
+            apiResult.setMessage("Exception error");
+            return apiResult;
         } catch (DecoderException e) {
             e.printStackTrace();
-            return false;
+            apiResult.setCode(5000);
+            apiResult.setMessage("Exception error");
+            return apiResult;
         }
-        return true;
+        apiResult.setCode(2000);
+        apiResult.setMessage("SUCCESS");
+        return apiResult;
     }
 
     public static boolean checkoutPool(Transaction t, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight) {
@@ -401,10 +464,5 @@ public class TransactionCheck {
             return false;
         }
         return true;
-    }
-
-    public static void main(String args[]){
-        int muls=(int)(11 % 20);
-        System.out.println(muls);
     }
 }
