@@ -122,16 +122,18 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
-                if(Arrays.equals(incubator.getPubkeyhash(),tran.to)){
-                    if(incubator.getShare_pubkeyhash()!=null){
-                        if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
-                            incubator=incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                if(nowheight>30800){
+                    if(Arrays.equals(incubator.getPubkeyhash(),tran.to)){
+                        if(incubator.getShare_pubkeyhash()!=null){
+                            if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
+                                incubator=incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                            }
                         }
                     }
-                }
-                if(Arrays.equals(incubator.getShare_pubkeyhash(),tran.to)){
-                    if(incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))){
-                        incubator=incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                    if(Arrays.equals(incubator.getShare_pubkeyhash(),tran.to)){
+                        if(incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))){
+                            incubator=incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                        }
                     }
                 }
                 Transaction transaction = wisdomBlockChain.getTransaction(playload);
@@ -215,9 +217,11 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
-                if(incubator.getShare_pubkeyhash()!=null){
-                    if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
-                        incubator=incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                if(nowheight>30800) {
+                    if (incubator.getShare_pubkeyhash() != null) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                            incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                        }
                     }
                 }
                 incubator.setCost(0);
