@@ -70,17 +70,17 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     public APIResult verifyTransfer(byte[] transfer) {
-        APIResult apiResult=new APIResult();
+        APIResult apiResult = new APIResult();
         try {
-            long nowheight=wisdomBlockChain.currentHeader().nHeight;
-            apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,true,true);
-            if(apiResult.getCode()==5000){
+            long nowheight = wisdomBlockChain.currentHeader().nHeight;
+            apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, true, true);
+            if (apiResult.getCode() == 5000) {
                 return apiResult;
-            }else{//pool校验
-                String key=apiResult.getData().toString();
-                if(peningTransPool.hasExist(key)){
+            } else {//pool校验
+                String key = apiResult.getData().toString();
+                if (peningTransPool.hasExist(key)) {
                     apiResult.setData(null);
-                }else{
+                } else {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Error sending same nonce transaction to From address");
                     return apiResult;
@@ -92,8 +92,8 @@ public class CommandServiceImpl implements CommandService {
             apiResult.setMessage("Exception error");
             return apiResult;
         }
-        ProtocolModel.Transaction tranproto= Transaction.changeProtobuf(transfer);
-        Transaction tran=Transaction.fromProto(tranproto);
+        ProtocolModel.Transaction tranproto = Transaction.changeProtobuf(transfer);
+        Transaction tran = Transaction.fromProto(tranproto);
         adoptTransPool.add(Collections.singletonList(tran));
 //        transactionPool.add(tran);
         client.broascastTransactions(Collections.singletonList(tran));
@@ -101,14 +101,14 @@ public class CommandServiceImpl implements CommandService {
     }
 
     @Override
-    public Object getTransactionList(int height,int type) {
-        List<Map<String,Object>> transactionList=accountDB.getTranList(height,type);
-        return APIResult.newFailResult(2000,"SUCCESS",transactionList);
+    public Object getTransactionList(int height, int type) {
+        List<Map<String, Object>> transactionList = accountDB.getTranList(height, type);
+        return APIResult.newFailResult(2000, "SUCCESS", transactionList);
     }
 
     @Override
     public Object getTransactionBlcok(byte[] blockhash, int type) {
-        List<Map<String,Object>> transactionList=accountDB.getTranBlockList(blockhash,type);
-        return APIResult.newFailResult(2000,"SUCCESS",transactionList);
+        List<Map<String, Object>> transactionList = accountDB.getTranBlockList(blockhash, type);
+        return APIResult.newFailResult(2000, "SUCCESS", transactionList);
     }
 }

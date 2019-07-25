@@ -2,7 +2,7 @@ package org.wisdom.pool;
 
 import org.wisdom.core.account.Transaction;
 
-public class TransPool{
+public class TransPool {
 
     private Transaction transaction;
     private int state;//0待确认，1已引用，2已确认
