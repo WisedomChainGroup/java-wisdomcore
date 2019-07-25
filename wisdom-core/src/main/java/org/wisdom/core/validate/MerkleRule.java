@@ -130,10 +130,14 @@ public class MerkleRule {
                     BigDecimal amounbig=BigDecimal.valueOf(transaction.amount);
                     BigDecimal ratebig=new BigDecimal(rate);
                     long dayinterset = ratebig.multiply(amounbig).longValue();
-                    int extractday = (int) (tran.amount / dayinterset);
-                    long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_interest();
-                    lastheight += extractheight;
+                    if(dayinterset>tran.amount){
+                        lastheight+=configuration.getDay_count();
+                    }else{
+                        int extractday = (int) (tran.amount / dayinterset);
+                        long extractheight = extractday * configuration.getDay_count();
+                        lastheight += extractheight;
+                    }
                     long lastinterset = incubator.getInterest_amount();
                     lastinterset -= tran.amount;
                     incubator.setHeight(nowheight);
@@ -145,10 +149,14 @@ public class MerkleRule {
                     BigDecimal onemul=amounbig.multiply(ratebig);
                     BigDecimal bl=BigDecimal.valueOf(0.1);
                     long dayinterset = onemul.multiply(bl).longValue();
-                    int extractday = (int) (tran.amount / dayinterset);
-                    long extractheight = extractday * configuration.getDay_count();
                     long lastheight = incubator.getLast_blockheight_share();
-                    lastheight += extractheight;
+                    if(dayinterset>tran.amount){
+                        lastheight+=configuration.getDay_count();
+                    }else{
+                        int extractday = (int) (tran.amount / dayinterset);
+                        long extractheight = extractday * configuration.getDay_count();
+                        lastheight += extractheight;
+                    }
                     long lastshare = incubator.getShare_amount();
                     lastshare -= tran.amount;
                     incubator.setHeight(nowheight);

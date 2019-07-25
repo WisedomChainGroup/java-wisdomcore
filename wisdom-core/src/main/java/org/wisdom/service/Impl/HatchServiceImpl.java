@@ -223,18 +223,35 @@ public class HatchServiceImpl implements HatchService {
             BigDecimal aount=new BigDecimal(transaction.amount);
             BigDecimal nowratebig=new BigDecimal(nowrate);
             BigDecimal dayrate=aount.multiply(nowratebig);
-            int maxdays=(int)(incubator.getInterest_amount()/dayrate.longValue());
-            long lastdays=0;
-            if(maxdays>differdays){
-                lastdays=differdays;
-            }else{
-                lastdays=maxdays;
-            }
-            //当前可获取利息
-            long interset=dayrate.longValue()*lastdays;
             JSONObject jsonObject=new JSONObject();
-            jsonObject.put("dueinAmount",interset);
-            jsonObject.put("capitalAmount",incubator.getInterest_amount());
+            //判断利息金额小于每天利息
+            if(incubator.getInterest_amount()<dayrate.longValue()){
+                jsonObject.put("dueinAmount",incubator.getInterest_amount());
+                jsonObject.put("capitalAmount",incubator.getInterest_amount());
+            }else{
+                int muls=(int)(incubator.getInterest_amount() % dayrate.longValue());
+                if(muls!=0){
+                    int bs=(int)(incubator.getInterest_amount() / dayrate.longValue());
+                    BigDecimal bsbig=BigDecimal.valueOf(bs);
+                    BigDecimal betotal=dayrate.multiply(bsbig);
+                    long syamount=incubator.getInterest_amount()-(betotal.longValue());
+                    jsonObject.put("dueinAmount",syamount);
+                    jsonObject.put("capitalAmount",incubator.getInterest_amount());
+                }else{
+                    int maxdays=(int)(incubator.getInterest_amount()/dayrate.longValue());
+                    long lastdays=0;
+                    if(maxdays>differdays){
+                        lastdays=differdays;
+                    }else{
+                        lastdays=maxdays;
+                    }
+                    //当前可获取利息
+                    BigDecimal lastdaysbig=BigDecimal.valueOf(lastdays);
+                    long interset=dayrate.multiply(lastdaysbig).longValue();
+                    jsonObject.put("dueinAmount",interset);
+                    jsonObject.put("capitalAmount",incubator.getInterest_amount());
+                }
+            }
             return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
         }catch (Exception e){
             return APIResult.newFailResult(5000,"Exception error");

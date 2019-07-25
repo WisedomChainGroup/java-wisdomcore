@@ -278,9 +278,14 @@ public class TransactionCheck {
                 if (incubator == null) {
                     return false;
                 }
+                //每天可提取
+                long totalrate=totalratebig.longValue();
+                if (totalrate == 0) {
+                    return false;
+                }
                 //最后提取时间
                 long inheight = 0;
-                long totalrate=0;
+                long nowincub=0;
                 if (type[0] == 0x0b) {//提取分享收益
                     if (incubator.getShare_amount() == 0 || incubator.getShare_amount() < amount) {
                         return false;
@@ -289,28 +294,50 @@ public class TransactionCheck {
                     BigDecimal totalratebigs=totalratebig.multiply(bl);
                     totalrate = totalratebigs.longValue();
                     inheight = incubator.getLast_blockheight_share();
+                    nowincub=incubator.getShare_amount();
                 } else {//提取利息
                     if (incubator.getInterest_amount() == 0 || incubator.getInterest_amount() < amount) {
                         return false;
                     }
                     inheight = incubator.getLast_blockheight_interest();
+                    nowincub=incubator.getInterest_amount();
                 }
-                if (totalrate == 0) {
-                    return false;
-                }
-                //天数
-                long remainder = (long) (amount % totalrate);
-                if (remainder != 0) {
-                    return false;
-                }
-                int mul = (int) (amount / totalrate);
-                if (mul == 0) {
-                    return false;
-                }
-                int blockcount = mul * configuration.getDay_count();
+                if(totalrate>amount){//amount小于最小每天可提取
+                    if(nowincub<totalrate){
+                        if(amount!=nowincub){
+                            return false;
+                        }
+                    }else if(nowincub==totalrate){
+                        return false;
+                    }else{
+                        int muls=(int)(nowincub % totalrate);
+                        if(muls!=0){//数据不对
+                            int bs=(int)(incubator.getInterest_amount() / totalrate);
+                            BigDecimal bsbig=BigDecimal.valueOf(bs);
+                            BigDecimal betotal=totalratebig.multiply(bsbig);
+                            long syamount=nowincub-(betotal.longValue());
+                            if(syamount!=amount){
+                                return false;
+                            }
+                        }else{
+                            return false;
+                        }
+                    }
+                }else{
+                    //天数
+                    long remainder = (long) (amount % totalrate);
+                    if (remainder != 0) {
+                        return false;
+                    }
+                    int mul = (int) (amount / totalrate);
+                    if (mul == 0) {
+                        return false;
+                    }
+                    int blockcount = mul * configuration.getDay_count();
 
-                if ((inheight + blockcount) > nowheight) {
-                    return false;
+                    if ((inheight + blockcount) > nowheight) {
+                        return false;
+                    }
                 }
             } else if (type[0] == 0x03) {//存证
                 if (payload.length > 1000) {
@@ -374,5 +401,10 @@ public class TransactionCheck {
             return false;
         }
         return true;
+    }
+
+    public static void main(String args[]){
+        int muls=(int)(11 % 20);
+        System.out.println(muls);
     }
 }
