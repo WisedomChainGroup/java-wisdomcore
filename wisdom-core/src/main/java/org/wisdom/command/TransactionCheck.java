@@ -335,7 +335,7 @@ public class TransactionCheck {
                     }else{
                         int muls=(int)(nowincub % totalrate);
                         if(muls!=0){//数据不对
-                            long syamount=nowincub-muls;
+                            long syamount=muls;
                             if(syamount!=amount){
                                 apiResult.setCode(5000);
                                 apiResult.setMessage("Abnormal withdrawal amount");
