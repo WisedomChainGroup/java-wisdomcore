@@ -203,7 +203,7 @@ public class HatchServiceImpl implements HatchService {
                 return APIResult.newFailResult(5000,"Error in incubation state acquisition");
             }
             if(incubator.getInterest_amount()==0 || incubator.getCost()==0){
-                return APIResult.newFailResult(5000,"There is no interest to be paid");
+                return APIResult.newFailResult(3000,"There is no interest to be paid");
             }
             //孵化事务
             Transaction transaction=wisdomBlockChain.getTransaction(trhash);
@@ -265,7 +265,7 @@ public class HatchServiceImpl implements HatchService {
                 return APIResult.newFailResult(5000,"Error in incubation state acquisition");
             }
             if(incubator.getShare_amount()==0){
-                return APIResult.newFailResult(5000,"There is no share to be paid");
+                return APIResult.newFailResult(3000,"There is no share to be paid");
             }
             //孵化事务
             Transaction transaction=wisdomBlockChain.getTransaction(trhash);

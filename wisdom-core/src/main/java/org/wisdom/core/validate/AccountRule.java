@@ -69,21 +69,23 @@ public class AccountRule implements BlockRule{
     @Override
     public Result validateBlock(Block block) {
         Set<String> froms = new HashSet<>();
-        long nowheight=wisdomBlockChain.currentHeader().nHeight;
-        for(Transaction tx: block.body){
-            String key = encoder.encodeToString(tx.from);
-            if(froms.contains(key)){
-                return Result.Error("duplicated account found");
-            }
-            froms.add(key);
-            // 校验转账事务
-            if(tx.type!=Transaction.Type.COINBASE.ordinal()){
-                byte[] transfer=tx.toRPCBytes();
-                APIResult apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,false, false);
-                if(apiResult.getCode()==5000){
-                    String keys=peningTransPool.getKeyTrans(tx);
-                    peningTransPool.removeOne(keys);
-                    return Result.Error("Transaction validation failed ,"+ Hex.encodeHexString(tx.getHash())+":"+apiResult.getMessage());
+        if(block.nHeight>30800){
+            long nowheight=wisdomBlockChain.currentHeader().nHeight;
+            for(Transaction tx: block.body){
+                String key = encoder.encodeToString(tx.from);
+                if(froms.contains(key)){
+                    return Result.Error("duplicated account found");
+                }
+                froms.add(key);
+                // 校验转账事务
+                if(tx.type!=Transaction.Type.COINBASE.ordinal()){
+                    byte[] transfer=tx.toRPCBytes();
+                    APIResult apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,false, false);
+                    if(apiResult.getCode()==5000){
+                        String keys=peningTransPool.getKeyTrans(tx);
+                        peningTransPool.removeOne(keys);
+                        return Result.Error("Transaction validation failed ,"+ Hex.encodeHexString(tx.getHash())+":"+apiResult.getMessage());
+                    }
                 }
             }
         }
