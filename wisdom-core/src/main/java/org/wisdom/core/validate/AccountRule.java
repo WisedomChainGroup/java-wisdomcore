@@ -18,6 +18,7 @@
 
 package org.wisdom.core.validate;
 
+import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
@@ -76,7 +77,7 @@ public class AccountRule implements BlockRule{
                 byte[] transfer=tx.toRPCBytes();
                 APIResult apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,false, false);
                 if(apiResult.getCode()==5000){
-                    return Result.Error("Transaction validation failed");
+                    return Result.Error("Transaction validation failed ,"+ Hex.encodeHexString(tx.getHash())+":"+apiResult.getMessage());
                 }
             }
         }
