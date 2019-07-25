@@ -335,10 +335,7 @@ public class TransactionCheck {
                     }else{
                         int muls=(int)(nowincub % totalrate);
                         if(muls!=0){//数据不对
-                            int bs=(int)(incubator.getInterest_amount() / totalrate);
-                            BigDecimal bsbig=BigDecimal.valueOf(bs);
-                            BigDecimal betotal=totalratebig.multiply(bsbig);
-                            long syamount=nowincub-(betotal.longValue());
+                            long syamount=nowincub-muls;
                             if(syamount!=amount){
                                 apiResult.setCode(5000);
                                 apiResult.setMessage("Abnormal withdrawal amount");

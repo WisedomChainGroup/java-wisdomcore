@@ -231,10 +231,7 @@ public class HatchServiceImpl implements HatchService {
             }else{
                 int muls=(int)(incubator.getInterest_amount() % dayrate.longValue());
                 if(muls!=0){
-                    int bs=(int)(incubator.getInterest_amount() / dayrate.longValue());
-                    BigDecimal bsbig=BigDecimal.valueOf(bs);
-                    BigDecimal betotal=dayrate.multiply(bsbig);
-                    long syamount=incubator.getInterest_amount()-(betotal.longValue());
+                    long syamount=muls;
                     jsonObject.put("dueinAmount",syamount);
                     jsonObject.put("capitalAmount",incubator.getInterest_amount());
                 }else{
