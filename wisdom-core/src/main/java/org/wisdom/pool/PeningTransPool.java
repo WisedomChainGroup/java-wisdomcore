@@ -60,6 +60,12 @@ public class PeningTransPool {
         return list;
     }
 
+    public void removeOne(String key){
+        if (!hasExist(key)) {
+            ptpool.remove(key);
+        }
+    }
+
     public void remove(List<String> list) {
         for (String s : list) {
             if (!hasExist(s)) {

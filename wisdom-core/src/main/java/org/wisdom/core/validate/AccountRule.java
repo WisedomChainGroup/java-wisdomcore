@@ -32,6 +32,7 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.pool.PeningTransPool;
 
 import java.util.Base64;
 import java.util.HashSet;
@@ -62,6 +63,9 @@ public class AccountRule implements BlockRule{
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    PeningTransPool peningTransPool;
+
     @Override
     public Result validateBlock(Block block) {
         Set<String> froms = new HashSet<>();
@@ -77,6 +81,8 @@ public class AccountRule implements BlockRule{
                 byte[] transfer=tx.toRPCBytes();
                 APIResult apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,false, false);
                 if(apiResult.getCode()==5000){
+                    String keys=peningTransPool.getKeyTrans(tx);
+                    peningTransPool.removeOne(keys);
                     return Result.Error("Transaction validation failed ,"+ Hex.encodeHexString(tx.getHash())+":"+apiResult.getMessage());
                 }
             }

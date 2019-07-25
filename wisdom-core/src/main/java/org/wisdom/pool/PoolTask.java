@@ -72,6 +72,12 @@ public class PoolTask {
                 } else {
                     maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
                 }
+            }else if(nonce<nownonce){
+                if (index > 5000) {
+                    break;
+                } else {
+                    maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
+                }
             }
         }
         if (maps.size() > 0) {
