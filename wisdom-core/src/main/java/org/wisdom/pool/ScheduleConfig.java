@@ -6,6 +6,7 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 import java.util.concurrent.Executors;
 
+/*
 @Configuration
 public class ScheduleConfig implements SchedulingConfigurer {
 
@@ -15,3 +16,4 @@ public class ScheduleConfig implements SchedulingConfigurer {
         taskRegistrar.setScheduler(Executors.newScheduledThreadPool(100));
     }
 }
+*/
