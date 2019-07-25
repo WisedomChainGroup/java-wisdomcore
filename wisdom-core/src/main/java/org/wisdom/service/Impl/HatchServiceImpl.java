@@ -256,6 +256,70 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
+    public Object getNowShare(String tranhash) {
+        try{
+            byte[] trhash= Hex.decodeHex(tranhash.toCharArray());
+            //查询当前孵化记录
+            Incubator incubator=incubatorDB.selectIncubator(trhash);
+            if(incubator==null){
+                return APIResult.newFailResult(5000,"Error in incubation state acquisition");
+            }
+            if(incubator.getShare_amount()==0){
+                return APIResult.newFailResult(5000,"There is no share to be paid");
+            }
+            //孵化事务
+            Transaction transaction=wisdomBlockChain.getTransaction(trhash);
+            if(transaction==null){
+                return APIResult.newFailResult(5000,"Transaction unavailable. Check transaction hash");
+            }
+            HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
+            int days=payloadproto.getType();
+            String nowrate=rateTable.selectrate(transaction.height,days);
+            //当前最高高度
+            long maxhieght=wisdomBlockChain.getCurrentTotalWeight();
+            long differheight=maxhieght-incubator.getLast_blockheight_share();
+            int differdays=(int)(differheight/configuration.getDay_count());
+            if(differdays==0){
+                return APIResult.newFailResult(5000,"Interest less than one day");
+            }
+            BigDecimal aount=new BigDecimal(transaction.amount);
+            BigDecimal nowratebig=new BigDecimal(nowrate);
+            BigDecimal lv=BigDecimal.valueOf(0.1);
+            BigDecimal nowlv=aount.multiply(nowratebig);
+            BigDecimal dayrate=nowlv.multiply(lv);
+            JSONObject jsonObject=new JSONObject();
+            //判断分享金额小于每天可提取的
+            if(incubator.getShare_amount()<dayrate.longValue()){
+                jsonObject.put("dueinAmount",incubator.getShare_amount());
+                jsonObject.put("capitalAmount",incubator.getShare_amount());
+            }else{
+                int muls=(int)(incubator.getShare_amount() % dayrate.longValue());
+                if(muls!=0){
+                    long syamount=muls;
+                    jsonObject.put("dueinAmount",syamount);
+                    jsonObject.put("capitalAmount",incubator.getShare_amount());
+                }else{
+                    int maxdays=(int)(incubator.getShare_amount()/dayrate.longValue());
+                    long lastdays=0;
+                    if(maxdays>differdays){
+                        lastdays=differdays;
+                    }else{
+                        lastdays=maxdays;
+                    }
+                    //当前可获取分享
+                    BigDecimal lastdaysbig=BigDecimal.valueOf(lastdays);
+                    long share=dayrate.multiply(lastdaysbig).longValue();
+                    jsonObject.put("dueinAmount",share);
+                    jsonObject.put("capitalAmount",incubator.getShare_amount());
+                }
+            }
+            return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
+        }catch (Exception e){
+            return APIResult.newFailResult(5000,"Exception error");
+        }
+    }
+
+    @Override
     public Object getTxrecordFromAddress(String address) {
         try {
             if(KeystoreAction.verifyAddress(address)==0){

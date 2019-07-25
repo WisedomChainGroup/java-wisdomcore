@@ -63,6 +63,11 @@ public class HatchController {
         return hatchService.getNowInterest(coinHash);
     }
 
+    @RequestMapping(value="/WisdomCore/getNowShare",method = RequestMethod.POST)
+    public Object getNowShare(@RequestParam("coinHash") String coinHash){
+        return hatchService.getNowShare(coinHash);
+    }
+
     @GetMapping(value = "/WisdomCore/sendTransferList")
     public Object sendTransferList(@RequestParam("height") int height) {
         return hatchService.getTransfer(height);

@@ -36,5 +36,7 @@ public interface HatchService {
 
     Object getNowInterest(String tranhash);
 
+    Object getNowShare(String tranhash);
+
     Object getTxrecordFromAddress(String address);
 }
