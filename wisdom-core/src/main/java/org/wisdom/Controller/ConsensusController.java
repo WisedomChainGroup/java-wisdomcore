@@ -18,9 +18,11 @@
 
 package org.wisdom.Controller;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.crypto.HashUtil;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -35,9 +37,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.wisdom.service.Impl.CommandServiceImpl;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.wisdom.Controller.ConsensusResult.ERROR;
 import static org.wisdom.Controller.ConsensusResult.SUCCESS;
@@ -70,6 +74,13 @@ public class ConsensusController {
 
     @Autowired
     CommandServiceImpl commandService;
+
+    @Autowired
+    PacketCache cache;
+
+    @PostConstruct
+    public void init() {
+    }
 
     @GetMapping(value = "/consensus/blocks")
     public Object handleGetBlocks(
@@ -146,6 +157,9 @@ public class ConsensusController {
         Packet packet = codec.decode(body, Packet.class);
         if (packet == null || packet.ttl == 0) {
             return ERROR("ttl timeout");
+        }
+        if (cache.hasReceived(packet)) {
+            return ERROR("the packet has recevied before");
         }
         List<Transaction> txs = codec.decodeTransactions(packet.data);
         if (txs == null || txs.size() == 0) {
