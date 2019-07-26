@@ -96,7 +96,7 @@ public class CommandServiceImpl implements CommandService {
         Transaction tran = Transaction.fromProto(tranproto);
         adoptTransPool.add(Collections.singletonList(tran));
 //        transactionPool.add(tran);
-        client.broascastTransactions(Collections.singletonList(tran));
+        apiResult.setData(tran);
         return apiResult;
     }
 

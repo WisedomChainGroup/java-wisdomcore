@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.Controller.ConsensusClient;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
@@ -185,5 +186,9 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
 
     public byte[] encodeTransactions(List<Transaction> txs) {
         return encode(txs);
+    }
+
+    public byte[] encodeTransactionsPacket(ConsensusClient.TransactionsPacket packet){
+        return encode(packet);
     }
 }

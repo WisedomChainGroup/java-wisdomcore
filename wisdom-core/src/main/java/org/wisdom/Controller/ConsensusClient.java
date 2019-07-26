@@ -176,7 +176,7 @@ public class ConsensusClient {
         for (String hostPort : consensusConfig.getPeers()) {
             get("http://" + hostPort + "/consensus/blocks", params, (byte[] body) -> {
                 List<Block> blocks = codec.decodeBlocks(body);
-                if(blocks == null){
+                if (blocks == null) {
                     logger.error("get blocks from " + hostPort + " failed, consider correct your boot nodes");
                     return null;
                 }
@@ -233,7 +233,7 @@ public class ConsensusClient {
         String hostPort = consensusConfig.getPeers().get(counter);
         get("http://" + hostPort + "/consensus/status", new HashMap<>(), (byte[] resp) -> {
             Status status = codec.decode(resp, Status.class);
-            if(status == null){
+            if (status == null) {
                 logger.error("invalid status received " + new String(resp));
                 return null;
             }
@@ -268,7 +268,29 @@ public class ConsensusClient {
 
     // broadcast transactions
     @Async
-    public void broascastTransactions(List<Transaction> txs) {
-        broadcast("/consensus/transactions", codec.encodeTransactions(txs));
+    public void relayTransactions(TransactionsPacket packet) {
+        packet.dec();
+        broadcast("/consensus/transactions", codec.encodeTransactionsPacket(packet));
+    }
+
+    @Async
+    public void broadcastTransactions(List<Transaction> txs) {
+        broadcast("/consensus/transactions", codec.encodeTransactionsPacket(new TransactionsPacket(txs, 8)));
+    }
+
+    public static class TransactionsPacket {
+        public List<Transaction> txs;
+        public long ttl;
+
+        public void dec() {
+            if (ttl > 0) {
+                ttl--;
+            }
+        }
+
+        public TransactionsPacket(List<Transaction> txs, long ttl) {
+            this.txs = txs;
+            this.ttl = ttl;
+        }
     }
 }
