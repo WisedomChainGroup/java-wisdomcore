@@ -145,18 +145,21 @@ public class ConsensusController {
     @PostMapping(value = "/consensus/transactions", produces = "application/json")
     public Object handleTransactions(@RequestBody byte[] body, HttpServletRequest request) {
         ConsensusClient.TransactionsPacket packet = codec.decode(body, ConsensusClient.TransactionsPacket.class);
-        if (packet.ttl == 0){
-            return ERROR("ttl timeout");
-        }
-        if (packet.txs == null || packet.txs.size() == 0){
+        if (packet != null) {
+            if (packet.ttl == 0) {
+                return ERROR("ttl timeout");
+            }
+            if (packet.txs == null || packet.txs.size() == 0) {
+                return SUCCESS("transaction received successful");
+            }
+            for (Transaction tran : packet.txs) {
+                byte[] traninfo = tran.toRPCBytes();
+                commandService.verifyTransfer(traninfo);
+            }
+            consensusClient.relayTransactions(packet);
             return SUCCESS("transaction received successful");
         }
-        for (Transaction tran : packet.txs) {
-            byte[] traninfo = tran.toRPCBytes();
-            commandService.verifyTransfer(traninfo);
-        }
-        consensusClient.relayTransactions(packet);
-        return SUCCESS("transaction received successful");
+        return ERROR("empty transactions packet received " + new String(body));
     }
 
     @GetMapping(value = "/version", produces = "application/json")
