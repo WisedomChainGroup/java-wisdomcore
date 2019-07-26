@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.Controller.ConsensusClient;
+import org.wisdom.Controller.Packet;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -168,15 +170,15 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
         return encode(hs);
     }
 
-    public Genesis decodeGenesis(byte[] data){
+    public Genesis decodeGenesis(byte[] data) {
         return decode(data, Genesis.class);
     }
 
-    public byte[] encodeBlocks(List<Block> blocks){
+    public byte[] encodeBlocks(List<Block> blocks) {
         return encode(blocks);
     }
 
-    public List<Block> decodeBlocks(byte[] data){
+    public List<Block> decodeBlocks(byte[] data) {
         return Arrays.asList(decode(data, Block[].class));
     }
 
@@ -188,7 +190,15 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
         return encode(txs);
     }
 
-    public byte[] encodeTransactionsPacket(ConsensusClient.TransactionsPacket packet){
+    public byte[] encodePacket(Packet packet) {
         return encode(packet);
+    }
+
+    public static void main(String[] args) {
+        JSONEncodeDecoder codec = new JSONEncodeDecoder();
+        String encoded = new String(codec.encodePacket(new Packet(codec.encodeTransactions(Collections.singletonList(new Transaction())), 8)));
+        System.out.println(encoded);
+        Packet packet = codec.decode(encoded.getBytes(), Packet.class);
+        System.out.println(packet == null);
     }
 }

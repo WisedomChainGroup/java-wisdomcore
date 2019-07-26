@@ -268,29 +268,13 @@ public class ConsensusClient {
 
     // broadcast transactions
     @Async
-    public void relayTransactions(TransactionsPacket packet) {
+    public void relayPacket(Packet packet) {
         packet.dec();
-        broadcast("/consensus/transactions", codec.encodeTransactionsPacket(packet));
+        broadcast("/consensus/transactions", codec.encodePacket(packet));
     }
 
     @Async
     public void broadcastTransactions(List<Transaction> txs) {
-        broadcast("/consensus/transactions", codec.encodeTransactionsPacket(new TransactionsPacket(txs, 8)));
-    }
-
-    public static class TransactionsPacket {
-        public List<Transaction> txs;
-        public long ttl;
-
-        public void dec() {
-            if (ttl > 0) {
-                ttl--;
-            }
-        }
-
-        public TransactionsPacket(List<Transaction> txs, long ttl) {
-            this.txs = txs;
-            this.ttl = ttl;
-        }
+        broadcast("/consensus/transactions", codec.encodePacket(new Packet(codec.encodeTransactions(txs), 8)));
     }
 }
