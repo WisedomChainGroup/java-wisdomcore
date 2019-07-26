@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 import org.wisdom.service.Impl.CommandServiceImpl;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -143,15 +144,18 @@ public class ConsensusController {
 
     @PostMapping(value = "/consensus/transactions", produces = "application/json")
     public Object handleTransactions(@RequestBody byte[] body, HttpServletRequest request) {
-        Transaction[] received = codec.decode(body, Transaction[].class);
-        if (received == null) {
-            logger.error("invalid request accepted from " + request.getRemoteAddr());
-            return ERROR("invalid transactions found");
+        ConsensusClient.TransactionsPacket packet = codec.decode(body, ConsensusClient.TransactionsPacket.class);
+        if (packet.ttl == 0){
+            return ERROR("ttl timeout");
         }
-        for (Transaction tran : received) {
+        if (packet.txs == null || packet.txs.size() == 0){
+            return SUCCESS("transaction received successful");
+        }
+        for (Transaction tran : packet.txs) {
             byte[] traninfo = tran.toRPCBytes();
             commandService.verifyTransfer(traninfo);
         }
+        consensusClient.relayTransactions(packet);
         return SUCCESS("transaction received successful");
     }
 
