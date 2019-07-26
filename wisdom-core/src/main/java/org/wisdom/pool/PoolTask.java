@@ -182,7 +182,9 @@ public class PoolTask {
             totallist.add(transPool.getTransaction());
         }
         totallist.addAll(pengdinglist);
-        client.broadcastTransactions(totallist);
+        if(totallist.size()>0){
+            client.broadcastTransactions(totallist);
+        }
     }
 
 }
