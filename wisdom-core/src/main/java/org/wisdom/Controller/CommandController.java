@@ -70,8 +70,8 @@ public class CommandController {
     public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
         try {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
-            APIResult result=commandService.verifyTransfer(traninfos);
-            Transaction t= (Transaction) result.getData();
+            APIResult result = commandService.verifyTransfer(traninfos);
+            Transaction t = (Transaction) result.getData();
             consensusClient.broadcastTransactions(Collections.singletonList(t));
             return result;
         } catch (DecoderException e) {
@@ -85,7 +85,7 @@ public class CommandController {
     @RequestMapping(value = "/getTransactionHeight", method = RequestMethod.POST)
     public Object getTransactionHeight(@RequestParam("height") int height, String type) {
         try {
-            if (type == null || type.equals("") ) {//默认转账事务
+            if (type == null || type.equals("")) {//默认转账事务
                 return commandService.getTransactionList(height, 1);
             } else {//全部事务
                 int types = Integer.valueOf(type);
