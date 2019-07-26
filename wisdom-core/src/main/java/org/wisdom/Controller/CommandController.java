@@ -71,8 +71,10 @@ public class CommandController {
         try {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
             APIResult result=commandService.verifyTransfer(traninfos);
-            Transaction t= (Transaction) result.getData();
-            consensusClient.broadcastTransactions(Collections.singletonList(t));
+            if(result.getCode()==2000){
+                Transaction t= (Transaction) result.getData();
+                consensusClient.broadcastTransactions(Collections.singletonList(t));
+            }
             return result;
         } catch (DecoderException e) {
             APIResult apiResult = new APIResult();
