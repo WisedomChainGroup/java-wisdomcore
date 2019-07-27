@@ -169,7 +169,6 @@ public class ConsensusController {
             byte[] traninfo = tran.toRPCBytes();
             commandService.verifyTransfer(traninfo);
         }
-        consensusClient.relayPacket(packet);
         return SUCCESS("transaction received successful");
     }
 
