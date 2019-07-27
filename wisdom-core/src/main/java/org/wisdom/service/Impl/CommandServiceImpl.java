@@ -76,15 +76,6 @@ public class CommandServiceImpl implements CommandService {
             apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, true, true);
             if (apiResult.getCode() == 5000) {
                 return apiResult;
-            } else {//pool校验
-                String key = apiResult.getData().toString();
-                if (peningTransPool.hasExist(key)) {
-                    apiResult.setData(null);
-                } else {
-                    apiResult.setCode(5000);
-                    apiResult.setMessage("Error sending same nonce transaction to From address");
-                    return apiResult;
-                }
             }
         } catch (Exception e) {
             e.printStackTrace();

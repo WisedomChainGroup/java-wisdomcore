@@ -63,11 +63,9 @@ public class PoolTask {
                     if (index > 5000) {
                         break;
                     } else {
-                        if (peningTransPool.hasExist(adoptTransPool.getKeyTrans(tran))) {
-                            maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
-                            newlist.add(t);
-                            index++;
-                        }
+                        maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
+                        newlist.add(t);
+                        index++;
                     }
                 } else {
                     maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
@@ -173,7 +171,7 @@ public class PoolTask {
         }
     }
 
-    @Scheduled(fixedDelay = 30 * 1000)
+   /* @Scheduled(fixedDelay = 30 * 1000)
     public void sendTranPool() {
         List<TransPool> queuedlist = adoptTransPool.getAllFull();
         List<Transaction> pengdinglist = peningTransPool.compare();
@@ -185,6 +183,6 @@ public class PoolTask {
         if(totallist.size()>0){
             client.broadcastTransactions(totallist);
         }
-    }
+    }*/
 
 }
