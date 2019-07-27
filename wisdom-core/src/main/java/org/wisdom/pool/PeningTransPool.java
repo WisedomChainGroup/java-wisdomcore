@@ -24,10 +24,6 @@ public class PeningTransPool {
             String key = fromst + nonce;
             if (hasExist(key)) {
                 ptpool.put(key, transPool);
-            }else{
-                if(transPool.getState()!=2){
-                    ptpool.put(key, transPool);
-                }
             }
         }
     }
