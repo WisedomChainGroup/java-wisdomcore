@@ -68,10 +68,6 @@ public class BasicRule implements BlockRule, TransactionRule {
         if (validator.validate(block).size() != 0) {
             return Result.Error(validator.validate(block).toArray()[0].toString());
         }
-        // 只接受当前最高区块50个高度因为以内的区块
-        if (best.nHeight - block.nHeight > 50) {
-            return Result.Error("accept blocks height between " + (best.nHeight - 16) + " and " + (best.nHeight + 16));
-        }
         // 区块时间戳必须小于当前系统时间
         if (block.nTime > System.currentTimeMillis() / 1000) {
             return Result.Error("the received block timestamp too large");

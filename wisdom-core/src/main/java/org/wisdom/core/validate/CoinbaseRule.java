@@ -49,6 +49,9 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
             return Result.Error("the first transaction of block body must be coin base");
         }
         Block parent = bc.getBlock(block.hashPrevBlock);
+        if (parent == null) {
+            return Result.Error("cannot find parent");
+        }
         long nonce = factory.getInstance(parent).getNonceFromPublicKeyHash(coinbase.to);
         if (nonce + 1 != coinbase.nonce) {
             return Result.Error("the nonce of coin base transaction is invalid");
@@ -85,7 +88,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
         if (!Arrays.areEqual(transaction.from, new byte[32])
                 || transaction.gasPrice != 0
-                || (transaction.payload != null &&  transaction.payload.length != 0)
+                || (transaction.payload != null && transaction.payload.length != 0)
                 || !Arrays.areEqual(transaction.signature, new byte[64])
         ) {
             return Result.Error("coin base transaction has zero field other than null");

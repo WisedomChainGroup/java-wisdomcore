@@ -43,7 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @EnableAsync
 @EnableScheduling
 public class Start {
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         SpringApplication.run(Start.class, args);
     }
 

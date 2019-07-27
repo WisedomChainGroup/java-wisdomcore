@@ -72,11 +72,17 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     // get block body
     // TODO: use view
     private List<Transaction> getBlockBody(Block header) {
+        if (header == null){
+            return new ArrayList<>();
+        }
         return tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
                 "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{header.getHash()}, new TransactionMapper());
     }
 
     private Block getBlockFromHeader(Block block) {
+        if(block == null){
+            return null;
+        }
         block.body = getBlockBody(block);
         return block;
     }

@@ -5,11 +5,13 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.p2p.Context;
@@ -30,7 +32,7 @@ import java.util.concurrent.ConcurrentMap;
  * wisdom protocol block synchronize manager
  */
 @Component
-public class SyncManager implements Plugin {
+public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEvent> {
     private PeerServer server;
     private static final int MAX_BLOCKS_PER_TRANSFER = 256;
     private static final int CACHE_SIZE = 64;
@@ -88,7 +90,7 @@ public class SyncManager implements Plugin {
         this.server = server;
     }
 
-    @Scheduled(fixedRate = 5 * 1000)
+    @Scheduled(fixedRate = 15 * 1000)
     public void getStatus() {
         if (server == null) {
             return;
@@ -202,5 +204,10 @@ public class SyncManager implements Plugin {
             BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
             pendingBlocksManager.addPendingBlocks(blocksWritable);
         }
+    }
+
+    @Override
+    public void onApplicationEvent(NewBlockMinedEvent event) {
+        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }

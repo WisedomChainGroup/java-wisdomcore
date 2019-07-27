@@ -7,6 +7,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
     static final int PEER_SCORE = 4;
-    static final int HALF_RATE = 5;
+    static final int HALF_RATE = 60;
     static final int EVIL_SCORE = -(1 << 10);
     static final int MAX_PEERS = 32;
 
@@ -57,6 +58,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private Map<String, Peer> blocked;
     private Map<Integer, Peer> peers;
     private Map<String, Peer> pended;
+    private Map<String, ManagedChannel> chanBuffer;
 
     @Autowired
     private MessageFilter filter;
@@ -83,6 +85,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.blocked = new ConcurrentHashMap<>();
         this.peers = new ConcurrentHashMap<>();
         this.pended = new ConcurrentHashMap<>();
+        this.chanBuffer = new ConcurrentHashMap<>();
         String[] bs = new String[]{};
         if (bootstraps != null && !bootstraps.equals("")) {
             bs = bootstraps.split(" ");
@@ -122,7 +125,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void startListening() throws Exception {
-        logger.info("peer server is listening on " + self.port);
+        logger.info("peer server is listening on " + Peer.PROTOCOL_NAME + "://" + Hex.encodeHexString(self.privateKey.getEncoded()) + Hex.encodeHexString(self.peerID) + "@" + self.hostPort());
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
@@ -131,8 +134,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void startHalf() {
+        boolean hasFull = peers.size() + trusted.size() >= MAX_PEERS;
         for (Peer p : pended.values()) {
             pended.remove(p.key());
+            if (hasFull || hasPeer(p)) {
+                continue;
+            }
             dial(p, WisdomOuterClass.Ping.newBuilder().build());
         }
         for (Peer p : blocked.values()) {
@@ -144,15 +151,21 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         for (Peer p : peers.values()) {
             p.score /= 2;
             if (p.score == 0) {
-                peers.remove(self.subTree(p));
+                removePeer(p);
                 continue;
             }
             logger.info("peer found = " + p.toString() + " score = " + p.score);
         }
-        // peers discovery
+
+        for (Peer p : getPeers()) {
+            dial(p, WisdomOuterClass.Ping.newBuilder().build()); // keep alive
+        }
+        if (hasFull) {
+            return;
+        }
+        // discover peers when bucket is not full
         for (Peer p : getPeers()) {
             logger.info("peer found, address = " + p.toString() + " score = " + p.score);
-            dial(p, WisdomOuterClass.Ping.newBuilder().build());
             dial(p, WisdomOuterClass.Lookup.newBuilder().build());
         }
     }
@@ -209,8 +222,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
-        ).usePlaintext().build();
+        String key = peer.key();
+        ManagedChannel ch = chanBuffer.get(key);
+        if (ch == null) {
+            ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
+            ).usePlaintext().build(); // without setting up any ssl
+            chanBuffer.put(key, ch);
+        }
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch);
         stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
@@ -221,14 +239,20 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
-                ch.shutdownNow();
-                logger.error("cannot connect to peer " + peer.toString() + " remove it");
-                removePeer(peer);
+                logger.error("cannot connect to peer " + peer.toString() + " half its score");
+                int k = self.subTree(peer);
+                Peer p = peers.get(k);
+                if (p != null && p.equals(peer)) {
+                    p.score /= 2;
+                    if (p.score == 0) {
+                        removePeer(p);
+                    }
+                }
             }
 
             @Override
             public void onCompleted() {
-                ch.shutdownNow();
+                logger.info("send message " + msg.getCode().name() + " success content = " + msg.toString());
             }
         });
     }
@@ -272,6 +296,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private void pendPeer(Peer peer) {
         String k = peer.key();
+        if (peers.size() + trusted.size() >= MAX_PEERS) {
+            return;
+        }
         if (hasPeer(peer) || blocked.containsKey(k) || bootstraps.containsKey(k)) {
             return;
         }
@@ -318,9 +345,15 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         if (p.equals(peer)) {
             peers.remove(idx);
         }
+        String key = peer.key();
+        ManagedChannel ch = chanBuffer.get(key);
+        if (ch != null) {
+            ch.shutdown();
+        }
+        chanBuffer.remove(key);
     }
 
-    private boolean hasPeer(Peer peer) {
+    public boolean hasPeer(Peer peer) {
         String k = peer.key();
         if (trusted.containsKey(k)) {
             return true;
