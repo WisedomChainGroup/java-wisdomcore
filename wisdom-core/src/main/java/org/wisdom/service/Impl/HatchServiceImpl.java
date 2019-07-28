@@ -29,6 +29,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -223,6 +224,7 @@ public class HatchServiceImpl implements HatchService {
             BigDecimal aount=new BigDecimal(transaction.amount);
             BigDecimal nowratebig=new BigDecimal(nowrate);
             BigDecimal dayrate=aount.multiply(nowratebig);
+            long dayratelong=dayrate.longValue();
             JSONObject jsonObject=new JSONObject();
             //判断利息金额小于每天利息
             if(incubator.getInterest_amount()<dayrate.longValue()){
@@ -244,7 +246,8 @@ public class HatchServiceImpl implements HatchService {
                     }
                     //当前可获取利息
                     BigDecimal lastdaysbig=BigDecimal.valueOf(lastdays);
-                    long interset=dayrate.multiply(lastdaysbig).longValue();
+                    BigDecimal dayrtebig=BigDecimal.valueOf(dayratelong);
+                    long interset=dayrtebig.multiply(lastdaysbig).longValue();
                     jsonObject.put("dueinAmount",interset);
                     jsonObject.put("capitalAmount",incubator.getInterest_amount());
                 }
@@ -287,6 +290,7 @@ public class HatchServiceImpl implements HatchService {
             BigDecimal lv=BigDecimal.valueOf(0.1);
             BigDecimal nowlv=aount.multiply(nowratebig);
             BigDecimal dayrate=nowlv.multiply(lv);
+            long dayrates=dayrate.longValue();
             JSONObject jsonObject=new JSONObject();
             //判断分享金额小于每天可提取的
             if(incubator.getShare_amount()<dayrate.longValue()){
@@ -308,7 +312,8 @@ public class HatchServiceImpl implements HatchService {
                     }
                     //当前可获取分享
                     BigDecimal lastdaysbig=BigDecimal.valueOf(lastdays);
-                    long share=dayrate.multiply(lastdaysbig).longValue();
+                    BigDecimal dayratesbig=BigDecimal.valueOf(dayrates);
+                    long share=dayratesbig.multiply(lastdaysbig).longValue();
                     jsonObject.put("dueinAmount",share);
                     jsonObject.put("capitalAmount",incubator.getShare_amount());
                 }
