@@ -308,7 +308,8 @@ public class TransactionCheck {
                         return apiResult;
                     }
                     BigDecimal bl=BigDecimal.valueOf(0.1);
-                    BigDecimal totalratebigs=totalratebig.multiply(bl);
+                    BigDecimal b2=BigDecimal.valueOf(totalrate);
+                    BigDecimal totalratebigs=b2.multiply(bl);
                     totalrate = totalratebigs.longValue();
                     inheight = incubator.getLast_blockheight_share();
                     nowincub=incubator.getShare_amount();
