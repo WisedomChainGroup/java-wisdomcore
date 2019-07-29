@@ -245,10 +245,12 @@ public class MerkleRule {
                     }
                 }
                 if(nowheight>=40271){
-                    if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
-                        Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-                        if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
-                            incubator=incubators;
+                    if(incubator.getShare_pubkeyhash() != null){
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                            Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                            if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
+                                incubator=incubators;
+                            }
                         }
                     }
                 }
