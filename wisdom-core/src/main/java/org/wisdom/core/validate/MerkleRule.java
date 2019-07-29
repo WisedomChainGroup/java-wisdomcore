@@ -122,7 +122,7 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
-                if(nowheight>30800){
+                if(nowheight>30800 && nowheight<40271){
                     if(Arrays.equals(incubator.getPubkeyhash(),tran.to)){
                         if(incubator.getShare_pubkeyhash()!=null){
                             if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
@@ -133,6 +133,26 @@ public class MerkleRule {
                     if(Arrays.equals(incubator.getShare_pubkeyhash(),tran.to)){
                         if(incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))){
                             incubator=incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                        }
+                    }
+                }
+                if(nowheight>=40271){
+                    if(Arrays.equals(incubator.getPubkeyhash(),tran.to)){
+                        if(incubator.getShare_pubkeyhash()!=null){
+                            if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
+                                Incubator incubators=incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
+                                    incubator=incubators;
+                                }
+                            }
+                        }
+                    }
+                    if(Arrays.equals(incubator.getShare_pubkeyhash(),tran.to)){
+                        if(incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))){
+                            Incubator incubators=incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                            if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
+                                incubator=incubators;
+                            }
                         }
                     }
                 }
@@ -217,10 +237,18 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
-                if(nowheight>30800) {
+                if(nowheight>30800 && nowheight<40271) {
                     if (incubator.getShare_pubkeyhash() != null) {
                         if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
                             incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                        }
+                    }
+                }
+                if(nowheight>=40271){
+                    if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                        Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                        if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
+                            incubator=incubators;
                         }
                     }
                 }
