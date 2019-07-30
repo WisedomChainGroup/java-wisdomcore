@@ -18,6 +18,7 @@
 
 package org.wisdom.core.validate;
 
+import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.ValidatorStateFactory;
 import org.wisdom.util.Arrays;
@@ -50,11 +51,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
         Block parent = bc.getBlock(block.hashPrevBlock);
         if (parent == null) {
-            return Result.Error("cannot find parent");
-        }
-        long nonce = factory.getInstance(parent).getNonceFromPublicKeyHash(coinbase.to);
-        if (nonce + 1 != coinbase.nonce) {
-            return Result.Error("the nonce of coin base transaction is invalid");
+            return Result.Error("cannot find parent" + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
         }
         Result res = validateTransaction(coinbase);
         if (!res.isSuccess()) {

@@ -21,6 +21,7 @@ package org.wisdom.core.validate;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
+import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -63,6 +64,9 @@ public class BasicRule implements BlockRule, TransactionRule {
         Block best = bc.currentHeader();
         if (block == null) {
             return Result.Error("null block");
+        }
+        if (Math.abs(best.nHeight - block.nHeight) > OrphanBlocksManager.ORPHAN_HEIGHT_RANGE) {
+            return Result.Error("the block height" + block.nHeight + " is too small, current height is " + best.nHeight);
         }
         // 区块基本校验 字段值非空
         if (validator.validate(block).size() != 0) {

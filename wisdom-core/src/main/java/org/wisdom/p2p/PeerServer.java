@@ -152,9 +152,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             p.score /= 2;
             if (p.score == 0) {
                 removePeer(p);
-                continue;
             }
-            logger.info("peer found = " + p.toString() + " score = " + p.score);
         }
 
         for (Peer p : getPeers()) {
@@ -164,7 +162,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             return;
         }
         // discover peers when bucket is not full
-        for (Peer p : getPeers()) {
+        Set<Peer> ps = new HashSet<>();
+        ps.addAll(peers.values());
+        ps.addAll(bootstraps.values());
+        for (Peer p : ps) {
             logger.info("peer found, address = " + p.toString() + " score = " + p.score);
             dial(p, WisdomOuterClass.Lookup.newBuilder().build());
         }
@@ -239,6 +240,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
+                logger.error(t.toString());
                 logger.error("cannot connect to peer " + peer.toString() + " half its score");
                 int k = self.subTree(peer);
                 Peer p = peers.get(k);
@@ -252,7 +254,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onCompleted() {
-                logger.info("send message " + msg.getCode().name() + " success content = " + msg.toString());
+//                logger.info("send message " + msg.getCode().name() + " success content = " + msg.toString());
             }
         });
     }

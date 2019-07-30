@@ -51,6 +51,7 @@ public class PeersManager implements Plugin {
         for (Peer p : server.getPeers()) {
             peers.add(p.toString());
         }
+        peers.add(server.getSelf().toString());
         context.response(WisdomOuterClass.Peers.newBuilder().addAllPeers(peers).build());
     }
 

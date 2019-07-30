@@ -18,11 +18,7 @@
 
 package org.wisdom.core;
 
-import org.springframework.lang.NonNull;
-import org.springframework.lang.NonNullApi;
-import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.event.NewBlockEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
-import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,7 +37,7 @@ import java.util.List;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    private static final int ORPHAN_HEIGHT_RANGE = 50;
+    public static final int ORPHAN_HEIGHT_RANGE = 256;
     private BlocksCache orphans;
 
     @Autowired
@@ -67,43 +62,31 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     // 2. 验证不过的区块加入黑名单 以后拒绝将这个区块加入孤块池
     // 3. 在孤块池大小溢出情况下，尽可能保留区块高度小的区块
     // try to add blocks without orphan checking
-    private void addBlocks(List<Block> blocks) {
-        Block currentHeader = bc.currentHeader();
-        BlocksCache cache = new BlocksCache(blocks);
-        for (Block b : cache.getLeaves()) {
-            if (b.nHeight >= currentHeader.nHeight) {
-                orphans.addBlocks(cache.getAncestors(b));
-                orphans.addBlocks(Collections.singletonList(b));
-                logger.info("add blocks to orphan pool size = " + (cache.getAncestors(b).size() + 1));
-                continue;
-            }
-            if (orphans.hasChildrenOf(b.getHash())) {
-                orphans.addBlocks(cache.getAncestors(b));
-                orphans.addBlocks(Collections.singletonList(b));
-                logger.info("add blocks to orphan pool size = " + (cache.getAncestors(b).size() + 1));
-            }
-        }
+    private void addBlock(Block block) {
+        orphans.addBlocks(Collections.singletonList(block));
     }
 
     // remove orphans return writable blocks，过滤掉孤块
     public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
         BlocksCache cache = new BlocksCache(blocks);
+        BlocksCache res = new BlocksCache();
         Block best = bc.currentHeader();
         for (Block init : cache.getInitials()) {
-            if (!isOrphan(init)) {
-                continue;
-            }
             List<Block> descendantBlocks = new ArrayList<>();
             descendantBlocks.add(init);
             descendantBlocks.addAll(cache.getDescendantBlocks(init));
-            cache.deleteBlocks(descendantBlocks);
-            if (Math.abs(best.nHeight - init.nHeight) < ORPHAN_HEIGHT_RANGE) {
-                addBlocks(descendantBlocks);
+            if (!isOrphan(init)) {
+                res.addBlocks(descendantBlocks);
+                continue;
+            }
+            for (Block b : descendantBlocks) {
+                if (Math.abs(best.nHeight - b.nHeight) < ORPHAN_HEIGHT_RANGE) {
+                    logger.info("add block at height = " + b.nHeight + " to orphans pool");
+                    addBlock(b);
+                }
             }
         }
-        logger.info("orphan initials size = " + orphans.getInitials().size());
-        tryWriteNonOrphans();
-        return cache;
+        return res;
     }
 
     public List<Block> getInitials() {

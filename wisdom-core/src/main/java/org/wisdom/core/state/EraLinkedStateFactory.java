@@ -57,25 +57,25 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
             return null;
         }
         long lastHeaderNumber = getEraAtBlockNumber(target.nHeight) * blocksPerEra;
-        if (lastHeaderNumber == target.nHeight - 1){
+        if (lastHeaderNumber == target.nHeight - 1) {
             return blockChain.getBlock(target.hashPrevBlock);
         }
         return blockChain.findAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
     }
 
     @Override
-    public T getFromCache(Block eraHead){
-        if(eraHead.nHeight == 0){
+    public T getFromCache(Block eraHead) {
+        if (eraHead.nHeight == 0) {
             return genesisState;
         }
-        T t = (T)cache.get(getLRUCacheKey(eraHead.getHash()));
-        if(t != null){
+        T t = (T) cache.get(getLRUCacheKey(eraHead.getHash()));
+        if (t != null) {
             return t;
         }
         Block parentEraHead = prevEralastBlock(eraHead);
         t = getFromCache(parentEraHead);
         List<Block> blocks = blockChain.getAncestorBlocks(eraHead.getHash(), parentEraHead.nHeight + 1);
-        t = (T)t.copy().updateBlocks(blocks);
+        t = (T) t.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), t);
         return t;
     }
@@ -102,7 +102,7 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
         List<Block> blocks = blockChain.getAncestorBlocks(eraHead.getHash(), eraHead.nHeight - (blocksPerEra - 1));
         State newState = parentEraState.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), newState);
-        return (T)newState;
+        return (T) newState;
     }
 
     public T getCurrentState() {
@@ -111,20 +111,19 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
     }
 
     // init cache when restart, avoid stack overflow
-    public void initCache(){
+    public void initCache() {
         Block latest = blockChain.currentBlock();
-        if (latest.nHeight < blocksPerEra){
+        if (latest.nHeight < blocksPerEra) {
             return;
         }
         long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
         Block confirmed = blockChain.getCanonicalBlock(latestHeight);
-        Block lastEraHead = prevEralastBlock(confirmed);
         long era = getEraAtBlockNumber(confirmed.nHeight);
-        T state = (T) genesisState.copy();
-        for(int i = 0; i < era; i++){
+        T state = genesisState;
+        for (int i = 0; i < era; i++) {
             List<Block> bks = blockChain.getCanonicalBlocks(i * blocksPerEra + 1, blocksPerEra);
-            state.updateBlocks(bks);
+            state = (T) state.copy().updateBlocks(bks);
+            cache.put(getLRUCacheKey(bks.get(bks.size() - 1).getHash()), state);
         }
-        cache.put(getLRUCacheKey(lastEraHead.getHash()), state);
     }
 }

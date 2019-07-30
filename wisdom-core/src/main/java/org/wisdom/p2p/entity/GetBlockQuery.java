@@ -21,7 +21,7 @@ public class GetBlockQuery {
     public long start;
     public long stop;
 
-    public GetBlockQuery clip(int maxSize, boolean clipFromStop){
+    public GetBlockQuery clip(int maxSize, boolean clipInitial){
         // clip interval
         start = start <= 0 ? 1 : start;
         stop = stop <= 0 ? (start + maxSize - 1) : stop;
@@ -32,10 +32,10 @@ public class GetBlockQuery {
 
         // clip interval when overflow
         boolean isOverFlow = stop - start + 1 > maxSize;
-        if (isOverFlow && clipFromStop) {
+        if (isOverFlow && clipInitial) {
             start = stop - maxSize + 1;
         }
-        if (isOverFlow && !clipFromStop) {
+        if (isOverFlow && !clipInitial) {
             stop = start + maxSize - 1;
         }
         return this;

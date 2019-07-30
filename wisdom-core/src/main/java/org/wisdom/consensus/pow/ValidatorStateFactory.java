@@ -26,7 +26,7 @@ import javax.annotation.PostConstruct;
 
 @Component
 public class ValidatorStateFactory extends StateFactory<ValidatorState> {
-    private static final int cacheSize = 20;
+    private static final int cacheSize = 512;
 
     public ValidatorStateFactory(WisdomBlockChain blockChain, ValidatorState genesisState) {
         super(blockChain, cacheSize, genesisState);

@@ -97,7 +97,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         server.broadcast(WisdomOuterClass.GetStatus.newBuilder().build());
         for (Block b : orphanBlocksManager.getInitials()) {
-            logger.info("try to sync orphans");
             long startHeight = b.nHeight - MAX_BLOCKS_PER_TRANSFER + 1;
             if (startHeight <= 0) {
                 startHeight = 1;
@@ -106,6 +105,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
                     .setStartHeight(startHeight)
                     .setStopHeight(b.nHeight).build();
+            logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
             server.broadcast(getBlocks);
         }
     }
@@ -114,7 +114,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         WisdomOuterClass.GetBlocks getBlocks = context.getPayload().getGetBlocks();
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
 
-        logger.info("get blocks received startListening height = " + query.start + " stop height = " + query.stop);
+        logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend != null && blocksToSend.size() > 0) {
             Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
@@ -169,10 +169,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             if (stopHeight >= best.nHeight + MAX_BLOCKS_PER_TRANSFER) {
                 stopHeight = best.nHeight + MAX_BLOCKS_PER_TRANSFER - 1;
             }
-            Object req = WisdomOuterClass.GetBlocks.newBuilder()
+            WisdomOuterClass.GetBlocks req = WisdomOuterClass.GetBlocks.newBuilder()
                     .setStartHeight(best.nHeight)
                     .setStopHeight(stopHeight)
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_TAIL).build();
+            logger.info("require blocks start from " + req.getStartHeight() + " stop at " + req.getStopHeight());
             server.dial(context.getPayload().getRemote(), req);
         }
     }
@@ -188,6 +189,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void receiveBlocks(List<Block> blocks) {
+        logger.info("blocks received start from " + blocks.get(0).nHeight +  " stop at " + blocks.get(blocks.size() - 1).nHeight);
         List<Block> validBlocks = new ArrayList<>();
         for (Block b : blocks) {
             if (b == null || b.nHeight == 0) {

@@ -23,6 +23,8 @@ import org.wisdom.core.WisdomBlockChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * @author sal 1564319846@qq.com
  * state factory, lru cached
@@ -73,10 +75,12 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
         Block latest = blockChain.currentBlock();
         long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
         Block confirmed = blockChain.getCanonicalBlock(latestHeight / BLOCKS_PER_UPDATE * BLOCKS_PER_UPDATE);
-        T state = (T) genesisState.copy();
+        T state = genesisState;
         for (long i = 0; i < confirmed.nHeight / BLOCKS_PER_UPDATE; i++) {
-            state.updateBlocks(blockChain.getCanonicalBlocks(i * BLOCKS_PER_UPDATE + 1, BLOCKS_PER_UPDATE));
+            List<Block> bks = blockChain.getCanonicalBlocks(i * BLOCKS_PER_UPDATE + 1, BLOCKS_PER_UPDATE);
+            state = (T) state.copy().updateBlocks(bks);
+            cache.put(getLRUCacheKey(bks.get(bks.size() - 1).getHash()), state);
         }
-        cache.put(getLRUCacheKey(confirmed.getHash()), state);
+
     }
 }

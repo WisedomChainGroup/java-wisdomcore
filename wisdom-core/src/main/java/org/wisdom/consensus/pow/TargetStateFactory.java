@@ -33,7 +33,7 @@ import javax.annotation.PostConstruct;
 @Component
 public class TargetStateFactory extends EraLinkedStateFactory<TargetState> {
 
-    private static final int CACHE_SIZE = 20;
+    private static final int CACHE_SIZE = 512;
 
     @Autowired
     public TargetStateFactory(WisdomBlockChain blockChain, TargetState genesisState, @Value("${wisdom.consensus.blocks-per-era}") int blocksPerRea) {

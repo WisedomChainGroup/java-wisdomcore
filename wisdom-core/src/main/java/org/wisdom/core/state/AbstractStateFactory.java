@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentMap;
 
 public abstract class AbstractStateFactory<T extends State> {
     static final Base64.Encoder encoder = Base64.getEncoder();
-
     protected WisdomBlockChain blockChain;
 
     protected ConcurrentMap<String, T> cache;
