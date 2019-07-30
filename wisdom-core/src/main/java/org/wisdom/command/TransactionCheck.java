@@ -76,8 +76,8 @@ public class TransactionCheck {
         byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(frompubkey));
         long nownonce = accountDB.getNonce(frompubhash);
         if (state) {
-            //todo:nonce判断不能大于最大15个
-            long maxnonce = nownonce + 15;
+            //todo:nonce判断不能大于最大64个
+            long maxnonce = nownonce + 64;
             if (nownonce >= nonce || nonce > maxnonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small or Nonce too big. Over 15 Max");
