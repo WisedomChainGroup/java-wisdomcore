@@ -40,7 +40,9 @@ import org.wisdom.service.Impl.CommandServiceImpl;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.wisdom.Controller.ConsensusResult.ERROR;
@@ -77,6 +79,9 @@ public class ConsensusController {
 
     @Autowired
     PacketCache cache;
+
+    @Value("${node-character}")
+    private String character;
 
     @PostConstruct
     public void init() {
@@ -174,6 +179,9 @@ public class ConsensusController {
 
     @GetMapping(value = "/version", produces = "application/json")
     public Object getVersion() {
-        return APIResult.newFailResult(2000, "SUCCESS", version);
+        Map<String, String> info = new HashMap<>();
+        info.put("version", this.version);
+        info.put("character", character);
+        return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }
