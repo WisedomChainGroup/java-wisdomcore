@@ -236,10 +236,10 @@ public class TransactionCheck {
                 }
                 String nowrate = rateTable.selectrate(nowheight, days);
                 //利息和分享收益
-                BigDecimal amountbig=BigDecimal.valueOf(amount);
-                BigDecimal ratebig=new BigDecimal(nowrate);
-                BigDecimal onemut=amountbig.multiply(ratebig);
-                BigDecimal daysbig=BigDecimal.valueOf(days);
+                BigDecimal amountbig = BigDecimal.valueOf(amount);
+                BigDecimal ratebig = new BigDecimal(nowrate);
+                BigDecimal onemut = amountbig.multiply(ratebig);
+                BigDecimal daysbig = BigDecimal.valueOf(days);
                 long interest = onemut.multiply(daysbig).longValue();
                 String sharpub = payloadproto.getSharePubkeyHash();
                 byte[] sharbyte = Hex.decodeHex(sharpub);
@@ -282,9 +282,9 @@ public class TransactionCheck {
                 int days = payloadproto.getType();
                 String rate = rateTable.selectrate(transaction.height, days);
                 long capital = transaction.amount;
-                BigDecimal capitalbig=BigDecimal.valueOf(capital);
-                BigDecimal ratebig=new BigDecimal(rate);
-                BigDecimal totalratebig=capitalbig.multiply(ratebig);
+                BigDecimal capitalbig = BigDecimal.valueOf(capital);
+                BigDecimal ratebig = new BigDecimal(rate);
+                BigDecimal totalratebig = capitalbig.multiply(ratebig);
                 Incubator incubator = incubatorDB.selectIncubator(payload);
                 if (incubator == null) {
                     apiResult.setCode(5000);
@@ -292,7 +292,7 @@ public class TransactionCheck {
                     return apiResult;
                 }
                 //每天可提取
-                long totalrate=totalratebig.longValue();
+                long totalrate = totalratebig.longValue();
                 if (totalrate == 0) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("No amount can be withdrawn per day");
@@ -300,19 +300,19 @@ public class TransactionCheck {
                 }
                 //最后提取时间
                 long inheight = 0;
-                long nowincub=0;
+                long nowincub = 0;
                 if (type[0] == 0x0b) {//提取分享收益
                     if (incubator.getShare_amount() == 0 || incubator.getShare_amount() < amount) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("The sharing income cannot be withdrawn or is greater than the amount that can be withdrawn");
                         return apiResult;
                     }
-                    BigDecimal bl=BigDecimal.valueOf(0.1);
-                    BigDecimal b2=BigDecimal.valueOf(totalrate);
-                    BigDecimal totalratebigs=b2.multiply(bl);
+                    BigDecimal bl = BigDecimal.valueOf(0.1);
+                    BigDecimal b2 = BigDecimal.valueOf(totalrate);
+                    BigDecimal totalratebigs = b2.multiply(bl);
                     totalrate = totalratebigs.longValue();
                     inheight = incubator.getLast_blockheight_share();
-                    nowincub=incubator.getShare_amount();
+                    nowincub = incubator.getShare_amount();
                 } else {//提取利息
                     if (incubator.getInterest_amount() == 0 || incubator.getInterest_amount() < amount) {
                         apiResult.setCode(5000);
@@ -320,35 +320,35 @@ public class TransactionCheck {
                         return apiResult;
                     }
                     inheight = incubator.getLast_blockheight_interest();
-                    nowincub=incubator.getInterest_amount();
+                    nowincub = incubator.getInterest_amount();
                 }
-                if(totalrate>amount){//amount小于最小每天可提取
-                    if(nowincub<totalrate){
-                        if(amount!=nowincub){
+                if (totalrate > amount) {//amount小于最小每天可提取
+                    if (nowincub < totalrate) {
+                        if (amount != nowincub) {
                             apiResult.setCode(5000);
                             apiResult.setMessage("Abnormal withdrawal amount");
                             return apiResult;
                         }
-                    }else if(nowincub==totalrate){
+                    } else if (nowincub == totalrate) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Abnormal withdrawal amount");
                         return apiResult;
-                    }else{
-                        int muls=(int)(nowincub % totalrate);
-                        if(muls!=0){//数据不对
-                            long syamount=muls;
-                            if(syamount!=amount){
+                    } else {
+                        int muls = (int) (nowincub % totalrate);
+                        if (muls != 0) {//数据不对
+                            long syamount = muls;
+                            if (syamount != amount) {
                                 apiResult.setCode(5000);
                                 apiResult.setMessage("Abnormal withdrawal amount");
                                 return apiResult;
                             }
-                        }else{
+                        } else {
                             apiResult.setCode(5000);
                             apiResult.setMessage("Abnormal withdrawal amount");
                             return apiResult;
                         }
                     }
-                }else{
+                } else {
                     //天数
                     long remainder = (long) (amount % totalrate);
                     if (remainder != 0) {

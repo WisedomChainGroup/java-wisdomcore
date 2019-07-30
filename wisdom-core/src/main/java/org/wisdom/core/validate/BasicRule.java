@@ -50,6 +50,8 @@ public class BasicRule implements BlockRule, TransactionRule {
     @Value("${wisdom.consensus.block-interval}")
     private int blockInterval;
 
+    private boolean validateIncubator;
+
     private Block genesis;
     private static javax.validation.Validator validator = Validation.byProvider(HibernateValidator.class)
             .configure()
@@ -100,6 +102,12 @@ public class BasicRule implements BlockRule, TransactionRule {
         if (!Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
             return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
         }
+        for (Transaction tx : block.body) {
+            Result r = validateTransaction(tx);
+            if (!r.isSuccess()) {
+                return r;
+            }
+        }
         try {
             Map<String, Object> merklemap = merkleRule.validateMerkle(block.body, block.nHeight);
             List<Account> accountList = (List<Account>) merklemap.get("account");
@@ -107,17 +115,15 @@ public class BasicRule implements BlockRule, TransactionRule {
             if (!Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
                 return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
             }
+            // 交易所不校验孵化状态
+            if (!validateIncubator) {
+                return Result.SUCCESS;
+            }
             if (!Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
                 return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
             }
         } catch (Exception e) {
             return Result.Error("error occurs when validate merle hash");
-        }
-        for (Transaction tx : block.body) {
-            Result r = validateTransaction(tx);
-            if (!r.isSuccess()) {
-                return r;
-            }
         }
         return Result.SUCCESS;
     }
@@ -135,7 +141,8 @@ public class BasicRule implements BlockRule, TransactionRule {
     }
 
     @Autowired
-    public BasicRule(Block genesis) {
+    public BasicRule(Block genesis, @Value("${node-character}") String character) {
         this.genesis = genesis;
+        this.validateIncubator = !character.equals("exchange");
     }
 }

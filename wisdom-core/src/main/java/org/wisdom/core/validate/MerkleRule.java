@@ -75,7 +75,7 @@ public class MerkleRule {
             } else {
                 toaccount = accountDB.selectaccount(tran.to);
                 if (toaccount == null) {
-                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0,0);
+                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0, 0);
                 }
             }
             if (tran.type == 0x00) {//CoinBase
@@ -122,36 +122,36 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
-                if(nowheight>30800 && nowheight<40271){
-                    if(Arrays.equals(incubator.getPubkeyhash(),tran.to)){
-                        if(incubator.getShare_pubkeyhash()!=null){
-                            if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
-                                incubator=incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                if (nowheight > 30800 && nowheight < 40271) {
+                    if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
+                        if (incubator.getShare_pubkeyhash() != null) {
+                            if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
                             }
                         }
                     }
-                    if(Arrays.equals(incubator.getShare_pubkeyhash(),tran.to)){
-                        if(incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))){
-                            incubator=incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                    if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
+                            incubator = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
                         }
                     }
                 }
-                if(nowheight>=40271){
-                    if(Arrays.equals(incubator.getPubkeyhash(),tran.to)){
-                        if(incubator.getShare_pubkeyhash()!=null){
-                            if(incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))){
-                                Incubator incubators=incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-                                if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
-                                    incubator=incubators;
+                if (nowheight >= 40271) {
+                    if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
+                        if (incubator.getShare_pubkeyhash() != null) {
+                            if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                    incubator = incubators;
                                 }
                             }
                         }
                     }
-                    if(Arrays.equals(incubator.getShare_pubkeyhash(),tran.to)){
-                        if(incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))){
-                            Incubator incubators=incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
-                            if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
-                                incubator=incubators;
+                    if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
+                            Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                            if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                incubator = incubators;
                             }
                         }
                     }
@@ -161,13 +161,13 @@ public class MerkleRule {
                 String rate = rateTable.selectrate(transaction.height, days);//利率
 
                 if (tran.type == 0x0a) {//interset
-                    BigDecimal amounbig=BigDecimal.valueOf(transaction.amount);
-                    BigDecimal ratebig=new BigDecimal(rate);
+                    BigDecimal amounbig = BigDecimal.valueOf(transaction.amount);
+                    BigDecimal ratebig = new BigDecimal(rate);
                     long dayinterset = ratebig.multiply(amounbig).longValue();
                     long lastheight = incubator.getLast_blockheight_interest();
-                    if(dayinterset>tran.amount){
-                        lastheight+=configuration.getDay_count();
-                    }else{
+                    if (dayinterset > tran.amount) {
+                        lastheight += configuration.getDay_count();
+                    } else {
                         int extractday = (int) (tran.amount / dayinterset);
                         long extractheight = extractday * configuration.getDay_count();
                         lastheight += extractheight;
@@ -178,15 +178,15 @@ public class MerkleRule {
                     incubator.setInterest_amount(lastinterset);
                     incubator.setLast_blockheight_interest(lastheight);
                 } else {//share
-                    BigDecimal amounbig=BigDecimal.valueOf(transaction.amount);
-                    BigDecimal ratebig=new BigDecimal(rate);
-                    BigDecimal onemul=amounbig.multiply(ratebig);
-                    BigDecimal bl=BigDecimal.valueOf(0.1);
+                    BigDecimal amounbig = BigDecimal.valueOf(transaction.amount);
+                    BigDecimal ratebig = new BigDecimal(rate);
+                    BigDecimal onemul = amounbig.multiply(ratebig);
+                    BigDecimal bl = BigDecimal.valueOf(0.1);
                     long dayinterset = onemul.multiply(bl).longValue();
                     long lastheight = incubator.getLast_blockheight_share();
-                    if(dayinterset>tran.amount){
-                        lastheight+=configuration.getDay_count();
-                    }else{
+                    if (dayinterset > tran.amount) {
+                        lastheight += configuration.getDay_count();
+                    } else {
                         int extractday = (int) (tran.amount / dayinterset);
                         long extractheight = extractday * configuration.getDay_count();
                         lastheight += extractheight;
@@ -211,15 +211,15 @@ public class MerkleRule {
                 fromaccount.setBalance(frombalance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                if(!Arrays.equals(frompubhash,tran.to)){//转账from和to相同
+                if (!Arrays.equals(frompubhash, tran.to)) {//转账from和to相同
                     long tobalance = toaccount.getBalance();
                     tobalance += tran.amount;
                     toaccount.setBalance(tobalance);
                     toaccount.setBlockHeight(nowheight);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                     accmap.put(Hex.encodeHexString(tran.to), toaccount);
-                }else{
-                    frombalance+=tran.amount;
+                } else {
+                    frombalance += tran.amount;
                     fromaccount.setBalance(frombalance);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                 }
@@ -237,19 +237,19 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
-                if(nowheight>30800 && nowheight<40271) {
+                if (nowheight > 30800 && nowheight < 40271) {
                     if (incubator.getShare_pubkeyhash() != null) {
                         if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
                             incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
                         }
                     }
                 }
-                if(nowheight>=40271){
-                    if(incubator.getShare_pubkeyhash() != null){
+                if (nowheight >= 40271) {
+                    if (incubator.getShare_pubkeyhash() != null) {
                         if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
                             Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-                            if(Arrays.equals(incubators.getTxid_issue(),tran.payload)){
-                                incubator=incubators;
+                            if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                incubator = incubators;
                             }
                         }
                     }
@@ -257,60 +257,60 @@ public class MerkleRule {
                 incubator.setCost(0);
                 incubator.setHeight(nowheight);
                 incumap.put(Hex.encodeHexString(tran.to), incubator);
-            }else if(tran.type == 0x03){//存证
+            } else if (tran.type == 0x03) {//存证
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
                     fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
                 } else {
                     fromaccount = accountDB.selectaccount(frompubhash);
                 }
-                long balance=fromaccount.getBalance();
-                balance-=tran.getFee();
+                long balance = fromaccount.getBalance();
+                balance -= tran.getFee();
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
                 accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
-            }else if(tran.type == 0x02){//投票
+            } else if (tran.type == 0x02) {//投票
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
                     fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
                 } else {
                     fromaccount = accountDB.selectaccount(frompubhash);
                 }
-                long balance=fromaccount.getBalance();
-                balance-=tran.amount;
-                balance-=tran.getFee();
+                long balance = fromaccount.getBalance();
+                balance -= tran.amount;
+                balance -= tran.getFee();
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                if(!Arrays.equals(frompubhash,tran.to)){//投票自己投给自己
-                    long vote=toaccount.getVote();
-                    vote+=tran.amount;
+                if (!Arrays.equals(frompubhash, tran.to)) {//投票自己投给自己
+                    long vote = toaccount.getVote();
+                    vote += tran.amount;
                     toaccount.setVote(vote);
                     toaccount.setBlockHeight(nowheight);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                     accmap.put(Hex.encodeHexString(tran.to), toaccount);
-                }else{
-                    long vote=fromaccount.getVote();
-                    vote+=tran.amount;
+                } else {
+                    long vote = fromaccount.getVote();
+                    vote += tran.amount;
                     fromaccount.setVote(vote);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                 }
-            }else if(tran.type == 0x0d){//撤销投票
+            } else if (tran.type == 0x0d) {//撤销投票
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
                     fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
                 } else {
                     fromaccount = accountDB.selectaccount(frompubhash);
                 }
-                long balance=fromaccount.getBalance();
-                balance-=tran.getFee();
-                balance+=tran.amount;
+                long balance = fromaccount.getBalance();
+                balance -= tran.getFee();
+                balance += tran.amount;
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                long vote=toaccount.getVote();
-                vote-=tran.amount;
+                long vote = toaccount.getVote();
+                vote -= tran.amount;
                 toaccount.setVote(vote);
                 toaccount.setBlockHeight(nowheight);
                 accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
