@@ -21,6 +21,9 @@ package org.wisdom;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
+import org.rocksdb.Options;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -73,4 +76,18 @@ public class Start {
         Resource resource = new ClassPathResource("genesis/wisdom-genesis-generator.json");
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
+
+    @Bean
+    public RocksDB rocksDB() {
+        RocksDB.loadLibrary();
+
+        Options options = new Options().setCreateIfMissing(true);
+        try {
+            return RocksDB.open(options, "./database");
+        } catch (RocksDBException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 }

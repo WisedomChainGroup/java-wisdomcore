@@ -2,21 +2,57 @@ package org.wisdom.pool;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections.map.LinkedMap;
+import org.rocksdb.RocksIterator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.RocksDBStore;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class AdoptTransPool {
+    private static final String ROCKS_DB_PREFIX = "txpool-";
+
+    @Autowired
+    private RocksDBStore rocksDBStore;
+
+    @Autowired
+    private JSONEncodeDecoder codec;
 
     private Map<String, Map<String, TransPool>> atpool;
 
     public AdoptTransPool() {
         this.atpool = new ConcurrentHashMap<>();
+    }
+
+    @Async
+    public void addToDb(List<Transaction> txs) {
+        for (Transaction tx : txs) {
+            rocksDBStore.put(ROCKS_DB_PREFIX + tx.getHashHexString(), new String(codec.encodeTransaction(tx)));
+        }
+    }
+
+    @Async
+    public void removeFromDB(String txHash) {
+        rocksDBStore.remove(ROCKS_DB_PREFIX + txHash);
+    }
+
+    @PostConstruct
+    public void loadFromDB() {
+        RocksIterator it = rocksDBStore.getIterator();
+        List<Transaction> txs = new ArrayList<>();
+        while (it.isValid()) {
+            byte[] k = it.key();
+            txs.add(codec.decodeTransaction(it.value()));
+        }
+        add(txs);
     }
 
     public void add(List<Transaction> txs) {
@@ -33,6 +69,7 @@ public class AdoptTransPool {
                 map.put(getKeyTrans(t), tp);
                 atpool.put(from, map);
             }
+            addToDb(txs);
         }
     }
 
@@ -79,6 +116,7 @@ public class AdoptTransPool {
             if (!hasExist(entry.getKey())) {
                 Map<String, TransPool> map = atpool.get(entry.getKey());
                 if (map.containsKey(entry.getValue())) {
+                    removeFromDB(map.get(entry.getKey()).getTransaction().getHashHexString());
                     map.remove(entry.getValue());
                     if (map.size() == 0) {
                         atpool.remove(entry.getKey());
