@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class AdoptTransPool {
 
-    private Map<String, Map<String, TransPool>> atpool;
+    private ConcurrentHashMap<String, Map<String, TransPool>> atpool;
 
     public AdoptTransPool() {
         this.atpool = new ConcurrentHashMap<>();
@@ -163,51 +163,54 @@ public class AdoptTransPool {
     }
 
 
-    public static void main(String args[]) {
-        Transaction t = new Transaction().createEmpty();
-        byte[] s = new byte[32];
-        s[10] = 10;
-        t.type = 1;
-        t.from = s;
-        t.nonce = 1;
-        t.gasPrice = 2;
-        Transaction t1 = new Transaction().createEmpty();
-        t1.type = 1;
-        t1.nonce = 1;
-        t1.gasPrice = 3;
-        Transaction t2 = new Transaction().createEmpty();
-        t2.type = 1;
-        t2.nonce = 3;
-        t2.gasPrice = 3;
-        Transaction t3 = new Transaction().createEmpty();
-        byte[] s3 = new byte[32];
-        s3[13] = 10;
-        t3.type = 1;
-        t3.from = s3;
-        t3.nonce = 1;
-        t3.gasPrice = 5;
-        Transaction t4 = new Transaction().createEmpty();
-        t4.type = 1;
-        t4.nonce = 2;
-        t4.gasPrice = 3;
-        Transaction t5 = new Transaction().createEmpty();
-        t5.type = 1;
-        t5.nonce = 1;
-        t5.gasPrice = 4;
-        List<Transaction> l = new ArrayList<>();
-        l.add(t);
-        l.add(t1);
-        l.add(t2);
-        l.add(t3);
-        l.add(t4);
-        l.add(t5);
+    /*public static void main(String args[]) {
         AdoptTransPool a = new AdoptTransPool();
-        a.add(l);
-        Map<String, TransPool> sss = a.compare(a.getfromPool(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(new byte[32])))));
-        for (Map.Entry<String, TransPool> entry : sss.entrySet()) {
-            System.out.println("key:" + entry.getKey() + "  value:" + entry.getValue().getTransaction().gasPrice + "-->" + entry.getValue().getTransaction().nonce);
+        Map<String,Map<String, TransPool>> maps=new ConcurrentHashMap<>();
+        List<Transaction> ts=new ArrayList<>();
+        for(int x=0;x<10000;x++){
+            Ed25519KeyPair pripubkey= Ed25519.GenerateKeyPair();
+            Ed25519PublicKey publickey=pripubkey.getPublicKey();
+            byte[] pubkey=publickey.getEncoded();
+            Map<String, TransPool> map=new HashMap<>();
+            for(int y=0;y<5;y++){
+                Transaction t = new Transaction().createEmpty();
+                t.from=pubkey;
+                t.nonce=y;
+                t.gasPrice = (y+30);
+                ts.add(t);
+                String fromhash=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
+                TransPool tp=new TransPool(t,0,new Date().getTime());
+                map.put(fromhash,tp);
+            }
         }
+        a.add(ts);
+        List<TransPool> lits=a.getAll();
+        System.out.println("size:"+lits.size());
+        Map<String, TransPool> maps=new HashMap<>();
+        Transaction t5 = new Transaction().createEmpty();
+        byte[] s5 = new byte[32];
+        s5[15] = 10;
+        t5.type = 1;
+        t5.from = s5;
+        t5.nonce = 5;
+        t5.gasPrice = 4;
+        TransPool tp5 = new TransPool(t5, 0, new Date().getTime());
+        maps.put(a.getKey(tp5),tp5);
+        JSONObject jsonObject=JSONObject.fromObject(maps);
+        System.out.println(jsonObject);
+        String s= jsonObject.get("e0f0b332b7e701014e3e110398291f78eac77da65").toString();
+        TransPool transPool=JSON.parseObject(s,new TypeReference<TransPool>() {});
+        System.out.println(transPool.getTransaction());
 
+        System.out.println("");
+        System.out.println("");
+        System.out.println("");
+        System.out.println("");
 
-    }
+        String data=JSON.toJSONString(maps,true);
+        Map<String, TransPool> mapss= (Map<String, TransPool>) JSON.parse(data);
+        for(Map.Entry<String, TransPool> entry:mapss.entrySet()){
+            System.out.println("Key:"+entry.getKey()+"---->Value:"+entry.getValue());
+        }
+    }*/
 }

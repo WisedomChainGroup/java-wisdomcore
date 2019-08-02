@@ -11,9 +11,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PeningTransPool {
 
     private Map<String, TransPool> ptpool;
+    private Map<String, PendingNonce> ptnonce;
+
+    public Map<String, PendingNonce> getPtnonce() {
+        return ptnonce;
+    }
 
     public PeningTransPool() {
         this.ptpool = new ConcurrentHashMap<>();
+        this.ptnonce = new ConcurrentHashMap<>();
     }
 
     public void add(List<TransPool> pools) {
@@ -23,7 +29,22 @@ public class PeningTransPool {
             long nonce = transPool.getTransaction().nonce;
             String key = fromst + nonce;
             if (hasExist(key)) {
-                ptpool.put(key, transPool);
+                if(ptnonce.containsKey(fromst)){
+                    PendingNonce noncepool=ptnonce.get(fromst);
+                    int state=noncepool.getState();
+                    if(state==2){
+                        long poolnonce=noncepool.getNonce();
+                        if(poolnonce<nonce){
+                            ptpool.put(key, transPool);
+                            PendingNonce pendingNonce=new PendingNonce(transPool.getTransaction().nonce,0);
+                            ptnonce.put(fromst,pendingNonce);
+                        }
+                    }
+                }else{
+                    ptpool.put(key, transPool);
+                    PendingNonce pendingNonce=new PendingNonce(transPool.getTransaction().nonce,0);
+                    ptnonce.put(fromst,pendingNonce);
+                }
             }
         }
     }
@@ -74,6 +95,14 @@ public class PeningTransPool {
         }
     }
 
+    public void nonceupdate(String key,int type){
+        if(ptnonce.containsKey(key)){
+            PendingNonce pendingNonce=ptnonce.get(key);
+            pendingNonce.setState(type);
+            ptnonce.put(key,pendingNonce);
+        }
+    }
+
     public List<Transaction> compare() {
         List<Map.Entry<String, TransPool>> lists = new ArrayList<>(ptpool.entrySet());
         Collections.sort(lists, new Comparator<Map.Entry<String, TransPool>>() {
@@ -102,6 +131,7 @@ public class PeningTransPool {
 
     public void updatePool(List<Transaction> txs, int type, long height) {
         for (Transaction t : txs) {
+            String fromhex=Hex.encodeHexString(t.from);
             String key = getKeyTrans(t);
             if (key != null) {
                 if (!hasExist(key)) {
@@ -109,6 +139,9 @@ public class PeningTransPool {
                     transPool.setState(type);
                     transPool.setHeight(height);
                     ptpool.put(key, transPool);
+                    if(type==2){
+                        nonceupdate(fromhex,type);
+                    }
                 }
             }
         }

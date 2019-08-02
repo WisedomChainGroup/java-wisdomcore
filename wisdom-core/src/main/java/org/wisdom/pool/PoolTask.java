@@ -54,23 +54,35 @@ public class PoolTask {
         int index = 1;
         for (TransPool t : list) {
             Transaction tran = t.getTransaction();
+            String fromhex=Hex.encodeHexString(tran.from);
             byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
             long nownonce = accountDB.getNonce(frompubhash);
             long nonce = tran.nonce;
-            nownonce++;
-            if (nonce == nownonce) {
-                if (TransactionCheck.checkoutPool(tran, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight)) {
-                    if (index > 5000) {
-                        break;
+            if (nonce > nownonce) {
+                boolean statue=true;
+                //判断pendingnonce是否存在 状态不为2的地址
+                Map<String, PendingNonce> noncemap=peningTransPool.getPtnonce();
+                if(noncemap.containsKey(fromhex)){
+                    PendingNonce pendingNonce=noncemap.get(fromhex);
+                    int state=pendingNonce.getState();
+                    if(state!=2){
+                        statue=false;
+                    }
+                }
+                if(statue){
+                    if (TransactionCheck.checkoutPool(tran, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight)) {
+                        if (index > 5000) {
+                            break;
+                        } else {
+                            maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
+                            newlist.add(t);
+                            index++;
+                        }
                     } else {
                         maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
-                        newlist.add(t);
-                        index++;
                     }
-                } else {
-                    maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
                 }
-            } else if (nonce < nownonce) {
+            } else if (nonce <= nownonce) {
                 if (index > 5000) {
                     break;
                 } else {

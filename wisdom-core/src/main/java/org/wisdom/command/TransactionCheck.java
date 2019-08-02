@@ -80,17 +80,17 @@ public class TransactionCheck {
             long maxnonce = nownonce + 64;
             if (nownonce >= nonce || nonce > maxnonce) {
                 apiResult.setCode(5000);
-                apiResult.setMessage("Nonce is too small or Nonce too big. Over 15 Max");
+                apiResult.setMessage("Nonce is too small or Nonce too big. Over 64 Max");
                 return apiResult;
             }
         } else {
             //todo:nonce为DB+1
-            nownonce++;
-            if (nownonce != nonce) {
-                apiResult.setCode(5000);
-                apiResult.setMessage("Nonce validates errors");
-                return apiResult;
-            }
+//            nownonce++;
+//            if (nownonce != nonce) {
+//                apiResult.setCode(5000);
+//                apiResult.setMessage("Nonce validates errors");
+//                return apiResult;
+//            }
         }
         //gasPrice
         byte[] gasbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);

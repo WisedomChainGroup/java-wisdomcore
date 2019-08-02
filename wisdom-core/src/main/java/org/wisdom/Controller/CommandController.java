@@ -41,7 +41,7 @@ import java.util.Map;
 public class CommandController {
     private static Logger logger = LoggerFactory.getLogger(CommandController.class);
 
-    public static final int CONFIRMED = 2100;
+    public static final int CONFIRMED = 2000;
     public static final int NOT_CONFIRMED = 2100;
 
     @Value("${wisdom.consensus.enable-mining}")
