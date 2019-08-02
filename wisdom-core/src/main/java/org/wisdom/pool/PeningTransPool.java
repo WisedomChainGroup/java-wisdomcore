@@ -81,16 +81,34 @@ public class PeningTransPool {
         return list;
     }
 
-    public void removeOne(String key){
+    public void removeOne(String key,String fromkey){
         if (!hasExist(key)) {
             ptpool.remove(key);
         }
+        if(ptnonce.containsKey(fromkey)){
+            PendingNonce pendingNonce=ptnonce.get(fromkey);
+            int state=pendingNonce.getState();
+            if(state==0){
+                pendingNonce.setState(2);
+                ptnonce.put(fromkey,pendingNonce);
+            }
+        }
     }
 
-    public void remove(List<String> list) {
+    public void remove(List<String> list,List<String> fromlist) {
         for (String s : list) {
             if (!hasExist(s)) {
                 ptpool.remove(s);
+            }
+        }
+        for(String f: fromlist){
+            if(ptnonce.containsKey(f)){
+                PendingNonce pendingNonce=ptnonce.get(f);
+                int state=pendingNonce.getState();
+                if(state==0){
+                    pendingNonce.setState(2);
+                    ptnonce.put(f,pendingNonce);
+                }
             }
         }
     }

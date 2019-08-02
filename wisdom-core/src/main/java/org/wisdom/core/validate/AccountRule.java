@@ -90,7 +90,8 @@ public class AccountRule implements BlockRule {
                     APIResult apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, false, false);
                     if (apiResult.getCode() == 5000) {
                         String keys = peningTransPool.getKeyTrans(tx);
-                        peningTransPool.removeOne(keys);
+                        String fromhex=Hex.encodeHexString(tx.from);
+                        peningTransPool.removeOne(keys,fromhex);
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                 }
