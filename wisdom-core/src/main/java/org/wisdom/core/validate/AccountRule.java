@@ -81,7 +81,7 @@ public class AccountRule implements BlockRule {
                     return Result.Error("duplicated account found");
                 }
                 froms.add(key);
-                if (!validateIncubator && Transaction.Type.TRANSFER.ordinal() != tx.type) {
+                if (!validateIncubator) {
                     continue;
                 }
                 // 校验转账事务
