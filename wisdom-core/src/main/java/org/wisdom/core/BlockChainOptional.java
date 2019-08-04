@@ -124,7 +124,7 @@ public class BlockChainOptional {
     public Optional<Boolean> hasBlock(byte[] hash) {
         return Optional.ofNullable(hash).flatMap(h -> {
             try {
-                return Optional.of(tmpl.queryForObject("select count(*) from header where block_hash = ? limit 1", new Object[]{hash}, Integer.class) > 0);
+                return Optional.ofNullable(tmpl.queryForObject("select count(*) from header where block_hash = ? limit 1", new Object[]{h}, Integer.class)).map(x -> x > 0);
             } catch (Exception e) {
                 return Optional.empty();
             }
@@ -132,7 +132,7 @@ public class BlockChainOptional {
     }
 
     @Autowired
-    public BlockChainOptional(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx, @Value("${spring.datasource.username}") String dataname, InitializeAccount account) {
+    public BlockChainOptional(JdbcTemplate tmpl, Block genesis) {
         this.tmpl = tmpl;
         this.genesis = genesis;
     }
@@ -226,7 +226,7 @@ public class BlockChainOptional {
     public Optional<Boolean> isCanonical(byte[] hash) {
         return Optional.ofNullable(hash).flatMap(h -> {
             try {
-                return Optional.of(tmpl.queryForObject("select is_canonical from header where block_hash = ?", new Object[]{hash}, Boolean.class));
+                return Optional.ofNullable(tmpl.queryForObject("select is_canonical from header where block_hash = ?", new Object[]{h}, Boolean.class));
             } catch (Exception e) {
                 return Optional.empty();
             }
@@ -267,33 +267,38 @@ public class BlockChainOptional {
 
     public Optional<Long> getCurrentTotalWeight() {
         try {
-            return Optional.of(tmpl.queryForObject("select max(total_weight) from header", null, Long.class));
+            return Optional.ofNullable(tmpl.queryForObject("select max(total_weight) from header", Long.class));
         } catch (Exception e) {
             return Optional.empty();
         }
     }
 
     public Optional<Boolean> hasTransaction(byte[] txHash) {
-        try {
-            return Optional.ofNullable(txHash).map(h -> (tmpl.queryForObject("select count(*) from transaction as tx " +
-                    "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                    "inner join header as h on ti.block_hash = h.block_hash " +
-                    "where tx.tx_hash = ? and h.is_canonical = true limit 1", new Object[]{h}, Integer.class) > 0));
-        } catch (Exception e) {
-            return Optional.empty();
-        }
+        return Optional.ofNullable(txHash).flatMap(h -> {
+            try {
+                return Optional.ofNullable(tmpl.queryForObject("select count(*) from transaction as tx " +
+                        "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
+                        "inner join header as h on ti.block_hash = h.block_hash " +
+                        "where tx.tx_hash = ? and h.is_canonical = true limit 1", new Object[]{h}, Integer.class))
+                        .map(x -> x > 0);
+            } catch (Exception e) {
+                return Optional.empty();
+            }
+        });
     }
 
     public Optional<Transaction> getTransaction(byte[] txHash) {
-        try {
-            return getOne(tmpl.query(
-                    "select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
-                            "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                            "inner join header as h on ti.block_hash = h.block_hash" +
-                            " where tx.tx_hash = ? and h.is_canonical = true", new Object[]{txHash}, new TransactionMapper()));
-        } catch (Exception e) {
-            return Optional.empty();
-        }
+        return Optional.ofNullable(txHash).flatMap(h -> {
+            try {
+                return getOne(tmpl.query(
+                        "select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
+                                "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
+                                "inner join header as h on ti.block_hash = h.block_hash" +
+                                " where tx.tx_hash = ? and h.is_canonical = true", new Object[]{h}, new TransactionMapper()));
+            } catch (Exception e) {
+                return Optional.empty();
+            }
+        });
     }
 
 
