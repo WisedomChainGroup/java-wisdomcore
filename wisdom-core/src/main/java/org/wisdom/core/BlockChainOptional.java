@@ -70,7 +70,7 @@ public class BlockChainOptional {
     private Optional<List<Transaction>> getBlockBody(Block header) {
         try {
             return Optional.ofNullable(header).flatMap(h -> Optional.of(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
-                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{h.getHash()}, new TransactionMapper()));
+                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{h.getHash()}, new TransactionMapper())));
         } catch (Exception e) {
             return Optional.empty();
         }
