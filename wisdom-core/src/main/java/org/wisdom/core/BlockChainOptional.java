@@ -49,8 +49,8 @@ public class BlockChainOptional {
     // get block body
     private Optional<List<Transaction>> getBlockBody(Block header) {
         try {
-            return Optional.ofNullable(header).flatMap(h -> Optional.of(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
-                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{h.getHash()}, new TransactionMapper())));
+            return Optional.ofNullable(header).map(Block::getHash).flatMap(hash -> Optional.of(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{hash}, new TransactionMapper())));
         } catch (Exception e) {
             return Optional.empty();
         }
@@ -71,22 +71,6 @@ public class BlockChainOptional {
             return y;
         })), null);
     }
-
-    // TODO: get blocks from headers
-
-    // write header with total weight
-    private void writeHeader(Block header) {
-        tmpl.update("insert into header " +
-                        "(block_hash, version, hash_prev_block, " +
-                        "hash_merkle_root, hash_merkle_state, hash_merkle_incubate," +
-                        "height, created_at, nonce, nBits," +
-                        "block_notice, is_canonical) values (?,?,?,?,?,?,?,?,?,?,?,?)",
-                header.getHash(), header.nVersion, header.hashPrevBlock,
-                header.hashMerkleRoot, header.hashMerkleState, header.hashMerkleIncubate, header.nHeight,
-                header.nTime, header.nNonce, header.nBits,
-                header.blockNotice, false);
-    }
-
 
     private Optional<Block> findCommonAncestor(Block a, Block b) {
         Optional<Block> ao = Optional.ofNullable(a);
