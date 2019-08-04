@@ -63,7 +63,7 @@ public class ConsensusRule implements BlockRule {
         }
         // 出块在是否在合理时间内出块
         Optional<Proposer> p = consensusConfig.getProposer(parent, block.nTime);
-        if (p.
+        if (!p.
                 map(x -> x.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to)))
                 .orElse(false)) {
             return Result.Error("the proposer cannot propose this block");
