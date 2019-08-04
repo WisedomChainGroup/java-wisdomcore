@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class PoolController {
@@ -147,5 +148,36 @@ public class PoolController {
         json.put("adoptcount",adoptcount);
         json.put("pengcount",pengcount);
         return APIResult.newFailResult(2000,"SUCCESS",json);
+    }
+
+    @RequestMapping(value="/deletePendpool",method = RequestMethod.POST)
+    public Object deletePendpool(@RequestParam("tokenhash") String tokenhash,
+                                 @RequestParam("from") String from,
+                                 @RequestParam("nonce") long nonce,
+                                 @RequestParam("txhash") String txhash){
+        try {
+            byte[] hash=Hex.decodeHex(tokenhash.toCharArray());
+            byte[] shahash=SHA3Utility.sha3256(hash);
+            String token=Hex.encodeHexString(shahash);
+            if(!token.equals("a772c260ae19e8972f1da3af77492fdb6b40f34a9b34b4a9021ecfd900f21e53")){
+                return APIResult.newFailResult(5000,"Token check but");
+            }
+            String key=from+nonce;
+            byte[] txhashbyte=Hex.decodeHex(txhash.toCharArray());
+            if(!peningTransPool.hasExist(key)){
+                Map<String, TransPool> pendingmap=peningTransPool.getPtpool();
+                TransPool transPool=pendingmap.get(key);
+                if(Arrays.equals(transPool.getTransaction().getHash(),txhashbyte)){
+                    peningTransPool.removeOne(key,from,nonce);
+                    return APIResult.newFailResult(2000,"SUCCESS");
+                }else{
+                    return APIResult.newFailResult(5000,"Transaction hash query not found");
+                }
+            }else{
+                return APIResult.newFailResult(5000,"The address does not exist in the event pending pool");
+            }
+        } catch (DecoderException e) {
+            return APIResult.newFailResult(5000,"Token conversions are problematic 16");
+        }
     }
 }
