@@ -18,17 +18,13 @@
 
 package org.wisdom.core;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.wisdom.core.account.InitializeAccount;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
 import org.wisdom.core.orm.TransactionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
 
@@ -184,7 +180,11 @@ public class BlockChainOptional {
 
 
     public Optional<Block> getCanonicalHeader(long num) {
-        return getOne(tmpl.query("select * from header where height = ? and is_canonical = true", new Object[]{num}, new BlockMapper()));
+        try {
+            return getOne(tmpl.query("select * from header where height = ? and is_canonical = true", new Object[]{num}, new BlockMapper()));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     public Optional<List<Block>> getCanonicalHeaders(long start, int size) {
