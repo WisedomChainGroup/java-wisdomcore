@@ -132,7 +132,6 @@ public class PoolTask {
         List<TransPool> pendinglist = peningTransPool.getAll();
         List<String> pendinglists = new ArrayList<>();
         List<Transaction> updatelist = new ArrayList<>();
-        List<String> fromlist= new ArrayList<>();
         for (TransPool transPool : pendinglist) {
             Transaction t = transPool.getTransaction();
             long nonce = t.nonce;
@@ -143,20 +142,17 @@ public class PoolTask {
             long nownonce = accountDB.getNonce(frompubhash);
             if (nownonce >= nonce) {
                 pendinglists.add(peningTransPool.getKeyTrans(t));
-                fromlist.add(fromhex);
                 continue;
             }
             long daysBetween = (new Date().getTime() - transPool.getDatetime() + 1000000) / (60 * 60 * 24 * 1000);
             if (daysBetween >= configuration.getPoolcleardays()) {
                 pendinglists.add(peningTransPool.getKeyTrans(t));
-                fromlist.add(fromhex);
                 continue;
             }
             //db
             Transaction transaction = wisdomBlockChain.getTransaction(t.getHash());
             if (transaction != null) {
                 pendinglists.add(peningTransPool.getKeyTrans(t));
-                fromlist.add(fromhex);
                 continue;
             }
             //高度
@@ -184,7 +180,7 @@ public class PoolTask {
             peningTransPool.updatePool(updatelist, 0, 0);
         }
         if (pendinglists.size() > 0) {
-            peningTransPool.remove(pendinglists,fromlist);
+            peningTransPool.remove(pendinglists);
         }
     }
 

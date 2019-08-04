@@ -91,7 +91,7 @@ public class AccountRule implements BlockRule {
                     if (apiResult.getCode() == 5000) {
                         String keys = peningTransPool.getKeyTrans(tx);
                         String fromhex=Hex.encodeHexString(tx.from);
-                        peningTransPool.removeOne(keys,fromhex);
+                        peningTransPool.removeOne(keys,fromhex,tx.nonce);
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                 }

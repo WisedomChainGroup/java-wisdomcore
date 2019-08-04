@@ -11,10 +11,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PeningTransPool {
 
     private Map<String, TransPool> ptpool;
+
     private Map<String, PendingNonce> ptnonce;
 
     public Map<String, PendingNonce> getPtnonce() {
         return ptnonce;
+    }
+
+    public Map<String, TransPool> getPtpool() {
+        return ptpool;
     }
 
     public PeningTransPool() {
@@ -81,34 +86,27 @@ public class PeningTransPool {
         return list;
     }
 
-    public void removeOne(String key,String fromkey){
+    public void removeOne(String key,String fromkey,long nonce){
         if (!hasExist(key)) {
             ptpool.remove(key);
         }
         if(ptnonce.containsKey(fromkey)){
             PendingNonce pendingNonce=ptnonce.get(fromkey);
             int state=pendingNonce.getState();
+            long nowptnonce=pendingNonce.getNonce();
             if(state==0){
-                pendingNonce.setState(2);
-                ptnonce.put(fromkey,pendingNonce);
+                if(nowptnonce==nonce){
+                    pendingNonce.setState(2);
+                    ptnonce.put(fromkey,pendingNonce);
+                }
             }
         }
     }
 
-    public void remove(List<String> list,List<String> fromlist) {
+    public void remove(List<String> list) {
         for (String s : list) {
             if (!hasExist(s)) {
                 ptpool.remove(s);
-            }
-        }
-        for(String f: fromlist){
-            if(ptnonce.containsKey(f)){
-                PendingNonce pendingNonce=ptnonce.get(f);
-                int state=pendingNonce.getState();
-                if(state==0){
-                    pendingNonce.setState(2);
-                    ptnonce.put(f,pendingNonce);
-                }
             }
         }
     }
