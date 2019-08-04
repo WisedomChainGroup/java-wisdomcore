@@ -115,34 +115,20 @@ public class Miner implements ApplicationListener {
         // 防止 account 重复
         Set<String> hasValidated = new HashSet<>();
         List<Transaction> notWrittern = new ArrayList<>();
-        try{
-            List<Transaction> transactionList=peningTransPool.compare();
-            int totalpool=transactionList.size();
-            int index=0;
-            while ( totalpool> 0 && block.size() < Block.MAX_BLOCK_SIZE) {
-                // TODO: 验证事务池里面的事务
-                Transaction tx = transactionList.get(index);
-                if(tx!=null){
-                    if (hasValidated.contains(tx.getHashHexString())) {
-                        continue;
-                    }
-                    hasValidated.add(Hex.encodeHexString(tx.from));
-                    // 校验需要事务
-                    tx.height = block.nHeight;
-
-                    // 防止写入重复的事务
-                    if (bc.hasTransaction(tx.getHash())) {
-                        continue;
-                    }
-
-                    // nonce 校验
-                    notWrittern.add(tx);
-                    index++;
-                    totalpool--;
-                }
+        for (Transaction tx : peningTransPool.compare()) {
+            // TODO: 验证事务池里面的事务
+            if (hasValidated.contains(Hex.encodeHexString(tx.from))) {
+                continue;
             }
-        }catch (Exception e){
-            e.printStackTrace();
+            hasValidated.add(Hex.encodeHexString(tx.from));
+            // 校验需要事务
+            tx.height = block.nHeight;
+            // 防止写入重复的事务
+            if (bc.hasTransaction(tx.getHash())) {
+                continue;
+            }
+            // nonce 校验
+            notWrittern.add(tx);
         }
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
@@ -161,7 +147,7 @@ public class Miner implements ApplicationListener {
         block.hashMerkleRoot = Block.calculateMerkleRoot(block.body);
         block.hashMerkleState = Block.calculateMerkleState(accountList);
         block.hashMerkleIncubate = Block.calculateMerkleIncubate(incubatorList);
-        peningTransPool.updatePool(newTranList,1,block.nHeight);
+        peningTransPool.updatePool(newTranList, 1, block.nHeight);
         return block;
     }
 
@@ -172,23 +158,22 @@ public class Miner implements ApplicationListener {
         ) {
             return;
         }
-        try {
-            if (!consensusConfig.isEnableMining()) {
-                return;
-            }
-            Block bestBlock = bc.currentBlock();
-            // 判断是否轮到自己出块
-            Proposer p = consensusConfig.getProposer(bestBlock, System.currentTimeMillis() / 1000);
-            if (p == null || p.pubkeyHash == null || !p.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
-                return;
-            }
-            Block b = createBlock();
-            thread = ctx.getBean(MineThread.class);
-            thread.mine(b, p.startTimeStamp, p.endTimeStamp);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("mining failed, exception occurred");
+        if (!consensusConfig.isEnableMining()) {
+            return;
         }
+        Block bestBlock = bc.currentBlock();
+        // 判断是否轮到自己出块
+        Optional<Proposer> p = consensusConfig.getProposer(bestBlock, System.currentTimeMillis() / 1000);
+        p.map(x -> x.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash()) ? x : null)
+                .ifPresent(proposer -> {
+                    try {
+                        Block b = createBlock();
+                        thread = ctx.getBean(MineThread.class);
+                        thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     @Override
@@ -198,7 +183,7 @@ public class Miner implements ApplicationListener {
             logger.info("new block mined event triggered");
             pendingBlocksManager.addPendingBlocks(new BlocksCache(Collections.singletonList(o)));
         }
-        if (event instanceof NewBestBlockEvent && thread != null){
+        if (event instanceof NewBestBlockEvent && thread != null) {
             thread.terminate();
         }
     }
