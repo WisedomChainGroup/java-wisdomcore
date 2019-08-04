@@ -53,12 +53,9 @@ public class BlockChainOptional {
     private String dataname;
     private static final Logger logger = LoggerFactory.getLogger(RDBMSBlockChainImpl.class);
 
-
+    // try to get a element from a list
     private <T> Optional<T> getOne(List<T> res) {
-        if (res.size() == 0) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(res.get(0));
+        return Optional.ofNullable(res).map(x -> x.get(0));
     }
 
     public void clearData() {
@@ -70,21 +67,21 @@ public class BlockChainOptional {
     }
 
     // get block body
-    // TODO: use view
     private Optional<List<Transaction>> getBlockBody(Block header) {
         try {
-            return Optional.of(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
-                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{header.getHash()}, new TransactionMapper()));
+            return Optional.ofNullable(header).flatMap(h -> Optional.of(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{h.getHash()}, new TransactionMapper()));
         } catch (Exception e) {
             return Optional.empty();
         }
     }
 
     private Optional<Block> getBlockFromHeader(Block block) {
-        return getBlockBody(block).map(x -> {
-            block.body = x;
-            return block;
-        });
+        Optional<Block> o = Optional.ofNullable(block);
+        return o.flatMap(this::getBlockBody).flatMap(x -> o.map(y -> {
+            y.body = x;
+            return y;
+        }));
     }
 
     private Optional<List<Block>> getBlocksFromHeaders(List<Block> headers) {
@@ -185,8 +182,8 @@ public class BlockChainOptional {
 
 
     private Optional<Block> findCommonAncestor(Block a, Block b) {
-        Optional<Block> ao = Optional.of(a);
-        Optional<Block> bo = Optional.of(b);
+        Optional<Block> ao = Optional.ofNullable(a);
+        Optional<Block> bo = Optional.ofNullable(b);
         while (true) {
             Optional<Long> ah = ao.map(x -> x.nHeight);
             Optional<Long> bh = bo.map(x -> x.nHeight);
@@ -227,34 +224,40 @@ public class BlockChainOptional {
 
     }
 
-    public boolean hasBlock(byte[] hash) {
-        return tmpl.queryForObject("select count(*) from header where block_hash = ? limit 1", new Object[]{hash}, Integer.class) > 0;
+    public Optional<Boolean> hasBlock(byte[] hash) {
+        return Optional.ofNullable(hash).flatMap(h -> {
+            try {
+                return Optional.of(tmpl.queryForObject("select count(*) from header where block_hash = ? limit 1", new Object[]{hash}, Integer.class) > 0);
+            } catch (Exception e) {
+                return Optional.empty();
+            }
+        });
     }
 
-//    @Autowired
-//    public BlockChainOptional(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx, @Value("${spring.datasource.username}") String dataname, InitializeAccount account) {
-//        this.tmpl = tmpl;
-//        this.txTmpl = txTmpl;
-//        this.genesis = genesis;
-//        this.ctx = ctx;
-//        this.dataname = dataname;
-//        //增加account vote字段
-//        if (this.dataname != null && this.dataname != "" && !this.dataname.equals("")) {
-//            String sql = "ALTER TABLE account OWNER TO " + dataname;
-//            tmpl.execute(sql);//更换属主
-//        }
-//        tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
-//        if (!dbHasGenesis()) {
-//            clearData();
-//            writeGenesis(genesis);
-//            return;
-//        }
-//        Block dbGenesis = getCanonicalHeader(0);
+    @Autowired
+    public BlockChainOptional(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx, @Value("${spring.datasource.username}") String dataname, InitializeAccount account) {
+        this.tmpl = tmpl;
+        this.txTmpl = txTmpl;
+        this.genesis = genesis;
+        this.ctx = ctx;
+        this.dataname = dataname;
+        //增加account vote字段
+        if (this.dataname != null && this.dataname != "" && !this.dataname.equals("")) {
+            String sql = "ALTER TABLE account OWNER TO " + dataname;
+            tmpl.execute(sql);//更换属主
+        }
+        tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
+        if (!dbHasGenesis()) {
+            clearData();
+            writeGenesis(genesis);
+            return;
+        }
+//        getCanonicalHeader(0).map(x ->);
 //        if (!Arrays.areEqual(dbGenesis.getHash(), genesis.getHash())) {
 //            clearData();
 //            writeGenesis(genesis);
 //        }
-//    }
+    }
 
     public Optional<Block> currentHeader() {
         try {
@@ -269,87 +272,95 @@ public class BlockChainOptional {
     }
 
     public Optional<Block> getHeader(byte[] hash) {
-        return getOne(tmpl.query("select * from header where block_hash = ?", new Object[]{hash}, new BlockMapper()));
+        return Optional.ofNullable(hash).flatMap(h -> getOne(tmpl.query("select * from header where block_hash = ?", new Object[]{h}, new BlockMapper())));
     }
 
     public Optional<Block> getBlock(byte[] hash) {
         return getHeader(hash).flatMap(this::getBlockFromHeader);
     }
+
+    public Optional<List<Block>> getHeaders(long startHeight, int headersCount) {
+        try {
+            return Optional.of(tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, startHeight + headersCount - 1, headersCount}, new BlockMapper()));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<List<Block>> getBlocks(long startHeight, int headersCount) {
+        return getHeaders(startHeight, headersCount).flatMap(this::getBlocksFromHeaders);
+    }
+
+    public Optional<List<Block>> getBlocks(long startHeight, long stopHeight) {
+        try {
+            return Optional.of(tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper())).flatMap(this::getBlocksFromHeaders);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<List<Block>> getBlocks(long startHeight, long stopHeight, int sizeLimit) {
+        try {
+            return Optional.of(tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper())).flatMap(this::getBlocksFromHeaders);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<List<Block>> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        if (!clipInitial) {
+            return getBlocks(startHeight, stopHeight, sizeLimit);
+        }
+        try {
+            Optional<List<Block>> res = Optional.of(tmpl.query("select * from header where height >= ? and height <= ? order by height desc limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper())).flatMap(this::getBlocksFromHeaders);
+            res.ifPresent(Collections::reverse);
+            return res;
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+
+    public Optional<Block> getCanonicalHeader(long num) {
+        return getOne(tmpl.query("select * from header where height = ? and is_canonical = true", new Object[]{num}, new BlockMapper()));
+    }
+
+    public Optional<List<Block>> getCanonicalHeaders(long start, int size) {
+        try {
+            return Optional.of(tmpl.query("select * from header where height < ? and height >= ? and is_canonical = true order by height", new Object[]{start + size, start}, new BlockMapper()));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<Block> getCanonicalBlock(long num) {
+        return getCanonicalHeader(num).flatMap(this::getBlockFromHeader);
+    }
+
+    public Block getGenesis() {
+        return genesis;
+    }
+
+    public Optional<List<Block>> getCanonicalBlocks(long start, int size) {
+        return getCanonicalHeaders(start, size).flatMap(this::getBlocksFromHeaders);
+    }
+
+    public Optional<Boolean> isCanonical(byte[] hash) {
+        return Optional.ofNullable(hash).flatMap(h -> {
+            try {
+                return Optional.of(tmpl.queryForObject("select is_canonical from header where block_hash = ?", new Object[]{hash}, Boolean.class));
+            } catch (Exception e) {
+                return Optional.empty();
+            }
+        });
+    }
 //
-//    public Optional<List<Block>> getHeaders(long startHeight, int headersCount) {
-//        try {
-//            Optional.of(tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, startHeight + headersCount - 1, headersCount}, new BlockMapper()));
-//        } catch (Exception e) {
-//            return Optional.empty();
-//        }
-//    }
-//
-//    public List<Block> getBlocks(long startHeight, int headersCount) {
-//        return getBlocksFromHeaders(getHeaders(startHeight, headersCount));
-//    }
-//
-//    public List<Block> getBlocks(long startHeight, long stopHeight) {
-//        return getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper()));
-//    }
-//
-//    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit) {
-//        return getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));
-//    }
-//
-//    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
-//        if (!clipInitial) {
-//            return getBlocks(startHeight, stopHeight, sizeLimit);
-//        }
-//        List<Block> blocks = getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height desc limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));
-//        if (blocks.size() == 0) {
-//            return blocks;
-//        }
-//        Collections.reverse(blocks);
-//        return blocks;
-//    }
-//
-//    @Override
-//    public Block getCanonicalHeader(long num) {
-//        return getOne(tmpl.query("select * from header where height = ? and is_canonical = true", new Object[]{num}, new BlockMapper()));
-//    }
-//
-//    @Override
-//    public List<Block> getCanonicalHeaders(long start, int size) {
-//        return tmpl.query("select * from header where height < ? and height >= ? and is_canonical = true order by height", new Object[]{start + size, start}, new BlockMapper());
-//    }
-//
-//    @Override
-//    public Block getCanonicalBlock(long num) {
-//        return getBlockFromHeader(getCanonicalHeader(num));
-//    }
-//
-//    @Override
-//    public Block getGenesis() {
-//        return genesis;
-//    }
-//
-//    @Override
-//    public List<Block> getCanonicalBlocks(long start, int size) {
-//        List<Block> headers = getCanonicalHeaders(start, size);
-//        return getBlocksFromHeaders(headers);
-//    }
-//
-//    @Override
-//    public boolean isCanonical(byte[] hash) {
-//        return tmpl.queryForObject("select is_canonical from header where block_hash = ?", new Object[]{hash}, Boolean.class);
-//    }
-//
-//    @Override
 //    public synchronized void writeBlock(Block block) {
-//        Block parentHeader = getHeader(block.hashPrevBlock);
-//        if (parentHeader == null) {
-//            // cannot find parent, write fail
-//            return;
-//        }
 //        // 单机挖矿时防止分叉
-//        if (getCanonicalHeader(block.nHeight) != null) {
+//        if (getCanonicalHeader(block.nHeight).isPresent()) {
 //            return;
 //        }
+//        Optional<Block> parentHeader = getHeader(block.hashPrevBlock);
 //        long ptw = parentHeader.totalWeight;
 //        Block headHeader = currentHeader();
 //        long localTW = getTotalWeight(headHeader.getHash());
@@ -397,54 +408,56 @@ public class BlockChainOptional {
 //        }
 //    }
 //
-//    @Override
-//    public Block findAncestorHeader(byte[] bhash, long anum) {
-//        Block bHeader = getHeader(bhash);
-//        while (bHeader.nHeight != anum) {
-//            bHeader = getHeader(bHeader.hashPrevBlock);
+//    public Optional<Block> findAncestorHeader(byte[] bhash, long anum) {
+//        Optional<Block> bHeader = getHeader(bhash);
+//        while (bHeader.map(b -> b.nHeight > anum).orElse(false)) {
+//            bHeader = bHeader.flatMap(b -> getHeader(b.hashPrevBlock));
 //        }
 //        return bHeader;
 //    }
 //
-//    @Override
 //    public Block findAncestorBlock(byte[] bhash, long anum) {
 //        return getBlockFromHeader(findAncestorHeader(bhash, anum));
 //    }
-//
-//    @Override
-//    public List<Block> getAncestorHeaders(byte[] bhash, long anum) {
-//        List<Block> headers = new ArrayList<>();
-//        for (Block h = getHeader(bhash); h != null && h.nHeight >= anum; ) {
-//            headers.add(h);
-//            h = getHeader(h.hashPrevBlock);
-//        }
-//        Collections.reverse(headers);
-//        return headers;
-//    }
-//
-//    public Optional<List<Block>> getAncestorBlocks(byte[] bhash, long anum) {
-//        List<Block> headers = getAncestorHeaders(bhash, anum);
-//        return getBlocksFromHeaders(headers);
-//    }
-//
-//    public Optional<Long> getCurrentTotalWeight() {
-//        try {
-//            return Optional.of(tmpl.queryForObject("select max(total_weight) from header", null, Long.class));
-//        } catch (Exception e) {
-//            return Optional.empty();
-//        }
-//    }
-//
-//    public Optional<Boolean> hasTransaction(byte[] txHash) {
-//        try {
-//            return Optional.of(tmpl.queryForObject("select count(*) from transaction as tx " +
-//                    "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-//                    "inner join header as h on ti.block_hash = h.block_hash " +
-//                    "where tx.tx_hash = ? and h.is_canonical = true limit 1", new Object[]{txHash}, Integer.class) > 0);
-//        } catch (Exception e) {
-//            return Optional.empty();
-//        }
-//    }
+
+    public Optional<List<Block>> getAncestorHeaders(byte[] bhash, long anum) {
+        List<Block> headers = new ArrayList<>();
+        Optional<List<Block>> res = Optional.of(headers);
+
+        Optional<Block> bHeader = getHeader(bhash);
+        while (bHeader.map(x -> x.nHeight < anum).orElse(false)) {
+            res = bHeader.map(x -> {
+                headers.add(x);
+                return headers;
+            });
+            bHeader = bHeader.flatMap(h -> getHeader(h.hashPrevBlock));
+        }
+        res.ifPresent(Collections::reverse);
+        return res;
+    }
+
+    public Optional<List<Block>> getAncestorBlocks(byte[] bhash, long anum) {
+        return getAncestorHeaders(bhash, anum).flatMap(this::getBlocksFromHeaders);
+    }
+
+    public Optional<Long> getCurrentTotalWeight() {
+        try {
+            return Optional.of(tmpl.queryForObject("select max(total_weight) from header", null, Long.class));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<Boolean> hasTransaction(byte[] txHash) {
+        try {
+            return Optional.ofNullable(txHash).map(h -> (tmpl.queryForObject("select count(*) from transaction as tx " +
+                    "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
+                    "inner join header as h on ti.block_hash = h.block_hash " +
+                    "where tx.tx_hash = ? and h.is_canonical = true limit 1", new Object[]{h}, Integer.class) > 0));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
 
     public Optional<Transaction> getTransaction(byte[] txHash) {
         try {
