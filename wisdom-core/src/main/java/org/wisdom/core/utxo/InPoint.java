@@ -78,7 +78,6 @@ public class InPoint {
         this.script = script;
     }
 
-    // TODO: get transfer owner from script
     @JsonIgnore
     public String getTransferOwner() {
         return null;

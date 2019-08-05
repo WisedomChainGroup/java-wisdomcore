@@ -144,8 +144,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             return;
         }
         transactionCache.put(t.getHashHexString(), true);
-
-        // TODO: 事务进内存池
+        // TODO: 收到广播后的事务要进行处理
         context.relay();
     }
 
@@ -207,8 +206,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
     }
 
+    // TODO: 增加分叉容错后要开启该功能
     @Override
     public void onApplicationEvent(NewBlockMinedEvent event) {
-        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
+//        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }

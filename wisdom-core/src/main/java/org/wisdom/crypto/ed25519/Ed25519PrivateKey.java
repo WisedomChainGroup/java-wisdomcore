@@ -58,7 +58,6 @@ public class Ed25519PrivateKey implements PrivateKey {
         return Ed25519.ALGORITHM;
     }
 
-    // TODO: check format
     public String getFormat(){
         return "";
     }

@@ -27,7 +27,6 @@ import org.wisdom.core.WisdomBlockChain;
 
 import java.math.BigInteger;
 
-// TODO: add transaction pool
 //@Component
 //@Scope("prototype")
 public class Miner extends Thread {

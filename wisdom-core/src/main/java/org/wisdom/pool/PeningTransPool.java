@@ -62,7 +62,6 @@ public class PeningTransPool {
         if (t != null) {
             byte[] from = t.from;
             String froms = Hex.encodeHexString(from);
-            //todo:key=from+nonce
             String key = froms + t.nonce;
             return key;
         } else {

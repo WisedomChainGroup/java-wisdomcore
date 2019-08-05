@@ -90,7 +90,7 @@ public class SetAdapter<E> implements Set<E> {
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        throw new RuntimeException("Not implemented"); // TODO add later if required
+        throw new RuntimeException("Not implemented");
     }
 
     @Override

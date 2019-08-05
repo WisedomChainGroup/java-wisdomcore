@@ -57,11 +57,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         return !bc.hasBlock(block.hashPrevBlock);
     }
 
-    // TODO: 同步过程中对收到孤块的处理
-    // 1. 孤块池大小要作限制
-    // 2. 验证不过的区块加入黑名单 以后拒绝将这个区块加入孤块池
-    // 3. 在孤块池大小溢出情况下，尽可能保留区块高度小的区块
-    // try to add blocks without orphan checking
     private void addBlock(Block block) {
         orphans.addBlocks(Collections.singletonList(block));
     }

@@ -81,7 +81,6 @@ public class Transaction {
         });
     }
 
-    // TODO: convert protocol model to transaction
     /*public static Transaction fromProto(ProtocolModel.CommandMessage msg) {
         Transaction t = new Transaction();
         //手续费
@@ -100,7 +99,6 @@ public class Transaction {
         return t;
     }*/
 
-    // TODO: convert transaction to protocol model
     /*public static ProtocolModel.CommandMessage encodeProtobuf(Transaction tx) {
         ProtocolModel.CommandMessage.Builder commmessage = ProtocolModel.CommandMessage.newBuilder();
         byte[] version = new byte[1];
@@ -119,7 +117,6 @@ public class Transaction {
         return commmessage.build();
     }*/
 
-    // TODO: encode in-points
     public static byte[] encodeInpoints(List<InPoint> inPoints) {
         byte[] inpointsbyte = new byte[0];
         byte incount = (byte) inPoints.size();
@@ -134,7 +131,6 @@ public class Transaction {
         return inpointsbyte;
     }
 
-    // TODO: encode out-points
     public static byte[] encodeOutPoints(List<OutPoint> outPoints) {
         byte[] outpointbyte = new byte[0];
         byte outcount = (byte) outPoints.size();
@@ -150,7 +146,6 @@ public class Transaction {
         return outpointbyte;
     }
 
-    // TODO: decode in-points
     public static List<InPoint> decodeInpoints(byte[] inPoints, byte type) {
         List<InPoint> listin = new ArrayList<>();
         int incount = inPoints[0];
@@ -178,7 +173,6 @@ public class Transaction {
         return listin;
     }
 
-    // TODO:decode out points
     public static List<OutPoint> decodeOutPoints(byte[] outPoints, byte type) {
         /*List<OutPoint> listout = new ArrayList<>();
         int outcount = outPoints[0];
@@ -344,7 +338,6 @@ public class Transaction {
         this.commission = commission;
     }
 
-    // TODO: get transfer owner from script
     @JsonIgnore
     public String getTransferOwner() {
         return null;

@@ -68,7 +68,6 @@ public class ValidatorState implements State {
         nonce.put(key, nonce.get(key) + 1);
     }
 
-    // TODO: 更新票数
     private void updateVotes(Transaction tx){
         if(tx.type != Transaction.Type.VOTE.ordinal()){
             return;

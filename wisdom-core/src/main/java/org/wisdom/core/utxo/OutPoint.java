@@ -98,7 +98,6 @@ public class OutPoint {
         this.address = address;
     }
 
-    // TODO: get target from script
     @JsonIgnore
     public String getTransferTarget() {
         return null;
