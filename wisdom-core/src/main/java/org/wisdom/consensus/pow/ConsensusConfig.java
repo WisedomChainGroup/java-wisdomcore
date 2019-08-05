@@ -37,6 +37,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class ConsensusConfig {
@@ -123,19 +124,22 @@ public class ConsensusConfig {
         Transaction tx = new Transaction();
         tx.to = Hex.decodeHex("5b0a4c7e31c3123db40a4c14200b54b8e358294b".toCharArray());
         p.body.add(tx);
-        System.out.println(cfg.getProposer(p, 1562875906).pubkeyHash);
+        cfg.getProposer(p, 1562875906)
+                .map(x -> x.pubkeyHash)
+                .ifPresent(System.out::println);
+        ;
 
     }
 
-    public Proposer getProposer(Block parentBlock, long timeStamp) {
+    public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
         if (timeStamp <= parentBlock.nTime) {
-            return null;
+            return Optional.empty();
         }
         if (parentBlock.nHeight == 0) {
-            return new Proposer(getValidatorPubKeyHashes().get(0), 0, Integer.MAX_VALUE);
+            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), 0, Integer.MAX_VALUE));
         }
         if (parentBlock.nHeight >= 9235) {
-            return new Proposer(getValidatorPubKeyHashes().get(0), -1, Integer.MAX_VALUE);
+            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), -1, Integer.MAX_VALUE));
         }
         long step = (timeStamp - parentBlock.nTime)
                 / powWait + 1;
@@ -149,10 +153,10 @@ public class ConsensusConfig {
         long endTime = parentBlock.nTime + step * powWait;
         long startTime = endTime - powWait;
         String validator = getValidatorPubKeyHashes().get(currentValidatorIndex);
-        return new Proposer(
+        return Optional.of(new Proposer(
                 validator,
                 startTime,
                 endTime
-        );
+        ));
     }
 }

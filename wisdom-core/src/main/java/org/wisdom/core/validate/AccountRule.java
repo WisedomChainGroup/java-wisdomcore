@@ -18,6 +18,8 @@
 
 package org.wisdom.core.validate;
 
+import org.apache.commons.codec.binary.Hex;
+import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
@@ -31,6 +33,7 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.pool.PeningTransPool;
 
 import java.util.Base64;
 import java.util.HashSet;
@@ -40,7 +43,7 @@ import java.util.Set;
 // 1. 一个区块内一个只能有一个 from 的事务
 // 2. nonce 校验
 @Component
-public class AccountRule implements BlockRule{
+public class AccountRule implements BlockRule {
     static final Base64.Encoder encoder = Base64.getEncoder();
 
     @Autowired
@@ -61,22 +64,36 @@ public class AccountRule implements BlockRule{
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    PeningTransPool peningTransPool;
+
+    private boolean validateIncubator;
+
+
     @Override
     public Result validateBlock(Block block) {
         Set<String> froms = new HashSet<>();
-        long nowheight=wisdomBlockChain.currentHeader().nHeight;
-        for(Transaction tx: block.body){
-            String key = encoder.encodeToString(tx.from);
-            if(froms.contains(key)){
-                return Result.Error("duplicated account found");
-            }
-            froms.add(key);
-            // 校验转账事务
-            if(tx.type!=Transaction.Type.COINBASE.ordinal()){
-                byte[] transfer=tx.toRPCBytes();
-                APIResult apiResult= TransactionCheck.TransactionVerifyResult(transfer,wisdomBlockChain,configuration,accountDB,incubatorDB,rateTable,nowheight,false);
-                if(apiResult.getCode()==5000){
-                    return Result.Error("Transaction validation failed");
+        if (block.nHeight > 30800) {
+            long nowheight = wisdomBlockChain.currentHeader().nHeight;
+            for (Transaction tx : block.body) {
+                String key = encoder.encodeToString(tx.from);
+                if (froms.contains(key)) {
+                    return Result.Error("duplicated account found");
+                }
+                froms.add(key);
+                if (!validateIncubator) {
+                    continue;
+                }
+                // 校验转账事务
+                if (tx.type != Transaction.Type.COINBASE.ordinal()) {
+                    byte[] transfer = tx.toRPCBytes();
+                    APIResult apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, false, false);
+                    if (apiResult.getCode() == 5000) {
+                        String keys = peningTransPool.getKeyTrans(tx);
+                        String fromhex=Hex.encodeHexString(tx.from);
+                        peningTransPool.removeOne(keys,fromhex,tx.nonce);
+                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
+                    }
                 }
             }
         }
@@ -84,14 +101,18 @@ public class AccountRule implements BlockRule{
     }
 
     // validateBlock 内已经包含了对 nonce 的校验
-    public Result validateTransaction(ValidatorState state, Transaction transaction){
-        if(transaction.type == Transaction.Type.COINBASE.ordinal()){
+    public Result validateTransaction(ValidatorState state, Transaction transaction) {
+        if (transaction.type == Transaction.Type.COINBASE.ordinal()) {
             return Result.SUCCESS;
         }
         // nonce 校验
-        if (state.getNonceFromPublicKey(transaction.from) + 1 != transaction.nonce){
+        if (state.getNonceFromPublicKey(transaction.from) + 1 != transaction.nonce) {
             return Result.Error("wrong nonce = " + transaction.nonce + " required = " + state.getNonceFromPublicKey(transaction.from) + 1);
         }
         return Result.SUCCESS;
+    }
+
+    public AccountRule(@Value("${node-character}") String character) {
+        this.validateIncubator = !character.equals("exchange");
     }
 }

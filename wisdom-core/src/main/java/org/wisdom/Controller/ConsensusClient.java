@@ -20,6 +20,7 @@ package org.wisdom.Controller;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
@@ -27,6 +28,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
@@ -45,10 +47,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class ConsensusClient {
@@ -80,7 +79,16 @@ public class ConsensusClient {
     @Autowired
     private WisdomBlockChain bc;
 
+    private CloseableHttpClient httpclient;
+
     private static final Logger logger = LoggerFactory.getLogger(ConsensusClient.class);
+
+    public ConsensusClient() {
+        httpclient = HttpClients.custom()
+                .setConnectionManager(new PoolingHttpClientConnectionManager())
+                .setConnectionManagerShared(true)
+                .build();
+    }
 
     private static byte[] getBody(final HttpResponse response) {
         int status = response.getStatusLine().getStatusCode();
@@ -100,29 +108,31 @@ public class ConsensusClient {
     }
 
     private void post(String url, byte[] body, Callback<byte[], Object> cb) {
-        CloseableHttpClient httpclient = HttpClients.createDefault();
+        Optional<CloseableHttpResponse> resp = Optional.empty();
         try {
             URI urio = new URI(url);
-
             HttpPost httppost = new HttpPost(urio);
             httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
             // Create a custom response handler
-
-            byte[] responseBody = httpclient.execute(httppost, ConsensusClient::getBody);
-            if (responseBody != null) {
-                logger.info("response received = " + new String(responseBody));
+            resp = Optional.of(httpclient.execute(httppost));
+            Optional<byte[]> responseBody = resp.map(ConsensusClient::getBody);
+            if (responseBody.isPresent()) {
+                logger.info("response received = " + responseBody.map(String::new));
             } else {
                 logger.error("post " + url + " fail");
             }
-            cb.call(responseBody);
+            responseBody.map(cb::call);
         } catch (Exception e) {
             logger.error("post " + url + " fail");
         } finally {
-            try {
-                httpclient.close();
-            } catch (Exception e) {
-                logger.error("close client fail");
-            }
+            resp.map(x -> {
+                try {
+                    x.close();
+                } catch (Exception e) {
+                    return false;
+                }
+                return true;
+            });
         }
     }
 
@@ -133,7 +143,7 @@ public class ConsensusClient {
     }
 
     private void get(String uri, Map<String, String> query, Callback<byte[], Object> cb) {
-        CloseableHttpClient httpclient = HttpClients.createDefault();
+        Optional<CloseableHttpResponse> resp = Optional.empty();
         try {
             URI urio = new URI(uri);
             URIBuilder builder = new URIBuilder()
@@ -149,21 +159,25 @@ public class ConsensusClient {
             HttpGet httpget = new HttpGet(urio);
             // Create a custom response handler
 
-            byte[] responseBody = httpclient.execute(httpget, ConsensusClient::getBody);
-            if (responseBody != null) {
-                logger.info("response received = " + new String(responseBody));
+            resp = Optional.of(httpclient.execute(httpget));
+            Optional<byte[]> responseBody = resp.map(ConsensusClient::getBody);
+            if (responseBody.isPresent()) {
+                logger.info("response received = " + responseBody.map(String::new));
             } else {
                 logger.error("get " + uri + " fail");
             }
-            cb.call(responseBody);
+            responseBody.map(cb::call);
         } catch (Exception e) {
             logger.error("get " + uri + " fail");
         } finally {
-            try {
-                httpclient.close();
-            } catch (Exception e) {
-                logger.info("close client fail");
-            }
+            resp.map(x -> {
+                try {
+                    x.close();
+                } catch (Exception e) {
+                    return false;
+                }
+                return true;
+            });
         }
     }
 
@@ -176,7 +190,7 @@ public class ConsensusClient {
         for (String hostPort : consensusConfig.getPeers()) {
             get("http://" + hostPort + "/consensus/blocks", params, (byte[] body) -> {
                 List<Block> blocks = codec.decodeBlocks(body);
-                if(blocks == null){
+                if (blocks == null) {
                     logger.error("get blocks from " + hostPort + " failed, consider correct your boot nodes");
                     return null;
                 }
@@ -233,7 +247,7 @@ public class ConsensusClient {
         String hostPort = consensusConfig.getPeers().get(counter);
         get("http://" + hostPort + "/consensus/status", new HashMap<>(), (byte[] resp) -> {
             Status status = codec.decode(resp, Status.class);
-            if(status == null){
+            if (status == null) {
                 logger.error("invalid status received " + new String(resp));
                 return null;
             }
@@ -268,7 +282,13 @@ public class ConsensusClient {
 
     // broadcast transactions
     @Async
-    public void broascastTransactions(List<Transaction> txs) {
-        broadcast("/consensus/transactions", codec.encodeTransactions(txs));
+    public void relayPacket(Packet packet) {
+        packet.dec();
+        broadcast("/consensus/transactions", codec.encodePacket(packet));
+    }
+
+    @Async
+    public void broadcastTransactions(List<Transaction> txs) {
+        broadcast("/consensus/transactions", codec.encodePacket(new Packet(codec.encodeTransactions(txs), 8)));
     }
 }

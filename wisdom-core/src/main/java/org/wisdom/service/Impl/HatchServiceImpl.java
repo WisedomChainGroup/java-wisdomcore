@@ -22,12 +22,14 @@ import com.alibaba.fastjson.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.math3.fraction.BigFraction;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -38,8 +40,9 @@ import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Service
 public class HatchServiceImpl implements HatchService {
@@ -66,7 +69,7 @@ public class HatchServiceImpl implements HatchService {
             long balance=accountDB.getBalance(pubkey);
             return APIResult.newFailResult(2000,"SUCCESS",balance);
         } catch (DecoderException e) {
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -77,7 +80,7 @@ public class HatchServiceImpl implements HatchService {
             long nonce=accountDB.getNonce(pubkey);
             return APIResult.newFailResult(2000,"SUCCESS",nonce);
         } catch (DecoderException e) {
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -146,13 +149,13 @@ public class HatchServiceImpl implements HatchService {
                         map.put("inviteAddress","");
                     }
                 }else{
-                    return APIResult.newFailResult(5000,"ERROR");
+                    return APIResult.newFailResult(5000,"Error in incubation state acquisition");
                 }
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -170,7 +173,7 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -187,7 +190,7 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 
@@ -198,39 +201,186 @@ public class HatchServiceImpl implements HatchService {
             //查询当前孵化记录
             Incubator incubator=incubatorDB.selectIncubator(trhash);
             if(incubator==null){
-                return APIResult.newFailResult(5000,"ERROR");
+                return APIResult.newFailResult(5000,"Error in incubation state acquisition");
+            }
+            if(incubator.getInterest_amount()==0 || incubator.getCost()==0){
+                return APIResult.newFailResult(3000,"There is no interest to be paid");
             }
             //孵化事务
             Transaction transaction=wisdomBlockChain.getTransaction(trhash);
             if(transaction==null){
-                return APIResult.newFailResult(5000,"ERROR");
+                return APIResult.newFailResult(5000,"Transaction unavailable. Check transaction hash");
             }
             HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
             int days=payloadproto.getType();
-            double nowrate=rateTable.selectrate(transaction.height,days);
+            String nowrate=rateTable.selectrate(transaction.height,days);
             //当前最高高度
             long maxhieght=wisdomBlockChain.getCurrentTotalWeight();
             long differheight=maxhieght-incubator.getLast_blockheight_interest();
             int differdays=(int)(differheight/configuration.getDay_count());
             if(differdays==0){
-                return APIResult.newFailResult(5000,"ERROR");
+                return APIResult.newFailResult(5000,"Interest less than one day");
             }
-            long dayrate=(long)(transaction.amount*nowrate);
-            int maxdays=(int)(incubator.getInterest_amount()/dayrate);
-            long lastdays=0;
-            if(maxdays>differdays){
-                lastdays=differdays;
-            }else{
-                lastdays=maxdays;
-            }
-            //当前可获取利息
-            long interset=dayrate*lastdays;
+            BigDecimal aount=new BigDecimal(transaction.amount);
+            BigDecimal nowratebig=new BigDecimal(nowrate);
+            BigDecimal dayrate=aount.multiply(nowratebig);
+            long dayratelong=dayrate.longValue();
             JSONObject jsonObject=new JSONObject();
-            jsonObject.put("dueinAmount",interset);
-            jsonObject.put("capitalAmount",incubator.getInterest_amount());
+            //判断利息金额小于每天利息
+            if(incubator.getInterest_amount()<dayrate.longValue()){
+                jsonObject.put("dueinAmount",incubator.getInterest_amount());
+                jsonObject.put("capitalAmount",incubator.getInterest_amount());
+            }else{
+                int muls=(int)(incubator.getInterest_amount() % dayrate.longValue());
+                if(muls!=0){
+                    long syamount=muls;
+                    jsonObject.put("dueinAmount",syamount);
+                    jsonObject.put("capitalAmount",incubator.getInterest_amount());
+                }else{
+                    int maxdays=(int)(incubator.getInterest_amount()/dayrate.longValue());
+                    long lastdays=0;
+                    if(maxdays>differdays){
+                        lastdays=differdays;
+                    }else{
+                        lastdays=maxdays;
+                    }
+                    //当前可获取利息
+                    BigDecimal lastdaysbig=BigDecimal.valueOf(lastdays);
+                    BigDecimal dayrtebig=BigDecimal.valueOf(dayratelong);
+                    long interset=dayrtebig.multiply(lastdaysbig).longValue();
+                    jsonObject.put("dueinAmount",interset);
+                    jsonObject.put("capitalAmount",incubator.getInterest_amount());
+                }
+            }
             return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
         }catch (Exception e){
-            return APIResult.newFailResult(5000,"ERROR");
+            return APIResult.newFailResult(5000,"Exception error");
+        }
+    }
+
+    @Override
+    public Object getNowShare(String tranhash) {
+        try{
+            byte[] trhash= Hex.decodeHex(tranhash.toCharArray());
+            //查询当前孵化记录
+            Incubator incubator=incubatorDB.selectIncubator(trhash);
+            if(incubator==null){
+                return APIResult.newFailResult(5000,"Error in incubation state acquisition");
+            }
+            if(incubator.getShare_amount()==0){
+                return APIResult.newFailResult(3000,"There is no share to be paid");
+            }
+            //孵化事务
+            Transaction transaction=wisdomBlockChain.getTransaction(trhash);
+            if(transaction==null){
+                return APIResult.newFailResult(5000,"Transaction unavailable. Check transaction hash");
+            }
+            HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(transaction.payload);
+            int days=payloadproto.getType();
+            String nowrate=rateTable.selectrate(transaction.height,days);
+            //当前最高高度
+            long maxhieght=wisdomBlockChain.getCurrentTotalWeight();
+            long differheight=maxhieght-incubator.getLast_blockheight_share();
+            int differdays=(int)(differheight/configuration.getDay_count());
+            if(differdays==0){
+                return APIResult.newFailResult(5000,"Interest less than one day");
+            }
+            BigDecimal aount=new BigDecimal(transaction.amount);
+            BigDecimal nowratebig=new BigDecimal(nowrate);
+            BigDecimal lv=BigDecimal.valueOf(0.1);
+            BigDecimal nowlv=aount.multiply(nowratebig);
+            BigDecimal dayrate=nowlv.multiply(lv);
+            long dayrates=dayrate.longValue();
+            JSONObject jsonObject=new JSONObject();
+            //判断分享金额小于每天可提取的
+            if(incubator.getShare_amount()<dayrate.longValue()){
+                jsonObject.put("dueinAmount",incubator.getShare_amount());
+                jsonObject.put("capitalAmount",incubator.getShare_amount());
+            }else{
+                int muls=(int)(incubator.getShare_amount() % dayrate.longValue());
+                if(muls!=0){
+                    long syamount=muls;
+                    jsonObject.put("dueinAmount",syamount);
+                    jsonObject.put("capitalAmount",incubator.getShare_amount());
+                }else{
+                    int maxdays=(int)(incubator.getShare_amount()/dayrate.longValue());
+                    long lastdays=0;
+                    if(maxdays>differdays){
+                        lastdays=differdays;
+                    }else{
+                        lastdays=maxdays;
+                    }
+                    //当前可获取分享
+                    BigDecimal lastdaysbig=BigDecimal.valueOf(lastdays);
+                    BigDecimal dayratesbig=BigDecimal.valueOf(dayrates);
+                    long share=dayratesbig.multiply(lastdaysbig).longValue();
+                    jsonObject.put("dueinAmount",share);
+                    jsonObject.put("capitalAmount",incubator.getShare_amount());
+                }
+            }
+            return APIResult.newFailResult(2000,"SUCCESS",jsonObject);
+        }catch (Exception e){
+            return APIResult.newFailResult(5000,"Exception error");
+        }
+    }
+
+    @Override
+    public Object getTxrecordFromAddress(String address) {
+        try {
+            if(KeystoreAction.verifyAddress(address)==0){
+                byte[] pubkeyhash=KeystoreAction.addressToPubkeyHash(address);
+                List<Map<String,Object>> list=new ArrayList<>();
+                List<Map<String,Object>> tolist=accountDB.selectTranto(pubkeyhash);
+                for(Map<String,Object> to:tolist){
+                    Map<String,Object> maps=to;
+                    String from=maps.get("from").toString();
+                    String fromaddress=KeystoreAction.pubkeyToAddress(Hex.decodeHex(from.toCharArray()),(byte)0x00);
+                    maps.put("from",fromaddress);
+                    String topubkeyhash=maps.get("to").toString();
+                    String toaddress=KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()),(byte)0x00);
+                    maps.put("to",toaddress);
+                    long time= Long.valueOf(maps.get("datetime").toString());
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    Date dates = new Date(time*1000);
+                    String date=sdf.format(dates);
+                    maps.put("datetime",date);
+                    maps.put("type","+");
+                    list.add(maps);
+                }
+                List<Map<String,Object>> fromlist=accountDB.selectTranfrom(pubkeyhash);
+                for(Map<String,Object> from:fromlist){
+                    Map<String,Object> maps=from;
+                    String froms=maps.get("from").toString();
+                    byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(Hex.decodeHex(froms.toCharArray())));
+                    if(Arrays.equals(frompubhash,pubkeyhash)){
+                        String fromaddress=KeystoreAction.pubkeyHashToAddress(frompubhash,(byte)0x00);
+                        maps.put("from",fromaddress);
+                        String topubkeyhash=maps.get("to").toString();
+                        String toaddress=KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()),(byte)0x00);
+                        maps.put("to",toaddress);
+                        long time= Long.valueOf(maps.get("datetime").toString());
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date dates = new Date(time*1000);
+                        String date=sdf.format(dates);
+                        maps.put("datetime",date);
+                        maps.put("type","-");
+                        list.add(maps);
+                    }
+                }
+                Collections.sort(list, new Comparator<Map<String, Object>>() {
+                    public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+                        Integer name1 = Integer.valueOf(o1.get("height").toString()) ;
+                        Integer name2 = Integer.valueOf(o2.get("height").toString()) ;
+                        return name2.compareTo(name1);
+                    }
+                });
+                return APIResult.newFailResult(2000,"SUCCESS",list);
+            }else{
+                return APIResult.newFailResult(5000,"Address check error");
+            }
+        } catch (DecoderException e) {
+            e.printStackTrace();
+            return APIResult.newFailResult(5000,"Exception error");
         }
     }
 }
