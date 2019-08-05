@@ -228,6 +228,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             Block genesis,
             ApplicationContext ctx,
             @Value("${spring.datasource.username}") String dataname,
+            @Value("${clear-data}") boolean clearData,
             BlockChainOptional blockChainOptional
     ) {
         this.tmpl = tmpl;
@@ -236,6 +237,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         this.ctx = ctx;
         this.dataname = dataname;
         this.blockChainOptional = blockChainOptional;
+        if (clearData) {
+            clearData();
+        }
         //增加account vote字段
         if (this.dataname != null && this.dataname != "" && !this.dataname.equals("")) {
             String sql = "ALTER TABLE account OWNER TO " + dataname;
@@ -363,8 +367,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         boolean isNewHeadBlock = externTW > localTW;
         boolean refork = isNewHeadBlock && !Arrays.areEqual(headHeader.getHash(), block.hashPrevBlock);
         Block commonAncestor = refork ? findCommonAncestor(parentHeader, headHeader) : null;
+        if (refork && commonAncestor == null) {
+            return;
+        }
         List<Block> canonicalHeaders = refork ? getAncestorHeaders(parentHeader.getHash(), commonAncestor.nHeight + 1) : null;
-
+        if (refork && canonicalHeaders == null) {
+            return;
+        }
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
