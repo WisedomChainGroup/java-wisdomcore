@@ -37,7 +37,6 @@ import org.wisdom.service.Impl.CommandServiceImpl;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +138,7 @@ public class ConsensusController {
                 MAX_BLOCKS_IN_TRANSIT_PER_PEER, false
         );
 
-        consensusClient.getBlocks(query.start, query.stop, false);
+//        consensusClient.getBlocks(query.start, query.stop, false);
         return SUCCESS("received, start synchronizing");
     }
 
@@ -150,7 +149,7 @@ public class ConsensusController {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid block proposal");
         }
-        consensusClient.receiveBlocks(Collections.singletonList(b));
+//        consensusClient.receiveBlocks(Collections.singletonList(b));
         return SUCCESS("proposal received");
     }
 
