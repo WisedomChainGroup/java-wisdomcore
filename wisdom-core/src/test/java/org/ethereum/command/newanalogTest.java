@@ -1,8 +1,10 @@
-package org.wisdom.command;
+package org.ethereum.command;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.bouncycastle.util.test.Test;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
@@ -12,6 +14,13 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class newanalogTest {
 
@@ -459,4 +468,37 @@ public class newanalogTest {
         return tranfull;
     }
 
+    private static Map<String,Object> map;
+    public static void main(String args[]) throws DecoderException {
+        String nowrate=new RateTable().selectrate(0,365);
+        BigDecimal aount=new BigDecimal(30012345678L);
+        BigDecimal nowratebig=new BigDecimal(nowrate);
+        BigDecimal dayrate=aount.multiply(nowratebig);
+        long s=dayrate.longValue();
+        BigDecimal s1=BigDecimal.valueOf(s);
+        BigDecimal lastdaysbig=BigDecimal.valueOf(11);
+        long intersets=s1.multiply(lastdaysbig).longValue();
+        long interset=(long)(dayrate.longValue()*11);
+        System.out.println(intersets+"--->"+interset);
+
+
+        String rate =new RateTable().selectrate(1220, 0);
+    }
+
+
+
+
+
+
+    public static class test111{
+        private List<String> s;
+
+        public List<String> getS() {
+            return s;
+        }
+
+        public void setS(List<String> s) {
+            this.s = s;
+        }
+    }
 }

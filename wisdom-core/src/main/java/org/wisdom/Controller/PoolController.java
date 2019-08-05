@@ -1,6 +1,6 @@
 package org.wisdom.Controller;
 
-import com.alibaba.fastjson.JSONArray;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -20,10 +20,7 @@ import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 public class PoolController {
@@ -51,7 +48,7 @@ public class PoolController {
                 json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                 json.put("type",transaction.type);
                 json.put("nonce",transaction.nonce);
-                json.put("from",transaction.from);
+                json.put("from",Hex.encodeHexString(transaction.from));
                 json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                 json.put("amount",transaction.amount);
                 json.put("to",Hex.encodeHexString(transaction.to));
@@ -69,7 +66,7 @@ public class PoolController {
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
+                    json.put("from",Hex.encodeHexString(transaction.from));
                     json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                     json.put("amount",transaction.amount);
                     json.put("to",Hex.encodeHexString(transaction.to));
@@ -81,7 +78,20 @@ public class PoolController {
                     jsonArray.add(json);
                 }
             }
-            return APIResult.newFailResult(2000,"SUCCESS",jsonArray);
+            List<JSONObject> jsonValues = new ArrayList<JSONObject>();
+            for (int i = 0; i < jsonArray.size(); i++) {
+                jsonValues.add(jsonArray.getJSONObject(i));
+            }
+            Collections.sort(jsonValues, new Comparator<JSONObject>() {
+                @Override
+                public int compare(JSONObject o1, JSONObject o2) {
+                    long nonce1=o1.getLong("nonce");
+                    long nonce2=o2.getLong("nonce");
+                    return (int)(nonce1-nonce2);
+                }
+            });
+            JSONArray jsonArray1=JSONArray.fromObject(jsonValues.toString());
+            return APIResult.newFailResult(2000,"SUCCESS",jsonArray1);
         }else{
             return APIResult.newFailResult(5000,"Address check error");
         }

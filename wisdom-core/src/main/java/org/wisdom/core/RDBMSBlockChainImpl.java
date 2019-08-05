@@ -223,7 +223,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Autowired
-    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname,InitializeAccount account) {
+    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname) {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;

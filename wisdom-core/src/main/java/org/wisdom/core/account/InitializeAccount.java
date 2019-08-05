@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.*;
 
-@Component
+//@Component
 public class InitializeAccount {
 
     private JdbcTemplate tmpl;
@@ -45,7 +45,7 @@ public class InitializeAccount {
         }
     }
 
-    @Autowired
+//    @Autowired
     public InitializeAccount(JdbcTemplate tmpl, @Value("${wisdom.consensus.enable-mining}") String miner ) throws IOException {
         this.tmpl=tmpl;
         this.miner= Boolean.parseBoolean(miner);
