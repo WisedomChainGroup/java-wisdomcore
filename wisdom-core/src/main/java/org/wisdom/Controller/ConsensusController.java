@@ -18,11 +18,9 @@
 
 package org.wisdom.Controller;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.crypto.HashUtil;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
