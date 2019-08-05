@@ -40,7 +40,6 @@ public class AdoptTransPool {
         if (t != null) {
             byte[] from = t.from;
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
-            //todo:key=fromhash+nonce
             String key = fromhash + t.nonce;
             return key;
         } else {

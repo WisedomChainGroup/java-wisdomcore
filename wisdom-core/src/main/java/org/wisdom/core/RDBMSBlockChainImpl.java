@@ -37,8 +37,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
 
-// TODO: use read/write lock, handle null pointer exception
-
 /**
  * @author sal 1564319846@qq.com
  * block query/write based on relational database with concurrently safety
@@ -51,7 +49,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     private ApplicationContext ctx;
     private String dataname;
     private static final Logger logger = LoggerFactory.getLogger(RDBMSBlockChainImpl.class);
-
+    private BlockChainOptional blockChainOptional;
 
     private <T> T getOne(List<T> res) {
         if (res.size() == 0) {
@@ -69,9 +67,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     // get block body
-    // TODO: use view
     private List<Transaction> getBlockBody(Block header) {
-        if (header == null){
+        if (header == null) {
             return new ArrayList<>();
         }
         return tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
@@ -79,7 +76,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     private Block getBlockFromHeader(Block block) {
-        if(block == null){
+        if (block == null) {
             return null;
         }
         block.body = getBlockBody(block);
@@ -93,8 +90,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
         return res;
     }
-
-    // TODO: get blocks from headers
 
     private long getTotalWeight(byte[] hash) {
         try {
@@ -182,7 +177,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return tmpl.queryForObject("select count(*) from header where height = 0 limit 1", new Object[]{}, Integer.class) > 0;
     }
 
-    // TODO: use procedure
     private Block findCommonAncestor(Block a, Block b) {
         for (long bn = b.nHeight; a.nHeight > bn; ) {
             a = getHeader(a.hashPrevBlock);
@@ -228,15 +222,27 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Autowired
-    public RDBMSBlockChainImpl(JdbcTemplate tmpl, TransactionTemplate txTmpl, Block genesis, ApplicationContext ctx,@Value("${spring.datasource.username}") String dataname) {
+    public RDBMSBlockChainImpl(
+            JdbcTemplate tmpl,
+            TransactionTemplate txTmpl,
+            Block genesis,
+            ApplicationContext ctx,
+            @Value("${spring.datasource.username}") String dataname,
+            @Value("${clear-data}") boolean clearData,
+            BlockChainOptional blockChainOptional
+    ) {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
         this.ctx = ctx;
         this.dataname = dataname;
+        this.blockChainOptional = blockChainOptional;
+        if (clearData) {
+            clearData();
+        }
         //增加account vote字段
-        if(this.dataname!=null && this.dataname!="" && !this.dataname.equals("")){
-            String sql="ALTER TABLE account OWNER TO "+dataname;
+        if (this.dataname != null && this.dataname != "" && !this.dataname.equals("")) {
+            String sql = "ALTER TABLE account OWNER TO " + dataname;
             tmpl.execute(sql);//更换属主
         }
         tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
@@ -338,15 +344,20 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public synchronized void writeBlock(Block block) {
-        Block parentHeader = getHeader(block.hashPrevBlock);
-        if (parentHeader == null) {
+        Optional<Block> parent = Optional.ofNullable(block)
+                .flatMap(b -> blockChainOptional.getHeader(b.hashPrevBlock));
+        if (!parent.isPresent()) {
             // cannot find parent, write fail
             return;
         }
+        Block parentHeader = parent.get();
+
         // 单机挖矿时防止分叉
-//        if (getCanonicalHeader(block.nHeight) != null){
-//            return;
-//        }
+        if (blockChainOptional
+                .hasBlock(block.getnHeight())
+                .orElse(true)) {
+            return;
+        }
         long ptw = parentHeader.totalWeight;
         Block headHeader = currentHeader();
         long localTW = getTotalWeight(headHeader.getHash());
@@ -356,8 +367,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         boolean isNewHeadBlock = externTW > localTW;
         boolean refork = isNewHeadBlock && !Arrays.areEqual(headHeader.getHash(), block.hashPrevBlock);
         Block commonAncestor = refork ? findCommonAncestor(parentHeader, headHeader) : null;
+        if (refork && commonAncestor == null) {
+            return;
+        }
         List<Block> canonicalHeaders = refork ? getAncestorHeaders(parentHeader.getHash(), commonAncestor.nHeight + 1) : null;
-
+        if (refork && canonicalHeaders == null) {
+            return;
+        }
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
@@ -447,7 +463,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                         " where tx.tx_hash = ? and h.is_canonical = true", new Object[]{txHash}, new TransactionMapper()));
     }
 
-    public Transaction getTransactionByTo(byte[] pubKeyHash){
+    public Transaction getTransactionByTo(byte[] pubKeyHash) {
         return getOne(tmpl.query("select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
                 "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
                 "inner join header as h on ti.block_hash = h.block_hash" +

@@ -78,7 +78,6 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
 
     public byte[] encode(Object object) {
         try {
-            // TODO: cancel json uglify option
             ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
             SimpleModule module = new SimpleModule();
             module.addSerializer(byte[].class, new BytesSerializer());

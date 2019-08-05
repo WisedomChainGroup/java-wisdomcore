@@ -36,7 +36,6 @@ public class VRFDPos implements Engine {
         return keyPair;
     }
 
-    // TODO: verify merkle hash
     public boolean verifyBlock(Block block) {
         if (block == null) {
             return false;
@@ -62,7 +61,6 @@ public class VRFDPos implements Engine {
         return true;
     }
 
-    // TODO: pos table query
     public BigInteger BlockWeight(Block block) {
         if (!verifyBlock(block)) {
             return BigInteger.ZERO;

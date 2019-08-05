@@ -48,7 +48,6 @@ public class Ed25519PublicKey implements PublicKey {
         return verifier.verifySignature(signature);
     }
 
-    // TODO: check format
     public String getFormat(){
         return "";
     }

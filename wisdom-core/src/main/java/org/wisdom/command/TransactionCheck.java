@@ -76,7 +76,6 @@ public class TransactionCheck {
         byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(frompubkey));
         long nownonce = accountDB.getNonce(frompubhash);
         if (state) {
-            //todo:nonce判断不能大于最大64个
             long maxnonce = nownonce + 64;
             if (nownonce >= nonce || nonce > maxnonce) {
                 apiResult.setCode(5000);
@@ -84,7 +83,6 @@ public class TransactionCheck {
                 return apiResult;
             }
         } else {
-            //todo:nonce为DB+1
 //            nownonce++;
 //            if (nownonce != nonce) {
 //                apiResult.setCode(5000);

@@ -126,7 +126,6 @@ public class Block {
         return new byte[32];
     }
 
-    // TODO: decode transactions
     public static Block fromProto(ProtocolModel.Block block) {
         Block b = new Block();
         b.nVersion = block.getVersion();

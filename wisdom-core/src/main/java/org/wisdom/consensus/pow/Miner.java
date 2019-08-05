@@ -116,7 +116,6 @@ public class Miner implements ApplicationListener {
         Set<String> hasValidated = new HashSet<>();
         List<Transaction> notWrittern = new ArrayList<>();
         for (Transaction tx : peningTransPool.compare()) {
-            // TODO: 验证事务池里面的事务
             if (hasValidated.contains(Hex.encodeHexString(tx.from))) {
                 continue;
             }

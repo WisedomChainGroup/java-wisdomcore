@@ -27,7 +27,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * @author sal 1564319846@qq.com
  * concurrently safe in-memory blocks cache for fast indexing/searching
- * TODO: add size limit to prevent heap overflow
  */
 public class BlocksCache {
     private Map<String, Block> blocks;

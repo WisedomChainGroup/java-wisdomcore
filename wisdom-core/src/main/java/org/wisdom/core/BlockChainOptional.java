@@ -68,7 +68,7 @@ public class BlockChainOptional {
         })), null);
     }
 
-    private Optional<Block> findCommonAncestor(Block a, Block b) {
+    public Optional<Block> findCommonAncestor(Block a, Block b) {
         Optional<Block> ao = Optional.ofNullable(a);
         Optional<Block> bo = Optional.ofNullable(b);
         while (true) {
@@ -285,5 +285,11 @@ public class BlockChainOptional {
         });
     }
 
-
+    public Optional<Boolean> hasBlock(long number) {
+        try {
+            return Optional.ofNullable(tmpl.queryForObject("select count(*) from header where height = ? limit 1", new Object[]{number}, Integer.class)).map(x -> x > 0);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
 }

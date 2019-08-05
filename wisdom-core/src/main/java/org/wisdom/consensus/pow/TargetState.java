@@ -59,8 +59,6 @@ public class TargetState implements State {
         return this;
     }
 
-    // TODO: add minRetargetTimespan & maxRetargetTimespan
-
     /**
      * Calculate new target difficulty as:
      * currentDifficulty * (adjustedTimespan / targetTimespan)
