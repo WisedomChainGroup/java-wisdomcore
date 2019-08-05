@@ -85,7 +85,6 @@ public class AdoptTransPool {
                     } else {
                         atpool.put(entry.getKey(), map);
                     }
-                    break;
                 }
             }
         }
