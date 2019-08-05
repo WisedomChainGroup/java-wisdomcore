@@ -141,6 +141,32 @@ public class AccountDB {
         return tmpl.query(sql,new Object[] { },new TransactionMapper());
     }
 
+    public List<Map<String,Object>> selectTranto(byte[] pubkeyhash){
+        try{
+            String sql="select encode(a.tx_hash::bytea,'hex') as \"tx_hash\",a.amount,h.height,encode(a.from::bytea,'hex') as \"from\",encode(a.to::bytea,'hex') as \"to\",encode(h.block_hash::bytea,'hex') as \"block_hash\",h.created_at as datetime from transaction a\n" +
+                    "left join transaction_index i on a.tx_hash=i.tx_hash\n" +
+                    "left join header h on i.block_hash=h.block_hash\n" +
+                    "where a.type=1 and a.to=?";
+            return tmpl.queryForList(sql,new Object[] {pubkeyhash});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectTranfrom(byte[] pubkeyhash){
+        try{
+            String sql="select encode(a.tx_hash::bytea,'hex') as \"tx_hash\",a.amount,h.height,encode(a.from::bytea,'hex') as \"from\",encode(a.to::bytea,'hex') as \"to\",encode(h.block_hash::bytea,'hex') as \"block_hash\",h.created_at as datetime from transaction a\n" +
+                    "left join transaction_index i on a.tx_hash=i.tx_hash\n" +
+                    "left join header h on i.block_hash=h.block_hash\n" +
+                    "where a.type=1 and a.to!=?";
+            return tmpl.queryForList(sql,new Object[] {pubkeyhash});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public List<Map<String,Object>> selectlistHacth(int height, int type) {
         try{
             String sql="select encode(t.tx_hash::bytea,'hex') as \"coinHash\",encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"coinAccount\",h.height as \"blockHeight\",encode(t.payload::bytea,'hex')as payload \n" +
@@ -245,5 +271,4 @@ public class AccountDB {
             return tmpl.queryForList(sql,new Object[] { blockhash,type});
         }
     }
-
 }

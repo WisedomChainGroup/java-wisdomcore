@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 // 共识校验规则
 // 1. 目标值符合
@@ -38,7 +39,7 @@ import java.util.List;
 // 3. 区块高度正确
 // 4. 时间戳递增
 @Component
-public class ConsensusRule implements BlockRule{
+public class ConsensusRule implements BlockRule {
 
     @Autowired
     private WisdomBlockChain bc;
@@ -53,22 +54,24 @@ public class ConsensusRule implements BlockRule{
     public Result validateBlock(Block block) {
         Block parent = bc.getBlock(block.hashPrevBlock);
         // 不接受孤块
-        if (parent == null){
-            return  Result.Error("failed to find parent block");
+        if (parent == null) {
+            return Result.Error("failed to find parent block");
         }
         // 父区块高度增1
-        if (parent.nHeight + 1 != block.nHeight){
-            return  Result.Error("block height invalid");
+        if (parent.nHeight + 1 != block.nHeight) {
+            return Result.Error("block height invalid");
         }
         // 出块在是否在合理时间内出块
-        Proposer p = consensusConfig.getProposer(parent, block.nTime);
-        if (!p.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to))){
-            return Result.Error("the proposer cannot propose this block" );
+        Optional<Proposer> p = consensusConfig.getProposer(parent, block.nTime);
+        if (!p.
+                map(x -> x.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to)))
+                .orElse(false)) {
+            return Result.Error("the proposer cannot propose this block");
         }
         // 难度值符合调整难度值
         TargetState state = factory.getInstance(block);
-        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) > 0){
-            return  Result.Error("block nbits invalid");
+        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) > 0) {
+            return Result.Error("block nbits invalid");
         }
         return Result.SUCCESS;
     }

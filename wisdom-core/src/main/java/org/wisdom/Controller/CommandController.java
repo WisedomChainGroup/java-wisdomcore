@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ import java.util.Map;
 public class CommandController {
     private static Logger logger = LoggerFactory.getLogger(CommandController.class);
 
-    public static final int CONFIRMED = 2100;
+    public static final int CONFIRMED = 2000;
     public static final int NOT_CONFIRMED = 2100;
 
     @Value("${wisdom.consensus.enable-mining}")
@@ -61,12 +62,20 @@ public class CommandController {
     @Autowired
     Block genesis;
 
+    @Autowired
+    ConsensusClient consensusClient;
+
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
             "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
     public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
         try {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
-            return commandService.verifyTransfer(traninfos);
+            APIResult result = commandService.verifyTransfer(traninfos);
+            if (result.getCode() == 2000) {
+                Transaction t = (Transaction) result.getData();
+                consensusClient.broadcastTransactions(Collections.singletonList(t));
+            }
+            return result;
         } catch (DecoderException e) {
             APIResult apiResult = new APIResult();
             apiResult.setCode(5000);
@@ -78,7 +87,7 @@ public class CommandController {
     @RequestMapping(value = "/getTransactionHeight", method = RequestMethod.POST)
     public Object getTransactionHeight(@RequestParam("height") int height, String type) {
         try {
-            if (type == null || type.equals("") ) {//默认转账事务
+            if (type == null || type.equals("")) {//默认转账事务
                 return commandService.getTransactionList(height, 1);
             } else {//全部事务
                 int types = Integer.valueOf(type);

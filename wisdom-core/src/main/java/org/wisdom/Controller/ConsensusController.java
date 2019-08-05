@@ -20,9 +20,7 @@ package org.wisdom.Controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
-import org.springframework.scheduling.annotation.Async;
-import org.wisdom.p2p.Peer;
-import org.wisdom.p2p.PeerServer;
+import org.wisdom.ApiResult.APIResult;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -35,9 +33,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.wisdom.service.Impl.CommandServiceImpl;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.wisdom.Controller.ConsensusResult.ERROR;
 import static org.wisdom.Controller.ConsensusResult.SUCCESS;
@@ -50,6 +53,8 @@ public class ConsensusController {
     @Value("${wisdom.consensus.enable-mining}")
     boolean enableMining;
 
+    @Value("${wisdom.version}")
+    String version;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -66,17 +71,29 @@ public class ConsensusController {
     @Autowired
     TransactionPool pool;
 
+    @Autowired
+    CommandServiceImpl commandService;
+
+    @Autowired
+    PacketCache cache;
+
+    @Value("${node-character}")
+    private String character;
+
+    @PostConstruct
+    public void init() {
+    }
 
     @GetMapping(value = "/consensus/blocks")
     public Object handleGetBlocks(
-            @RequestParam(name = "startListening") long start,
+            @RequestParam(name = "start") long start,
             @RequestParam(name = "stop") long stop,
             @RequestParam(name = "clipFromStop") boolean clipFromStop
     ) {
         // clip interval
         GetBlockQuery query = new GetBlockQuery(start, stop).clip(MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
 
-        logger.info("get blocks received startListening height = " + start + " stop height = " + stop);
+        logger.info("get blocks received start height = " + start + " stop height = " + stop);
 
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
         if (blocksToSend != null && blocksToSend.size() > 0) {
@@ -100,12 +117,12 @@ public class ConsensusController {
     public Object handleStatus(@RequestBody byte[] body, HttpServletRequest request) {
         Block header = bc.currentHeader();
         Status status = codec.decode(body, Status.class);
-        if (status == null){
+        if (status == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid request incountered");
         }
         logger.info("receive message type = status, height = " + status.currentHeight + " hash = " + Hex.encodeHexString(status.bestBlockHash));
-        if (!Arrays.areEqual(status.genesisHash, genesis.getHash())){
+        if (!Arrays.areEqual(status.genesisHash, genesis.getHash())) {
             return ERROR("genesis hash not equal");
         }
         if (header.nHeight > status.currentHeight) {
@@ -123,13 +140,13 @@ public class ConsensusController {
         );
 
         consensusClient.getBlocks(query.start, query.stop, false);
-        return SUCCESS("received, startListening synchronizing");
+        return SUCCESS("received, start synchronizing");
     }
 
     @PostMapping(value = "/consensus/blocks", produces = "application/json")
     public Object handleProposal(@RequestBody byte[] body, HttpServletRequest request) {
         Block b = codec.decodeBlock(body);
-        if(b == null){
+        if (b == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid block proposal");
         }
@@ -139,14 +156,29 @@ public class ConsensusController {
 
     @PostMapping(value = "/consensus/transactions", produces = "application/json")
     public Object handleTransactions(@RequestBody byte[] body, HttpServletRequest request) {
-        Transaction[] received = codec.decode(body, Transaction[].class);
-        if(received == null){
-            logger.error("invalid request accepted from " + request.getRemoteAddr());
-            return ERROR("invalid transactions found");
+        Packet packet = codec.decode(body, Packet.class);
+        if (packet == null || packet.ttl == 0) {
+            return ERROR("ttl timeout");
         }
-        for(Transaction tran:received){
-            pool.add(tran);
+        if (cache.hasReceived(packet)) {
+            return ERROR("the packet has recevied before");
+        }
+        List<Transaction> txs = codec.decodeTransactions(packet.data);
+        if (txs == null || txs.size() == 0) {
+            return SUCCESS("transaction received successful");
+        }
+        for (Transaction tran : txs) {
+            byte[] traninfo = tran.toRPCBytes();
+            commandService.verifyTransfer(traninfo);
         }
         return SUCCESS("transaction received successful");
+    }
+
+    @GetMapping(value = "/version", produces = "application/json")
+    public Object getVersion() {
+        Map<String, String> info = new HashMap<>();
+        info.put("version", this.version);
+        info.put("character", character);
+        return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }

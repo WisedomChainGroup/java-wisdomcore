@@ -21,6 +21,8 @@ package org.wisdom.core.validate;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -36,10 +38,13 @@ import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Component
 public class MerkleRule {
+
+    private static final Logger logger = LoggerFactory.getLogger(MerkleRule.class);
 
     @Autowired
     AccountDB accountDB;
@@ -70,7 +75,7 @@ public class MerkleRule {
             } else {
                 toaccount = accountDB.selectaccount(tran.to);
                 if (toaccount == null) {
-                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0,0);
+                    toaccount = new Account(nowheight, tran.to, 0, 0, 0, 0, 0);
                 }
             }
             if (tran.type == 0x00) {//CoinBase
@@ -117,26 +122,75 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
+                if (nowheight > 30800 && nowheight < 40271) {
+                    if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
+                        if (incubator.getShare_pubkeyhash() != null) {
+                            if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                            }
+                        }
+                    }
+                    if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
+                            incubator = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                        }
+                    }
+                }
+                if (nowheight >= 40271) {
+                    if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
+                        if (incubator.getShare_pubkeyhash() != null) {
+                            if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                    incubator = incubators;
+                                }
+                            }
+                        }
+                    }
+                    if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
+                            Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                            if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                incubator = incubators;
+                            }
+                        }
+                    }
+                }
                 Transaction transaction = wisdomBlockChain.getTransaction(playload);
                 int days = transaction.getdays();
-                double rate = rateTable.selectrate(transaction.height, days);//利率
+                String rate = rateTable.selectrate(transaction.height, days);//利率
+
                 if (tran.type == 0x0a) {//interset
-                    long dayinterset = (long) (incubator.getCost() * rate);
-                    int extractday = (int) (tran.amount / dayinterset);
-                    long extractheight = extractday * configuration.getDay_count();
+                    BigDecimal amounbig = BigDecimal.valueOf(transaction.amount);
+                    BigDecimal ratebig = new BigDecimal(rate);
+                    long dayinterset = ratebig.multiply(amounbig).longValue();
                     long lastheight = incubator.getLast_blockheight_interest();
-                    lastheight += extractheight;
+                    if (dayinterset > tran.amount) {
+                        lastheight += configuration.getDay_count();
+                    } else {
+                        int extractday = (int) (tran.amount / dayinterset);
+                        long extractheight = extractday * configuration.getDay_count();
+                        lastheight += extractheight;
+                    }
                     long lastinterset = incubator.getInterest_amount();
                     lastinterset -= tran.amount;
                     incubator.setHeight(nowheight);
                     incubator.setInterest_amount(lastinterset);
                     incubator.setLast_blockheight_interest(lastheight);
                 } else {//share
-                    long dayinterset = (long) (incubator.getCost() * rate * 0.1);
-                    int extractday = (int) (tran.amount / dayinterset);
-                    long extractheight = extractday * configuration.getDay_count();
+                    BigDecimal amounbig = BigDecimal.valueOf(transaction.amount);
+                    BigDecimal ratebig = new BigDecimal(rate);
+                    BigDecimal onemul = amounbig.multiply(ratebig);
+                    BigDecimal bl = BigDecimal.valueOf(0.1);
+                    long dayinterset = onemul.multiply(bl).longValue();
                     long lastheight = incubator.getLast_blockheight_share();
-                    lastheight += extractheight;
+                    if (dayinterset > tran.amount) {
+                        lastheight += configuration.getDay_count();
+                    } else {
+                        int extractday = (int) (tran.amount / dayinterset);
+                        long extractheight = extractday * configuration.getDay_count();
+                        lastheight += extractheight;
+                    }
                     long lastshare = incubator.getShare_amount();
                     lastshare -= tran.amount;
                     incubator.setHeight(nowheight);
@@ -157,15 +211,15 @@ public class MerkleRule {
                 fromaccount.setBalance(frombalance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                if(!Arrays.equals(frompubhash,tran.to)){//转账from和to相同
+                if (!Arrays.equals(frompubhash, tran.to)) {//转账from和to相同
                     long tobalance = toaccount.getBalance();
                     tobalance += tran.amount;
                     toaccount.setBalance(tobalance);
                     toaccount.setBlockHeight(nowheight);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                     accmap.put(Hex.encodeHexString(tran.to), toaccount);
-                }else{
-                    frombalance+=tran.amount;
+                } else {
+                    frombalance += tran.amount;
                     fromaccount.setBalance(frombalance);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                 }
@@ -183,63 +237,80 @@ public class MerkleRule {
 
                 byte[] playload = tran.payload;//孵化哈希
                 Incubator incubator = incubatorDB.selectIncubator(playload);
+                if (nowheight > 30800 && nowheight < 40271) {
+                    if (incubator.getShare_pubkeyhash() != null) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                            incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                        }
+                    }
+                }
+                if (nowheight >= 40271) {
+                    if (incubator.getShare_pubkeyhash() != null) {
+                        if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                            Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                            if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                incubator = incubators;
+                            }
+                        }
+                    }
+                }
                 incubator.setCost(0);
                 incubator.setHeight(nowheight);
                 incumap.put(Hex.encodeHexString(tran.to), incubator);
-            }else if(tran.type == 0x03){//存证
+            } else if (tran.type == 0x03) {//存证
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
                     fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
                 } else {
                     fromaccount = accountDB.selectaccount(frompubhash);
                 }
-                long balance=fromaccount.getBalance();
-                balance-=tran.getFee();
+                long balance = fromaccount.getBalance();
+                balance -= tran.getFee();
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
                 accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
-            }else if(tran.type == 0x02){//投票
+            } else if (tran.type == 0x02) {//投票
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
                     fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
                 } else {
                     fromaccount = accountDB.selectaccount(frompubhash);
                 }
-                long balance=fromaccount.getBalance();
-                balance-=tran.amount;
-                balance-=tran.getFee();
+                long balance = fromaccount.getBalance();
+                balance -= tran.amount;
+                balance -= tran.getFee();
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                if(!Arrays.equals(frompubhash,tran.to)){//投票自己投给自己
-                    long vote=toaccount.getVote();
-                    vote+=tran.amount;
+                if (!Arrays.equals(frompubhash, tran.to)) {//投票自己投给自己
+                    long vote = toaccount.getVote();
+                    vote += tran.amount;
                     toaccount.setVote(vote);
                     toaccount.setBlockHeight(nowheight);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                     accmap.put(Hex.encodeHexString(tran.to), toaccount);
-                }else{
-                    long vote=fromaccount.getVote();
-                    vote+=tran.amount;
+                } else {
+                    long vote = fromaccount.getVote();
+                    vote += tran.amount;
                     fromaccount.setVote(vote);
                     accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
                 }
-            }else if(tran.type == 0x0d){//撤销投票
+            } else if (tran.type == 0x0d) {//撤销投票
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
                     fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
                 } else {
                     fromaccount = accountDB.selectaccount(frompubhash);
                 }
-                long balance=fromaccount.getBalance();
-                balance-=tran.getFee();
-                balance+=tran.amount;
+                long balance = fromaccount.getBalance();
+                balance -= tran.getFee();
+                balance += tran.amount;
                 fromaccount.setBalance(balance);
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
-                long vote=toaccount.getVote();
-                vote-=tran.amount;
+                long vote = toaccount.getVote();
+                vote -= tran.amount;
                 toaccount.setVote(vote);
                 toaccount.setBlockHeight(nowheight);
                 accmap.put(Hex.encodeHexString(frompubhash), fromaccount);

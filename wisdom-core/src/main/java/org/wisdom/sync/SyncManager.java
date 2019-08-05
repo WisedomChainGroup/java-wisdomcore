@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
@@ -189,7 +188,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void receiveBlocks(List<Block> blocks) {
-        logger.info("blocks received start from " + blocks.get(0).nHeight +  " stop at " + blocks.get(blocks.size() - 1).nHeight);
+        logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         List<Block> validBlocks = new ArrayList<>();
         for (Block b : blocks) {
             if (b == null || b.nHeight == 0) {
