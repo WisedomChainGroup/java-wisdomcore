@@ -134,7 +134,7 @@ public class KeystoreAction {
         Keystore ks = fromPassword(password);
         Crypto crypto = ks.crypto;
         Cipherparams cipherparams = crypto.cipherparams;
-        String filePath=folderPath+"\\"+ks.address+System.currentTimeMillis()/1000;
+        String filePath=folderPath+File.separator+ks.address+System.currentTimeMillis()/1000;
         File file = new File(filePath);
         file.createNewFile();
         JSONObject ksjson = JSONObject.fromObject(ks);
