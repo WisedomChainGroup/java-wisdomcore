@@ -37,6 +37,9 @@ sampleDB*
 .DS_Store
 
 
+# node
+node_modules
+
 # Local configuration
 **/user.conf
 **/test-user.conf
