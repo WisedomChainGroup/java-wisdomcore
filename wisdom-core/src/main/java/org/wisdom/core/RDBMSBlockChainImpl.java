@@ -363,7 +363,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         long externTW = block.weight + ptw;
         block.totalWeight = externTW;
 
-        Optional<Boolean> isNewHeadBlock = localTW.map(x -> x > externTW);
+        Optional<Boolean> isNewHeadBlock = localTW.map(x -> externTW > x);
         Optional<Boolean> parentIsCurrent = curent.
                 map(Block::getHash)
                 .flatMap(h ->
