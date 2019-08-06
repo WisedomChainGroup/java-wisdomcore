@@ -45,7 +45,7 @@ public class PoolTask {
     @Autowired
     ConsensusClient client;
 
-    @Scheduled(fixedDelay = 8 * 1000)
+    @Scheduled(fixedDelay = 5 * 1000)
     public void AdoptTopendingTask() {
         List<TransPool> list = adoptTransPool.getAll();
         long nowheight = wisdomBlockChain.currentHeader().nHeight;
@@ -98,7 +98,7 @@ public class PoolTask {
         }
     }
 
-    @Scheduled(fixedDelay = 2 * 60 * 1000)
+    @Scheduled(fixedDelay = 1 * 60 * 1000)
     public void clearPool() {
         //adoptTransPool
         List<TransPool> list = adoptTransPool.getAll();
