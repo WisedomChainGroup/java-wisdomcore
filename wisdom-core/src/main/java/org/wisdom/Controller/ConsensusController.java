@@ -20,6 +20,7 @@ package org.wisdom.Controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
+import org.springframework.context.ApplicationContext;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
@@ -37,6 +38,7 @@ import org.wisdom.service.Impl.CommandServiceImpl;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,25 +64,31 @@ public class ConsensusController {
     private WisdomBlockChain bc;
 
     @Autowired
-    private ConsensusClient consensusClient;
-
-    @Autowired
     private Block genesis;
 
     @Autowired
-    TransactionPool pool;
+    private TransactionPool pool;
 
     @Autowired
-    CommandServiceImpl commandService;
+    private CommandServiceImpl commandService;
 
     @Autowired
-    PacketCache cache;
+    private PacketCache cache;
+
+    @Autowired
+    private ApplicationContext context;
 
     @Value("${node-character}")
     private String character;
 
+    @Value("${p2p.mode}")
+    private String p2pMode;
+
+    private boolean isP2PRestful;
+
     @PostConstruct
     public void init() {
+        this.isP2PRestful = p2pMode.equals("rest");
     }
 
     @GetMapping(value = "/consensus/blocks")
@@ -137,8 +145,9 @@ public class ConsensusController {
         ).clip(
                 MAX_BLOCKS_IN_TRANSIT_PER_PEER, false
         );
-
-//        consensusClient.getBlocks(query.start, query.stop, false);
+        if (isP2PRestful) {
+            context.getBean(SyncClient.class).getBlocks(query.start, query.stop, false);
+        }
         return SUCCESS("received, start synchronizing");
     }
 
@@ -149,7 +158,9 @@ public class ConsensusController {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid block proposal");
         }
-//        consensusClient.receiveBlocks(Collections.singletonList(b));
+        if (isP2PRestful) {
+            context.getBean(SyncClient.class).receiveBlocks(Collections.singletonList(b));
+        }
         return SUCCESS("proposal received");
     }
 

@@ -12,12 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.sync.SyncManager;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * wisdom protocol implementation
  */
 @Component
+@ConditionalOnProperty(name = "p2p.mode", havingValue = "grpc")
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
     static final int PEER_SCORE = 4;
     static final int HALF_RATE = 60;

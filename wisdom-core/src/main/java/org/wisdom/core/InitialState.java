@@ -51,16 +51,13 @@ public class InitialState {
 
     private AccountDB accountDB;
 
-    private Genesis genesis;
-
     private Block block;
 
     @Autowired
     public InitialState(IncubatorDB incubatorDB, AccountDB accountDB, Block block, Genesis genesis) throws InvalidProtocolBufferException, DecoderException {
-        incubatorDB = incubatorDB;
-        block = block;
-        accountDB = accountDB;
-        genesis = genesis;
+        this.incubatorDB = incubatorDB;
+        this.block = block;
+        this.accountDB = accountDB;
         int count = incubatorDB.count();
         List<Genesis.IncubateAmount> incubateAmountList = genesis.alloc.incubateAmount;
         Genesis.IncubateAmount incubateAmount = incubateAmountList.get(0);
@@ -105,15 +102,15 @@ public class InitialState {
                         accounts.setNonce(nonce);
                         map.put(Hex.encodeHexString(tx.to), accounts);
                     } else {
-                        Account accounts = new Account(0, tx.to, tx.nonce, 0, tx.amount, 0,0);
+                        Account accounts = new Account(0, tx.to, tx.nonce, 0, tx.amount, 0, 0);
                         map.put(Hex.encodeHexString(tx.to), accounts);
                     }
                 } else {//0x00
-                    Account account = new Account(0, tx.to, 1, tx.amount, 0, 0,0);
+                    Account account = new Account(0, tx.to, 1, tx.amount, 0, 0, 0);
                     if (!Arrays.equals(account.getPubkeyHash(), totalpubhash)) {
                         accountlist.add(new Object[]{
                                 account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce()
-                                , account.getBalance(), account.getIncubatecost(), account.getMortgage(),account.getVote()
+                                , account.getBalance(), account.getIncubatecost(), account.getMortgage(), account.getVote()
                         });
                     } else {
                         totalaccount = account;
@@ -123,7 +120,7 @@ public class InitialState {
             }
             accountlist.add(new Object[]{
                     totalaccount.getId(), totalaccount.getBlockHeight(), totalaccount.getPubkeyHash(), totalaccount.getNonce()
-                    , balance, totalaccount.getIncubatecost(), totalaccount.getMortgage()
+                    , balance, totalaccount.getIncubatecost(), totalaccount.getMortgage(), totalaccount.getVote()
             });
             incubatorDB.insertIncubatorList(args);
             int accountcount = accountDB.count();
@@ -132,7 +129,7 @@ public class InitialState {
                     Account account = entry.getValue();
                     accountlist.add(new Object[]{
                             account.getId(), account.getBlockHeight(), account.getPubkeyHash()
-                            , account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage()
+                            , account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage(), account.getVote()
                     });
                 }
                 accountDB.insertAccountList(accountlist);

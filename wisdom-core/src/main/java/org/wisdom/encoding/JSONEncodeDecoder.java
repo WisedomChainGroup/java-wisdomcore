@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.apache.commons.codec.binary.Hex;
-import org.wisdom.Controller.ConsensusClient;
 import org.wisdom.Controller.Packet;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.Block;

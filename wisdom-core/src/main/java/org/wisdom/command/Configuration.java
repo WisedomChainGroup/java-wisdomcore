@@ -36,18 +36,6 @@ public class Configuration {
     @Value("${transaction.day.count}")
     private int day_count;
 
-    @Value("${hatch.rate}")
-    private double hatch_rate;
-
-    @Value("${block.count}")
-    private int block_count;
-
-    @Value("${block.down120rate}")
-    private double block_down120rate;
-
-    @Value("${block.down365rate}")
-    private double block_down365rate;
-
     @Value("${min.procedurefee}")
     private long min_procedurefee;
 
@@ -56,10 +44,6 @@ public class Configuration {
 
     public long getPoolcleardays() {
         return poolcleardays;
-    }
-
-    public void setPoolcleardays(long poolcleardays) {
-        this.poolcleardays = poolcleardays;
     }
 
     public long getMin_procedurefee() {
@@ -80,21 +64,5 @@ public class Configuration {
 
     public int getDay_count() {
         return day_count;
-    }
-
-    public double getHatch_rate() {
-        return hatch_rate;
-    }
-
-    public int getBlock_count() {
-        return block_count;
-    }
-
-    public double getBlock_down120rate() {
-        return block_down120rate;
-    }
-
-    public double getBlock_down365rate() {
-        return block_down365rate;
     }
 }

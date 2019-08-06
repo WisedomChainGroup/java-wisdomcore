@@ -52,5 +52,5 @@ node_modules
 # db config
 *.env
 
-# genesis for local test
 wisdom-genesis-test.json
+node_modules
