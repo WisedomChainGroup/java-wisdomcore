@@ -18,7 +18,6 @@
 
 package org.wisdom.Controller;
 
-import com.sun.org.apache.regexp.internal.RE;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;

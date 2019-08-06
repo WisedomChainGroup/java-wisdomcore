@@ -127,6 +127,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     public void startListening() throws Exception {
         logger.info("peer server is listening on " + Peer.PROTOCOL_NAME + "://" + Hex.encodeHexString(self.privateKey.getEncoded()) + Hex.encodeHexString(self.peerID) + "@" + self.hostPort());
+        logger.info("provide address to your peers to connect " + Peer.PROTOCOL_NAME + "://" + Hex.encodeHexString(self.peerID) + "@" + self.hostPort());
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
