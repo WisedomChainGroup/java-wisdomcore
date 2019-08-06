@@ -276,7 +276,6 @@ public class Block {
 
     @Autowired
     public Block(Genesis genesis) throws Exception {
-        Set<String> hashes = new HashSet<>();
         body = new ArrayList<>();
 
         // init emtpy hash

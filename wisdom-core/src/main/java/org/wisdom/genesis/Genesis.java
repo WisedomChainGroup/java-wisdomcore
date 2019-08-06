@@ -19,14 +19,10 @@
 package org.wisdom.genesis;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.wisdom.encoding.JSONEncodeDecoder;
-
 import java.math.BigDecimal;
 import java.util.List;
 
 public class Genesis {
-    private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
-
     public static class Config{
         @JsonProperty("chainId")
         public int chainID;

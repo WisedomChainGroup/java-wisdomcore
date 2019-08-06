@@ -47,5 +47,7 @@ sampleDB*
 .java-version
 
 # db config
-
 *.env
+
+# genesis for local test
+wisdom-genesis-test.json

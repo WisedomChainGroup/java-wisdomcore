@@ -18,7 +18,6 @@
 
 package org.wisdom;
 
-
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -69,8 +68,9 @@ public class Start {
     }
 
     @Bean
-    public Genesis genesis(JSONEncodeDecoder codec) throws Exception {
-        Resource resource = new ClassPathResource("genesis/wisdom-genesis-generator.json");
+    public Genesis genesis(JSONEncodeDecoder codec, @Value("${wisdom.consensus.genesis}") String genesis)
+            throws Exception {
+        Resource resource = new ClassPathResource(genesis);
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
 }
