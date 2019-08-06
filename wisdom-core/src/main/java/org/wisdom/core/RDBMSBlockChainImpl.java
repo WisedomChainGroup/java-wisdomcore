@@ -381,17 +381,17 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (refork.get() && !canonicalHeaders.isPresent()) {
             return;
         }
-        Boolean result = txTmpl.execute((TransactionStatus status) -> {
+        Optional<Boolean> result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
                 writeTotalWeight(block.getHash(), block.totalWeight);
                 writeBody(block);
                 if (!isNewHeadBlock.get()) {
-                    return true;
+                    return Optional.of(true);
                 }
                 if (!refork.get()) {
                     setCanonical(block.getHash());
-                    return true;
+                    return Optional.of(true);
                 }
                 // delete previous fork's canonical hash
                 deleteCanonicals(commonAncestor.get().nHeight + 1, curent.get().nHeight);
@@ -404,14 +404,14 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 setCanonicals(hashes);
             } catch (Exception e) {
                 status.setRollbackOnly();
-                return false;
+                return Optional.of(false);
             }
-            return true;
+            return Optional.of(true);
         });
-        if (result != null && result) {
+        if (result.orElse(false)) {
             ctx.publishEvent(new NewBlockEvent(this, block));
         }
-        if (result != null && isNewHeadBlock.get() && result) {
+        if (result.map(r -> r && isNewHeadBlock.get()).orElse(false) ) {
             ctx.publishEvent(new NewBestBlockEvent(this, block));
         }
     }

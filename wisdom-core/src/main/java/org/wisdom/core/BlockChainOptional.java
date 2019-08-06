@@ -46,7 +46,7 @@ public class BlockChainOptional {
 
     // try to get a element from a list
     private <T> Optional<T> getOne(List<T> res) {
-        return Optional.ofNullable(res).map(x -> x.get(0));
+        return Optional.ofNullable(res).map(x -> x.size() > 0 ? x.get(0) : null);
     }
 
     // get block body
