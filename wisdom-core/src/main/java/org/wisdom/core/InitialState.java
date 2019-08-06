@@ -123,7 +123,7 @@ public class InitialState {
             }
             accountlist.add(new Object[]{
                     totalaccount.getId(), totalaccount.getBlockHeight(), totalaccount.getPubkeyHash(), totalaccount.getNonce()
-                    , balance, totalaccount.getIncubatecost(), totalaccount.getMortgage()
+                    , balance, totalaccount.getIncubatecost(), totalaccount.getMortgage(), totalaccount.getVote()
             });
             incubatorDB.insertIncubatorList(args);
             int accountcount = accountDB.count();
@@ -132,7 +132,7 @@ public class InitialState {
                     Account account = entry.getValue();
                     accountlist.add(new Object[]{
                             account.getId(), account.getBlockHeight(), account.getPubkeyHash()
-                            , account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage()
+                            , account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage(), account.getVote()
                     });
                 }
                 accountDB.insertAccountList(accountlist);
