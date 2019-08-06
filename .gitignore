@@ -49,3 +49,6 @@ sampleDB*
 # db config
 
 *.env
+
+wisdom-genesis-test.json
+node_modules
