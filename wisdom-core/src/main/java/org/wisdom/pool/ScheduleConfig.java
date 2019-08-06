@@ -15,7 +15,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 @Configuration
-@EnableAsync
 public class ScheduleConfig implements SchedulingConfigurer, AsyncConfigurer {
 
     /**
