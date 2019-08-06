@@ -1,4 +1,4 @@
-package org.ethereum.consensus;
+package org.wisdom.consensus;
 
 import org.ethereum.config.TestConfig;
 import org.wisdom.consensus.pow.TargetStateFactory;

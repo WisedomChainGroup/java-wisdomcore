@@ -18,6 +18,11 @@
 
 package org.wisdom.core;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.core.event.NewBestBlockEvent;
+import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
@@ -36,6 +41,8 @@ import java.util.*;
 public class BlockChainOptional {
     private JdbcTemplate tmpl;
     private Block genesis;
+    private TransactionTemplate txTmpl;
+    private ApplicationContext ctx;
 
     // try to get a element from a list
     private <T> Optional<T> getOne(List<T> res) {
@@ -68,7 +75,7 @@ public class BlockChainOptional {
         })), null);
     }
 
-    public Optional<Block> findCommonAncestor(Block a, Block b) {
+    public Optional<Block> findCommonAncestorHeader(Block a, Block b) {
         Optional<Block> ao = Optional.ofNullable(a);
         Optional<Block> bo = Optional.ofNullable(b);
         while (true) {
@@ -88,7 +95,7 @@ public class BlockChainOptional {
         while (true) {
             Optional<byte[]> ahash = ao.map(Block::getHash);
             Optional<byte[]> bhash = bo.map(Block::getHash);
-            if (ahash.flatMap(x -> bhash.map(y -> Arrays.areEqual(x, y))).orElse(false)) {
+            if (ahash.flatMap(x -> bhash.map(y -> Arrays.areEqual(x, y))).orElse(true)) {
                 break;
             }
             ao = ao.map(x -> x.hashPrevBlock).flatMap(this::getHeader);
@@ -291,5 +298,159 @@ public class BlockChainOptional {
         } catch (Exception e) {
             return Optional.empty();
         }
+    }
+
+    public Optional<Long> getTotalWeight(byte[] hash) {
+        try {
+            return Optional.ofNullable(tmpl.queryForObject("select total_weight from header where block_hash = ?", new Object[]{
+                    hash
+            }, Long.class));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public synchronized void writeBlock(Block block) {
+        Optional<Block> parent = Optional.ofNullable(block)
+                .flatMap(b -> getHeader(b.hashPrevBlock));
+        if (!parent.isPresent()) {
+            // cannot find parent, write fail
+            return;
+        }
+        Block parentHeader = parent.get();
+
+        // 单机挖矿时防止分叉
+        if (hasBlock(block.getnHeight())
+                .orElse(true)) {
+            return;
+        }
+        long ptw = parentHeader.totalWeight;
+        Optional<Block> curent = currentHeader();
+        Optional<Long> localTW = curent.flatMap(x -> getTotalWeight(x.getHash()));
+        long externTW = block.weight + ptw;
+        block.totalWeight = externTW;
+
+        Optional<Boolean> isNewHeadBlock = localTW.map(x -> x > externTW);
+        Optional<Boolean> parentIsCurrent = curent.
+                map(Block::getHash)
+                .flatMap(h ->
+                        Optional.ofNullable(parentHeader.getHash())
+                                .map(y -> Arrays.areEqual(h, y))
+                );
+        Optional<Boolean> refork = isNewHeadBlock.flatMap(
+                x -> parentIsCurrent.map(y -> x && y)
+        );
+        Optional<Block> commonAncestor = curent.flatMap(c -> findCommonAncestorHeader(parentHeader, c));
+        Optional<List<Block>> canonicalHeaders = commonAncestor.flatMap(a -> getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1));
+        if (!refork.isPresent()) {
+            return;
+        }
+        if (refork.get() && !canonicalHeaders.isPresent()) {
+            return;
+        }
+        Boolean result = txTmpl.execute((TransactionStatus status) -> {
+            try {
+                writeHeader(block);
+                writeTotalWeight(block.getHash(), block.totalWeight);
+                writeBody(block);
+                if (!isNewHeadBlock.get()) {
+                    return true;
+                }
+                if (!refork.get()) {
+                    setCanonical(block.getHash());
+                    return true;
+                }
+                // delete previous fork's canonical hash
+                deleteCanonicals(commonAncestor.get().nHeight + 1, curent.get().nHeight);
+                List<byte[]> hashes = new ArrayList<>();
+                // update canonical headers
+                for (Block h : canonicalHeaders.get()) {
+                    hashes.add(h.getHash());
+                }
+                hashes.add(block.getHash());
+                setCanonicals(hashes);
+            } catch (Exception e) {
+                status.setRollbackOnly();
+                return false;
+            }
+            return true;
+        });
+        if (result != null && result) {
+            ctx.publishEvent(new NewBlockEvent(this, block));
+        }
+        if (result != null && isNewHeadBlock.get() && result) {
+            ctx.publishEvent(new NewBestBlockEvent(this, block));
+        }
+    }
+
+    // write header with total weight
+    private void writeHeader(Block header) {
+        tmpl.update("insert into header " +
+                        "(block_hash, version, hash_prev_block, " +
+                        "hash_merkle_root, hash_merkle_state, hash_merkle_incubate," +
+                        "height, created_at, nonce, nBits," +
+                        "block_notice, is_canonical) values (?,?,?,?,?,?,?,?,?,?,?,?)",
+                header.getHash(), header.nVersion, header.hashPrevBlock,
+                header.hashMerkleRoot, header.hashMerkleState, header.hashMerkleIncubate, header.nHeight,
+                header.nTime, header.nNonce, header.nBits,
+                header.blockNotice, false);
+    }
+
+    private void writeTotalWeight(byte[] blockHash, long totalWeight) {
+        tmpl.update("update header set total_weight = ? where block_hash = ?", totalWeight, blockHash);
+    }
+
+    private void writeTransactions(List<Transaction> txs) {
+        if (txs == null || txs.size() == 0) {
+            return;
+        }
+        List<Object[]> args0 = new ArrayList<>();
+        for (Transaction tx : txs) {
+            args0.add(new Object[]{
+                    tx.version,
+                    tx.getHash(), tx.type, tx.nonce,
+                    tx.from, tx.gasPrice, tx.amount,
+                    tx.payload, tx.signature, tx.to
+            });
+        }
+        tmpl.batchUpdate("insert into transaction (" +
+                "version, tx_hash, type, nonce, " +
+                "\"from\", gas_price, amount, " +
+                "payload, signature, \"to\") VALUES (?, ?,?,?,?,?,?,?,?,?) on conflict(tx_hash) do nothing", args0);
+    }
+
+    private void writeBody(Block block) {
+        if (block.body == null || block.body.size() == 0) {
+            return;
+        }
+        List<Object[]> args = new ArrayList<>();
+        for (int i = 0; i < block.body.size(); i++) {
+            Transaction tx = block.body.get(i);
+            args.add(new Object[]{
+                    block.getHash(), tx.getHash(), i
+            });
+        }
+        tmpl.batchUpdate("insert into transaction_index (block_hash, tx_hash, tx_index) values (?,?,?)", args);
+        writeTransactions(block.body);
+    }
+
+    private void deleteCanonical(long height) {
+        tmpl.update("update header set is_canonical = false where height = ?", height);
+    }
+
+    private void deleteCanonicals(long start, long end) {
+        tmpl.update("update header set is_canonical = false where height >= ? and height <= ?", new Object[]{start, end});
+    }
+
+    private void setCanonical(byte[] hash) {
+        tmpl.update("update header set is_canonical = true where block_hash = ?", hash);
+    }
+
+    private void setCanonicals(List<byte[]> hashes) {
+        List<Object[]> args = new ArrayList<>();
+        for (byte[] hash : hashes) {
+            args.add(new Object[]{hash});
+        }
+        tmpl.batchUpdate("update header set is_canonical = true where block_hash = ?", args);
     }
 }

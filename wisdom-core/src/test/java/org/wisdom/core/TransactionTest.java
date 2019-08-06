@@ -1,4 +1,4 @@
-package org.ethereum.wisdom_core;
+package org.ethereum.core;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.crypto.ed25519.Ed25519;

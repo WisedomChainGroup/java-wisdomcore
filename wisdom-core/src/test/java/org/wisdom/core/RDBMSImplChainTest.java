@@ -1,4 +1,4 @@
-package org.ethereum.wisdom_core;
+package org.wisdom.core;
 
 import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
