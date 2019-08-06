@@ -18,6 +18,7 @@
 
 package org.wisdom.Controller;
 
+import com.sun.org.apache.regexp.internal.RE;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -50,6 +51,8 @@ public class RPCClient {
 
     @Autowired
     private JSONEncodeDecoder codec;
+
+    private static final int HTTP_TIMEOUT = 5000;
 
     private CloseableHttpClient httpclient;
 
@@ -84,7 +87,7 @@ public class RPCClient {
         try {
             URI urio = new URI(url);
             HttpPost httppost = new HttpPost(urio);
-            httppost.setConfig(RequestConfig.custom().setConnectTimeout(5000).build());
+            httppost.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
             httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
             // Create a custom response handler
             resp = Optional.of(httpclient.execute(httppost));
@@ -130,6 +133,7 @@ public class RPCClient {
             urio = builder.build();
             uri = urio.toString();
             HttpGet httpget = new HttpGet(urio);
+            httpget.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
             // Create a custom response handler
 
             resp = Optional.of(httpclient.execute(httpget));
