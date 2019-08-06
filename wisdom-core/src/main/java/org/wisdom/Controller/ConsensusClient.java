@@ -20,6 +20,7 @@ package org.wisdom.Controller;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -47,6 +48,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class ConsensusClient {
@@ -111,6 +113,7 @@ public class ConsensusClient {
         try {
             URI urio = new URI(url);
             HttpPost httppost = new HttpPost(urio);
+            httppost.setConfig(RequestConfig.custom().setConnectTimeout(5000).build());
             httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
             // Create a custom response handler
             resp = Optional.of(httpclient.execute(httppost));
