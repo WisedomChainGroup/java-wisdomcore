@@ -50,6 +50,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class ConsensusClient {
@@ -89,6 +90,7 @@ public class ConsensusClient {
         httpclient = HttpClients.custom()
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
                 .setConnectionManagerShared(true)
+                .setConnectionTimeToLive(10, TimeUnit.SECONDS)
                 .build();
     }
 
