@@ -63,7 +63,7 @@ public class CommandController {
     Block genesis;
 
     @Autowired
-    ConsensusClient consensusClient;
+    RPCClient RPCClient;
 
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
             "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
@@ -73,7 +73,7 @@ public class CommandController {
             APIResult result = commandService.verifyTransfer(traninfos);
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
-                consensusClient.broadcastTransactions(Collections.singletonList(t));
+                RPCClient.broadcastTransactions(Collections.singletonList(t));
             }
             return result;
         } catch (DecoderException e) {

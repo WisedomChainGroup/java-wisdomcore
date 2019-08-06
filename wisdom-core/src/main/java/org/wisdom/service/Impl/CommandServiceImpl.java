@@ -19,7 +19,6 @@
 package org.wisdom.service.Impl;
 
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.Controller.ConsensusClient;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.TransactionPool;
@@ -58,9 +57,6 @@ public class CommandServiceImpl implements CommandService {
 
     @Autowired
     RateTable rateTable;
-
-    @Autowired
-    ConsensusClient client;
 
     @Autowired
     AdoptTransPool adoptTransPool;

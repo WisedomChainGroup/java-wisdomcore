@@ -4,7 +4,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.Controller.ConsensusClient;
+import org.wisdom.Controller.RPCClient;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.Block;
@@ -43,7 +43,7 @@ public class PoolTask {
     RateTable rateTable;
 
     @Autowired
-    ConsensusClient client;
+    RPCClient client;
 
     @Scheduled(fixedDelay = 8 * 1000)
     public void AdoptTopendingTask() {
