@@ -20,7 +20,6 @@ package org.wisdom.Controller;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -90,7 +89,6 @@ public class ConsensusClient {
         httpclient = HttpClients.custom()
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
                 .setConnectionManagerShared(true)
-                .setConnectionTimeToLive(10, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -116,6 +114,7 @@ public class ConsensusClient {
         try {
             URI urio = new URI(url);
             HttpPost httppost = new HttpPost(urio);
+            httppost.setConfig(RequestConfig.custom().setConnectTimeout(5000).build());
             httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
             // Create a custom response handler
             resp = Optional.of(httpclient.execute(httppost));
