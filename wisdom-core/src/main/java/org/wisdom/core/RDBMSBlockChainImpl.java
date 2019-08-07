@@ -50,6 +50,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     private String dataname;
     private static final Logger logger = LoggerFactory.getLogger(RDBMSBlockChainImpl.class);
     private BlockChainOptional blockChainOptional;
+    private boolean allowFork;
 
     private <T> T getOne(List<T> res) {
         if (res.size() == 0) {
@@ -229,7 +230,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             ApplicationContext ctx,
             @Value("${spring.datasource.username}") String dataname,
             @Value("${clear-data}") boolean clearData,
-            BlockChainOptional blockChainOptional
+            BlockChainOptional blockChainOptional,
+            @Value("${wisdom.consensus.allow-fork}") boolean allowFork
     ) {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
@@ -237,6 +239,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         this.ctx = ctx;
         this.dataname = dataname;
         this.blockChainOptional = blockChainOptional;
+        this.allowFork = allowFork;
         if (clearData) {
             clearData();
         }
@@ -354,7 +357,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
         // 单机挖矿时防止分叉
         if (blockChainOptional.hasBlock(block.getnHeight())
-                .orElse(true)) {
+                .orElse(true) && !allowFork) {
             return;
         }
         long ptw = parentHeader.totalWeight;

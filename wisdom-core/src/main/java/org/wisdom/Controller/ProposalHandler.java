@@ -18,11 +18,14 @@
 
 package org.wisdom.Controller;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 
-//@Component
+@Component
+@ConditionalOnProperty(name = "p2p.mode", havingValue = "rest")
 public class ProposalHandler implements ApplicationListener<NewBlockMinedEvent> {
 
     @Autowired
