@@ -65,11 +65,16 @@ public class BlockChainOptional {
     }
 
     private Optional<List<Block>> getBlocksFromHeaders(List<Block> headers) {
-        final Optional<List<Block>> res = Optional.of(new ArrayList<>());
-        return headers.stream().map(this::getBlockFromHeader).reduce(res, (a, b) -> b.flatMap(x -> a.map(y -> {
-            y.add(x);
-            return y;
-        })), null);
+        Optional<List<Block>> res = Optional.of(new ArrayList<>());
+        for (Block header : headers) {
+            res = res.flatMap(bs ->
+                    getBlockFromHeader(header)
+                            .map(b -> {
+                                bs.add(b);
+                                return bs;
+                            }));
+        }
+        return res;
     }
 
     public Optional<Block> findCommonAncestorHeader(Block a, Block b) {
@@ -238,7 +243,7 @@ public class BlockChainOptional {
         Optional<List<Block>> res = Optional.of(headers);
 
         Optional<Block> bHeader = getHeader(bhash);
-        while (bHeader.map(x -> x.nHeight < anum).orElse(false)) {
+        while (bHeader.map(x -> x.nHeight >= anum).orElse(false)) {
             res = bHeader.map(x -> {
                 headers.add(x);
                 return headers;
