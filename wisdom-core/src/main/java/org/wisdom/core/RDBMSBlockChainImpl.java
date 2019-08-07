@@ -358,23 +358,30 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             return;
         }
         long ptw = parentHeader.totalWeight;
-        Optional<Block> curent = blockChainOptional.currentHeader();
-        Optional<Long> localTW = curent.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));
-        long externTW = block.weight + ptw;
-        block.totalWeight = externTW;
+        Optional<Block> current = blockChainOptional.currentHeader();
+        Optional<Long> localTW = current.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));
+        long externalTW = block.weight + ptw;
+        block.totalWeight = externalTW;
 
-        Optional<Boolean> isNewHeadBlock = localTW.map(x -> externTW > x);
-        Optional<Boolean> parentIsCurrent = curent.
+        Optional<Boolean> isNewHeadBlock = localTW.map(x -> externalTW > x);
+        Optional<Boolean> parentIsCurrent = current.
                 map(Block::getHash)
                 .flatMap(h ->
                         Optional.ofNullable(parentHeader.getHash())
                                 .map(y -> Arrays.areEqual(h, y))
                 );
-        Optional<Boolean> refork = isNewHeadBlock.flatMap(
-                x -> parentIsCurrent.map(y -> x && !y)
-        );
-        Optional<Block> commonAncestor = curent.flatMap(c -> blockChainOptional.findCommonAncestorHeader(parentHeader, c));
-        Optional<List<Block>> canonicalHeaders = commonAncestor.flatMap(a -> blockChainOptional.getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1));
+        Optional<Boolean> refork = isNewHeadBlock
+                .flatMap(
+                        x -> parentIsCurrent.map(y -> x && !y)
+                );
+        Optional<Block> commonAncestor = current
+                .flatMap(c ->
+                        blockChainOptional.findCommonAncestorHeader(parentHeader, c)
+                );
+        Optional<List<Block>> canonicalHeaders = commonAncestor
+                .flatMap(a ->
+                        blockChainOptional.getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1)
+                );
         if (!refork.isPresent()) {
             return;
         }
@@ -394,7 +401,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                     return true;
                 }
                 // delete previous fork's canonical hash
-                deleteCanonicals(commonAncestor.get().nHeight + 1, curent.get().nHeight);
+                deleteCanonicals(commonAncestor.get().nHeight + 1, current.get().nHeight);
                 List<byte[]> hashes = new ArrayList<>();
                 // update canonical headers
                 for (Block h : canonicalHeaders.get()) {
