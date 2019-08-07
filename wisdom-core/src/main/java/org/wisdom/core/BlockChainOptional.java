@@ -18,8 +18,6 @@
 
 package org.wisdom.core;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
@@ -38,8 +36,6 @@ import java.util.*;
 public class BlockChainOptional {
     private JdbcTemplate tmpl;
     private Block genesis;
-    private TransactionTemplate txTmpl;
-    private ApplicationContext ctx;
 
     // try to get a element from a list
     private <T> Optional<T> getOne(List<T> res) {
