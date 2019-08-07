@@ -1,4 +1,4 @@
-package org.ethereum.merkletree;
+package org.wisdom.merkletree;
 
 import org.apache.commons.codec.DecoderException;
 import org.junit.Assert;

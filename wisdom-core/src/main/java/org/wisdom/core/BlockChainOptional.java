@@ -39,7 +39,7 @@ public class BlockChainOptional {
 
     // try to get a element from a list
     private <T> Optional<T> getOne(List<T> res) {
-        return Optional.ofNullable(res).map(x -> x.get(0));
+        return Optional.ofNullable(res).map(x -> x.size() > 0 ? x.get(0) : null);
     }
 
     // get block body
@@ -61,14 +61,19 @@ public class BlockChainOptional {
     }
 
     private Optional<List<Block>> getBlocksFromHeaders(List<Block> headers) {
-        final Optional<List<Block>> res = Optional.of(new ArrayList<>());
-        return headers.stream().map(this::getBlockFromHeader).reduce(res, (a, b) -> b.flatMap(x -> a.map(y -> {
-            y.add(x);
-            return y;
-        })), null);
+        Optional<List<Block>> res = Optional.of(new ArrayList<>());
+        for (Block header : headers) {
+            res = res.flatMap(bs ->
+                    getBlockFromHeader(header)
+                            .map(b -> {
+                                bs.add(b);
+                                return bs;
+                            }));
+        }
+        return res;
     }
 
-    public Optional<Block> findCommonAncestor(Block a, Block b) {
+    public Optional<Block> findCommonAncestorHeader(Block a, Block b) {
         Optional<Block> ao = Optional.ofNullable(a);
         Optional<Block> bo = Optional.ofNullable(b);
         while (true) {
@@ -88,7 +93,7 @@ public class BlockChainOptional {
         while (true) {
             Optional<byte[]> ahash = ao.map(Block::getHash);
             Optional<byte[]> bhash = bo.map(Block::getHash);
-            if (ahash.flatMap(x -> bhash.map(y -> Arrays.areEqual(x, y))).orElse(false)) {
+            if (ahash.flatMap(x -> bhash.map(y -> Arrays.areEqual(x, y))).orElse(true)) {
                 break;
             }
             ao = ao.map(x -> x.hashPrevBlock).flatMap(this::getHeader);
@@ -234,7 +239,7 @@ public class BlockChainOptional {
         Optional<List<Block>> res = Optional.of(headers);
 
         Optional<Block> bHeader = getHeader(bhash);
-        while (bHeader.map(x -> x.nHeight < anum).orElse(false)) {
+        while (bHeader.map(x -> x.nHeight >= anum).orElse(false)) {
             res = bHeader.map(x -> {
                 headers.add(x);
                 return headers;
@@ -288,6 +293,16 @@ public class BlockChainOptional {
     public Optional<Boolean> hasBlock(long number) {
         try {
             return Optional.ofNullable(tmpl.queryForObject("select count(*) from header where height = ? limit 1", new Object[]{number}, Integer.class)).map(x -> x > 0);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<Long> getTotalWeight(byte[] hash) {
+        try {
+            return Optional.ofNullable(tmpl.queryForObject("select total_weight from header where block_hash = ?", new Object[]{
+                    hash
+            }, Long.class));
         } catch (Exception e) {
             return Optional.empty();
         }

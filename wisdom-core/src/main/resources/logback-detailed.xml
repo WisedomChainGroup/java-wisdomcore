@@ -34,9 +34,9 @@
     <logger name="trie" level="ERROR"/>
     <logger name="ui" level="ERROR"/>
     <logger name="VM" level="TRACE"/>
-    <logger name="org.ethereum.net" level="ERROR"/>
+    <logger name="org.wisdom.net" level="ERROR"/>
     <logger name="main" level="INFO"/>
-    <logger name="org.ethereum.core" level="ERROR"/>
+    <logger name="org.wisdom.core" level="ERROR"/>
     <logger name="dump" level="OFF"/>
     <logger name="wire" level="ERROR"/>
     <logger name="repository" level="INFO"/>
@@ -44,7 +44,7 @@
     <logger name="java.nio" level="ERROR"/>
     <logger name="peerdiscovery" level="ERROR"/>
     <logger name="io.netty" level="ERROR"/>
-    <logger name="org.ethereum.db" level="ERROR"/>
+    <logger name="org.wisdom.db" level="ERROR"/>
     <logger name="gas" level="ERROR"/>
     <logger name="txs" level="ERROR"/>
     <logger name="wallet" level="ERROR"/>

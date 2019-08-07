@@ -1,4 +1,4 @@
-package org.ethereum.consensus;
+package org.wisdom.consensus;
 
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.crypto.ed25519.Ed25519;

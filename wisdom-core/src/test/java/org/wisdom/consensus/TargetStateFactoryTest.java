@@ -1,6 +1,6 @@
-package org.ethereum.consensus;
+package org.wisdom.consensus;
 
-import org.ethereum.config.TestConfig;
+import org.wisdom.config.TestConfig;
 import org.wisdom.consensus.pow.TargetStateFactory;
 import org.wisdom.core.Block;
 import org.junit.Test;

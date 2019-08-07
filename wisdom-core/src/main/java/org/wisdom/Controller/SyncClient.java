@@ -118,6 +118,7 @@ public class SyncClient {
         if (enableMining) {
             return;
         }
+        logger.info("try to sync from wisdom seeds");
         String hostPort = consensusConfig.getPeers().get(counter.incrementAndGet() % consensusConfig.getPeers().size());
         rpcClient.get("http://" + hostPort + "/consensus/status", new HashMap<>(), (byte[] resp) -> {
             Status status = codec.decode(resp, Status.class);

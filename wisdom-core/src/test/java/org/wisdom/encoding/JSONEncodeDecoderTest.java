@@ -1,14 +1,12 @@
-package org.ethereum.encoding;
+package org.wisdom.encoding;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.wisdom.crypto.HashUtil;
-import org.wisdom.encoding.BigEndian;
-import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.core.Block;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.wisdom.core.Block;
+import org.wisdom.crypto.HashUtil;
 
 import java.util.ArrayList;
 import java.util.List;

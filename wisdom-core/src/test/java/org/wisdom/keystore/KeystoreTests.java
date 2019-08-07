@@ -1,4 +1,4 @@
-package org.ethereum.keystore;
+package org.wisdom.keystore;
 
 
 

@@ -1,7 +1,4 @@
-package org.ethereum.wisdom_core;
-
-import org.wisdom.core.RDBMSBlockChainImpl;
-import org.wisdom.core.WisdomBlockChain;
+package org.wisdom.core;
 
 public class RDBMSImplChainTest extends WisdomChainTest{
     @Override
