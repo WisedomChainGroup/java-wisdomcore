@@ -34,20 +34,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     static final int EVIL_SCORE = -(1 << 10);
     static final int MAX_PEERS = 32;
 
-    private static class TestLogger {
-        public void info(String msg) {
-            System.out.println(msg);
-        }
-
-        public void warn(String msg) {
-            System.out.println(msg);
-        }
-
-        public void error(String msg) {
-            System.out.println(msg);
-        }
-    }
-
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
     private static final int MAX_TTL = 64;
@@ -210,7 +196,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         } catch (Exception e) {
             logger.error("fail to parse message");
         }
-        return null;
+        return buildMessage(Peer.empty(), 1, WisdomOuterClass.Nothing.newBuilder().build());
     }
 
     @Override

@@ -353,10 +353,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         Block parentHeader = parent.get();
 
         // 单机挖矿时防止分叉
-        if (blockChainOptional.hasBlock(block.getnHeight())
-                .orElse(true)) {
-            return;
-        }
+        // if (blockChainOptional.hasBlock(block.getnHeight())
+        //         .orElse(true)) {
+        //     return;
+        // }
         long ptw = parentHeader.totalWeight;
         Optional<Block> curent = blockChainOptional.currentHeader();
         Optional<Long> localTW = curent.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));

@@ -57,6 +57,13 @@ public class Peer {
         return p;
     }
 
+    public static Peer empty(){
+        Peer p = new Peer();
+        p.host = "localhost";
+        p.port = DEFAULT_PORT;
+        p.peerID = new byte[32];
+        return p;
+    }
     @NotNull
     @Size(min = 1)
     public String host;
