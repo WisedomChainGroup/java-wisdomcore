@@ -1,5 +1,6 @@
 package org.wisdom.command;
 
+
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
@@ -9,7 +10,6 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.util.ByteUtil;
-import org.junit.Test;
 
 import java.util.Date;
 import java.util.HashMap;

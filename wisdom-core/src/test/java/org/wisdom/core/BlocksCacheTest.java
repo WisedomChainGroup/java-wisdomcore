@@ -1,10 +1,16 @@
 package org.wisdom.core;
 
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.wisdom.config.TestConfig;
+import org.wisdom.crypto.HashUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;

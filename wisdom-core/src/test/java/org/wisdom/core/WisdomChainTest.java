@@ -1,5 +1,6 @@
 package org.wisdom.core;
 
+import org.apache.commons.codec.binary.Hex;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Arrays;
@@ -9,8 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +40,7 @@ public abstract class WisdomChainTest {
             }
             newBlock.nHeight = i;
             newBlock.weight = 1;
+            newBlock.reHash();
             blocks.add(newBlock);
             prev = newBlock;
         }
@@ -275,18 +275,23 @@ public abstract class WisdomChainTest {
     @Test
     public void testNewBigWeightBlockFork() {
         WisdomBlockChain bc = getChain();
-        List<Block> fork1 = getHeightN(20, null);
-        List<Block> fork2 = getHeightN(10, HashUtil.keccak256("abc".getBytes()));
+        List<Block> fork1 = getHeightN(20, HashUtil.keccak256("abc".getBytes()));
+        List<Block> fork2 = getHeightN(10, HashUtil.keccak256("def".getBytes()));
         fork2.get(fork2.size() - 1).weight = 1000;
         for (Block b : fork1) {
             bc.writeBlock(b);
         }
         for (Block b : fork2) {
+            if(b.nHeight == 10){
+                System.out.println("============");
+            }
             bc.writeBlock(b);
         }
-        assert bc.isCanonical(fork2.get(2).getHash());
-        assert bc.isCanonical(fork2.get(5).getHash());
+        byte[] h = fork2.get(2).getHash();
+        String hx = Hex.encodeHexString(h);
+        assert bc.isCanonical(h);
+        h = fork2.get(5).getHash();
+        assert bc.isCanonical(h);
         assert Arrays.areEqual(bc.currentHeader().getHash(), fork2.get(fork2.size() - 1).getHash());
-
     }
 }
