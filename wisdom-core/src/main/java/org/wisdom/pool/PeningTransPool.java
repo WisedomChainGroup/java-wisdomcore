@@ -1,8 +1,11 @@
 package org.wisdom.pool;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.Leveldb;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,8 +26,16 @@ public class PeningTransPool {
     }
 
     public PeningTransPool() {
+        Leveldb leveldb=new Leveldb();
         this.ptpool = new ConcurrentHashMap<>();
         this.ptnonce = new ConcurrentHashMap<>();
+        try{
+            String dbdata=leveldb.readPoolDb("PendingPool");
+            if(dbdata!=null && !dbdata.equals("")){
+                List<TransPool> transPoolList=JSON.parseObject(dbdata,new TypeReference<ArrayList<TransPool>>() {});
+                add(transPoolList);
+            }
+        }catch (Exception e){}
     }
 
     public void add(List<TransPool> pools) {
@@ -85,6 +96,17 @@ public class PeningTransPool {
         return list;
     }
 
+    public List<TransPool> getAllstate() {
+        List<TransPool> list = new ArrayList<>();
+        for (Map.Entry<String, TransPool> entry : ptpool.entrySet()) {
+            TransPool transPool=entry.getValue();
+            if(transPool.getState()!=2){
+                list.add(entry.getValue());
+            }
+        }
+        return list;
+    }
+
     public void removeOne(String key,String fromkey,long nonce){
         if (!hasExist(key)) {
             ptpool.remove(key);
@@ -102,10 +124,23 @@ public class PeningTransPool {
         }
     }
 
-    public void remove(List<String> list) {
+    public void remove(List<String> list, Map<String, Long> map) {
         for (String s : list) {
             if (!hasExist(s)) {
                 ptpool.remove(s);
+            }
+        }
+        for(Map.Entry<String, Long> entry:map.entrySet()){
+            if(ptnonce.containsKey(entry.getKey())){
+                PendingNonce pendingNonce=ptnonce.get(entry.getKey());
+                long nowptnonce=pendingNonce.getNonce();
+                int state=pendingNonce.getState();
+                if(state==0){
+                    if(nowptnonce==entry.getValue()){
+                        pendingNonce.setState(2);
+                        ptnonce.put(entry.getKey(),pendingNonce);
+                    }
+                }
             }
         }
     }
