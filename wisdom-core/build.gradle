@@ -137,6 +137,29 @@ task buildDockerCore(type: Docker, dependsOn: jar) {
     }
 }
 
+task buildDockerCoreTest(type: Docker, dependsOn: jar) {
+    push = false
+    tag = "wisdomchain/wdc_core"
+    tagVersion = 'test'
+    applicationName = 'wdc_core'
+    dockerfile = file('src/main/docker/core/Dockerfile')
+
+    doFirst {
+        copy {
+            from jar into stageDir
+        }
+        copy {
+            from copyDependencies into "${stageDir}/lib"
+        }
+        copy {
+            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
+        }
+        copy {
+            from 'src/main/docker/core/version.json' into stageDir
+        }
+    }
+}
+
 task buildDockerFullNode(type: Docker, dependsOn: jar) {
     push = false
     tag = "wisdomchain/wisdom_fullnode"
