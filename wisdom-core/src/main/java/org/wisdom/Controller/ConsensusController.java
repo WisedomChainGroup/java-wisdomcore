@@ -86,6 +86,9 @@ public class ConsensusController {
 
     private boolean isP2PRestful;
 
+    @Value("${wisdom.consensus.allow-fork}")
+    private boolean allowFork;
+
     @PostConstruct
     public void init() {
         this.isP2PRestful = p2pMode.equals("rest");
@@ -153,6 +156,9 @@ public class ConsensusController {
 
     @PostMapping(value = "/consensus/blocks", produces = "application/json")
     public Object handleProposal(@RequestBody byte[] body, HttpServletRequest request) {
+        if (!allowFork){
+            return ERROR("reject proposal, because fork is not allowed");
+        }
         Block b = codec.decodeBlock(body);
         if (b == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());

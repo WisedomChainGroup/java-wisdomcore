@@ -5,6 +5,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+
+import static org.wisdom.Controller.ConsensusResult.ERROR;
 
 
 /**
@@ -55,6 +58,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     @Autowired
     private BasicRule rule;
+
+    @Value("${wisdom.consensus.allow-fork}")
+    private boolean allowFork;
 
     public SyncManager() {
         this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
@@ -127,6 +133,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onProposal(Context context, PeerServer server) {
+        if (!allowFork) {
+            return;
+        }
         WisdomOuterClass.Proposal proposal = context.getPayload().getProposal();
         Block block = Utils.parseBlock(proposal.getBlock());
         if (proposalCache.containsKey(block.getHashHexString())) {
@@ -206,9 +215,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
     }
 
-    // TODO: 增加分叉容错后要开启该功能
     @Override
     public void onApplicationEvent(NewBlockMinedEvent event) {
-//        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
+        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }

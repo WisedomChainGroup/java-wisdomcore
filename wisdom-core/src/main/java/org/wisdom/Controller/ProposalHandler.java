@@ -33,5 +33,6 @@ public class ProposalHandler implements ApplicationListener<NewBlockMinedEvent> 
 
     @Override
     public void onApplicationEvent(NewBlockMinedEvent event) {
+        
     }
 }
