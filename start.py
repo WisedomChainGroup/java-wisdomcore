@@ -3,9 +3,18 @@
 # require
 # pip3 install -U "python-dotenv[cli]"
 
-import os
+# usage python3 start.py --env rest.env
 
-os.system("dotenv -f ./rest.env run ./gradlew run")
+import os
+import argparse
+from dotenv import load_dotenv
+
+parser = argparse.ArgumentParser(description='start wisdom core from env file')
+parser.add_argument('-e', '--env', default="local.env", type=str, help="env file path")
+args = vars(parser.parse_args())
+load_dotenv(dotenv_path=args['env'])
+
+os.system("./gradlew run")
 
 
 
