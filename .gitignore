@@ -54,3 +54,4 @@ node_modules
 
 wisdom-genesis-test.json
 node_modules
+leveldb
