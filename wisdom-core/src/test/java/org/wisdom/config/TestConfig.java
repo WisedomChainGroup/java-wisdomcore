@@ -2,11 +2,11 @@ package org.wisdom.config;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
+import org.wisdom.core.BlockChainOptional;
 import org.wisdom.crypto.KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.Block;
-import org.wisdom.core.RDBMSBlockChainImpl;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
@@ -16,13 +16,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.core.RDBMSBlockChainImpl;
 
 public class TestConfig {
     private static String testDBURL = "jdbc:postgresql://localhost:5432/postgres";
 
 
     @Bean
-    public BasicDataSource basicDataSource(){
+    public BasicDataSource basicDataSource() {
         BasicDataSource ds = new BasicDataSource();
         ds.setUrl(testDBURL);
         ds.setDriverClassName("org.postgresql.Driver");
@@ -64,15 +65,21 @@ public class TestConfig {
     }
 
     protected void clearData(JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.batchUpdate("delete from header where 1 = 1",
+        jdbcTemplate.batchUpdate("delete  from header where 1 = 1",
                 "delete from transaction where 1 = 1",
-                "delete from transaction_index where 1 = 1"
-         );
+                "delete from transaction_index where 1 = 1",
+                "delete from account where 1 = 1",
+                "delete from incubator_state where 1 = 1");
     }
 
     @Bean
-    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx) throws Exception {
-        return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx);
+    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) {
+        return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx, "", true, blockChainOptional);
+    }
+
+    @Bean
+    public BlockChainOptional blockChainOptional(JdbcTemplate template, Block genesis) {
+        return new BlockChainOptional(template, genesis);
     }
 
     @Bean

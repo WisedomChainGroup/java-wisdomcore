@@ -1,4 +1,4 @@
-package org.ethereum.command;
+package org.wisdom.command;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.DecoderException;

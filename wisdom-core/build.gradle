@@ -257,8 +257,8 @@ dependencies {
     // used to hide spring initialization logs messages in samples
     optional "org.slf4j:jcl-over-slf4j:${slf4jVersion}"
 
-    testCompile "junit:junit:${junitVersion}"
-    testCompile "org.springframework:spring-test:${springVersion}"
+    compile "junit:junit:${junitVersion}"
+    compile "org.springframework:spring-test:${springVersion}"
     testCompile "org.mockito:mockito-core:2.+"
     testCompile "com.github.briandilley.jsonrpc4j:jsonrpc4j:1.1"
 

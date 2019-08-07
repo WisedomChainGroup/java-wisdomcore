@@ -1,6 +1,6 @@
 package org.wisdom.consensus;
 
-import org.ethereum.config.TestConfig;
+import org.wisdom.config.TestConfig;
 import org.wisdom.consensus.vrf.PosTable;
 import org.wisdom.consensus.vrf.PosTableFactory;
 import org.junit.Test;
