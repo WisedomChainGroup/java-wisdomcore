@@ -158,11 +158,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     private void deleteCanonicals(long start, long end) {
-        tmpl.update("update header set is_canonical = false where height >= ? and height <= ?", new Object[]{start, end});
+        tmpl.update("update header set is_canonical = false where height >= ? and height <= ?", start, end);
     }
 
     private void setCanonical(byte[] hash) {
-        tmpl.update("update header set is_canonical = true where block_hash = ?", hash);
+        tmpl.update("update header set is_canonical = true where block_hash = ?", new Object[]{hash});
     }
 
     private void setCanonicals(List<byte[]> hashes) {
@@ -353,10 +353,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         Block parentHeader = parent.get();
 
         // 单机挖矿时防止分叉
-        if (blockChainOptional.hasBlock(block.getnHeight())
-                .orElse(true)) {
-            return;
-        }
+//        if (blockChainOptional.hasBlock(block.getnHeight())
+//                .orElse(true)) {
+//            return;
+//        }
         long ptw = parentHeader.totalWeight;
         Optional<Block> curent = blockChainOptional.currentHeader();
         Optional<Long> localTW = curent.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));
@@ -371,7 +371,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                                 .map(y -> Arrays.areEqual(h, y))
                 );
         Optional<Boolean> refork = isNewHeadBlock.flatMap(
-                x -> parentIsCurrent.map(y -> x && y)
+                x -> parentIsCurrent.map(y -> x && !y)
         );
         Optional<Block> commonAncestor = curent.flatMap(c -> blockChainOptional.findCommonAncestorHeader(parentHeader, c));
         Optional<List<Block>> canonicalHeaders = commonAncestor.flatMap(a -> blockChainOptional.getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1));

@@ -2,6 +2,7 @@ package org.wisdom.config;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
+import org.wisdom.core.BlockChainOptional;
 import org.wisdom.crypto.KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -22,7 +23,7 @@ public class TestConfig {
 
 
     @Bean
-    public BasicDataSource basicDataSource(){
+    public BasicDataSource basicDataSource() {
         BasicDataSource ds = new BasicDataSource();
         ds.setUrl(testDBURL);
         ds.setDriverClassName("org.postgresql.Driver");
@@ -64,15 +65,21 @@ public class TestConfig {
     }
 
     protected void clearData(JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.batchUpdate("delete from header where 1 = 1",
+        jdbcTemplate.batchUpdate("delete  from header where 1 = 1",
                 "delete from transaction where 1 = 1",
-                "delete from transaction_index where 1 = 1"
-         );
+                "delete from transaction_index where 1 = 1",
+                "delete from account where 1 = 1",
+                "delete from incubator_state where 1 = 1");
     }
 
     @Bean
-    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx) throws Exception {
-        return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx);
+    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) throws Exception {
+        return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx, "", true, blockChainOptional);
+    }
+
+    @Bean
+    public BlockChainOptional blockChainOptional(JdbcTemplate template, Block genesis) {
+        return new BlockChainOptional(template, genesis);
     }
 
     @Bean
