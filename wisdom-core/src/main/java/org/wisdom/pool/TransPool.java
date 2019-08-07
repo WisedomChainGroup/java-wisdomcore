@@ -9,6 +9,9 @@ public class TransPool {
     private long datetime;
     private long height;
 
+    public TransPool() {
+    }
+
     public long getHeight() {
         return height;
     }

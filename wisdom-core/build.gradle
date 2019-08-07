@@ -275,6 +275,10 @@ dependencies {
     compile 'io.grpc:grpc-netty-shaded:1.22.1'
     compile 'io.grpc:grpc-protobuf:1.22.1'
     compile 'io.grpc:grpc-stub:1.22.1'
+    // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
+    compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.7'
+    // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb-api
+    compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.7'
 }
 
 

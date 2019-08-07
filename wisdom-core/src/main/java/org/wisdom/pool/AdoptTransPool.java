@@ -1,9 +1,12 @@
 package org.wisdom.pool;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections.map.LinkedMap;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
@@ -15,8 +18,20 @@ public class AdoptTransPool {
 
     private ConcurrentHashMap<String, Map<String, TransPool>> atpool;
 
+    public ConcurrentHashMap<String, Map<String, TransPool>> getAtpool() {
+        return atpool;
+    }
+
     public AdoptTransPool() {
+        Leveldb leveldb=new Leveldb();
         this.atpool = new ConcurrentHashMap<>();
+        try {
+            String dbdata=leveldb.readPoolDb("QueuedPool");
+            if(dbdata!=null && !dbdata.equals("")){
+                List<Transaction> list=JSON.parseObject(dbdata,new TypeReference<ArrayList<Transaction>>() {});
+                add(list);
+            }
+        } catch (Exception e) {}
     }
 
     public void add(List<Transaction> txs) {

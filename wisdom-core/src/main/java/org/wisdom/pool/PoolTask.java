@@ -1,5 +1,6 @@
 package org.wisdom.pool;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +14,7 @@ import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
@@ -132,6 +134,7 @@ public class PoolTask {
         List<TransPool> pendinglist = peningTransPool.getAll();
         List<String> pendinglists = new ArrayList<>();
         List<Transaction> updatelist = new ArrayList<>();
+        Map<String,Long> map=new HashMap<>();
         for (TransPool transPool : pendinglist) {
             Transaction t = transPool.getTransaction();
             long nonce = t.nonce;
@@ -142,17 +145,20 @@ public class PoolTask {
             long nownonce = accountDB.getNonce(frompubhash);
             if (nownonce >= nonce) {
                 pendinglists.add(peningTransPool.getKeyTrans(t));
+                map.put(fromhex,t.nonce);
                 continue;
             }
             long daysBetween = (new Date().getTime() - transPool.getDatetime() + 1000000) / (60 * 60 * 24 * 1000);
             if (daysBetween >= configuration.getPoolcleardays()) {
                 pendinglists.add(peningTransPool.getKeyTrans(t));
+                map.put(fromhex,t.nonce);
                 continue;
             }
             //db
             Transaction transaction = wisdomBlockChain.getTransaction(t.getHash());
             if (transaction != null) {
                 pendinglists.add(peningTransPool.getKeyTrans(t));
+                map.put(fromhex,t.nonce);
                 continue;
             }
             //高度
@@ -180,9 +186,31 @@ public class PoolTask {
             peningTransPool.updatePool(updatelist, 0, 0);
         }
         if (pendinglists.size() > 0) {
-            peningTransPool.remove(pendinglists);
+            peningTransPool.remove(pendinglists,map);
         }
     }
+
+    @Scheduled(cron="0 0 0/1 * * ?")
+    public void updatedbPool(){
+        Leveldb leveldb=new Leveldb();
+        List<TransPool> list=adoptTransPool.getAllFull();
+        List<Transaction> queuedlist=new ArrayList<>();
+        for(TransPool transPool:list){
+            queuedlist.add(transPool.getTransaction());
+        }
+        if(queuedlist.size()>0){
+            String queuedjson = JSON.toJSONString(queuedlist,true);
+            leveldb.addPoolDb("QueuedPool",queuedjson);
+        }
+        List<TransPool> transPoolList=peningTransPool.getAllstate();
+        if(transPoolList.size()>0){
+            String pendingjson = JSON.toJSONString(transPoolList,true);
+            leveldb.addPoolDb("PendingPool",pendingjson);
+        }
+    }
+
+
+
 
    /* @Scheduled(fixedDelay = 30 * 1000)
     public void sendTranPool() {
