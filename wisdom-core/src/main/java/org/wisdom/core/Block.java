@@ -67,7 +67,6 @@ public class Block {
         return HashUtil.skein256256(raw);
     }
 
-
     public static byte[] getHeaderRaw(Block block) {
         return Arrays.concatenate(
                 new byte[][]{
@@ -176,6 +175,11 @@ public class Block {
         if (hashCache == null) {
             hashCache = HashUtil.keccak256(getHeaderRaw());
         }
+        return hashCache;
+    }
+
+    public byte[] reHash() {
+        hashCache = HashUtil.keccak256(getHeaderRaw());
         return hashCache;
     }
 
@@ -341,7 +345,7 @@ public class Block {
         this.weight = weight;
     }
 
-    public Block toHeader(){
+    public Block toHeader() {
         Block h = new Block();
         h.nVersion = nVersion;
         h.hashPrevBlock = hashPrevBlock;

@@ -7,7 +7,6 @@ import org.wisdom.crypto.KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.Block;
-import org.wisdom.core.RDBMSBlockChainImpl;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
@@ -17,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.core.RDBMSBlockChainImpl;
 
 public class TestConfig {
     private static String testDBURL = "jdbc:postgresql://localhost:5432/postgres";
@@ -73,7 +73,7 @@ public class TestConfig {
     }
 
     @Bean
-    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) throws Exception {
+    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) {
         return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx, "", true, blockChainOptional);
     }
 

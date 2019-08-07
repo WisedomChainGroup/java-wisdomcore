@@ -1,6 +1,5 @@
 package org.wisdom.core;
 
-import org.apache.commons.codec.binary.Hex;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,7 +18,7 @@ import java.util.*;
 @SpringBootTest(classes = {TestConfig.class})
 public class BlockChainOptionalTest {
     private static final byte[] HASH_1 = HashUtil.keccak256("def".getBytes());
-    private static final byte[] HASH_2 = HashUtil.keccak256("def".getBytes());
+    private static final byte[] HASH_2 = HashUtil.keccak256("abc".getBytes());
 
     @Autowired
     private RDBMSBlockChainImpl getChain() {
@@ -31,6 +30,9 @@ public class BlockChainOptionalTest {
 
     @Autowired
     private BlockChainOptional blockChainOptional;
+
+    @Autowired
+    private Block genesis;
 
     private Block getGenesis() {
         return context.getBean(Block.class);
@@ -59,6 +61,7 @@ public class BlockChainOptionalTest {
             coinbaseTx.to = coinbase;
             coinbaseTx.nonce = i;
             newBlock.body = Collections.singletonList(coinbaseTx);
+            newBlock.reHash();
             blocks.add(newBlock);
             prev = newBlock;
         }
@@ -68,7 +71,8 @@ public class BlockChainOptionalTest {
     @Before
     public void testNewBigWeightBlockFork() {
         WisdomBlockChain bc = getChain();
-        for (Block b : getTestBlocks()) {
+        List<Block> blocks = getTestBlocks();
+        for (Block b : blocks) {
             bc.writeBlock(b);
         }
     }
@@ -126,8 +130,145 @@ public class BlockChainOptionalTest {
 
     @Test
     public void testGetBlocks() {
-        blockChainOptional
-                .getBlocks(0, 1000)
-                .ifPresent(x -> System.out.println(x.size()));
+        Optional<List<Block>> blocks = blockChainOptional.getBlocks(0, 1000);
+        assert blocks.map(List::size).map(s -> s == 31).orElse(false);
+        assert blocks.map(ls -> ls.get(1).body)
+                .map(b -> b.size() > 0 ? b.get(0) : null)
+                .map(tx -> Arrays.areEqual(tx.to, HASH_1)).orElse(false);
+    }
+
+    @Test
+    public void testGetHeaders() {
+        Optional<List<Block>> blocks = blockChainOptional.getHeaders(0, 1000);
+        assert blocks.map(List::size).map(s -> s == 31).orElse(false);
+    }
+
+    @Test
+    public void testGeCanonicalHeader() {
+        assert blockChainOptional
+                .getCanonicalHeader(0)
+                .map(b -> b.nHeight == 0)
+                .orElse(false);
+        assert blockChainOptional
+                .getCanonicalHeader(10)
+                .map(b -> Arrays.areEqual(b.hashMerkleRoot, HASH_2))
+                .orElse(false);
+    }
+
+    @Test
+    public void testGetCanonicalHeaders() {
+        Optional<List<Block>> headers = blockChainOptional.getCanonicalHeaders(0, 11);
+        assert headers.map(hs -> hs.size() == 11).orElse(false);
+        assert headers.map(hs -> hs.get(0))
+                .map(Block::getHash)
+                .map(h -> Arrays.areEqual(h, genesis.getHash())).orElse(false);
+        assert headers.map(hs -> hs.get(hs.size() - 1))
+                .map(Block::getHash)
+                .flatMap(h ->
+                        blockChainOptional.currentHeader().map(y -> Arrays.areEqual(h, y.getHash())))
+                .orElse(false);
+    }
+
+    @Test
+    public void testGetCanonicalBlock() {
+        assert blockChainOptional
+                .getCanonicalBlock(9)
+                .map(b -> b.nHeight == 9)
+                .orElse(false);
+    }
+
+    @Test
+    public void testGetCanonicalBlocks() {
+        Optional<List<Block>> canonicalBlocks = blockChainOptional.getCanonicalBlocks(0, 10);
+        assert canonicalBlocks
+                .map(bs -> bs.size() > 0 ? bs : null)
+                .map(bs -> bs.get(0))
+                .map(b -> Arrays.areEqual(b.getHash(), genesis.getHash()))
+                .orElse(false);
+        assert canonicalBlocks
+                .map(bs -> bs.size() == 10)
+                .orElse(false);
+    }
+
+    @Test
+    public void testIsCanonical() {
+        List<Block> blocks = getTestBlocks();
+        Optional<Block> biggest = blocks.stream().max((o1, o2) -> (int) (o1.weight - o2.weight));
+        assert biggest
+                .flatMap(b -> blockChainOptional.isCanonical(b.getHash()))
+                .orElse(false);
+    }
+
+    @Test
+    public void testFindAncestorHeader() {
+        Optional<Block> currentHeader = blockChainOptional.currentHeader();
+        Optional<Block> foundHeader = currentHeader
+                .flatMap(c -> blockChainOptional.findAncestorHeader(c.getHash(), 0));
+        assert foundHeader.map(h -> h.nHeight == 0).orElse(false);
+    }
+
+    @Test
+    public void testgetAncestorHeaders() {
+        Optional<Block> currentHeader = blockChainOptional.currentHeader();
+        Optional<List<Block>> foundHeaders = currentHeader.flatMap(h -> blockChainOptional.getAncestorHeaders(h.getHash(), 0));
+        assert foundHeaders
+                .flatMap(hs -> currentHeader.map(h -> hs.size() == h.nHeight + 1))
+                .orElse(false);
+    }
+
+    @Test
+    public void testFindAncestorBlock() {
+        Optional<Block> currentHeader = blockChainOptional.currentHeader();
+        Optional<Block> b = currentHeader.flatMap(h ->
+                blockChainOptional.findAncestorBlock(h.getHash(), 0));
+        assert b.map(x -> Arrays.areEqual(x.getHash(), genesis.getHash())).orElse(false);
+        assert b.map(x -> x.body)
+                .map(bd -> bd.size() > 0)
+                .orElse(false);
+    }
+
+    @Test
+    public void testGetAncestorBlocks() {
+        Optional<Block> currentHeader = blockChainOptional.currentHeader();
+        Optional<List<Block>> foundBlocks = currentHeader.flatMap(h -> blockChainOptional.getAncestorBlocks(h.getHash(), 0));
+        assert foundBlocks
+                .flatMap(hs -> currentHeader.map(h -> hs.size() == h.nHeight + 1))
+                .orElse(false);
+        assert foundBlocks.flatMap(
+                x -> x.stream()
+                        .map(y -> y.body != null && y.size() > 0)
+                        .reduce((a, b) -> a && b)
+        ).orElse(false);
+    }
+
+    @Test
+    public void testGetCurrentTotalWeight() {
+        assert blockChainOptional.getCurrentTotalWeight()
+                .map(w -> w == 1009)
+                .orElse(false);
+    }
+
+    @Test
+    public void testHasTransaction() {
+        Optional<Block> currentBlock = blockChainOptional.currentBlock();
+        assert currentBlock
+                .map(b -> b.body)
+                .map(bd -> bd.size() > 0 ? bd.get(0) : null)
+                .flatMap(h -> blockChainOptional
+                        .hasTransaction(h.getHash())
+                )
+                .orElse(false);
+    }
+
+    @Test
+    public void testGetTransaction() {
+        Optional<Block> currentBlock = blockChainOptional.currentBlock();
+        assert currentBlock
+                .map(b -> b.body)
+                .map(bd -> bd.size() > 0 ? bd.get(0) : null)
+                .flatMap(h -> blockChainOptional
+                        .getTransaction(h.getHash())
+                )
+                .isPresent();
     }
 }

@@ -40,6 +40,7 @@ public abstract class WisdomChainTest {
             }
             newBlock.nHeight = i;
             newBlock.weight = 1;
+            newBlock.reHash();
             blocks.add(newBlock);
             prev = newBlock;
         }
@@ -274,8 +275,8 @@ public abstract class WisdomChainTest {
     @Test
     public void testNewBigWeightBlockFork() {
         WisdomBlockChain bc = getChain();
-        List<Block> fork1 = getHeightN(20, null);
-        List<Block> fork2 = getHeightN(10, HashUtil.keccak256("abc".getBytes()));
+        List<Block> fork1 = getHeightN(20, HashUtil.keccak256("abc".getBytes()));
+        List<Block> fork2 = getHeightN(10, HashUtil.keccak256("def".getBytes()));
         fork2.get(fork2.size() - 1).weight = 1000;
         for (Block b : fork1) {
             bc.writeBlock(b);
