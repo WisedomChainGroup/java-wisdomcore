@@ -69,6 +69,9 @@ public class CommandController {
     @Autowired
     private TransactionHandler transactionHandler;
 
+    @Value("${p2p.mode}")
+    private String p2pMode;
+
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
             "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
     public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
@@ -77,8 +80,11 @@ public class CommandController {
             APIResult result = commandService.verifyTransfer(traninfos);
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
-                RPCClient.broadcastTransactions(Collections.singletonList(t));
-                transactionHandler.broadcastTransactions(Collections.singletonList(t));
+                if(p2pMode.equals("rest")){
+                    RPCClient.broadcastTransactions(Collections.singletonList(t));
+                }else{
+                    transactionHandler.broadcastTransactions(Collections.singletonList(t));
+                }
             }
             return result;
         } catch (DecoderException e) {
