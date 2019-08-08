@@ -35,11 +35,12 @@ public class TransactionHandler implements Plugin {
         WisdomOuterClass.Transactions txs = (WisdomOuterClass.Transactions) context.getPayload().getBody();
         txs.getTransactionsList()
                 .stream()
-                .map(Utils::parseTransaction).forEach(t -> {
+                .map(Utils::parseTransaction)
+                .forEach(t -> {
             byte[] traninfo = t.toRPCBytes();
             commandService.verifyTransfer(traninfo);
         });
-        context.relay();
+//        context.relay();
     }
 
     @Override

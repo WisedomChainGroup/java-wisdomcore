@@ -37,7 +37,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
-    private static final int MAX_TTL = 64;
+    private static final int MAX_TTL = 8;
     private AtomicLong nonce;
     private Peer self;
     private List<Plugin> pluginList;
@@ -117,10 +117,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.use(messageLogger)
                 .use(filter)
                 .use(syncManager)
-                .use(transactionHandler);
-        if (enableDiscovery) {
-            use(pmgr);
-        }
+                .use(transactionHandler)
+                .use(pmgr);
         startListening();
     }
 
