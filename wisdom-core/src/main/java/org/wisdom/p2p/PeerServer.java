@@ -63,6 +63,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Autowired
     private TransactionHandler transactionHandler;
 
+    @Value("${p2p.enable-discovery}")
+    private boolean enableDiscovery;
+
     public PeerServer(
             @Value("${p2p.address}") String self,
             @Value("${p2p.bootstraps}") String bootstraps,
@@ -113,9 +116,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     public void init() throws Exception {
         this.use(messageLogger)
                 .use(filter)
-                .use(pmgr)
                 .use(syncManager)
                 .use(transactionHandler);
+        if(enableDiscovery){
+            use(pmgr);
+        }
         startListening();
     }
 
@@ -130,6 +135,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void startHalf() {
+        if(!enableDiscovery){
+            return;
+        }
         boolean hasFull = peers.size() + trusted.size() >= MAX_PEERS;
         for (Peer p : pended.values()) {
             pended.remove(p.key());
