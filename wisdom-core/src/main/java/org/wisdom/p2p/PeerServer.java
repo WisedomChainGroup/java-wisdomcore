@@ -16,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.sync.SyncManager;
+import org.wisdom.sync.TransactionHandler;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
@@ -58,6 +59,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     @Autowired
     private SyncManager syncManager;
+
+    @Autowired
+    private TransactionHandler transactionHandler;
 
     public PeerServer(
             @Value("${p2p.address}") String self,
@@ -107,7 +111,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
      */
     @PostConstruct
     public void init() throws Exception {
-        use(messageLogger).use(filter).use(pmgr).use(syncManager);
+        this.use(messageLogger)
+                .use(filter)
+                .use(pmgr)
+                .use(syncManager)
+                .use(transactionHandler);
         startListening();
     }
 
@@ -399,9 +407,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             builder.setCode(WisdomOuterClass.Code.PROPOSAL);
             return sign(builder.setBody(((WisdomOuterClass.Proposal) msg).toByteString())).build();
         }
-        if (msg instanceof WisdomOuterClass.Transaction) {
-            builder.setCode(WisdomOuterClass.Code.TRANSACTION);
-            return sign(builder.setBody(((WisdomOuterClass.Transaction) msg).toByteString())).build();
+        if (msg instanceof WisdomOuterClass.Transactions) {
+            builder.setCode(WisdomOuterClass.Code.TRANSACTIONS);
+            return sign(builder.setBody(((WisdomOuterClass.Transactions) msg).toByteString())).build();
         }
         logger.error("cannot deduce message type " + msg.getClass().toString());
         builder.setCode(WisdomOuterClass.Code.NOTHING).setBody(WisdomOuterClass.Nothing.newBuilder().build().toByteString());

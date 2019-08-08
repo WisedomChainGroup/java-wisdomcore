@@ -64,9 +64,9 @@ public final class WisdomOuterClass {
      */
     PROPOSAL(9),
     /**
-     * <code>TRANSACTION = 10;</code>
+     * <code>TRANSACTIONS = 10;</code>
      */
-    TRANSACTION(10),
+    TRANSACTIONS(10),
     UNRECOGNIZED(-1),
     ;
 
@@ -115,9 +115,9 @@ public final class WisdomOuterClass {
      */
     public static final int PROPOSAL_VALUE = 9;
     /**
-     * <code>TRANSACTION = 10;</code>
+     * <code>TRANSACTIONS = 10;</code>
      */
-    public static final int TRANSACTION_VALUE = 10;
+    public static final int TRANSACTIONS_VALUE = 10;
 
 
     public final int getNumber() {
@@ -148,7 +148,7 @@ public final class WisdomOuterClass {
         case 7: return GET_BLOCKS;
         case 8: return BLOCKS;
         case 9: return PROPOSAL;
-        case 10: return TRANSACTION;
+        case 10: return TRANSACTIONS;
         default: return null;
       }
     }
@@ -625,8 +625,6 @@ public final class WisdomOuterClass {
       code_ = 0;
       remotePeer_ = "";
       recipient_ = "";
-      ttl_ = 0L;
-      nonce_ = 0L;
       signature_ = com.google.protobuf.ByteString.EMPTY;
       body_ = com.google.protobuf.ByteString.EMPTY;
     }
@@ -707,7 +705,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -992,27 +990,26 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Message other = (org.wisdom.p2p.WisdomOuterClass.Message) obj;
 
-      boolean result = true;
-      result = result && code_ == other.code_;
-      result = result && (hasCreatedAt() == other.hasCreatedAt());
+      if (code_ != other.code_) return false;
+      if (hasCreatedAt() != other.hasCreatedAt()) return false;
       if (hasCreatedAt()) {
-        result = result && getCreatedAt()
-            .equals(other.getCreatedAt());
+        if (!getCreatedAt()
+            .equals(other.getCreatedAt())) return false;
       }
-      result = result && getRemotePeer()
-          .equals(other.getRemotePeer());
-      result = result && getRecipient()
-          .equals(other.getRecipient());
-      result = result && (getTtl()
-          == other.getTtl());
-      result = result && (getNonce()
-          == other.getNonce());
-      result = result && getSignature()
-          .equals(other.getSignature());
-      result = result && getBody()
-          .equals(other.getBody());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!getRemotePeer()
+          .equals(other.getRemotePeer())) return false;
+      if (!getRecipient()
+          .equals(other.getRecipient())) return false;
+      if (getTtl()
+          != other.getTtl()) return false;
+      if (getNonce()
+          != other.getNonce()) return false;
+      if (!getSignature()
+          .equals(other.getSignature())) return false;
+      if (!getBody()
+          .equals(other.getBody())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -1239,35 +1236,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -1401,7 +1398,7 @@ public final class WisdomOuterClass {
         return this;
       }
 
-      private com.google.protobuf.Timestamp createdAt_ = null;
+      private com.google.protobuf.Timestamp createdAt_;
       private com.google.protobuf.SingleFieldBuilderV3<
           com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> createdAtBuilder_;
       /**
@@ -1804,7 +1801,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -1897,7 +1894,7 @@ public final class WisdomOuterClass {
               done = true;
               break;
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -1966,9 +1963,8 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Ping other = (org.wisdom.p2p.WisdomOuterClass.Ping) obj;
 
-      boolean result = true;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -2143,35 +2139,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -2216,7 +2212,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -2309,7 +2305,7 @@ public final class WisdomOuterClass {
               done = true;
               break;
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -2378,9 +2374,8 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Pong other = (org.wisdom.p2p.WisdomOuterClass.Pong) obj;
 
-      boolean result = true;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -2555,35 +2550,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -2628,7 +2623,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -2721,7 +2716,7 @@ public final class WisdomOuterClass {
               done = true;
               break;
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -2790,9 +2785,8 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Lookup other = (org.wisdom.p2p.WisdomOuterClass.Lookup) obj;
 
-      boolean result = true;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -2967,35 +2961,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -3040,7 +3034,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -3159,7 +3153,7 @@ public final class WisdomOuterClass {
               break;
             case 10: {
               java.lang.String s = input.readStringRequireUtf8();
-              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 peers_ = new com.google.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000001;
               }
@@ -3167,7 +3161,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -3181,7 +3175,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           peers_ = peers_.getUnmodifiableView();
         }
         this.unknownFields = unknownFields.build();
@@ -3279,11 +3273,10 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Peers other = (org.wisdom.p2p.WisdomOuterClass.Peers) obj;
 
-      boolean result = true;
-      result = result && getPeersList()
-          .equals(other.getPeersList());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!getPeersList()
+          .equals(other.getPeersList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -3463,7 +3456,7 @@ public final class WisdomOuterClass {
       public org.wisdom.p2p.WisdomOuterClass.Peers buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.Peers result = new org.wisdom.p2p.WisdomOuterClass.Peers(this);
         int from_bitField0_ = bitField0_;
-        if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((bitField0_ & 0x00000001) != 0)) {
           peers_ = peers_.getUnmodifiableView();
           bitField0_ = (bitField0_ & ~0x00000001);
         }
@@ -3474,35 +3467,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -3558,7 +3551,7 @@ public final class WisdomOuterClass {
 
       private com.google.protobuf.LazyStringList peers_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       private void ensurePeersIsMutable() {
-        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           peers_ = new com.google.protobuf.LazyStringArrayList(peers_);
           bitField0_ |= 0x00000001;
          }
@@ -3652,7 +3645,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -3745,7 +3738,7 @@ public final class WisdomOuterClass {
               done = true;
               break;
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -3814,9 +3807,8 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.GetStatus other = (org.wisdom.p2p.WisdomOuterClass.GetStatus) obj;
 
-      boolean result = true;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -3991,35 +3983,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -4064,7 +4056,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -4146,7 +4138,6 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Status() {
-      currentHeight_ = 0L;
       bestBlockHash_ = com.google.protobuf.ByteString.EMPTY;
       genesisHash_ = com.google.protobuf.ByteString.EMPTY;
     }
@@ -4191,7 +4182,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -4308,15 +4299,14 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Status other = (org.wisdom.p2p.WisdomOuterClass.Status) obj;
 
-      boolean result = true;
-      result = result && (getCurrentHeight()
-          == other.getCurrentHeight());
-      result = result && getBestBlockHash()
-          .equals(other.getBestBlockHash());
-      result = result && getGenesisHash()
-          .equals(other.getGenesisHash());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (getCurrentHeight()
+          != other.getCurrentHeight()) return false;
+      if (!getBestBlockHash()
+          .equals(other.getBestBlockHash())) return false;
+      if (!getGenesisHash()
+          .equals(other.getGenesisHash())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -4507,35 +4497,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -4673,7 +4663,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -4759,8 +4749,6 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private GetBlocks() {
-      startHeight_ = 0L;
-      stopHeight_ = 0L;
       clipDirection_ = 0;
     }
 
@@ -4805,7 +4793,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -4930,14 +4918,13 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.GetBlocks other = (org.wisdom.p2p.WisdomOuterClass.GetBlocks) obj;
 
-      boolean result = true;
-      result = result && (getStartHeight()
-          == other.getStartHeight());
-      result = result && (getStopHeight()
-          == other.getStopHeight());
-      result = result && clipDirection_ == other.clipDirection_;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (getStartHeight()
+          != other.getStartHeight()) return false;
+      if (getStopHeight()
+          != other.getStopHeight()) return false;
+      if (clipDirection_ != other.clipDirection_) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -5129,35 +5116,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -5308,7 +5295,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -5427,7 +5414,7 @@ public final class WisdomOuterClass {
               done = true;
               break;
             case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 blocks_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Block>();
                 mutable_bitField0_ |= 0x00000001;
               }
@@ -5436,7 +5423,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -5450,7 +5437,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           blocks_ = java.util.Collections.unmodifiableList(blocks_);
         }
         this.unknownFields = unknownFields.build();
@@ -5550,11 +5537,10 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Blocks other = (org.wisdom.p2p.WisdomOuterClass.Blocks) obj;
 
-      boolean result = true;
-      result = result && getBlocksList()
-          .equals(other.getBlocksList());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!getBlocksList()
+          .equals(other.getBlocksList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -5736,7 +5722,7 @@ public final class WisdomOuterClass {
         org.wisdom.p2p.WisdomOuterClass.Blocks result = new org.wisdom.p2p.WisdomOuterClass.Blocks(this);
         int from_bitField0_ = bitField0_;
         if (blocksBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) == 0x00000001)) {
+          if (((bitField0_ & 0x00000001) != 0)) {
             blocks_ = java.util.Collections.unmodifiableList(blocks_);
             bitField0_ = (bitField0_ & ~0x00000001);
           }
@@ -5750,35 +5736,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -5851,7 +5837,7 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.Block> blocks_ =
         java.util.Collections.emptyList();
       private void ensureBlocksIsMutable() {
-        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           blocks_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Block>(blocks_);
           bitField0_ |= 0x00000001;
          }
@@ -6080,7 +6066,7 @@ public final class WisdomOuterClass {
           blocksBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.Block, org.wisdom.p2p.WisdomOuterClass.Block.Builder, org.wisdom.p2p.WisdomOuterClass.BlockOrBuilder>(
                   blocks_,
-                  ((bitField0_ & 0x00000001) == 0x00000001),
+                  ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
                   isClean());
           blocks_ = null;
@@ -6090,7 +6076,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -6210,7 +6196,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -6307,14 +6293,13 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Proposal other = (org.wisdom.p2p.WisdomOuterClass.Proposal) obj;
 
-      boolean result = true;
-      result = result && (hasBlock() == other.hasBlock());
+      if (hasBlock() != other.hasBlock()) return false;
       if (hasBlock()) {
-        result = result && getBlock()
-            .equals(other.getBlock());
+        if (!getBlock()
+            .equals(other.getBlock())) return false;
       }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -6504,35 +6489,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -6578,7 +6563,7 @@ public final class WisdomOuterClass {
         return this;
       }
 
-      private org.wisdom.p2p.WisdomOuterClass.Block block_ = null;
+      private org.wisdom.p2p.WisdomOuterClass.Block block_;
       private com.google.protobuf.SingleFieldBuilderV3<
           org.wisdom.p2p.WisdomOuterClass.Block, org.wisdom.p2p.WisdomOuterClass.Block.Builder, org.wisdom.p2p.WisdomOuterClass.BlockOrBuilder> blockBuilder_;
       /**
@@ -6697,7 +6682,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -6790,7 +6775,7 @@ public final class WisdomOuterClass {
               done = true;
               break;
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -6859,9 +6844,8 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Nothing other = (org.wisdom.p2p.WisdomOuterClass.Nothing) obj;
 
-      boolean result = true;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -7036,35 +7020,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -7109,7 +7093,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -7154,6 +7138,787 @@ public final class WisdomOuterClass {
 
     @java.lang.Override
     public org.wisdom.p2p.WisdomOuterClass.Nothing getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface TransactionsOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:Transactions)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> 
+        getTransactionsList();
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.Transaction getTransactions(int index);
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    int getTransactionsCount();
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
+        getTransactionsOrBuilderList();
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getTransactionsOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code Transactions}
+   */
+  public  static final class Transactions extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:Transactions)
+      TransactionsOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use Transactions.newBuilder() to construct.
+    private Transactions(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private Transactions() {
+      transactions_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private Transactions(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
+                transactions_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              transactions_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.Transaction.parser(), extensionRegistry));
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
+          transactions_ = java.util.Collections.unmodifiableList(transactions_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_Transactions_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_Transactions_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.Transactions.class, org.wisdom.p2p.WisdomOuterClass.Transactions.Builder.class);
+    }
+
+    public static final int TRANSACTIONS_FIELD_NUMBER = 1;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> transactions_;
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> getTransactionsList() {
+      return transactions_;
+    }
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
+        getTransactionsOrBuilderList() {
+      return transactions_;
+    }
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    public int getTransactionsCount() {
+      return transactions_.size();
+    }
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.Transaction getTransactions(int index) {
+      return transactions_.get(index);
+    }
+    /**
+     * <code>repeated .Transaction transactions = 1;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getTransactionsOrBuilder(
+        int index) {
+      return transactions_.get(index);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      for (int i = 0; i < transactions_.size(); i++) {
+        output.writeMessage(1, transactions_.get(i));
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      for (int i = 0; i < transactions_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, transactions_.get(i));
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.Transactions)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.Transactions other = (org.wisdom.p2p.WisdomOuterClass.Transactions) obj;
+
+      if (!getTransactionsList()
+          .equals(other.getTransactionsList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (getTransactionsCount() > 0) {
+        hash = (37 * hash) + TRANSACTIONS_FIELD_NUMBER;
+        hash = (53 * hash) + getTransactionsList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.Transactions prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code Transactions}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:Transactions)
+        org.wisdom.p2p.WisdomOuterClass.TransactionsOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_Transactions_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_Transactions_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.Transactions.class, org.wisdom.p2p.WisdomOuterClass.Transactions.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.Transactions.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getTransactionsFieldBuilder();
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        if (transactionsBuilder_ == null) {
+          transactions_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+        } else {
+          transactionsBuilder_.clear();
+        }
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_Transactions_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.Transactions getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.Transactions.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.Transactions build() {
+        org.wisdom.p2p.WisdomOuterClass.Transactions result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.Transactions buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.Transactions result = new org.wisdom.p2p.WisdomOuterClass.Transactions(this);
+        int from_bitField0_ = bitField0_;
+        if (transactionsBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) != 0)) {
+            transactions_ = java.util.Collections.unmodifiableList(transactions_);
+            bitField0_ = (bitField0_ & ~0x00000001);
+          }
+          result.transactions_ = transactions_;
+        } else {
+          result.transactions_ = transactionsBuilder_.build();
+        }
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.Transactions) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.Transactions)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.Transactions other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.Transactions.getDefaultInstance()) return this;
+        if (transactionsBuilder_ == null) {
+          if (!other.transactions_.isEmpty()) {
+            if (transactions_.isEmpty()) {
+              transactions_ = other.transactions_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+            } else {
+              ensureTransactionsIsMutable();
+              transactions_.addAll(other.transactions_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.transactions_.isEmpty()) {
+            if (transactionsBuilder_.isEmpty()) {
+              transactionsBuilder_.dispose();
+              transactionsBuilder_ = null;
+              transactions_ = other.transactions_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+              transactionsBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getTransactionsFieldBuilder() : null;
+            } else {
+              transactionsBuilder_.addAllMessages(other.transactions_);
+            }
+          }
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.Transactions parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.Transactions) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> transactions_ =
+        java.util.Collections.emptyList();
+      private void ensureTransactionsIsMutable() {
+        if (!((bitField0_ & 0x00000001) != 0)) {
+          transactions_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>(transactions_);
+          bitField0_ |= 0x00000001;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> transactionsBuilder_;
+
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> getTransactionsList() {
+        if (transactionsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(transactions_);
+        } else {
+          return transactionsBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public int getTransactionsCount() {
+        if (transactionsBuilder_ == null) {
+          return transactions_.size();
+        } else {
+          return transactionsBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.Transaction getTransactions(int index) {
+        if (transactionsBuilder_ == null) {
+          return transactions_.get(index);
+        } else {
+          return transactionsBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder setTransactions(
+          int index, org.wisdom.p2p.WisdomOuterClass.Transaction value) {
+        if (transactionsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTransactionsIsMutable();
+          transactions_.set(index, value);
+          onChanged();
+        } else {
+          transactionsBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder setTransactions(
+          int index, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
+        if (transactionsBuilder_ == null) {
+          ensureTransactionsIsMutable();
+          transactions_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          transactionsBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder addTransactions(org.wisdom.p2p.WisdomOuterClass.Transaction value) {
+        if (transactionsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTransactionsIsMutable();
+          transactions_.add(value);
+          onChanged();
+        } else {
+          transactionsBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder addTransactions(
+          int index, org.wisdom.p2p.WisdomOuterClass.Transaction value) {
+        if (transactionsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTransactionsIsMutable();
+          transactions_.add(index, value);
+          onChanged();
+        } else {
+          transactionsBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder addTransactions(
+          org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
+        if (transactionsBuilder_ == null) {
+          ensureTransactionsIsMutable();
+          transactions_.add(builderForValue.build());
+          onChanged();
+        } else {
+          transactionsBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder addTransactions(
+          int index, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
+        if (transactionsBuilder_ == null) {
+          ensureTransactionsIsMutable();
+          transactions_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          transactionsBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder addAllTransactions(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.Transaction> values) {
+        if (transactionsBuilder_ == null) {
+          ensureTransactionsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, transactions_);
+          onChanged();
+        } else {
+          transactionsBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder clearTransactions() {
+        if (transactionsBuilder_ == null) {
+          transactions_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+          onChanged();
+        } else {
+          transactionsBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public Builder removeTransactions(int index) {
+        if (transactionsBuilder_ == null) {
+          ensureTransactionsIsMutable();
+          transactions_.remove(index);
+          onChanged();
+        } else {
+          transactionsBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder getTransactionsBuilder(
+          int index) {
+        return getTransactionsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getTransactionsOrBuilder(
+          int index) {
+        if (transactionsBuilder_ == null) {
+          return transactions_.get(index);  } else {
+          return transactionsBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
+           getTransactionsOrBuilderList() {
+        if (transactionsBuilder_ != null) {
+          return transactionsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(transactions_);
+        }
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder addTransactionsBuilder() {
+        return getTransactionsFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder addTransactionsBuilder(
+          int index) {
+        return getTransactionsFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .Transaction transactions = 1;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction.Builder> 
+           getTransactionsBuilderList() {
+        return getTransactionsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
+          getTransactionsFieldBuilder() {
+        if (transactionsBuilder_ == null) {
+          transactionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder>(
+                  transactions_,
+                  ((bitField0_ & 0x00000001) != 0),
+                  getParentForChildren(),
+                  isClean());
+          transactions_ = null;
+        }
+        return transactionsBuilder_;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:Transactions)
+    }
+
+    // @@protoc_insertion_point(class_scope:Transactions)
+    private static final org.wisdom.p2p.WisdomOuterClass.Transactions DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.Transactions();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.Transactions getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<Transactions>
+        PARSER = new com.google.protobuf.AbstractParser<Transactions>() {
+      @java.lang.Override
+      public Transactions parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new Transactions(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<Transactions> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<Transactions> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.Transactions getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -7225,12 +7990,8 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Transaction() {
-      version_ = 0;
       transactionType_ = 0;
-      nonce_ = 0L;
       from_ = com.google.protobuf.ByteString.EMPTY;
-      gasPrice_ = 0L;
-      amount_ = 0L;
       signature_ = com.google.protobuf.ByteString.EMPTY;
       to_ = com.google.protobuf.ByteString.EMPTY;
       payload_ = com.google.protobuf.ByteString.EMPTY;
@@ -7307,7 +8068,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -7528,26 +8289,25 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Transaction other = (org.wisdom.p2p.WisdomOuterClass.Transaction) obj;
 
-      boolean result = true;
-      result = result && (getVersion()
-          == other.getVersion());
-      result = result && transactionType_ == other.transactionType_;
-      result = result && (getNonce()
-          == other.getNonce());
-      result = result && getFrom()
-          .equals(other.getFrom());
-      result = result && (getGasPrice()
-          == other.getGasPrice());
-      result = result && (getAmount()
-          == other.getAmount());
-      result = result && getSignature()
-          .equals(other.getSignature());
-      result = result && getTo()
-          .equals(other.getTo());
-      result = result && getPayload()
-          .equals(other.getPayload());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (getVersion()
+          != other.getVersion()) return false;
+      if (transactionType_ != other.transactionType_) return false;
+      if (getNonce()
+          != other.getNonce()) return false;
+      if (!getFrom()
+          .equals(other.getFrom())) return false;
+      if (getGasPrice()
+          != other.getGasPrice()) return false;
+      if (getAmount()
+          != other.getAmount()) return false;
+      if (!getSignature()
+          .equals(other.getSignature())) return false;
+      if (!getTo()
+          .equals(other.getTo())) return false;
+      if (!getPayload()
+          .equals(other.getPayload())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -7770,35 +8530,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -8135,7 +8895,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -8271,13 +9031,10 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Block() {
-      version_ = 0;
       hashPrevBlock_ = com.google.protobuf.ByteString.EMPTY;
       hashMerkleRoot_ = com.google.protobuf.ByteString.EMPTY;
       hashMerkleState_ = com.google.protobuf.ByteString.EMPTY;
       hashMerkleIncubate_ = com.google.protobuf.ByteString.EMPTY;
-      height_ = 0;
-      createdAt_ = 0;
       nBits_ = com.google.protobuf.ByteString.EMPTY;
       nonce_ = com.google.protobuf.ByteString.EMPTY;
       body_ = java.util.Collections.emptyList();
@@ -8353,7 +9110,7 @@ public final class WisdomOuterClass {
               break;
             }
             case 82: {
-              if (!((mutable_bitField0_ & 0x00000200) == 0x00000200)) {
+              if (!((mutable_bitField0_ & 0x00000200) != 0)) {
                 body_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>();
                 mutable_bitField0_ |= 0x00000200;
               }
@@ -8362,7 +9119,7 @@ public final class WisdomOuterClass {
               break;
             }
             default: {
-              if (!parseUnknownFieldProto3(
+              if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
@@ -8376,7 +9133,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000200) == 0x00000200)) {
+        if (((mutable_bitField0_ & 0x00000200) != 0)) {
           body_ = java.util.Collections.unmodifiableList(body_);
         }
         this.unknownFields = unknownFields.build();
@@ -8621,29 +9378,28 @@ public final class WisdomOuterClass {
       }
       org.wisdom.p2p.WisdomOuterClass.Block other = (org.wisdom.p2p.WisdomOuterClass.Block) obj;
 
-      boolean result = true;
-      result = result && (getVersion()
-          == other.getVersion());
-      result = result && getHashPrevBlock()
-          .equals(other.getHashPrevBlock());
-      result = result && getHashMerkleRoot()
-          .equals(other.getHashMerkleRoot());
-      result = result && getHashMerkleState()
-          .equals(other.getHashMerkleState());
-      result = result && getHashMerkleIncubate()
-          .equals(other.getHashMerkleIncubate());
-      result = result && (getHeight()
-          == other.getHeight());
-      result = result && (getCreatedAt()
-          == other.getCreatedAt());
-      result = result && getNBits()
-          .equals(other.getNBits());
-      result = result && getNonce()
-          .equals(other.getNonce());
-      result = result && getBodyList()
-          .equals(other.getBodyList());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (getVersion()
+          != other.getVersion()) return false;
+      if (!getHashPrevBlock()
+          .equals(other.getHashPrevBlock())) return false;
+      if (!getHashMerkleRoot()
+          .equals(other.getHashMerkleRoot())) return false;
+      if (!getHashMerkleState()
+          .equals(other.getHashMerkleState())) return false;
+      if (!getHashMerkleIncubate()
+          .equals(other.getHashMerkleIncubate())) return false;
+      if (getHeight()
+          != other.getHeight()) return false;
+      if (getCreatedAt()
+          != other.getCreatedAt()) return false;
+      if (!getNBits()
+          .equals(other.getNBits())) return false;
+      if (!getNonce()
+          .equals(other.getNonce())) return false;
+      if (!getBodyList()
+          .equals(other.getBodyList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -8871,7 +9627,7 @@ public final class WisdomOuterClass {
         result.nBits_ = nBits_;
         result.nonce_ = nonce_;
         if (bodyBuilder_ == null) {
-          if (((bitField0_ & 0x00000200) == 0x00000200)) {
+          if (((bitField0_ & 0x00000200) != 0)) {
             body_ = java.util.Collections.unmodifiableList(body_);
             bitField0_ = (bitField0_ & ~0x00000200);
           }
@@ -8886,35 +9642,35 @@ public final class WisdomOuterClass {
 
       @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
       @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.setField(field, value);
+        return super.setField(field, value);
       }
       @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
       @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
       @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           int index, java.lang.Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+        return super.setRepeatedField(field, index, value);
       }
       @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
           java.lang.Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+        return super.addRepeatedField(field, value);
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
@@ -9266,7 +10022,7 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> body_ =
         java.util.Collections.emptyList();
       private void ensureBodyIsMutable() {
-        if (!((bitField0_ & 0x00000200) == 0x00000200)) {
+        if (!((bitField0_ & 0x00000200) != 0)) {
           body_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>(body_);
           bitField0_ |= 0x00000200;
          }
@@ -9495,7 +10251,7 @@ public final class WisdomOuterClass {
           bodyBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder>(
                   body_,
-                  ((bitField0_ & 0x00000200) == 0x00000200),
+                  ((bitField0_ & 0x00000200) != 0),
                   getParentForChildren(),
                   isClean());
           body_ = null;
@@ -9505,7 +10261,7 @@ public final class WisdomOuterClass {
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFieldsProto3(unknownFields);
+        return super.setUnknownFields(unknownFields);
       }
 
       @java.lang.Override
@@ -9611,6 +10367,11 @@ public final class WisdomOuterClass {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Nothing_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_Transactions_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_Transactions_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Transaction_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -9642,33 +10403,34 @@ public final class WisdomOuterClass {
       "ht\030\001 \001(\004\022\023\n\013stop_height\030\002 \001(\004\022&\n\016clip_di" +
       "rection\030\003 \001(\0162\016.ClipDirection\" \n\006Blocks\022" +
       "\026\n\006blocks\030\001 \003(\0132\006.Block\"!\n\010Proposal\022\025\n\005b" +
-      "lock\030\001 \001(\0132\006.Block\"\t\n\007Nothing\"\272\001\n\013Transa" +
-      "ction\022\017\n\007version\030\001 \001(\005\022*\n\020transaction_ty" +
-      "pe\030\002 \001(\0162\020.TransactionType\022\r\n\005nonce\030\003 \001(" +
-      "\004\022\014\n\004from\030\004 \001(\014\022\021\n\tgas_price\030\005 \001(\004\022\016\n\006am" +
-      "ount\030\006 \001(\004\022\021\n\tsignature\030\007 \001(\014\022\n\n\002to\030\010 \001(" +
-      "\014\022\017\n\007payload\030\t \001(\014\"\343\001\n\005Block\022\017\n\007version\030" +
-      "\001 \001(\r\022\027\n\017hash_prev_block\030\002 \001(\014\022\030\n\020hash_m" +
-      "erkle_root\030\003 \001(\014\022\031\n\021hash_merkle_state\030\004 " +
-      "\001(\014\022\034\n\024hash_merkle_incubate\030\005 \001(\014\022\016\n\006hei" +
-      "ght\030\006 \001(\r\022\022\n\ncreated_at\030\007 \001(\r\022\016\n\006n_bits\030" +
-      "\010 \001(\014\022\r\n\005nonce\030\t \001(\014\022\032\n\004body\030\n \003(\0132\014.Tra" +
-      "nsaction*\226\001\n\004Code\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001" +
-      "\022\010\n\004PONG\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGE" +
-      "T_STATUS\020\005\022\n\n\006STATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n" +
-      "\n\006BLOCKS\020\010\022\014\n\010PROPOSAL\020\t\022\017\n\013TRANSACTION\020" +
-      "\n*0\n\rClipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLI" +
-      "P_INITIAL\020\001*\305\002\n\017TransactionType\022\014\n\010COINB" +
-      "ASE\020\000\022\014\n\010TRANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT" +
-      "\020\003\022\036\n\032TRANSFER_MULTISIG_MULTISIG\020\004\022\034\n\030TR" +
-      "ANSFER_MULTISIG_NORMAL\020\005\022\034\n\030TRANSFER_NOR" +
-      "MAL_MULTISIG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOM" +
-      "IC_EXCHANGE\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_I" +
-      "NTEREST\020\n\022\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n" +
-      "\014EXTRACT_COST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE" +
-      "\020\016\022\017\n\013EXIT_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010" +
-      ".Message\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006" +
-      "proto3"
+      "lock\030\001 \001(\0132\006.Block\"\t\n\007Nothing\"2\n\014Transac" +
+      "tions\022\"\n\014transactions\030\001 \003(\0132\014.Transactio" +
+      "n\"\272\001\n\013Transaction\022\017\n\007version\030\001 \001(\005\022*\n\020tr" +
+      "ansaction_type\030\002 \001(\0162\020.TransactionType\022\r" +
+      "\n\005nonce\030\003 \001(\004\022\014\n\004from\030\004 \001(\014\022\021\n\tgas_price" +
+      "\030\005 \001(\004\022\016\n\006amount\030\006 \001(\004\022\021\n\tsignature\030\007 \001(" +
+      "\014\022\n\n\002to\030\010 \001(\014\022\017\n\007payload\030\t \001(\014\"\343\001\n\005Block" +
+      "\022\017\n\007version\030\001 \001(\r\022\027\n\017hash_prev_block\030\002 \001" +
+      "(\014\022\030\n\020hash_merkle_root\030\003 \001(\014\022\031\n\021hash_mer" +
+      "kle_state\030\004 \001(\014\022\034\n\024hash_merkle_incubate\030" +
+      "\005 \001(\014\022\016\n\006height\030\006 \001(\r\022\022\n\ncreated_at\030\007 \001(" +
+      "\r\022\016\n\006n_bits\030\010 \001(\014\022\r\n\005nonce\030\t \001(\014\022\032\n\004body" +
+      "\030\n \003(\0132\014.Transaction*\227\001\n\004Code\022\013\n\007NOTHING" +
+      "\020\000\022\010\n\004PING\020\001\022\010\n\004PONG\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005P" +
+      "EERS\020\004\022\016\n\nGET_STATUS\020\005\022\n\n\006STATUS\020\006\022\016\n\nGE" +
+      "T_BLOCKS\020\007\022\n\n\006BLOCKS\020\010\022\014\n\010PROPOSAL\020\t\022\020\n\014" +
+      "TRANSACTIONS\020\n*0\n\rClipDirection\022\r\n\tCLIP_" +
+      "TAIL\020\000\022\020\n\014CLIP_INITIAL\020\001*\305\002\n\017Transaction" +
+      "Type\022\014\n\010COINBASE\020\000\022\014\n\010TRANSFER\020\001\022\010\n\004VOTE" +
+      "\020\002\022\013\n\007DEPOSIT\020\003\022\036\n\032TRANSFER_MULTISIG_MUL" +
+      "TISIG\020\004\022\034\n\030TRANSFER_MULTISIG_NORMAL\020\005\022\034\n" +
+      "\030TRANSFER_NORMAL_MULTISIG\020\006\022\020\n\014ASSET_DEF" +
+      "INE\020\007\022\023\n\017ATOMIC_EXCHANGE\020\010\022\014\n\010INCUBATE\020\t" +
+      "\022\024\n\020EXTRACT_INTEREST\020\n\022\032\n\026EXTRACT_SHARIN" +
+      "G_PROFIT\020\013\022\020\n\014EXTRACT_COST\020\014\022\r\n\tEXIT_VOT" +
+      "E\020\r\022\n\n\006PLEDGE\020\016\022\017\n\013EXIT_PLEDGE\020\0172\'\n\006Wisd" +
+      "om\022\035\n\005Entry\022\010.Message\032\010.Message\"\000B\020\n\016org" +
+      ".wisdom.p2pb\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9749,14 +10511,20 @@ public final class WisdomOuterClass {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Nothing_descriptor,
         new java.lang.String[] { });
-    internal_static_Transaction_descriptor =
+    internal_static_Transactions_descriptor =
       getDescriptor().getMessageTypes().get(11);
+    internal_static_Transactions_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_Transactions_descriptor,
+        new java.lang.String[] { "Transactions", });
+    internal_static_Transaction_descriptor =
+      getDescriptor().getMessageTypes().get(12);
     internal_static_Transaction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Transaction_descriptor,
         new java.lang.String[] { "Version", "TransactionType", "Nonce", "From", "GasPrice", "Amount", "Signature", "To", "Payload", });
     internal_static_Block_descriptor =
-      getDescriptor().getMessageTypes().get(12);
+      getDescriptor().getMessageTypes().get(13);
     internal_static_Block_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Block_descriptor,

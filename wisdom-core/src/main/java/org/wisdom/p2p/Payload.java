@@ -67,8 +67,8 @@ public class Payload {
             case PROPOSAL:
                 body = WisdomOuterClass.Proposal.parseFrom(message.getBody());
                 return;
-            case TRANSACTION:
-                body = WisdomOuterClass.Transaction.parseFrom(message.getBody());
+            case TRANSACTIONS:
+                body = WisdomOuterClass.Transactions.parseFrom(message.getBody());
                 return;
             default:
                 body = WisdomOuterClass.Nothing.newBuilder().build();

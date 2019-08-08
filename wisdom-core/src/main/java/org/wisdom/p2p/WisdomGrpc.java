@@ -18,7 +18,7 @@ import static io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall;
 /**
  */
 @javax.annotation.Generated(
-    value = "by gRPC proto compiler (version 1.9.0)",
+    value = "by gRPC proto compiler (version 1.22.1)",
     comments = "Source: wisdom.proto")
 public final class WisdomGrpc {
 
@@ -27,15 +27,14 @@ public final class WisdomGrpc {
   public static final String SERVICE_NAME = "Wisdom";
 
   // Static method descriptors that strictly reflect the proto.
-  @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/1901")
-  @java.lang.Deprecated // Use {@link #getEntryMethod()} instead. 
-  public static final io.grpc.MethodDescriptor<org.wisdom.p2p.WisdomOuterClass.Message,
-      org.wisdom.p2p.WisdomOuterClass.Message> METHOD_ENTRY = getEntryMethod();
-
   private static volatile io.grpc.MethodDescriptor<org.wisdom.p2p.WisdomOuterClass.Message,
       org.wisdom.p2p.WisdomOuterClass.Message> getEntryMethod;
 
-  @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/1901")
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "Entry",
+      requestType = org.wisdom.p2p.WisdomOuterClass.Message.class,
+      responseType = org.wisdom.p2p.WisdomOuterClass.Message.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<org.wisdom.p2p.WisdomOuterClass.Message,
       org.wisdom.p2p.WisdomOuterClass.Message> getEntryMethod() {
     io.grpc.MethodDescriptor<org.wisdom.p2p.WisdomOuterClass.Message, org.wisdom.p2p.WisdomOuterClass.Message> getEntryMethod;

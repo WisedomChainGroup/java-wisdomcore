@@ -21,7 +21,7 @@ enum Code {
 
     // 以下需要中继支持
     PROPOSAL = 9;
-    TRANSACTION = 10;
+    TRANSACTIONS = 10;
 }
 
 enum ClipDirection {
@@ -104,6 +104,10 @@ enum TransactionType {
     EXIT_VOTE = 13;
     PLEDGE = 14;
     EXIT_PLEDGE = 15;
+}
+
+message Transactions {
+    repeated Transaction transactions = 1;
 }
 
 message Transaction {
