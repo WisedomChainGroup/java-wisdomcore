@@ -19,6 +19,7 @@ import org.wisdom.p2p.PeerServer;
 import org.wisdom.p2p.Plugin;
 import org.wisdom.p2p.WisdomOuterClass;
 import org.wisdom.p2p.entity.GetBlockQuery;
+import org.wisdom.service.Impl.CommandServiceImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +59,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     @Autowired
     private BasicRule rule;
+
+    @Autowired
+    private CommandServiceImpl commandService;
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
@@ -154,6 +158,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         transactionCache.put(t.getHashHexString(), true);
         // TODO: 收到广播后的事务要进行处理
+        byte[] traninfo = t.toRPCBytes();
+        commandService.verifyTransfer(traninfo);
         context.relay();
     }
 
