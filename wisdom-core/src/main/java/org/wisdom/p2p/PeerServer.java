@@ -118,7 +118,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 .use(filter)
                 .use(syncManager)
                 .use(transactionHandler);
-        if(enableDiscovery){
+        if (enableDiscovery) {
             use(pmgr);
         }
         startListening();
@@ -135,7 +135,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void startHalf() {
-        if(!enableDiscovery){
+        if (!enableDiscovery) {
             return;
         }
         boolean hasFull = peers.size() + trusted.size() >= MAX_PEERS;
@@ -218,11 +218,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Override
     public void entry(WisdomOuterClass.Message request, StreamObserver<WisdomOuterClass.Message> responseObserver) {
         WisdomOuterClass.Message resp = onMessage(request);
-        if (resp != null) {
-            responseObserver.onNext(resp);
-            responseObserver.onCompleted();
-            return;
-        }
+        responseObserver.onNext(resp);
         responseObserver.onCompleted();
     }
 
