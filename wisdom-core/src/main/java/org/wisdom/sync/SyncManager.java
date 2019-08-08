@@ -42,7 +42,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private ConcurrentMap<String, Boolean> proposalCache;
 
-    private ConcurrentMap<String, Boolean> transactionCache;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -64,7 +63,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     public SyncManager() {
         this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
-        this.transactionCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
     }
 
     @Override
@@ -84,9 +82,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 return;
             case PROPOSAL:
                 onProposal(context, server);
-                return;
-            case TRANSACTION:
-                onTransaction(context, server);
         }
     }
 
@@ -143,17 +138,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         proposalCache.put(block.getHashHexString(), true);
         receiveBlocks(Collections.singletonList(block));
-        context.relay();
-    }
-
-    private void onTransaction(Context context, PeerServer server) {
-        WisdomOuterClass.Transaction tx = context.getPayload().getTransaction();
-        Transaction t = Utils.parseTransaction(tx);
-        if (transactionCache.containsKey(t.getHashHexString())) {
-            return;
-        }
-        transactionCache.put(t.getHashHexString(), true);
-        // TODO: 收到广播后的事务要进行处理
         context.relay();
     }
 
