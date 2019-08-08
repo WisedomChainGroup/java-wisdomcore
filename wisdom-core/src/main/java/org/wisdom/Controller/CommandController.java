@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.wisdom.sync.TransactionHandler;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,6 +66,9 @@ public class CommandController {
     @Autowired
     RPCClient RPCClient;
 
+    @Autowired
+    private TransactionHandler transactionHandler;
+
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
             "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
     public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
@@ -74,6 +78,7 @@ public class CommandController {
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
                 RPCClient.broadcastTransactions(Collections.singletonList(t));
+                transactionHandler.broadcastTransactions(Collections.singletonList(t));
             }
             return result;
         } catch (DecoderException e) {

@@ -10,7 +10,6 @@ import org.wisdom.p2p.Plugin;
 import org.wisdom.p2p.WisdomOuterClass;
 import org.wisdom.service.CommandService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;

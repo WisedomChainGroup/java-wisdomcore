@@ -82,11 +82,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.chanBuffer = new ConcurrentHashMap<>();
         String[] bs = new String[]{};
         if (bootstraps != null && !bootstraps.equals("")) {
-            bs = bootstraps.split(" ");
+            bs = bootstraps.split(",");
         }
         String[] ts = new String[]{};
         if (trusted != null && !trusted.equals("")) {
-            ts = trusted.split(" ");
+            ts = trusted.split(",");
         }
         for (String b : bs) {
             Peer p = Peer.parse(b);
