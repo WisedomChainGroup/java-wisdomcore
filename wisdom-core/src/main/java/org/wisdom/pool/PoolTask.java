@@ -198,15 +198,12 @@ public class PoolTask {
         for(TransPool transPool:list){
             queuedlist.add(transPool.getTransaction());
         }
-        if(queuedlist.size()>0){
-            String queuedjson = JSON.toJSONString(queuedlist,true);
-            leveldb.addPoolDb("QueuedPool",queuedjson);
-        }
+        String queuedjson = JSON.toJSONString(queuedlist,true);
+        leveldb.addPoolDb("QueuedPool",queuedjson);
+
         List<TransPool> transPoolList=peningTransPool.getAllstate();
-        if(transPoolList.size()>0){
-            String pendingjson = JSON.toJSONString(transPoolList,true);
-            leveldb.addPoolDb("PendingPool",pendingjson);
-        }
+        String pendingjson = JSON.toJSONString(transPoolList,true);
+        leveldb.addPoolDb("PendingPool",pendingjson);
     }
 
 
