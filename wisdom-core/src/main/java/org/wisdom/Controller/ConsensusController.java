@@ -94,6 +94,9 @@ public class ConsensusController {
     @Autowired
     private PeersManager peersManager;
 
+    @Value("${p2p.enable-discovery}")
+    private boolean enableDiscovery;
+
     @PostConstruct
     public void init() {
         this.isP2PRestful = p2pMode.equals("rest");
@@ -203,6 +206,7 @@ public class ConsensusController {
         info.put("peers", peersManager.getPeers().stream().map(Peer::toString).toArray());
         info.put("self", peersManager.getSelfAddress());
         info.put("p2pMode", p2pMode);
+        info.put("enableDiscovery", enableDiscovery);
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }
