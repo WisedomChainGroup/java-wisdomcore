@@ -379,7 +379,6 @@ public class HatchServiceImpl implements HatchService {
                 return APIResult.newFailResult(5000,"Address check error");
             }
         } catch (DecoderException e) {
-            e.printStackTrace();
             return APIResult.newFailResult(5000,"Exception error");
         }
     }

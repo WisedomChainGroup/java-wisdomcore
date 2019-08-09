@@ -205,6 +205,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     @Override
     public void onApplicationEvent(NewBlockMinedEvent event) {
+        if(server == null){
+            return;
+        }
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }
