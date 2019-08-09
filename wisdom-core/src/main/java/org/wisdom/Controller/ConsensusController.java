@@ -201,6 +201,8 @@ public class ConsensusController {
         info.put("version", this.version);
         info.put("character", character);
         info.put("peers", peersManager.getPeers().stream().map(Peer::toString).toArray());
+        info.put("self", peersManager.getSelfAddress());
+        info.put("p2pMode", p2pMode);
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }

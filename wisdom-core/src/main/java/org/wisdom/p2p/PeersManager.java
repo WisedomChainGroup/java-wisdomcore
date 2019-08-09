@@ -77,4 +77,11 @@ public class PeersManager implements Plugin {
         return Optional.ofNullable(server)
                 .map(PeerServer::getPeers).orElse(new ArrayList<>());
     }
+
+    public String getSelfAddress() {
+        return Optional.ofNullable(server)
+                .map(PeerServer::getSelf)
+                .map(Peer::toString).orElse("");
+    }
+
 }
