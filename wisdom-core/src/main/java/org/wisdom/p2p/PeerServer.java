@@ -104,6 +104,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 })
                 .get()
                 .forEach(link -> {
+                    if(link == null || link.equals("")){
+                        return;
+                    }
                     try {
                         URI u = new URI(link);
                         this.bootstraps.add(new HostPort(u.getHost(), u.getPort()));
