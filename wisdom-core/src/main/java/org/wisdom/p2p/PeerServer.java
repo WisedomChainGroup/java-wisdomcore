@@ -337,7 +337,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     public List<Peer> getPeers() {
         if (!enableDiscovery) {
-            return Arrays.asList(bootstrapPeers.values().toArray(new Peer[]{}));
+            Set<Peer> res = new HashSet<>(bootstrapPeers.values());
+            res.addAll(trusted.values());
+            return Arrays.asList(res.toArray(new Peer[]{}));
         }
         List<Peer> ps = new ArrayList<>();
         ps.addAll(peers.values());
