@@ -14,6 +14,8 @@ import java.util.List;
 @Component
 public class PeersManager implements Plugin {
     private static final Logger logger = LoggerFactory.getLogger(PeersManager.class);
+    private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
+    private static final WisdomOuterClass.Pong PONG = WisdomOuterClass.Pong.newBuilder().build();
 
     @Override
     public void onMessage(Context context, PeerServer server) {
@@ -38,7 +40,7 @@ public class PeersManager implements Plugin {
     }
 
     private void onPing(Context context, PeerServer server) {
-        context.response(WisdomOuterClass.Pong.newBuilder().build());
+        context.response(PONG);
         context.pend();
     }
 
@@ -56,14 +58,13 @@ public class PeersManager implements Plugin {
     }
 
     private void onPeers(Context context, PeerServer server) {
-        WisdomOuterClass.Ping ping = WisdomOuterClass.Ping.newBuilder().build();
         try {
             for (String p : context.getPayload().getPeers().getPeersList()) {
                 Peer pr = Peer.parse(p);
                 if (pr.equals(server.getSelf()) || server.hasPeer(pr)) {
                     continue;
                 }
-                server.dial(Peer.parse(p), ping);
+                server.dial(Peer.parse(p), PING);
             }
         } catch (Exception e) {
             logger.error("parse peer fail");
