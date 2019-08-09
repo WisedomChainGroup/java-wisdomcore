@@ -19,6 +19,7 @@ import org.wisdom.sync.SyncManager;
 import org.wisdom.sync.TransactionHandler;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,7 +42,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private AtomicLong nonce;
     private Peer self;
     private List<Plugin> pluginList;
-    private Map<String, Peer> bootstraps;
+    private Map<String, Integer> bootstraps;
+    private Map<String, Peer> bootstrapPeers;
     private Map<String, Peer> trusted;
     private Map<String, Peer> blocked;
     private Map<Integer, Peer> peers;
@@ -80,21 +82,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.peers = new ConcurrentHashMap<>();
         this.pended = new ConcurrentHashMap<>();
         this.chanBuffer = new ConcurrentHashMap<>();
-        String[] bs = new String[]{};
-        if (bootstraps != null && !bootstraps.equals("")) {
-            bs = bootstraps.split(",");
-        }
         String[] ts = new String[]{};
         if (trusted != null && !trusted.equals("")) {
             ts = trusted.split(",");
         }
-        for (String b : bs) {
-            Peer p = Peer.parse(b);
-            if (p.equals(this.self)) {
-                throw new Exception("cannot treat yourself as bootstrap peer");
-            }
-            this.bootstraps.put(p.key(), p);
-        }
+
         for (String b : ts) {
             Peer p = Peer.parse(b);
             if (p.equals(this.self)) {
@@ -166,7 +158,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         // discover peers when bucket is not full
         Set<Peer> ps = new HashSet<>();
         ps.addAll(peers.values());
-        ps.addAll(bootstraps.values());
+        ps.addAll(bootstrapPeers.values());
         for (Peer p : ps) {
             logger.info("peer found, address = " + p.toString() + " score = " + p.score);
             dial(p, WisdomOuterClass.Lookup.newBuilder().build());
@@ -204,13 +196,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 relay(payload);
             }
             if (ctx.response != null) {
-                return buildMessage(payload.getRemote(), 1, ctx.response);
+                return buildMessage(1, ctx.response);
             }
-            return buildMessage(ctx.payload.getRemote(), 1, WisdomOuterClass.Nothing.newBuilder().build());
+            return buildMessage(1, WisdomOuterClass.Nothing.newBuilder().build());
         } catch (Exception e) {
             logger.error("fail to parse message");
         }
-        return buildMessage(Peer.empty(), 1, WisdomOuterClass.Nothing.newBuilder().build());
+        return buildMessage(1, WisdomOuterClass.Nothing.newBuilder().build());
     }
 
     @Override
@@ -258,12 +250,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void dial(Peer p, Object msg) {
-        grpcCall(p, buildMessage(p, 1, msg));
+        grpcCall(p, buildMessage(1, msg));
     }
 
     public void broadcast(Object msg) {
         for (Peer p : getPeers()) {
-            grpcCall(p, buildMessage(p, MAX_TTL, msg));
+            grpcCall(p, buildMessage(MAX_TTL, msg));
         }
     }
 
@@ -276,7 +268,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                grpcCall(p, buildMessage(p, payload.getTtl() - 1, payload.getBody()));
+                grpcCall(p, buildMessage(payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
@@ -288,7 +280,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         ps.addAll(peers.values());
         ps.addAll(trusted.values());
         if (ps.size() == 0) {
-            ps.addAll(bootstraps.values());
+            ps.addAll(bootstrapPeers.values());
         }
         return ps;
     }
@@ -362,11 +354,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return peers.containsKey(idx) && peers.get(idx).equals(peer);
     }
 
-    private WisdomOuterClass.Message buildMessage(Peer recipient, long ttl, Object msg) {
+    private WisdomOuterClass.Message buildMessage(long ttl, Object msg) {
         WisdomOuterClass.Message.Builder builder = WisdomOuterClass.Message.newBuilder();
         builder.setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
         builder.setRemotePeer(self.toString());
-        builder.setRecipient(recipient.toString());
         builder.setTtl(ttl);
         builder.setNonce(nonce.getAndIncrement());
         if (msg instanceof WisdomOuterClass.Nothing) {
