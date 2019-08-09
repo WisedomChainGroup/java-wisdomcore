@@ -22,6 +22,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
 import org.springframework.context.ApplicationContext;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.p2p.Peer;
+import org.wisdom.p2p.PeersManager;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -88,6 +90,9 @@ public class ConsensusController {
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
+
+    @Autowired
+    private PeersManager peersManager;
 
     @PostConstruct
     public void init() {
@@ -156,7 +161,7 @@ public class ConsensusController {
 
     @PostMapping(value = "/consensus/blocks", produces = "application/json")
     public Object handleProposal(@RequestBody byte[] body, HttpServletRequest request) {
-        if (!allowFork){
+        if (!allowFork) {
             return ERROR("reject proposal, because fork is not allowed");
         }
         Block b = codec.decodeBlock(body);
@@ -192,9 +197,12 @@ public class ConsensusController {
 
     @GetMapping(value = "/version", produces = "application/json")
     public Object getVersion() {
-        Map<String, String> info = new HashMap<>();
+        Map<String, Object> info = new HashMap<>();
         info.put("version", this.version);
         info.put("character", character);
+        info.put("peers", peersManager.getPeers().stream().map(Peer::toString).toArray());
+        info.put("self", peersManager.getSelfAddress());
+        info.put("p2pMode", p2pMode);
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }

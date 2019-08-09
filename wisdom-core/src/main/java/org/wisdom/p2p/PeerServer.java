@@ -43,7 +43,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private AtomicLong nonce;
     private Peer self;
     private List<Plugin> pluginList;
-    private Map<String, Integer> bootstraps;
+    private Set<HostPort> bootstraps;
     private Map<String, Peer> bootstrapPeers;
     private Map<String, Peer> trusted;
     private Map<String, Peer> blocked;
@@ -77,7 +77,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         nonce = new AtomicLong();
         pluginList = new ArrayList<>();
         this.self = Peer.newPeer(self);
-        this.bootstraps = new ConcurrentHashMap<>();
+        this.bootstraps = new HashSet<>();
         this.trusted = new ConcurrentHashMap<>();
         this.blocked = new ConcurrentHashMap<>();
         this.peers = new ConcurrentHashMap<>();
@@ -104,9 +104,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 })
                 .get()
                 .forEach(link -> {
+                    if(link == null || link.equals("")){
+                        return;
+                    }
                     try {
                         URI u = new URI(link);
-                        this.bootstraps.put(u.getHost(), u.getPort());
+                        this.bootstraps.add(new HostPort(u.getHost(), u.getPort()));
                     } catch (Exception e) {
                         logger.error("invalid url");
                     }
@@ -151,8 +154,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void resolve() {
-        bootstraps.keySet().forEach(h -> {
-            dial(h, bootstraps.get(h), PING);
+        bootstraps.forEach(h -> {
+            dial(h.getHost(), h.getPort(), PING);
         });
     }
 
@@ -336,6 +339,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public List<Peer> getPeers() {
+        if (!enableDiscovery) {
+            Set<Peer> res = new HashSet<>(bootstrapPeers.values());
+            res.addAll(trusted.values());
+            return Arrays.asList(res.toArray(new Peer[]{}));
+        }
         List<Peer> ps = new ArrayList<>();
         ps.addAll(peers.values());
         ps.addAll(trusted.values());
@@ -351,7 +359,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         if (peers.size() + trusted.size() >= MAX_PEERS) {
             return;
         }
-        if (hasPeer(peer) || blocked.containsKey(k) || bootstraps.containsKey(k)) {
+        if (hasPeer(peer) || blocked.containsKey(k) || bootstrapPeers.containsKey(k)) {
             return;
         }
         pended.put(k, peer);
@@ -363,9 +371,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             return;
         }
         peer.score = PEER_SCORE;
-        if(bootstraps.containsKey(peer.host)){
+        HostPort hp = new HostPort(peer.host, peer.port);
+        if (bootstraps.contains(hp)) {
             this.bootstrapPeers.put(peer.key(), peer);
-            bootstraps.remove(peer.host);
+            bootstraps.remove(hp);
         }
         int idx = self.subTree(peer);
         Peer p = peers.get(idx);
