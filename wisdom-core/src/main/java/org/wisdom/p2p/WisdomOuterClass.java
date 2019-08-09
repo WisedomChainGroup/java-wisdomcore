@@ -568,21 +568,11 @@ public final class WisdomOuterClass {
         getRemotePeerBytes();
 
     /**
-     * <code>string recipient = 4;</code>
-     */
-    java.lang.String getRecipient();
-    /**
-     * <code>string recipient = 4;</code>
-     */
-    com.google.protobuf.ByteString
-        getRecipientBytes();
-
-    /**
      * <pre>
      * avoid flood attack
      * </pre>
      *
-     * <code>uint64 ttl = 5;</code>
+     * <code>uint64 ttl = 4;</code>
      */
     long getTtl();
 
@@ -591,12 +581,12 @@ public final class WisdomOuterClass {
      * avoid collision
      * </pre>
      *
-     * <code>uint64 nonce = 6;</code>
+     * <code>uint64 nonce = 5;</code>
      */
     long getNonce();
 
     /**
-     * <code>bytes signature = 7;</code>
+     * <code>bytes signature = 6;</code>
      */
     com.google.protobuf.ByteString getSignature();
 
@@ -605,7 +595,7 @@ public final class WisdomOuterClass {
      * wisdom 消息体
      * </pre>
      *
-     * <code>bytes body = 8;</code>
+     * <code>bytes body = 7;</code>
      */
     com.google.protobuf.ByteString getBody();
   }
@@ -624,7 +614,6 @@ public final class WisdomOuterClass {
     private Message() {
       code_ = 0;
       remotePeer_ = "";
-      recipient_ = "";
       signature_ = com.google.protobuf.ByteString.EMPTY;
       body_ = com.google.protobuf.ByteString.EMPTY;
     }
@@ -678,28 +667,22 @@ public final class WisdomOuterClass {
               remotePeer_ = s;
               break;
             }
-            case 34: {
-              java.lang.String s = input.readStringRequireUtf8();
-
-              recipient_ = s;
-              break;
-            }
-            case 40: {
+            case 32: {
 
               ttl_ = input.readUInt64();
               break;
             }
-            case 48: {
+            case 40: {
 
               nonce_ = input.readUInt64();
               break;
             }
-            case 58: {
+            case 50: {
 
               signature_ = input.readBytes();
               break;
             }
-            case 66: {
+            case 58: {
 
               body_ = input.readBytes();
               break;
@@ -816,83 +799,49 @@ public final class WisdomOuterClass {
       }
     }
 
-    public static final int RECIPIENT_FIELD_NUMBER = 4;
-    private volatile java.lang.Object recipient_;
-    /**
-     * <code>string recipient = 4;</code>
-     */
-    public java.lang.String getRecipient() {
-      java.lang.Object ref = recipient_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        recipient_ = s;
-        return s;
-      }
-    }
-    /**
-     * <code>string recipient = 4;</code>
-     */
-    public com.google.protobuf.ByteString
-        getRecipientBytes() {
-      java.lang.Object ref = recipient_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        recipient_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    public static final int TTL_FIELD_NUMBER = 5;
+    public static final int TTL_FIELD_NUMBER = 4;
     private long ttl_;
     /**
      * <pre>
      * avoid flood attack
      * </pre>
      *
-     * <code>uint64 ttl = 5;</code>
+     * <code>uint64 ttl = 4;</code>
      */
     public long getTtl() {
       return ttl_;
     }
 
-    public static final int NONCE_FIELD_NUMBER = 6;
+    public static final int NONCE_FIELD_NUMBER = 5;
     private long nonce_;
     /**
      * <pre>
      * avoid collision
      * </pre>
      *
-     * <code>uint64 nonce = 6;</code>
+     * <code>uint64 nonce = 5;</code>
      */
     public long getNonce() {
       return nonce_;
     }
 
-    public static final int SIGNATURE_FIELD_NUMBER = 7;
+    public static final int SIGNATURE_FIELD_NUMBER = 6;
     private com.google.protobuf.ByteString signature_;
     /**
-     * <code>bytes signature = 7;</code>
+     * <code>bytes signature = 6;</code>
      */
     public com.google.protobuf.ByteString getSignature() {
       return signature_;
     }
 
-    public static final int BODY_FIELD_NUMBER = 8;
+    public static final int BODY_FIELD_NUMBER = 7;
     private com.google.protobuf.ByteString body_;
     /**
      * <pre>
      * wisdom 消息体
      * </pre>
      *
-     * <code>bytes body = 8;</code>
+     * <code>bytes body = 7;</code>
      */
     public com.google.protobuf.ByteString getBody() {
       return body_;
@@ -921,20 +870,17 @@ public final class WisdomOuterClass {
       if (!getRemotePeerBytes().isEmpty()) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 3, remotePeer_);
       }
-      if (!getRecipientBytes().isEmpty()) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, recipient_);
-      }
       if (ttl_ != 0L) {
-        output.writeUInt64(5, ttl_);
+        output.writeUInt64(4, ttl_);
       }
       if (nonce_ != 0L) {
-        output.writeUInt64(6, nonce_);
+        output.writeUInt64(5, nonce_);
       }
       if (!signature_.isEmpty()) {
-        output.writeBytes(7, signature_);
+        output.writeBytes(6, signature_);
       }
       if (!body_.isEmpty()) {
-        output.writeBytes(8, body_);
+        output.writeBytes(7, body_);
       }
       unknownFields.writeTo(output);
     }
@@ -956,24 +902,21 @@ public final class WisdomOuterClass {
       if (!getRemotePeerBytes().isEmpty()) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, remotePeer_);
       }
-      if (!getRecipientBytes().isEmpty()) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, recipient_);
-      }
       if (ttl_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(5, ttl_);
+          .computeUInt64Size(4, ttl_);
       }
       if (nonce_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(6, nonce_);
+          .computeUInt64Size(5, nonce_);
       }
       if (!signature_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(7, signature_);
+          .computeBytesSize(6, signature_);
       }
       if (!body_.isEmpty()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(8, body_);
+          .computeBytesSize(7, body_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -998,8 +941,6 @@ public final class WisdomOuterClass {
       }
       if (!getRemotePeer()
           .equals(other.getRemotePeer())) return false;
-      if (!getRecipient()
-          .equals(other.getRecipient())) return false;
       if (getTtl()
           != other.getTtl()) return false;
       if (getNonce()
@@ -1027,8 +968,6 @@ public final class WisdomOuterClass {
       }
       hash = (37 * hash) + REMOTE_PEER_FIELD_NUMBER;
       hash = (53 * hash) + getRemotePeer().hashCode();
-      hash = (37 * hash) + RECIPIENT_FIELD_NUMBER;
-      hash = (53 * hash) + getRecipient().hashCode();
       hash = (37 * hash) + TTL_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getTtl());
@@ -1182,8 +1121,6 @@ public final class WisdomOuterClass {
         }
         remotePeer_ = "";
 
-        recipient_ = "";
-
         ttl_ = 0L;
 
         nonce_ = 0L;
@@ -1225,7 +1162,6 @@ public final class WisdomOuterClass {
           result.createdAt_ = createdAtBuilder_.build();
         }
         result.remotePeer_ = remotePeer_;
-        result.recipient_ = recipient_;
         result.ttl_ = ttl_;
         result.nonce_ = nonce_;
         result.signature_ = signature_;
@@ -1286,10 +1222,6 @@ public final class WisdomOuterClass {
         }
         if (!other.getRemotePeer().isEmpty()) {
           remotePeer_ = other.remotePeer_;
-          onChanged();
-        }
-        if (!other.getRecipient().isEmpty()) {
-          recipient_ = other.recipient_;
           onChanged();
         }
         if (other.getTtl() != 0L) {
@@ -1584,82 +1516,13 @@ public final class WisdomOuterClass {
         return this;
       }
 
-      private java.lang.Object recipient_ = "";
-      /**
-       * <code>string recipient = 4;</code>
-       */
-      public java.lang.String getRecipient() {
-        java.lang.Object ref = recipient_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          recipient_ = s;
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>string recipient = 4;</code>
-       */
-      public com.google.protobuf.ByteString
-          getRecipientBytes() {
-        java.lang.Object ref = recipient_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          recipient_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>string recipient = 4;</code>
-       */
-      public Builder setRecipient(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  
-        recipient_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>string recipient = 4;</code>
-       */
-      public Builder clearRecipient() {
-        
-        recipient_ = getDefaultInstance().getRecipient();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>string recipient = 4;</code>
-       */
-      public Builder setRecipientBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-        
-        recipient_ = value;
-        onChanged();
-        return this;
-      }
-
       private long ttl_ ;
       /**
        * <pre>
        * avoid flood attack
        * </pre>
        *
-       * <code>uint64 ttl = 5;</code>
+       * <code>uint64 ttl = 4;</code>
        */
       public long getTtl() {
         return ttl_;
@@ -1669,7 +1532,7 @@ public final class WisdomOuterClass {
        * avoid flood attack
        * </pre>
        *
-       * <code>uint64 ttl = 5;</code>
+       * <code>uint64 ttl = 4;</code>
        */
       public Builder setTtl(long value) {
         
@@ -1682,7 +1545,7 @@ public final class WisdomOuterClass {
        * avoid flood attack
        * </pre>
        *
-       * <code>uint64 ttl = 5;</code>
+       * <code>uint64 ttl = 4;</code>
        */
       public Builder clearTtl() {
         
@@ -1697,7 +1560,7 @@ public final class WisdomOuterClass {
        * avoid collision
        * </pre>
        *
-       * <code>uint64 nonce = 6;</code>
+       * <code>uint64 nonce = 5;</code>
        */
       public long getNonce() {
         return nonce_;
@@ -1707,7 +1570,7 @@ public final class WisdomOuterClass {
        * avoid collision
        * </pre>
        *
-       * <code>uint64 nonce = 6;</code>
+       * <code>uint64 nonce = 5;</code>
        */
       public Builder setNonce(long value) {
         
@@ -1720,7 +1583,7 @@ public final class WisdomOuterClass {
        * avoid collision
        * </pre>
        *
-       * <code>uint64 nonce = 6;</code>
+       * <code>uint64 nonce = 5;</code>
        */
       public Builder clearNonce() {
         
@@ -1731,13 +1594,13 @@ public final class WisdomOuterClass {
 
       private com.google.protobuf.ByteString signature_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>bytes signature = 7;</code>
+       * <code>bytes signature = 6;</code>
        */
       public com.google.protobuf.ByteString getSignature() {
         return signature_;
       }
       /**
-       * <code>bytes signature = 7;</code>
+       * <code>bytes signature = 6;</code>
        */
       public Builder setSignature(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -1749,7 +1612,7 @@ public final class WisdomOuterClass {
         return this;
       }
       /**
-       * <code>bytes signature = 7;</code>
+       * <code>bytes signature = 6;</code>
        */
       public Builder clearSignature() {
         
@@ -1764,7 +1627,7 @@ public final class WisdomOuterClass {
        * wisdom 消息体
        * </pre>
        *
-       * <code>bytes body = 8;</code>
+       * <code>bytes body = 7;</code>
        */
       public com.google.protobuf.ByteString getBody() {
         return body_;
@@ -1774,7 +1637,7 @@ public final class WisdomOuterClass {
        * wisdom 消息体
        * </pre>
        *
-       * <code>bytes body = 8;</code>
+       * <code>bytes body = 7;</code>
        */
       public Builder setBody(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -1790,7 +1653,7 @@ public final class WisdomOuterClass {
        * wisdom 消息体
        * </pre>
        *
-       * <code>bytes body = 8;</code>
+       * <code>bytes body = 7;</code>
        */
       public Builder clearBody() {
         
@@ -10391,46 +10254,45 @@ public final class WisdomOuterClass {
   static {
     java.lang.String[] descriptorData = {
       "\n\014wisdom.proto\032\037google/protobuf/timestam" +
-      "p.proto\"\263\001\n\007Message\022\023\n\004code\030\001 \001(\0162\005.Code" +
+      "p.proto\"\240\001\n\007Message\022\023\n\004code\030\001 \001(\0162\005.Code" +
       "\022.\n\ncreated_at\030\002 \001(\0132\032.google.protobuf.T" +
-      "imestamp\022\023\n\013remote_peer\030\003 \001(\t\022\021\n\trecipie" +
-      "nt\030\004 \001(\t\022\013\n\003ttl\030\005 \001(\004\022\r\n\005nonce\030\006 \001(\004\022\021\n\t" +
-      "signature\030\007 \001(\014\022\014\n\004body\030\010 \001(\014\"\006\n\004Ping\"\006\n" +
-      "\004Pong\"\010\n\006Lookup\"\026\n\005Peers\022\r\n\005peers\030\001 \003(\t\"" +
-      "\013\n\tGetStatus\"O\n\006Status\022\026\n\016current_height" +
-      "\030\001 \001(\004\022\027\n\017best_block_hash\030\002 \001(\014\022\024\n\014genes" +
-      "is_hash\030\003 \001(\014\"^\n\tGetBlocks\022\024\n\014start_heig" +
-      "ht\030\001 \001(\004\022\023\n\013stop_height\030\002 \001(\004\022&\n\016clip_di" +
-      "rection\030\003 \001(\0162\016.ClipDirection\" \n\006Blocks\022" +
-      "\026\n\006blocks\030\001 \003(\0132\006.Block\"!\n\010Proposal\022\025\n\005b" +
-      "lock\030\001 \001(\0132\006.Block\"\t\n\007Nothing\"2\n\014Transac" +
-      "tions\022\"\n\014transactions\030\001 \003(\0132\014.Transactio" +
-      "n\"\272\001\n\013Transaction\022\017\n\007version\030\001 \001(\005\022*\n\020tr" +
-      "ansaction_type\030\002 \001(\0162\020.TransactionType\022\r" +
-      "\n\005nonce\030\003 \001(\004\022\014\n\004from\030\004 \001(\014\022\021\n\tgas_price" +
-      "\030\005 \001(\004\022\016\n\006amount\030\006 \001(\004\022\021\n\tsignature\030\007 \001(" +
-      "\014\022\n\n\002to\030\010 \001(\014\022\017\n\007payload\030\t \001(\014\"\343\001\n\005Block" +
-      "\022\017\n\007version\030\001 \001(\r\022\027\n\017hash_prev_block\030\002 \001" +
-      "(\014\022\030\n\020hash_merkle_root\030\003 \001(\014\022\031\n\021hash_mer" +
-      "kle_state\030\004 \001(\014\022\034\n\024hash_merkle_incubate\030" +
-      "\005 \001(\014\022\016\n\006height\030\006 \001(\r\022\022\n\ncreated_at\030\007 \001(" +
-      "\r\022\016\n\006n_bits\030\010 \001(\014\022\r\n\005nonce\030\t \001(\014\022\032\n\004body" +
-      "\030\n \003(\0132\014.Transaction*\227\001\n\004Code\022\013\n\007NOTHING" +
-      "\020\000\022\010\n\004PING\020\001\022\010\n\004PONG\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005P" +
-      "EERS\020\004\022\016\n\nGET_STATUS\020\005\022\n\n\006STATUS\020\006\022\016\n\nGE" +
-      "T_BLOCKS\020\007\022\n\n\006BLOCKS\020\010\022\014\n\010PROPOSAL\020\t\022\020\n\014" +
-      "TRANSACTIONS\020\n*0\n\rClipDirection\022\r\n\tCLIP_" +
-      "TAIL\020\000\022\020\n\014CLIP_INITIAL\020\001*\305\002\n\017Transaction" +
-      "Type\022\014\n\010COINBASE\020\000\022\014\n\010TRANSFER\020\001\022\010\n\004VOTE" +
-      "\020\002\022\013\n\007DEPOSIT\020\003\022\036\n\032TRANSFER_MULTISIG_MUL" +
-      "TISIG\020\004\022\034\n\030TRANSFER_MULTISIG_NORMAL\020\005\022\034\n" +
-      "\030TRANSFER_NORMAL_MULTISIG\020\006\022\020\n\014ASSET_DEF" +
-      "INE\020\007\022\023\n\017ATOMIC_EXCHANGE\020\010\022\014\n\010INCUBATE\020\t" +
-      "\022\024\n\020EXTRACT_INTEREST\020\n\022\032\n\026EXTRACT_SHARIN" +
-      "G_PROFIT\020\013\022\020\n\014EXTRACT_COST\020\014\022\r\n\tEXIT_VOT" +
-      "E\020\r\022\n\n\006PLEDGE\020\016\022\017\n\013EXIT_PLEDGE\020\0172\'\n\006Wisd" +
-      "om\022\035\n\005Entry\022\010.Message\032\010.Message\"\000B\020\n\016org" +
-      ".wisdom.p2pb\006proto3"
+      "imestamp\022\023\n\013remote_peer\030\003 \001(\t\022\013\n\003ttl\030\004 \001" +
+      "(\004\022\r\n\005nonce\030\005 \001(\004\022\021\n\tsignature\030\006 \001(\014\022\014\n\004" +
+      "body\030\007 \001(\014\"\006\n\004Ping\"\006\n\004Pong\"\010\n\006Lookup\"\026\n\005" +
+      "Peers\022\r\n\005peers\030\001 \003(\t\"\013\n\tGetStatus\"O\n\006Sta" +
+      "tus\022\026\n\016current_height\030\001 \001(\004\022\027\n\017best_bloc" +
+      "k_hash\030\002 \001(\014\022\024\n\014genesis_hash\030\003 \001(\014\"^\n\tGe" +
+      "tBlocks\022\024\n\014start_height\030\001 \001(\004\022\023\n\013stop_he" +
+      "ight\030\002 \001(\004\022&\n\016clip_direction\030\003 \001(\0162\016.Cli" +
+      "pDirection\" \n\006Blocks\022\026\n\006blocks\030\001 \003(\0132\006.B" +
+      "lock\"!\n\010Proposal\022\025\n\005block\030\001 \001(\0132\006.Block\"" +
+      "\t\n\007Nothing\"2\n\014Transactions\022\"\n\014transactio" +
+      "ns\030\001 \003(\0132\014.Transaction\"\272\001\n\013Transaction\022\017" +
+      "\n\007version\030\001 \001(\005\022*\n\020transaction_type\030\002 \001(" +
+      "\0162\020.TransactionType\022\r\n\005nonce\030\003 \001(\004\022\014\n\004fr" +
+      "om\030\004 \001(\014\022\021\n\tgas_price\030\005 \001(\004\022\016\n\006amount\030\006 " +
+      "\001(\004\022\021\n\tsignature\030\007 \001(\014\022\n\n\002to\030\010 \001(\014\022\017\n\007pa" +
+      "yload\030\t \001(\014\"\343\001\n\005Block\022\017\n\007version\030\001 \001(\r\022\027" +
+      "\n\017hash_prev_block\030\002 \001(\014\022\030\n\020hash_merkle_r" +
+      "oot\030\003 \001(\014\022\031\n\021hash_merkle_state\030\004 \001(\014\022\034\n\024" +
+      "hash_merkle_incubate\030\005 \001(\014\022\016\n\006height\030\006 \001" +
+      "(\r\022\022\n\ncreated_at\030\007 \001(\r\022\016\n\006n_bits\030\010 \001(\014\022\r" +
+      "\n\005nonce\030\t \001(\014\022\032\n\004body\030\n \003(\0132\014.Transactio" +
+      "n*\227\001\n\004Code\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001\022\010\n\004PON" +
+      "G\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGET_STATU" +
+      "S\020\005\022\n\n\006STATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n\n\006BLOCK" +
+      "S\020\010\022\014\n\010PROPOSAL\020\t\022\020\n\014TRANSACTIONS\020\n*0\n\rC" +
+      "lipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_INIT" +
+      "IAL\020\001*\305\002\n\017TransactionType\022\014\n\010COINBASE\020\000\022" +
+      "\014\n\010TRANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT\020\003\022\036\n\032" +
+      "TRANSFER_MULTISIG_MULTISIG\020\004\022\034\n\030TRANSFER" +
+      "_MULTISIG_NORMAL\020\005\022\034\n\030TRANSFER_NORMAL_MU" +
+      "LTISIG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOMIC_EXC" +
+      "HANGE\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_INTERES" +
+      "T\020\n\022\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n\014EXTRA" +
+      "CT_COST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE\020\016\022\017\n\013" +
+      "EXIT_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010.Messa" +
+      "ge\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -10450,7 +10312,7 @@ public final class WisdomOuterClass {
     internal_static_Message_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Message_descriptor,
-        new java.lang.String[] { "Code", "CreatedAt", "RemotePeer", "Recipient", "Ttl", "Nonce", "Signature", "Body", });
+        new java.lang.String[] { "Code", "CreatedAt", "RemotePeer", "Ttl", "Nonce", "Signature", "Body", });
     internal_static_Ping_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_Ping_fieldAccessorTable = new

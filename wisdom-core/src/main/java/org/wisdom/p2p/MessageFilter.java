@@ -44,11 +44,6 @@ public class MessageFilter implements Plugin {
             context.exit();
             return;
         }
-        // 过滤掉不是发给自己的包
-        if (!context.getPayload().getRecipient().equals(server.getSelf())) {
-            context.exit();
-            return;
-        }
         String k = Hex.encodeHexString(context.getPayload().getSignature());
         // 过滤掉收到过的消息
         if (msgs.containsKey(k)) {

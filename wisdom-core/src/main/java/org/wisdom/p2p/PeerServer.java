@@ -19,6 +19,7 @@ import org.wisdom.sync.SyncManager;
 import org.wisdom.sync.TransactionHandler;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,18 +31,20 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "grpc")
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
-    static final int PEER_SCORE = 4;
-    static final int HALF_RATE = 60;
-    static final int EVIL_SCORE = -(1 << 10);
-    static final int MAX_PEERS = 32;
-
+    private static final int PEER_SCORE = 4;
+    private static final int HALF_RATE = 60;
+    private static final int EVIL_SCORE = -(1 << 10);
+    private static final int MAX_PEERS = 32;
+    private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
+    private static final WisdomOuterClass.Lookup LOOKUP = WisdomOuterClass.Lookup.newBuilder().build();
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
-    private static final int MAX_TTL = 64;
+    private static final int MAX_TTL = 8;
     private AtomicLong nonce;
     private Peer self;
     private List<Plugin> pluginList;
-    private Map<String, Peer> bootstraps;
+    private Map<String, Integer> bootstraps;
+    private Map<String, Peer> bootstrapPeers;
     private Map<String, Peer> trusted;
     private Map<String, Peer> blocked;
     private Map<Integer, Peer> peers;
@@ -80,21 +83,36 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.peers = new ConcurrentHashMap<>();
         this.pended = new ConcurrentHashMap<>();
         this.chanBuffer = new ConcurrentHashMap<>();
-        String[] bs = new String[]{};
-        if (bootstraps != null && !bootstraps.equals("")) {
-            bs = bootstraps.split(",");
-        }
+        this.bootstrapPeers = new ConcurrentHashMap<>();
         String[] ts = new String[]{};
         if (trusted != null && !trusted.equals("")) {
             ts = trusted.split(",");
         }
-        for (String b : bs) {
-            Peer p = Peer.parse(b);
-            if (p.equals(this.self)) {
-                throw new Exception("cannot treat yourself as bootstrap peer");
-            }
-            this.bootstraps.put(p.key(), p);
-        }
+        Optional.ofNullable(bootstraps)
+                .map(x -> Arrays.asList(x.split(",")))
+                .map(ps -> {
+                    List<String> unparsed = new ArrayList<>();
+                    ps.forEach(p -> {
+                        try {
+                            Peer peer = Peer.parse(p);
+                            this.bootstrapPeers.put(peer.key(), peer);
+                        } catch (Exception e) {
+                            unparsed.add(p);
+                        }
+                    });
+                    return unparsed;
+                })
+                .get()
+                .forEach(link -> {
+                    try {
+                        URI u = new URI(link);
+                        this.bootstraps.put(u.getHost(), u.getPort());
+                    } catch (Exception e) {
+                        logger.error("invalid url");
+                    }
+                });
+
+
         for (String b : ts) {
             Peer p = Peer.parse(b);
             if (p.equals(this.self)) {
@@ -117,10 +135,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         this.use(messageLogger)
                 .use(filter)
                 .use(syncManager)
-                .use(transactionHandler);
-        if (enableDiscovery) {
-            use(pmgr);
-        }
+                .use(transactionHandler)
+                .use(pmgr);
         startListening();
     }
 
@@ -131,6 +147,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             p.onStart(this);
         }
         server = ServerBuilder.forPort(self.port).addService(this).build().start();
+    }
+
+    @Scheduled(fixedRate = HALF_RATE * 1000)
+    public void resolve() {
+        bootstraps.keySet().forEach(h -> {
+            dial(h, bootstraps.get(h), PING);
+        });
     }
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
@@ -160,7 +183,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }
 
         for (Peer p : getPeers()) {
-            dial(p, WisdomOuterClass.Ping.newBuilder().build()); // keep alive
+            dial(p, PING); // keep alive
         }
         if (hasFull) {
             return;
@@ -168,10 +191,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         // discover peers when bucket is not full
         Set<Peer> ps = new HashSet<>();
         ps.addAll(peers.values());
-        ps.addAll(bootstraps.values());
+        ps.addAll(bootstrapPeers.values());
         for (Peer p : ps) {
             logger.info("peer found, address = " + p.toString() + " score = " + p.score);
-            dial(p, WisdomOuterClass.Lookup.newBuilder().build());
+            dial(p, LOOKUP);
         }
     }
 
@@ -206,13 +229,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 relay(payload);
             }
             if (ctx.response != null) {
-                return buildMessage(payload.getRemote(), 1, ctx.response);
+                return buildMessage(1, ctx.response);
             }
-            return buildMessage(ctx.payload.getRemote(), 1, WisdomOuterClass.Nothing.newBuilder().build());
+            return buildMessage(1, WisdomOuterClass.Nothing.newBuilder().build());
         } catch (Exception e) {
             logger.error("fail to parse message");
         }
-        return buildMessage(Peer.empty(), 1, WisdomOuterClass.Nothing.newBuilder().build());
+        return buildMessage(1, WisdomOuterClass.Nothing.newBuilder().build());
     }
 
     @Override
@@ -220,6 +243,29 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         WisdomOuterClass.Message resp = onMessage(request);
         responseObserver.onNext(resp);
         responseObserver.onCompleted();
+    }
+
+    private void grpcCall(String host, int port, WisdomOuterClass.Message msg) {
+        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
+        ).usePlaintext().build();
+        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
+                ch);
+        stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
+            @Override
+            public void onNext(WisdomOuterClass.Message value) {
+                onMessage(value);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                ch.shutdown();
+            }
+
+            @Override
+            public void onCompleted() {
+                ch.shutdown();
+            }
+        });
     }
 
     private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
@@ -259,13 +305,17 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         });
     }
 
+    public void dial(String host, int port, Object msg) {
+        grpcCall(host, port, buildMessage(MAX_TTL, msg));
+    }
+
     public void dial(Peer p, Object msg) {
-        grpcCall(p, buildMessage(p, 1, msg));
+        grpcCall(p, buildMessage(1, msg));
     }
 
     public void broadcast(Object msg) {
         for (Peer p : getPeers()) {
-            grpcCall(p, buildMessage(p, MAX_TTL, msg));
+            grpcCall(p, buildMessage(MAX_TTL, msg));
         }
     }
 
@@ -278,7 +328,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                grpcCall(p, buildMessage(p, payload.getTtl() - 1, payload.getBody()));
+                grpcCall(p, buildMessage(payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
@@ -290,7 +340,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         ps.addAll(peers.values());
         ps.addAll(trusted.values());
         if (ps.size() == 0) {
-            ps.addAll(bootstraps.values());
+            ps.addAll(bootstrapPeers.values());
         }
         return ps;
     }
@@ -313,6 +363,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             return;
         }
         peer.score = PEER_SCORE;
+        if(bootstraps.containsKey(peer.host)){
+            this.bootstrapPeers.put(peer.key(), peer);
+            bootstraps.remove(peer.host);
+        }
         int idx = self.subTree(peer);
         Peer p = peers.get(idx);
         if (p == null && peers.size() + trusted.size() < MAX_PEERS) {
@@ -364,11 +418,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return peers.containsKey(idx) && peers.get(idx).equals(peer);
     }
 
-    private WisdomOuterClass.Message buildMessage(Peer recipient, long ttl, Object msg) {
+    private WisdomOuterClass.Message buildMessage(long ttl, Object msg) {
         WisdomOuterClass.Message.Builder builder = WisdomOuterClass.Message.newBuilder();
         builder.setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
         builder.setRemotePeer(self.toString());
-        builder.setRecipient(recipient.toString());
         builder.setTtl(ttl);
         builder.setNonce(nonce.getAndIncrement());
         if (msg instanceof WisdomOuterClass.Nothing) {
