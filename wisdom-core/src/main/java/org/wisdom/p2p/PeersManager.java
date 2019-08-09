@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author sal 1564319846@qq.com
@@ -16,6 +17,7 @@ public class PeersManager implements Plugin {
     private static final Logger logger = LoggerFactory.getLogger(PeersManager.class);
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Pong PONG = WisdomOuterClass.Pong.newBuilder().build();
+    private PeerServer server;
 
     @Override
     public void onMessage(Context context, PeerServer server) {
@@ -36,7 +38,7 @@ public class PeersManager implements Plugin {
 
     @Override
     public void onStart(PeerServer server) {
-
+        this.server = server;
     }
 
     private void onPing(Context context, PeerServer server) {
@@ -69,5 +71,10 @@ public class PeersManager implements Plugin {
         } catch (Exception e) {
             logger.error("parse peer fail");
         }
+    }
+
+    public List<Peer> getPeers() {
+        return Optional.ofNullable(server)
+                .map(PeerServer::getPeers).orElse(new ArrayList<>());
     }
 }
