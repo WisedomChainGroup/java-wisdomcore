@@ -336,6 +336,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public List<Peer> getPeers() {
+        if (!enableDiscovery) {
+            return Arrays.asList(bootstrapPeers.values().toArray(new Peer[]{}));
+        }
         List<Peer> ps = new ArrayList<>();
         ps.addAll(peers.values());
         ps.addAll(trusted.values());
@@ -363,7 +366,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             return;
         }
         peer.score = PEER_SCORE;
-        if(bootstraps.containsKey(peer.host)){
+        if (bootstraps.containsKey(peer.host)) {
             this.bootstrapPeers.put(peer.key(), peer);
             bootstraps.remove(peer.host);
         }
