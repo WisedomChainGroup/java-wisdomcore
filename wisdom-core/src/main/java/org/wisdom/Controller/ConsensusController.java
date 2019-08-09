@@ -56,9 +56,6 @@ public class ConsensusController {
     @Value("${wisdom.consensus.enable-mining}")
     boolean enableMining;
 
-    @Value("${wisdom.version}")
-    String version;
-
     @Autowired
     private JSONEncodeDecoder codec;
 
@@ -80,9 +77,6 @@ public class ConsensusController {
     @Autowired
     private ApplicationContext context;
 
-    @Value("${node-character}")
-    private String character;
-
     @Value("${p2p.mode}")
     private String p2pMode;
 
@@ -90,12 +84,6 @@ public class ConsensusController {
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
-
-    @Autowired
-    private PeersManager peersManager;
-
-    @Value("${p2p.enable-discovery}")
-    private boolean enableDiscovery;
 
     @PostConstruct
     public void init() {
@@ -196,17 +184,5 @@ public class ConsensusController {
             commandService.verifyTransfer(traninfo);
         }
         return SUCCESS("transaction received successful");
-    }
-
-    @GetMapping(value = "/version", produces = "application/json")
-    public Object getVersion() {
-        Map<String, Object> info = new HashMap<>();
-        info.put("version", this.version);
-        info.put("character", character);
-        info.put("peers", peersManager.getPeers().stream().map(Peer::toString).toArray());
-        info.put("self", peersManager.getSelfAddress());
-        info.put("p2pMode", p2pMode);
-        info.put("enableDiscovery", enableDiscovery);
-        return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }
