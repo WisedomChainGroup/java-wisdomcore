@@ -6,7 +6,6 @@ public class Payload {
     private long createdAt;
     private WisdomOuterClass.Code code;
     private Peer remote;
-    private Peer recipient;
     private long ttl;
     private long nonce;
     private byte[] signature;
@@ -23,7 +22,6 @@ public class Payload {
         createdAt = msg.getCreatedAt().getSeconds();
         code = msg.getCode();
         remote = Peer.parse(msg.getRemotePeer());
-        recipient = Peer.parse(msg.getRecipient());
         ttl = msg.getTtl();
         nonce = msg.getNonce();
         signature = msg.getSignature().toByteArray();
@@ -125,10 +123,6 @@ public class Payload {
 
     public WisdomOuterClass.Code getCode() {
         return code;
-    }
-
-    public Peer getRecipient() {
-        return recipient;
     }
 
     public long getTtl() {
