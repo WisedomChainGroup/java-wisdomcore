@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class BlocksCache {
     private Map<String, Block> blocks;
     private Map<String, Set<String>> childrenHashes;
-    private TreeMap<Long, Set<String>> heightIndex;
+    private Map<Long, Set<String>> heightIndex;
     private Map<String, String> parentIndex;
     private ReadWriteLock readWriteLock;
 
@@ -341,11 +341,11 @@ public class BlocksCache {
         List<Block> res = new ArrayList<>();
         this.readWriteLock.readLock().lock();
         try {
-            if (blocks.keySet().contains(bkey)) {
+            if (blocks.containsKey(bkey)) {
                 res = getAncestorsUnsafe(bkey);
                 return res;
             }
-            if (blocks.keySet().contains(bparentKey)) {
+            if (blocks.containsKey(bparentKey)) {
                 res = getAncestorsUnsafe(bparentKey);
                 res.add(blocks.get(bparentKey));
                 return res;
