@@ -6,6 +6,7 @@ import org.iq80.leveldb.impl.Iq80DBFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class Leveldb {
 
@@ -15,15 +16,15 @@ public class Leveldb {
     private File file;
     private Options options;
 
-    public Leveldb(){
-        this.db=null;
-        this.CHARSET=Charset.forName("utf-8");
-        this.path=System.getProperty("user.dir")+File.separator+"leveldb";
-        this.file=new File(path);
-        options=new Options();
+    public Leveldb() {
+        this.db = null;
+        this.CHARSET = StandardCharsets.UTF_8;
+        this.path = System.getProperty("user.dir") + File.separator + "leveldb";
+        this.file = new File(path);
+        options = new Options();
     }
 
-    public void addPoolDb(String key,String noncepoolval){
+    public void addPoolDb(String key, String noncepoolval) {
         try {
             DBFactory factory = new Iq80DBFactory();
             options.createIfMissing(true);
@@ -31,9 +32,9 @@ public class Leveldb {
             byte[] keyByte = key.getBytes(CHARSET);
             // 会写入磁盘中
             this.db.put(keyByte, noncepoolval.getBytes(CHARSET));
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             if (db != null) {
                 try {
                     db.close();
@@ -45,14 +46,14 @@ public class Leveldb {
         }
     }
 
-    public String readPoolDb(String key){
+    public String readPoolDb(String key) {
         String noncepool = "";
         try {
             DBFactory factory = new Iq80DBFactory();
             options.createIfMissing(true);
             this.db = factory.open(file, options);
             byte[] valueByte = db.get(key.getBytes(CHARSET));
-            if(valueByte!=null && valueByte.length>0){
+            if (valueByte != null && valueByte.length > 0) {
                 return new String(valueByte);
             }
         } catch (Exception e) {

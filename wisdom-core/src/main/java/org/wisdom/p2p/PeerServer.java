@@ -37,6 +37,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private static final int MAX_PEERS = 32;
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Lookup LOOKUP = WisdomOuterClass.Lookup.newBuilder().build();
+    private static final WisdomOuterClass.Nothing NOTHING = WisdomOuterClass.Nothing.newBuilder().build();
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
     private static final int MAX_TTL = 8;
@@ -234,11 +235,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             if (ctx.response != null) {
                 return buildMessage(1, ctx.response);
             }
-            return buildMessage(1, WisdomOuterClass.Nothing.newBuilder().build());
         } catch (Exception e) {
             logger.error("fail to parse message");
         }
-        return buildMessage(1, WisdomOuterClass.Nothing.newBuilder().build());
+        return buildMessage(1, NOTHING);
     }
 
     @Override
