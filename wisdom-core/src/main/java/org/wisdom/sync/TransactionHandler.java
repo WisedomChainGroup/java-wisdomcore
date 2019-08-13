@@ -1,8 +1,11 @@
 package org.wisdom.sync;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.ApiResult.APIResult;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.p2p.Context;
 import org.wisdom.p2p.PeerServer;
@@ -20,6 +23,7 @@ public class TransactionHandler implements Plugin {
     private static final int CACHE_SIZE = 64;
     private ConcurrentMap<String, Boolean> transactionCache;
 
+    private static final Logger logger = LoggerFactory.getLogger(TransactionHandler.class);
     @Autowired
     private CommandService commandService;
 
@@ -38,7 +42,10 @@ public class TransactionHandler implements Plugin {
                 .map(Utils::parseTransaction)
                 .forEach(t -> {
             byte[] traninfo = t.toRPCBytes();
-            commandService.verifyTransfer(traninfo);
+            APIResult apiResult=commandService.verifyTransfer(traninfo);
+            if(apiResult.getCode() == 5000){
+                logger.info("transaction Check failure,TxHash="+t.getHash());
+            }
         });
 //        context.relay();
     }
