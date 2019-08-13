@@ -256,7 +256,7 @@ public class BlocksCache {
         List<Block> res = Arrays.asList(blocks.values().toArray(new Block[]{}));
         this.readWriteLock.readLock().unlock();
         if (res.size() > 1) {
-            Collections.sort(res, Comparator.comparingLong(Block::getnHeight));
+            res.sort(Comparator.comparingLong(Block::getnHeight));
         }
         return res;
     }
