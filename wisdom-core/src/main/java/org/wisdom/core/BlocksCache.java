@@ -56,7 +56,7 @@ public class BlocksCache {
                 res.add(b);
             }
         }
-        Collections.sort(res, Comparator.comparingLong(Block::getnHeight));
+        res.sort(Comparator.comparingLong(Block::getnHeight));
         return res;
     }
 
