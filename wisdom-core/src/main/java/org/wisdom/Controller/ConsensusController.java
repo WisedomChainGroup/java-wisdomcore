@@ -183,8 +183,8 @@ public class ConsensusController {
             byte[] traninfo = tran.toRPCBytes();
             APIResult apiResult=commandService.verifyTransfer(traninfo);
             if(apiResult.getCode() == 5000){
-                logger.info("transaction Check failure,TxHash="+tran.getHash());
-                return ERROR("transaction Check failure,TxHash="+tran.getHash());
+                logger.info("transaction Check failure,TxHash="+tran.getHash()+",message:"+apiResult.getMessage());
+                return ERROR("transaction Check failure,TxHash="+tran.getHash()+",message:"+apiResult.getMessage());
             }
         }
         return SUCCESS("transaction received successful");

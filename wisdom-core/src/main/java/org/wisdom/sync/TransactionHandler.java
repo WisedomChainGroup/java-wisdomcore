@@ -44,7 +44,7 @@ public class TransactionHandler implements Plugin {
             byte[] traninfo = t.toRPCBytes();
             APIResult apiResult=commandService.verifyTransfer(traninfo);
             if(apiResult.getCode() == 5000){
-                logger.info("transaction Check failure,TxHash="+t.getHash());
+                logger.info("transaction Check failure,TxHash="+t.getHash()+",message:"+apiResult.getMessage());
             }
         });
 //        context.relay();
