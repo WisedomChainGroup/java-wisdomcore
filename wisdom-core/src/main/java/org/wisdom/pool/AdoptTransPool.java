@@ -31,7 +31,9 @@ public class AdoptTransPool {
                 List<Transaction> list=JSON.parseObject(dbdata,new TypeReference<ArrayList<Transaction>>() {});
                 add(list);
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            this.atpool = new ConcurrentHashMap<>();
+        }
     }
 
     public void add(List<Transaction> txs) {

@@ -35,7 +35,9 @@ public class PeningTransPool {
                 List<TransPool> transPoolList=JSON.parseObject(dbdata,new TypeReference<ArrayList<TransPool>>() {});
                 add(transPoolList);
             }
-        }catch (Exception e){}
+        }catch (Exception e){
+            this.ptpool = new ConcurrentHashMap<>();
+        }
     }
 
     public void add(List<TransPool> pools) {
