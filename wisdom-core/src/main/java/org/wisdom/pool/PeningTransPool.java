@@ -37,6 +37,7 @@ public class PeningTransPool {
             }
         }catch (Exception e){
             this.ptpool = new ConcurrentHashMap<>();
+            this.ptnonce = new ConcurrentHashMap<>();
         }
     }
 
