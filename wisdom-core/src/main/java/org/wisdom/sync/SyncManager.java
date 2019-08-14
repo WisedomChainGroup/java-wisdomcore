@@ -10,7 +10,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
-import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
@@ -27,8 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.wisdom.Controller.ConsensusResult.ERROR;
-
 
 /**
  * @author sal 1564319846@qq.com
@@ -37,12 +34,14 @@ import static org.wisdom.Controller.ConsensusResult.ERROR;
 @Component
 public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEvent> {
     private PeerServer server;
-    private static final int MAX_BLOCKS_PER_TRANSFER = 256;
+
     private static final int CACHE_SIZE = 64;
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
 
     private ConcurrentMap<String, Boolean> proposalCache;
 
+    @Value("${p2p.max-blocks-per-transfer}")
+    private int maxBlocksPerTransfer;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -101,7 +100,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         server.broadcast(WisdomOuterClass.GetStatus.newBuilder().build());
         for (Block b : orphanBlocksManager.getInitials()) {
-            long startHeight = b.nHeight - MAX_BLOCKS_PER_TRANSFER + 1;
+            long startHeight = b.nHeight - maxBlocksPerTransfer + 1;
             if (startHeight <= 0) {
                 startHeight = 1;
             }
@@ -116,10 +115,10 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void onGetBlocks(Context context, PeerServer server) {
         WisdomOuterClass.GetBlocks getBlocks = context.getPayload().getGetBlocks();
-        GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
+        GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
-        List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_PER_TRANSFER, getBlocks.getClipDirectionValue() > 0);
+        List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend != null && blocksToSend.size() > 0) {
             Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
             context.response(resp);
@@ -161,8 +160,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 status.getBestBlockHash().toByteArray(), best.getHash())
         ) {
             long stopHeight = status.getCurrentHeight();
-            if (stopHeight >= best.nHeight + MAX_BLOCKS_PER_TRANSFER) {
-                stopHeight = best.nHeight + MAX_BLOCKS_PER_TRANSFER - 1;
+            if (stopHeight >= best.nHeight + maxBlocksPerTransfer) {
+                stopHeight = best.nHeight + maxBlocksPerTransfer - 1;
             }
             WisdomOuterClass.GetBlocks req = WisdomOuterClass.GetBlocks.newBuilder()
                     .setStartHeight(best.nHeight)
@@ -185,6 +184,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void receiveBlocks(List<Block> blocks) {
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
+        blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
         List<Block> validBlocks = new ArrayList<>();
         for (Block b : blocks) {
             if (b == null || b.nHeight == 0) {
@@ -205,7 +205,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     @Override
     public void onApplicationEvent(NewBlockMinedEvent event) {
-        if(server == null){
+        if (server == null) {
             return;
         }
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
