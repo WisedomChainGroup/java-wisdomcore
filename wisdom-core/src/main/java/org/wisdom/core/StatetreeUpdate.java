@@ -57,7 +57,7 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
     @Override
     public void onApplicationEvent(NewBestBlockEvent event) {
         Block b = event.getBlock();
-        peningTransPool.updatePool(b.body,2,b.nHeight);
+        peningTransPool.updatePool(b.body, 2, b.nHeight);
         Map<String, Object> merklemap = null;
         try {
             merklemap = merkleRule.validateMerkle(b.body, b.nHeight);
@@ -67,17 +67,17 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
             List<Object[]> incubatorobjct = new ArrayList<>();
             for (Account account : accountList) {
                 accountobject.add(new Object[]{
-                        account.getId(),account.getBlockHeight(),account.getPubkeyHash(),account.getNonce()
-                        ,account.getBalance(),account.getIncubatecost(),account.getMortgage(),account.getVote()
+                        account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce()
+                        , account.getBalance(), account.getIncubatecost(), account.getMortgage(), account.getVote()
                 });
             }
             accountDB.insertAccountList(accountobject);
             for (Incubator incubator : incubatorList) {
                 incubatorobjct.add(new Object[]{
-                        incubator.getId(),incubator.getShare_pubkeyhash()
-                        ,incubator.getPubkeyhash(),incubator.getTxid_issue()
-                        ,incubator.getHeight(),incubator.getCost(),incubator.getInterest_amount()
-                        ,incubator.getShare_amount(),incubator.getLast_blockheight_interest(),incubator.getLast_blockheight_share()
+                        incubator.getId(), incubator.getShare_pubkeyhash()
+                        , incubator.getPubkeyhash(), incubator.getTxid_issue()
+                        , incubator.getHeight(), incubator.getCost(), incubator.getInterest_amount()
+                        , incubator.getShare_amount(), incubator.getLast_blockheight_interest(), incubator.getLast_blockheight_share()
                 });
             }
             incubatorDB.insertIncubatorList(incubatorobjct);
