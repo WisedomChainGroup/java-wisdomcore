@@ -93,7 +93,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         this.server = server;
     }
 
-    @Scheduled(fixedRate = 15 * 1000)
+    @Scheduled(fixedRate = 30 * 1000)
     public void getStatus() {
         if (server == null) {
             return;
@@ -182,7 +182,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         context.response(resp);
     }
 
-    private void receiveBlocks(List<Block> blocks) {
+    private synchronized void receiveBlocks(List<Block> blocks) {
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
         List<Block> validBlocks = new ArrayList<>();
