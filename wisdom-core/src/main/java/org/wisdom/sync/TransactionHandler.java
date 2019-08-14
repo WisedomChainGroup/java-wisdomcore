@@ -1,6 +1,7 @@
 package org.wisdom.sync;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +45,7 @@ public class TransactionHandler implements Plugin {
             byte[] traninfo = t.toRPCBytes();
             APIResult apiResult=commandService.verifyTransfer(traninfo);
             if(apiResult.getCode() == 5000){
-                logger.info("transaction Check failure,TxHash="+t.getHash()+",message:"+apiResult.getMessage());
+                logger.info("transaction Check failure,TxHash="+Hex.encodeHexString(t.getHash())+",message:"+apiResult.getMessage());
             }
         });
 //        context.relay();
