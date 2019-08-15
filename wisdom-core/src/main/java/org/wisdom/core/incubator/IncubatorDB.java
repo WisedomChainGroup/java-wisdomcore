@@ -42,11 +42,20 @@ public class IncubatorDB {
         }
     }
 
-    public Incubator selectIncubator(byte[] tx){
+    /*public Incubator selectIncubator(byte[] tx){
         try{
             String sql="select * from incubator_state s where s.txid_issue=? and s.height=(\n" +
                     "select max(i.height) from incubator_state i where i.txid_issue=?) ";
             return tmpl.queryForObject(sql,new Object[] { tx,tx },new IncubatorRowMapper());
+        }catch (Exception e){
+            return null;
+        }
+    }*/
+
+    public Incubator selectIncubator(byte[] tx){
+        try{
+            String sql="select * from incubator_state s where s.txid_issue=? order by s.height desc limit 1";
+            return tmpl.queryForObject(sql,new Object[] { tx },new IncubatorRowMapper());
         }catch (Exception e){
             return null;
         }

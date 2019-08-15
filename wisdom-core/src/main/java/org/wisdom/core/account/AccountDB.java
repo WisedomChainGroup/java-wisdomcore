@@ -33,11 +33,20 @@ public class AccountDB {
     @Autowired
     private JdbcTemplate tmpl;
 
-    public Account selectaccount(byte[] pubkeyhash){
+/*    public Account selectaccount(byte[] pubkeyhash){
         try{
             String sql="select * from account b where b.pubkeyhash=? and b.blockheight=(\n" +
                     "select MAx(a.blockheight) from account a where a.pubkeyhash=? )";
             return tmpl.queryForObject(sql,new Object[] { pubkeyhash,pubkeyhash }, new BeanPropertyRowMapper<Account>(Account.class));
+        }catch (Exception e){
+            return null;
+        }
+    }*/
+
+    public Account selectaccount(byte[] pubkeyhash){
+        try{
+            String sql="select * from account b where b.pubkeyhash=? order by b.blockheight desc LIMIT 1";
+            return tmpl.queryForObject(sql,new Object[] { pubkeyhash }, new BeanPropertyRowMapper<Account>(Account.class));
         }catch (Exception e){
             return null;
         }
