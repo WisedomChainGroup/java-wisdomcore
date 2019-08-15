@@ -13,10 +13,7 @@ import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.p2p.Context;
-import org.wisdom.p2p.PeerServer;
-import org.wisdom.p2p.Plugin;
-import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.service.Impl.CommandServiceImpl;
 
@@ -25,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 /**
@@ -34,7 +32,6 @@ import java.util.concurrent.ConcurrentMap;
 @Component
 public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEvent> {
     private PeerServer server;
-
     private static final int CACHE_SIZE = 64;
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
 
@@ -98,7 +95,13 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (server == null) {
             return;
         }
-        server.broadcast(WisdomOuterClass.GetStatus.newBuilder().build());
+        List<Peer> ps = server.getPeers();
+        if (ps == null || ps.size() == 0) {
+            return;
+        }
+        int index = Math.abs(ThreadLocalRandom.current().nextInt()) % ps.size();
+
+        server.dial(ps.get(index), WisdomOuterClass.GetStatus.newBuilder().build());
         for (Block b : orphanBlocksManager.getInitials()) {
             long startHeight = b.nHeight - maxBlocksPerTransfer + 1;
             if (startHeight <= 0) {
@@ -109,13 +112,13 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setStartHeight(startHeight)
                     .setStopHeight(b.nHeight).build();
             logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
-            server.broadcast(getBlocks);
+            server.dial(ps.get(index), getBlocks);
         }
     }
 
     private void onGetBlocks(Context context, PeerServer server) {
         WisdomOuterClass.GetBlocks getBlocks = context.getPayload().getGetBlocks();
-        GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirectionValue() == WisdomOuterClass.ClipDirection.CLIP_INITIAL.getNumber());
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
@@ -163,9 +166,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             if (stopHeight >= best.nHeight + maxBlocksPerTransfer) {
                 stopHeight = best.nHeight + maxBlocksPerTransfer - 1;
             }
+            GetBlockQuery getBlockQuery = new GetBlockQuery(best.nHeight, status.getCurrentHeight());
+            getBlockQuery.clip(maxBlocksPerTransfer, false);
             WisdomOuterClass.GetBlocks req = WisdomOuterClass.GetBlocks.newBuilder()
-                    .setStartHeight(best.nHeight)
-                    .setStopHeight(stopHeight)
+                    .setStartHeight(getBlockQuery.start)
+                    .setStopHeight(getBlockQuery.stop)
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_TAIL).build();
             logger.info("require blocks start from " + req.getStartHeight() + " stop at " + req.getStopHeight());
             server.dial(context.getPayload().getRemote(), req);
