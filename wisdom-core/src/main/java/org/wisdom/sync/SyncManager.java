@@ -55,9 +55,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Autowired
     private BasicRule rule;
 
-    @Autowired
-    private CommandServiceImpl commandService;
-
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
 

@@ -61,13 +61,16 @@ public class BasicRule implements BlockRule, TransactionRule {
     private static final Logger logger = LoggerFactory.getLogger(BasicRule.class);
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
 
+    @Value("${p2p.max-blocks-per-transfer}")
+    private int orphanHeightsRange;
+
     @Override
     public Result validateBlock(Block block) {
         Block best = bc.currentHeader();
         if (block == null) {
             return Result.Error("null block");
         }
-        if (Math.abs(best.nHeight - block.nHeight) > OrphanBlocksManager.ORPHAN_HEIGHT_RANGE) {
+        if (Math.abs(best.nHeight - block.nHeight) > orphanHeightsRange) {
             return Result.Error("the block height" + block.nHeight + " is too small, current height is " + best.nHeight);
         }
         // 区块基本校验 字段值非空
