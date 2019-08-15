@@ -118,7 +118,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void onGetBlocks(Context context, PeerServer server) {
         WisdomOuterClass.GetBlocks getBlocks = context.getPayload().getGetBlocks();
-        GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirectionValue() == WisdomOuterClass.ClipDirection.CLIP_INITIAL.getNumber());
+        GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
