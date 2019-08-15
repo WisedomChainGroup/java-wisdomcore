@@ -28,6 +28,9 @@ public class NodeInfoController {
     @Value("${p2p.enable-discovery}")
     private boolean enableDiscovery;
 
+    @Value("${p2p.max-blocks-per-transfer}")
+    private int maxBlocksPerTransfer;
+
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
         Map<String, Object> info = new HashMap<>();
@@ -43,6 +46,7 @@ public class NodeInfoController {
         info.put("self", peersManager.getSelfAddress());
         info.put("p2pMode", p2pMode);
         info.put("enableDiscovery", enableDiscovery);
+        info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }
