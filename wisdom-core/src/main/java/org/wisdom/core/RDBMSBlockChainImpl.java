@@ -66,7 +66,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 "create index if not exists account_blockheight_index on account (blockheight desc)",
                 "create index if not exists  account_pubkeyhash_index on account (pubkeyhash)",
                 "create index if not exists incubator_state_height_index on incubator_state (height desc)",
-                "create index if not exists incubator_state_txid_issue_index on incubator_state (txid_issue)"
+                "create index if not exists incubator_state_txid_issue_index on incubator_state (txid_issue)",
+                "create index if not exists  account_heightpub_index on account (blockheight,pubkeyhash)",
+                "create index if not exists incubator_state_txidheight_index on incubator_state (txid_issue,height)",
+                "create index if not exists transaction_index_tx_hash_index on transaction_index (tx_hash)"
         );
     }
 

@@ -18,6 +18,7 @@
 
 package org.wisdom.core;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.wisdom.core.event.NewBlockEvent;
 import org.slf4j.Logger;
@@ -37,7 +38,6 @@ import java.util.List;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    public static final int ORPHAN_HEIGHT_RANGE = 256;
     private BlocksCache orphans;
 
     @Autowired
@@ -45,6 +45,9 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     @Autowired
     private PendingBlocksManager pool;
+
+    @Value("${p2p.max-blocks-per-transfer}")
+    private int orphanHeightsRange;
 
     private static final Logger logger = LoggerFactory.getLogger(OrphanBlocksManager.class);
 
@@ -75,7 +78,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 continue;
             }
             for (Block b : descendantBlocks) {
-                if (Math.abs(best.nHeight - b.nHeight) < ORPHAN_HEIGHT_RANGE) {
+                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange) {
                     logger.info("add block at height = " + b.nHeight + " to orphans pool");
                     addBlock(b);
                 }
@@ -111,12 +114,13 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     public void clearOrphans() {
         Block best = bc.currentHeader();
         for (Block init : orphans.getInitials()) {
+            if (Math.abs(best.nHeight - init.nHeight) < orphanHeightsRange) {
+                continue;
+            }
             List<Block> descendantBlocks = new ArrayList<>();
             descendantBlocks.add(init);
             descendantBlocks.addAll(orphans.getDescendantBlocks(init));
-            if (Math.abs(best.nHeight - init.nHeight) < ORPHAN_HEIGHT_RANGE) {
-                orphans.deleteBlocks(descendantBlocks);
-            }
+            orphans.deleteBlocks(descendantBlocks);
         }
     }
 }
