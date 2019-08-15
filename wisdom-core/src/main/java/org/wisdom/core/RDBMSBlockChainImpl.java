@@ -59,6 +59,17 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return res.get(0);
     }
 
+    private void createIndices() {
+        tmpl.batchUpdate(
+                "create index if not exists header_height_index on header (height desc)",
+                "create index if not exists header_total_weight_index on header (total_weight desc)",
+                "create index if not exists account_blockheight_index on account (blockheight desc)",
+                "create index if not exists  account_pubkeyhash_index on account (pubkeyhash)",
+                "create index if not exists incubator_state_height_index on incubator_state (height desc)",
+                "create index if not exists incubator_state_txid_issue_index on incubator_state (txid_issue)"
+        );
+    }
+
     public void clearData() {
         tmpl.batchUpdate("delete  from header where 1 = 1",
                 "delete from transaction where 1 = 1",
@@ -249,6 +260,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             tmpl.execute(sql);//更换属主
         }
         tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
+        createIndices();
         if (!dbHasGenesis()) {
             clearData();
             writeGenesis(genesis);
