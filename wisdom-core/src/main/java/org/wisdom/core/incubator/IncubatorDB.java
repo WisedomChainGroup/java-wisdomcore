@@ -33,11 +33,11 @@ public class IncubatorDB {
     @Autowired
     private JdbcTemplate tmpl;
 
-    public int count(){
-        try{
-            String sql="select count(*) from incubator_state";
-            return tmpl.queryForObject(sql,Integer.class);
-        }catch (Exception e){
+    public int count() {
+        try {
+            String sql = "select count(*) from incubator_state";
+            return tmpl.queryForObject(sql, Integer.class);
+        } catch (Exception e) {
             return 0;
         }
     }
@@ -52,33 +52,34 @@ public class IncubatorDB {
         }
     }*/
 
-    public Incubator selectIncubator(byte[] tx){
-        try{
-            String sql="select * from incubator_state s where s.txid_issue=? order by s.height desc limit 1";
-            return tmpl.queryForObject(sql,new Object[] { tx },new IncubatorRowMapper());
-        }catch (Exception e){
+    public Incubator selectIncubator(byte[] tx) {
+        try {
+            String sql = "select * from incubator_state s where s.txid_issue=? order by s.height desc limit 1";
+            return tmpl.queryForObject(sql, new Object[]{tx}, new IncubatorRowMapper());
+        } catch (Exception e) {
             return null;
         }
     }
 
 
-    public int insertIncubator(Incubator incubator){
-        try{
-            String sql="insert into incubator_state VALUES(?,?,?,?,?,?,?,?,?,?)";
-            return tmpl.update(sql,new Object[]{incubator.getId(),incubator.getShare_pubkeyhash(),incubator.getPubkeyhash(),incubator.getTxid_issue(),incubator.getHeight(),incubator.getCost(),incubator.getInterest_amount(),incubator.getShare_pubkeyhash(),incubator.getLast_blockheight_interest(),incubator.getLast_blockheight_share()});
-        }catch (Exception e){
+    public int insertIncubator(Incubator incubator) {
+        try {
+            String sql = "insert into incubator_state VALUES(?,?,?,?,?,?,?,?,?,?)";
+            return tmpl.update(sql, new Object[]{incubator.getId(), incubator.getShare_pubkeyhash(), incubator.getPubkeyhash(), incubator.getTxid_issue(), incubator.getHeight(), incubator.getCost(), incubator.getInterest_amount(), incubator.getShare_pubkeyhash(), incubator.getLast_blockheight_interest(), incubator.getLast_blockheight_share()});
+        } catch (Exception e) {
             return 0;
         }
     }
 
-    public int[] insertIncubatorList(List<Object[]> Object){
-        try{
-            String sql="insert into incubator_state(id,share_pubkeyhash,pubkeyhash,txid_issue,height,cost,interest_amount,share_amount,last_blockheight_interest,last_blockheight_share) VALUES(?,?,?,?,?,?,?,?,?,?) on conflict(id) do nothing";
-            return tmpl.batchUpdate(sql,Object);
-        }catch (Exception e){
+    public int[] insertIncubatorList(List<Object[]> Object) {
+        try {
+            String sql = "insert into incubator_state(id,share_pubkeyhash,pubkeyhash,txid_issue,height,cost,interest_amount,share_amount,last_blockheight_interest,last_blockheight_share) VALUES(?,?,?,?,?,?,?,?,?,?) on conflict(id) do nothing";
+            return tmpl.batchUpdate(sql, Object);
+        } catch (Exception e) {
             return null;
         }
     }
+
     public class IncubatorRowMapper implements RowMapper<Incubator> {
         @Override
         public Incubator mapRow(ResultSet resultSet, int i) throws SQLException {
