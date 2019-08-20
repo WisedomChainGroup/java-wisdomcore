@@ -10,14 +10,14 @@ import org.wisdom.core.account.Transaction;
 import java.util.*;
 
 @Component
-public class AccountDB {
+public class StateDB {
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final int CACHE_SIZE = 16;
 
     @Autowired
     private WisdomBlockChain bc;
 
-    public AccountDB() {
+    public StateDB() {
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, Account>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
     }
