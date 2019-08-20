@@ -4,10 +4,13 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
+import org.wisdom.core.BlockChainOptional;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 
 import java.util.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 public class AccountDB {
@@ -17,24 +20,43 @@ public class AccountDB {
     @Autowired
     private WisdomBlockChain bc;
 
+    private ReadWriteLock readWriteLock;
+
     public AccountDB() {
+        this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, Account>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
     }
 
-    // 用于记录每个未确认区块相对于持久化的账本产生状态变更的账户
+    // 区块相对于已持久化的账本产生状态变更的账户
     private Map<String, Map<String, Account>> cache;
 
-    // 最新已确认的区块
+    // 最新确认的区块
     private Block latestConfirmed;
+
 
     protected String getLRUCacheKey(byte[] hash) {
         return encoder.encodeToString(hash);
     }
 
+    public List<Account> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
+        readWriteLock.readLock().lock();
+        List<Account> result = new ArrayList<>();
+        for (byte[] h : publicKeyHashes) {
+            Account account = getAccountUnsafe(blockHash, h);
+            if (account == null) {
+                return null;
+            }
+            result.add(account);
+        }
+        readWriteLock.readLock().unlock();
+        return result;
+    }
+
     // 或取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
-    public Account getAccount(byte[] blockHash, byte[] publicKeyHash) {
-        if (!bc.hasBlock(blockHash)) {
+    private Account getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+        Block header = bc.getHeader(blockHash);
+        if (header == null || header.nHeight < latestConfirmed.nHeight) {
             return null;
         }
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
@@ -42,7 +64,7 @@ public class AccountDB {
         }
         // 判断新的区块是否在 main fork 上面
         Block ancestor = bc.findAncestorHeader(blockHash, latestConfirmed.nHeight);
-        if (!Arrays.equals(latestConfirmed.getHash(), ancestor.getHash())) {
+        if (ancestor == null || !Arrays.equals(latestConfirmed.getHash(), ancestor.getHash())) {
             return null;
         }
         // 判断是否在缓存中
@@ -51,14 +73,16 @@ public class AccountDB {
         if (cache.containsKey(blockKey) && cache.get(blockKey).containsKey(accountKey)) {
             return cache.get(blockKey).get(accountKey);
         }
-        // 如果不存在则进行回溯
-        Block block = bc.getBlock(blockHash);
-        Account account = getAccount(block.hashPrevBlock, publicKeyHash);
+        // 如果缓存不存在则进行回溯
+        Account account = getAccountUnsafe(header.hashPrevBlock, publicKeyHash);
         if (account == null) {
             return null;
         }
         // 查看是否需要对这账户进行更新
-        // 把这个区块的事务应用到 account 中
+        Block block = bc.getBlock(blockHash);
+        // 不需要则 return
+
+        // 如果需要则把这个区块的事务应用到上一个区块获取的 account，生成新的 account
         Account res = applyTransactions(block.body, account);
         if (!cache.containsKey(blockKey)) {
             cache.put(blockKey, new HashMap<>());
@@ -67,14 +91,21 @@ public class AccountDB {
         return res;
     }
 
-    // 获取已经持久化的账户列表
-    public Account getAccount(byte[] publicKeyHash) {
+    // 获取已经持久化的账户
+    private Account getAccount(byte[] publicKeyHash) {
         return null;
     }
 
     // 将缓存的账户更新到数据库中
     public void updateAccounts(byte[] blockHash, Account... accounts) {
+        readWriteLock.writeLock().lock();
+        // 数据库读写
+        // 成功则更新 lastConfirmed
+        readWriteLock.writeLock().unlock();
+    }
 
+    public Account applyTransaction(Transaction tx, Account account){
+        return null;
     }
 
     public Account applyTransactions(List<Transaction> txs, Account account) {
