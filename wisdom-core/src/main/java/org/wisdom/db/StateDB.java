@@ -9,6 +9,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -33,7 +34,6 @@ public class StateDB {
 
     // 最新确认的区块
     private Block latestConfirmed;
-
 
     protected String getLRUCacheKey(byte[] hash) {
         return encoder.encodeToString(hash);
@@ -85,7 +85,7 @@ public class StateDB {
         // 如果需要则把这个区块的事务应用到上一个区块获取的 account，生成新的 account
         Account res = applyTransactions(block.body, account);
         if (!cache.containsKey(blockKey)) {
-            cache.put(blockKey, new HashMap<>());
+            cache.put(blockKey, new ConcurrentHashMap<>());
         }
         cache.get(blockKey).put(accountKey, res);
         return res;
@@ -104,7 +104,7 @@ public class StateDB {
         readWriteLock.writeLock().unlock();
     }
 
-    public Account applyTransaction(Transaction tx, Account account){
+    public Account applyTransaction(Transaction tx, Account account) {
         return null;
     }
 
