@@ -136,10 +136,10 @@ public class ConsensusConfig {
             return Optional.empty();
         }
         if (parentBlock.nHeight == 0) {
-            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), 0, Integer.MAX_VALUE));
+            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), 0, Long.MAX_VALUE));
         }
         if (parentBlock.nHeight >= 9235) {
-            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), -1, Integer.MAX_VALUE));
+            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), -1, Long.MAX_VALUE));
         }
         long step = (timeStamp - parentBlock.nTime)
                 / powWait + 1;
