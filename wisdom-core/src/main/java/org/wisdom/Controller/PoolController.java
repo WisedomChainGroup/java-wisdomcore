@@ -45,6 +45,7 @@ public class PoolController {
                 Transaction transaction=transPool.getTransaction();
                 JSONObject json = new JSONObject();
                 json.put("pool","AdoptTransPool");
+                json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
                 json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                 json.put("type",transaction.type);
                 json.put("nonce",transaction.nonce);
@@ -63,6 +64,7 @@ public class PoolController {
                 if(Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from)),pubkeyhash)){
                     JSONObject json = new JSONObject();
                     json.put("pool","PendingTransPool");
+                    json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
@@ -107,6 +109,7 @@ public class PoolController {
                     Transaction transaction=adoptpool.getTransaction();
                     JSONObject json = new JSONObject();
                     json.put("pool","AdoptTransPool");
+                    json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
@@ -125,6 +128,7 @@ public class PoolController {
                     if(Arrays.equals(transaction.getHash(),txhash)){
                         JSONObject json = new JSONObject();
                         json.put("pool","PendingTransPool");
+                        json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
                         json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                         json.put("type",transaction.type);
                         json.put("nonce",transaction.nonce);
