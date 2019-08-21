@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 if [ "$WDC_MINER_COINBASE" = "" ]; then
 	echo "!!! ERROR !!! ENV WDC_MINER_COINBASE not set."
 	exit 1

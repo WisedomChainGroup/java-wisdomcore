@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 if [ "$WDC_POSTGRES_USER" = "" ]; then
 	export WDC_POSTGRES_USER="replica"
 fi
