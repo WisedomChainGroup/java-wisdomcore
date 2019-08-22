@@ -2,13 +2,12 @@ version: '3.1'
 
 services:
 
-  wdc_pgsql:
+  wdc_pgsql_v0.0.3:
     image: wisdomchain/wdc_pgsql
-    restart: always
-    container_name: wdc_pgsql
+    container_name: wdc_pgsql_v0.0.3
     privileged: true
     volumes:
-      - /opt/wdc_pgsql:/var/lib/postgresql/data
+      - /opt/wdc_pgsql_v0.0.3:/var/lib/postgresql/data
     ports:
       - 127.0.0.1:5433:5432
     environment:
@@ -17,19 +16,29 @@ services:
       WDC_POSTGRES_USER: replica
       WDC_POSTGRES_PASSWORD: replica
 
-  wdc_core:
-    image: wisdomchain/wdc_core:v0.0.3
-    restart: always
-    container_name: wdc_core
+  wdc_core_v0.0.3:
+    image: wisdomchain/wdc_core:latest
+    container_name: wdc_core_v0.0.3
     privileged: true
     volumes:
-      - /opt/wdc_logs:/logs
+      - /opt/wdc_logs_v0.0.3:/logs
+      - ./entry_point.sh:/entry_point.sh
+      - ./version.json:/version.json
+      - /opt/wdc_leveldb:/leveldb        
+    entrypoint: /usr/bin/env bash /entry_point.sh -d wdc_pgsql_v0.0.3:5432 -c '/usr/bin/env bash /run_wdc_core.sh';
     ports:
-      - 9585:9585
       - 19585:19585
+      - 9585:9585
     environment:
-      DATA_SOURCE_URL: 'jdbc:postgresql://wdc_pgsql:5432/postgres'
+      DATA_SOURCE_URL: 'jdbc:postgresql://wdc_pgsql_v0.0.3:5432/postgres'
       DB_USERNAME: 'replica'
       DB_PASSWORD: 'replica'
       ENABLE_MINING: 'false'
-      WDC_MINER_COINBASE: '1317J5fZb8kVrACnfi3PXN1T21573hYata'
+      WDC_MINER_COINBASE: '12344'
+      CLEAR_DATA: 'false'
+      # 8.14 2019 增加以下三行
+      P2P_MODE: 'grpc'
+      P2P_ADDRESS: 'wisdom://localhost:9585'
+      # 这里建议把自己的 ip 从 BOOTSTRAPS 里面去掉，防止发消息给自己
+      BOOTSTRAPS: 'wisdom://47.74.183.249:9585,wisdom://47.74.216.251:9585,wisdom://7cca852a615c51e823c45aa38d5dfdd89b9772a576b286fb5b70be7986f6ad4a@47.96.67.155:9585,wisdom://39fb7d079f7dc2e7a2b53a5ee2a0b81d39500ba959f9f87e0a930fb0cdc46333@47.74.86.106:9585'
+
