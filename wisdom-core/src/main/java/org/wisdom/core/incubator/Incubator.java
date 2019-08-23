@@ -165,4 +165,11 @@ public class Incubator {
     public void setDays(int days) {
         this.days = days;
     }
+
+    public Incubator copy(){
+        Incubator incubator = new Incubator(share_pubkeyhash, pubkeyhash, txid_issue, height, cost, interest_amount, share_amount, last_blockheight_interest, last_blockheight_share);
+        incubator.setDays(days);
+        incubator.setId(id);
+        return incubator;
+    }
 }

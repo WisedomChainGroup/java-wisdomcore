@@ -4,6 +4,7 @@ import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -11,8 +12,8 @@ import java.util.Map;
  */
 public class AccountState {
     private Account account;
-    private Map<String,Incubator> incubatorMap;
-    private Map<String,Incubator> shareincubMap;
+    private Map<String, Incubator> incubatorMap;
+    private Map<String, Incubator> shareincubMap;
 
 
     public AccountState(Account account, Map<String, Incubator> incubatorMap, Map<String, Incubator> shareincubMap) {
@@ -45,13 +46,8 @@ public class AccountState {
         this.shareincubMap = shareincubMap;
     }
 
-    // 深拷贝
-    public AccountState copy(){
-        return null;
-    }
-
     // 账户地址
-    public String takeAddress(){
+    public String takeAddress() {
         return null;
     }
 
@@ -68,5 +64,15 @@ public class AccountState {
         return Arrays.hashCode(account.getPubkeyHash());
     }
 
-
+    public AccountState copy() {
+        Map<String, Incubator> incubators = new HashMap<>();
+        Map<String, Incubator> shares = new HashMap<>();
+        for (String key : incubatorMap.keySet()) {
+            incubators.put(key, incubatorMap.get(key).copy());
+        }
+        for (String key : shareincubMap.keySet()) {
+            shares.put(key, shareincubMap.get(key).copy());
+        }
+        return new AccountState(account.copy(), incubators, shares);
+    }
 }
