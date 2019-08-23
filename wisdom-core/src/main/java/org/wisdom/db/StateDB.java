@@ -104,12 +104,9 @@ public class StateDB {
         if (account == null) {
             return null;
         }
-        // 查看是否需要对这账户进行更新
         Block block = bc.getBlock(blockHash);
-        // 不需要则 return
-
-        // 如果需要则把这个区块的事务应用到上一个区块获取的 account，生成新的 account
-        AccountState res = applyTransactions(block.body, account);
+        // 把这个区块的事务应用到上一个区块获取的 account，生成新的 account
+        AccountState res = applyTransactions(block.body, account.copy());
         if (!cache.containsKey(blockKey)) {
             cache.put(blockKey, new ConcurrentHashMap<>());
         }
