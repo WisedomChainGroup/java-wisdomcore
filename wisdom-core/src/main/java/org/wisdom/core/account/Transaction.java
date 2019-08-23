@@ -278,7 +278,9 @@ public class Transaction {
     public long getShare(long height, RateTable rateTable,int days){
         if(type==Type.INCUBATE.ordinal()){
             long  rate=getInterest(height, rateTable,days);
-            return (long)(rate*0.1);
+            BigDecimal ratebig=BigDecimal.valueOf(rate);
+            BigDecimal lvbig=BigDecimal.valueOf(0.1);
+            return ratebig.multiply(lvbig).longValue();
         }
         return 0;
     }
