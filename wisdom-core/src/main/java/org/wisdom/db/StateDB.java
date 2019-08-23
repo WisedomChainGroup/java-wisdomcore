@@ -119,201 +119,241 @@ public class StateDB {
 
     // 获取已经持久化的账户
     public AccountState getAccount(byte[] publicKeyHash) {
-        Account account=Optional
-                .ofNullable(accountDB.selectaccount(publicKeyHash))
-                .orElse(new Account());
-        List<Incubator> incubatorList=incubatorDB.selectList(publicKeyHash);
-        List<Incubator> shareincubList=incubatorDB.selectShareList(publicKeyHash);
-        Map<String,Incubator> incubatorMap=incubatorList.stream().collect(Collectors.toMap(Incubator::getTxhash, Incubator -> Incubator));
-        Map<String,Incubator> shareincubMap=shareincubList.stream().collect(Collectors.toMap(Incubator::getTxhash, Incubator -> Incubator));
-        AccountState accountState=new AccountState(account,incubatorMap,shareincubMap);
+        Account account = accountDB.selectaccount(publicKeyHash);
+        if (account == null) {
+            return null;
+        }
+        List<Incubator> incubatorList = incubatorDB.selectList(publicKeyHash);
+        List<Incubator> shareincubList = incubatorDB.selectShareList(publicKeyHash);
+        Map<String, Incubator> incubatorMap = incubatorList.stream().collect(Collectors.toMap(Incubator::getTxhash, Incubator -> Incubator));
+        Map<String, Incubator> shareincubMap = shareincubList.stream().collect(Collectors.toMap(Incubator::getTxhash, Incubator -> Incubator));
+        return new AccountState(account, incubatorMap, shareincubMap);
+    }
+
+    private AccountState applyCoinbase(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        // 如果该账户不是 coinbase 地址退出
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance += tx.amount;
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
         return accountState;
     }
 
-    public AccountState applyTransaction(Transaction tx, AccountState accountState) throws InvalidProtocolBufferException, DecoderException {
-        int type=tx.type;
-        Account account=accountState.getAccount();
-        if(type==0x00){//COINBASE
-            if(Arrays.equals(tx.to,account.getPubkeyHash())){
-                long balance=account.getBalance();
-                balance+=tx.amount;
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(tx.height);
-                accountState.setAccount(account);
-                return accountState;
-            }
-        }else if(type==0x01){//TRANSFER
-            if(Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)),account.getPubkeyHash())){
-                long balance=account.getBalance();
-                balance-=tx.amount;
-                balance-=tx.getFee();
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(tx.height);
-                accountState.setAccount(account);
-                return accountState;
-            }else if(Arrays.equals(tx.to,account.getPubkeyHash())){
-                long balance=account.getBalance();
-                balance+=tx.amount;
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(tx.height);
-                accountState.setAccount(account);
-                return accountState;
-            }
-        }else if(type==0x09){//INCUBATE
-            byte[] playload = tx.payload;
-            HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
-            int days = payloadproto.getType();
-            String sharpub = payloadproto.getSharePubkeyHash();
-            byte[] share_pubkeyhash = new byte[0];
-            if(sharpub != null && sharpub != ""){
-                share_pubkeyhash = Hex.decodeHex(sharpub.toCharArray());
-            }
-            if(Arrays.equals(tx.to,account.getPubkeyHash())){
-                long balance=account.getBalance();
-                balance-=tx.getFee();
-                balance-=tx.amount;
-                long incub=account.getIncubatecost();
-                incub+=tx.amount;
-                account.setBalance(balance);
-                account.setIncubatecost(incub);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(tx.height);
-                accountState.setAccount(account);
-
-                long interest = tx.getInterest(tx.height, rateTable, days);
-                Incubator incubator=new Incubator(tx.to,tx.getHash(),tx.height,tx.amount,interest,tx.height,days);
-                Map<String,Incubator> incubatorMap=accountState.getIncubatorMap();
-                incubatorMap.put(Hex.encodeHexString(tx.getHash()),incubator);
-                accountState.setIncubatorMap(incubatorMap);
-                return accountState;
-            }else if(Arrays.equals(share_pubkeyhash,account.getPubkeyHash())){
-                long share = tx.getShare(tx.height, rateTable, days);
-                Incubator shareincub=new Incubator(share_pubkeyhash,tx.getHash(),tx.height,tx.amount,days,share,tx.height);
-                Map<String,Incubator> shareMap=accountState.getShareincubMap();
-                shareMap.put(Hex.encodeHexString(tx.getHash()),shareincub);
-                accountState.setShareincubMap(shareMap);
-                return accountState;
-            }else if(Arrays.equals(IncubatorAddress.resultpubhash(),account.getPubkeyHash())){
-                long balance=account.getBalance();
-                balance-=tx.amount;
-                long nonce=account.getNonce();
-                nonce++;
-                account.setBalance(balance);
-                account.setNonce(nonce);
-                account.setBlockHeight(tx.height);
-                accountState.setAccount(account);
-                return accountState;
-            }
-        }else if(type==0x0a){//EXTRACT_INTEREST
-            if(Arrays.equals(tx.to,account.getPubkeyHash())){
-                long balance=account.getBalance();
-                balance-=tx.getFee();
-                balance+=tx.amount;
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(tx.height);
-                accountState.setAccount(account);
-
-                String tranhash=Hex.encodeHexString(tx.payload);
-                Map<String,Incubator> incubatorMap=accountState.getIncubatorMap();
-                if(incubatorMap.containsKey(tranhash)){
-                    Incubator incubator=incubatorMap.get(tranhash);
-                    String rate = rateTable.selectrate(tx.height, incubator.getDays());
-                    BigDecimal amounbig = BigDecimal.valueOf(tx.amount);
-                    BigDecimal ratebig = new BigDecimal(rate);
-                    long dayinterset = ratebig.multiply(amounbig).longValue();
-                    long lastheight = incubator.getLast_blockheight_interest();
-                    if (dayinterset > tx.amount) {
-                        lastheight += configuration.getDay_count();
-                    } else {
-                        int extractday = (int) (tx.amount / dayinterset);
-                        long extractheight = extractday * configuration.getDay_count();
-                        lastheight += extractheight;
-                    }
-                    long lastinterset = incubator.getInterest_amount();
-                    lastinterset -= tx.amount;
-                    incubator.setHeight(tx.height);
-                    incubator.setInterest_amount(lastinterset);
-                    incubator.setLast_blockheight_interest(lastheight);
-                    incubatorMap.put(tranhash,incubator);
-                    accountState.setIncubatorMap(incubatorMap);
-                    return accountState;
-                }
-            }else if(type==0x0b){//share
-                if(Arrays.equals(tx.to,account.getPubkeyHash())){
-                    long balance=account.getBalance();
-                    balance-=tx.getFee();
-                    balance+=tx.amount;
-                    account.setBalance(balance);
-                    account.setNonce(tx.nonce);
-                    account.setBlockHeight(tx.height);
-                    accountState.setAccount(account);
-
-                    String tranhash=Hex.encodeHexString(tx.payload);
-                    Map<String,Incubator> shareMap=accountState.getShareincubMap();
-                    if(shareMap.containsKey(tranhash)){
-                        Incubator incubator=shareMap.get(tranhash);
-                        String rate = rateTable.selectrate(tx.height, incubator.getDays());
-                        BigDecimal amounbig = BigDecimal.valueOf(tx.amount);
-                        BigDecimal ratebig = new BigDecimal(rate);
-                        BigDecimal onemul = amounbig.multiply(ratebig);
-                        BigDecimal bl = BigDecimal.valueOf(0.1);
-                        long dayinterset = onemul.multiply(bl).longValue();
-                        long lastheight = incubator.getLast_blockheight_share();
-                        if (dayinterset > tx.amount) {
-                            lastheight += configuration.getDay_count();
-                        } else {
-                            int extractday = (int) (tx.amount / dayinterset);
-                            long extractheight = extractday * configuration.getDay_count();
-                            lastheight += extractheight;
-                        }
-                        long lastshare = incubator.getShare_amount();
-                        lastshare -= tx.amount;
-                        incubator.setHeight(tx.height);
-                        incubator.setShare_amount(lastshare);
-                        incubator.setLast_blockheight_share(lastheight);
-                        shareMap.put(tranhash,incubator);
-                        accountState.setShareincubMap(shareMap);
-                        return accountState;
-                    }
-                }
-            }else if(type==0x0c){//extract cost
-                if(Arrays.equals(tx.to,account.getPubkeyHash())){
-                    long balance=account.getBalance();
-                    balance-=tx.getFee();
-                    balance+=tx.amount;
-                    long incub=account.getIncubatecost();
-                    incub-=tx.amount;
-                    account.setBalance(balance);
-                    account.setIncubatecost(incub);
-                    account.setNonce(tx.nonce);
-                    account.setBlockHeight(tx.height);
-                    accountState.setAccount(account);
-
-                    String tranhash=Hex.encodeHexString(tx.payload);
-                    Map<String,Incubator> incubatorMap=accountState.getIncubatorMap();
-                    if(incubatorMap.containsKey(tranhash)){
-                        incubatorMap.remove(tranhash);
-                    }
-                    accountState.setIncubatorMap(incubatorMap);
-                    return accountState;
-                }
-            }
+    private AccountState applyTransfer(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        long balance;
+        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance -= tx.amount;
+            balance -= tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
         }
-        return null;
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance += tx.amount;
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        return accountState;
     }
 
-    public AccountState applyTransactions(List<Transaction> txs, AccountState account){
-        for(Transaction Transaction:txs){
-            try{
-                account=applyTransaction(Transaction,account);
-                if(account==null){
+    private AccountState applyIncubate(Transaction tx, AccountState accountState) throws Exception {
+        Account account = accountState.getAccount();
+        byte[] playload = tx.payload;
+        HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
+        int days = payloadproto.getType();
+        String sharpub = payloadproto.getSharePubkeyHash();
+        byte[] share_pubkeyhash = new byte[0];
+        if (sharpub != null && !sharpub.equals("")) {
+            share_pubkeyhash = Hex.decodeHex(sharpub.toCharArray());
+        }
+        long balance;
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance -= tx.getFee();
+            balance -= tx.amount;
+            long incub = account.getIncubatecost();
+            incub += tx.amount;
+            account.setBalance(balance);
+            account.setIncubatecost(incub);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+
+            long interest = tx.getInterest(tx.height, rateTable, days);
+            Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, interest, tx.height, days);
+            Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
+            incubatorMap.put(Hex.encodeHexString(tx.getHash()), incubator);
+            accountState.setIncubatorMap(incubatorMap);
+        }
+        if (Arrays.equals(share_pubkeyhash, account.getPubkeyHash())) {
+            long share = tx.getShare(tx.height, rateTable, days);
+            Incubator shareincub = new Incubator(share_pubkeyhash, tx.getHash(), tx.height, tx.amount, days, share, tx.height);
+            Map<String, Incubator> shareMap = accountState.getShareincubMap();
+            shareMap.put(Hex.encodeHexString(tx.getHash()), shareincub);
+            accountState.setShareincubMap(shareMap);
+        }
+        if (Arrays.equals(IncubatorAddress.resultpubhash(), account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance -= tx.amount;
+            long nonce = account.getNonce();
+            nonce++;
+            account.setBalance(balance);
+            account.setNonce(nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        return accountState;
+    }
+
+    private AccountState applyExtractInterest(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        long balance;
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        balance = account.getBalance();
+        balance -= tx.getFee();
+        balance += tx.amount;
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+
+        String tranhash = Hex.encodeHexString(tx.payload);
+        Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
+        if (!incubatorMap.containsKey(tranhash)) {
+            return accountState;
+        }
+        Incubator incubator = incubatorMap.get(tranhash);
+        String rate = rateTable.selectrate(tx.height, incubator.getDays());
+        BigDecimal amounbig = BigDecimal.valueOf(tx.amount);
+        BigDecimal ratebig = new BigDecimal(rate);
+        long dayinterset = ratebig.multiply(amounbig).longValue();
+        long lastheight = incubator.getLast_blockheight_interest();
+        if (dayinterset > tx.amount) {
+            lastheight += configuration.getDay_count();
+        } else {
+            int extractday = (int) (tx.amount / dayinterset);
+            long extractheight = extractday * configuration.getDay_count();
+            lastheight += extractheight;
+        }
+        long lastinterset = incubator.getInterest_amount();
+        lastinterset -= tx.amount;
+        incubator.setHeight(tx.height);
+        incubator.setInterest_amount(lastinterset);
+        incubator.setLast_blockheight_interest(lastheight);
+        incubatorMap.put(tranhash, incubator);
+        accountState.setIncubatorMap(incubatorMap);
+        return accountState;
+    }
+
+    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        balance += tx.amount;
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+
+        String tranhash = Hex.encodeHexString(tx.payload);
+        Map<String, Incubator> shareMap = accountState.getShareincubMap();
+        if (!shareMap.containsKey(tranhash)) {
+            return accountState;
+        }
+        Incubator incubator = shareMap.get(tranhash);
+        String rate = rateTable.selectrate(tx.height, incubator.getDays());
+        BigDecimal amounbig = BigDecimal.valueOf(tx.amount);
+        BigDecimal ratebig = new BigDecimal(rate);
+        BigDecimal onemul = amounbig.multiply(ratebig);
+        BigDecimal bl = BigDecimal.valueOf(0.1);
+        long dayinterset = onemul.multiply(bl).longValue();
+        long lastheight = incubator.getLast_blockheight_share();
+        if (dayinterset > tx.amount) {
+            lastheight += configuration.getDay_count();
+        } else {
+            int extractday = (int) (tx.amount / dayinterset);
+            long extractheight = extractday * configuration.getDay_count();
+            lastheight += extractheight;
+        }
+        long lastshare = incubator.getShare_amount();
+        lastshare -= tx.amount;
+        incubator.setHeight(tx.height);
+        incubator.setShare_amount(lastshare);
+        incubator.setLast_blockheight_share(lastheight);
+        shareMap.put(tranhash, incubator);
+        accountState.setShareincubMap(shareMap);
+        return accountState;
+    }
+
+    // 调用前先执行深拷贝
+    public AccountState applyTransaction(Transaction tx, AccountState accountState) throws Exception {
+        int type = tx.type;
+        switch (type) {
+            case 0x00:
+                return applyCoinbase(tx, accountState);
+            case 0x01:
+                return applyTransfer(tx, accountState);
+            case 0x09:
+                return applyIncubate(tx, accountState);
+            case 0x0a:
+                return applyExtractInterest(tx, accountState);
+            case 0x0b:
+                return applyExtractSharingProfit(tx, accountState);
+            case 0x0c:
+                return applyExtractCost(tx, accountState);
+            default:
+                throw new Exception("unsupported transaction type: " + Transaction.Type.values()[type].toString());
+        }
+    }
+
+    private AccountState applyExtractCost(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        balance += tx.amount;
+        long incub = account.getIncubatecost();
+        incub -= tx.amount;
+        account.setBalance(balance);
+        account.setIncubatecost(incub);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        String tranhash = Hex.encodeHexString(tx.payload);
+        Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
+        incubatorMap.remove(tranhash);
+        accountState.setIncubatorMap(incubatorMap);
+        return accountState;
+    }
+
+
+    public AccountState applyTransactions(List<Transaction> txs, AccountState account) {
+        for (Transaction Transaction : txs) {
+            try {
+                account = applyTransaction(Transaction, account);
+                if (account == null) {
                     return null;
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 return null;
             }
 
