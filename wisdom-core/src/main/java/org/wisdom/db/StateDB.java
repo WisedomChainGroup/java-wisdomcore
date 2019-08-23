@@ -217,7 +217,7 @@ public class StateDB {
         return accountState;
     }
 
-    private AccountState applyExtractInterest(Transaction tx, AccountState accountState) {
+    private AccountState applyExtractInterest(Transaction tx, AccountState accountState) throws Exception {
         Account account = accountState.getAccount();
         long balance;
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
@@ -234,7 +234,7 @@ public class StateDB {
         String tranhash = Hex.encodeHexString(tx.payload);
         Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
         if (!incubatorMap.containsKey(tranhash)) {
-            return accountState;
+            throw new Exception("apply extract interest transaction failed: transaction" + tranhash + "not found");
         }
         Incubator incubator = incubatorMap.get(tranhash);
         String rate = rateTable.selectrate(tx.height, incubator.getDays());
@@ -259,7 +259,7 @@ public class StateDB {
         return accountState;
     }
 
-    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState) {
+    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState) throws Exception {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
@@ -275,7 +275,7 @@ public class StateDB {
         String tranhash = Hex.encodeHexString(tx.payload);
         Map<String, Incubator> shareMap = accountState.getShareincubMap();
         if (!shareMap.containsKey(tranhash)) {
-            return accountState;
+            throw new Exception("apply extract sharing profit transaction failed: transaction" + tranhash + "not found");
         }
         Incubator incubator = shareMap.get(tranhash);
         String rate = rateTable.selectrate(tx.height, incubator.getDays());
