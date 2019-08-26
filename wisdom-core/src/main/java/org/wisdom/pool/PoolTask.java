@@ -47,6 +47,9 @@ public class PoolTask {
     @Autowired
     RPCClient client;
 
+    @Autowired
+    TransactionCheck transactionCheck;
+
     @Scheduled(fixedDelay = 5 * 1000)
     public void AdoptTopendingTask() {
         List<TransPool> list = adoptTransPool.getAll();
@@ -72,7 +75,7 @@ public class PoolTask {
                     }
                 }
                 if(statue){
-                    if (TransactionCheck.checkoutPool(tran, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight)) {
+                    if (transactionCheck.checkoutPool(tran)) {
                         if (index > 5000) {
                             break;
                         } else {

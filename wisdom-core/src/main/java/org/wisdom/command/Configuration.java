@@ -24,15 +24,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class Configuration {
 
-    @Value("${transaction.gas.wdc}")
-    private long gas_wds;
-
-    @Value("${transaction.gas.deposit}")
-    private long gas_deposit;
-
-    @Value("${transaction.gas.hatch}")
-    private long gas_hatch;
-
     @Value("${transaction.day.count}")
     private int day_count;
 
@@ -42,6 +33,15 @@ public class Configuration {
     @Value("${pool.clear.days}")
     private long poolcleardays;
 
+    @Value("${transaction.nonce}")
+    private long maxnonce;
+
+    @Value("${pool.queued.maxcount}")
+    private long maxqueued;
+
+    @Value("${pool.pending.maxcount}")
+    private long maxpending;
+
     public long getPoolcleardays() {
         return poolcleardays;
     }
@@ -50,19 +50,19 @@ public class Configuration {
         return min_procedurefee;
     }
 
-    public long getGas_wds() {
-        return gas_wds;
-    }
-
-    public long getGas_deposit() {
-        return gas_deposit;
-    }
-
-    public long getGas_hatch() {
-        return gas_hatch;
-    }
-
     public int getDay_count() {
         return day_count;
+    }
+
+    public long getMaxnonce() {
+        return maxnonce;
+    }
+
+    public long getMaxqueued() {
+        return maxqueued;
+    }
+
+    public long getMaxpending() {
+        return maxpending;
     }
 }

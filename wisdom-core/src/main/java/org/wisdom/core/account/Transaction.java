@@ -313,6 +313,53 @@ public class Transaction {
         return Arrays.concatenate(new byte[]{(byte) version}, getHash(), Arrays.copyOfRange(raw, 1, raw.length));
     }
 
+    public static Transaction transformByte(byte[] msg){
+        Transaction transaction=new Transaction();
+        //version
+        byte[] version = ByteUtil.bytearraycopy(msg, 0, 1);
+        transaction.version=version[0];
+        msg = ByteUtil.bytearraycopy(msg, 1, msg.length - 1);
+        //hash
+        byte[] hash = ByteUtil.bytearraycopy(msg, 0, 32);
+        msg = ByteUtil.bytearraycopy(msg, 32, msg.length - 32);
+        //type
+        byte[] type = ByteUtil.bytearraycopy(msg, 0, 1);
+        transaction.type=type[0];
+        msg = ByteUtil.bytearraycopy(msg, 1, msg.length - 1);
+        //nonce
+        byte[] nonce = ByteUtil.bytearraycopy(msg, 0, 8);
+        transaction.nonce=BigEndian.decodeUint64(nonce);
+        msg = ByteUtil.bytearraycopy(msg, 8, msg.length - 8);
+        //fromx
+        byte[] from = ByteUtil.bytearraycopy(msg, 0, 32);
+        transaction.from=from;
+        msg = ByteUtil.bytearraycopy(msg, 32, msg.length - 32);
+        //gasprice
+        byte[] gasprice = ByteUtil.bytearraycopy(msg, 0, 8);
+        transaction.gasPrice=BigEndian.decodeUint64(gasprice);
+        msg = ByteUtil.bytearraycopy(msg, 8, msg.length - 8);
+        //amount
+        byte[] amount = ByteUtil.bytearraycopy(msg, 0, 8);
+        transaction.amount=BigEndian.decodeUint64(amount);
+        msg = ByteUtil.bytearraycopy(msg, 8, msg.length - 8);
+        //sig
+        byte[] sig = ByteUtil.bytearraycopy(msg, 0, 64);
+        transaction.signature=sig;
+        msg = ByteUtil.bytearraycopy(msg, 64, msg.length - 64);
+        //to
+        byte[] to = ByteUtil.bytearraycopy(msg, 0, 20);
+        transaction.to=to;
+        msg = ByteUtil.bytearraycopy(msg, 20, msg.length - 20);
+        //payloadlen
+        byte[] payloadlen = ByteUtil.bytearraycopy(msg, 0, 4);
+        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x03) {//孵化器、提取利息、提取分享、提取本金、存证
+            msg = ByteUtil.bytearraycopy(msg, 4, msg.length - 4);
+            byte[] payload = ByteUtil.bytearraycopy(msg, 0, ByteUtil.byteArrayToInt(payloadlen));
+            transaction.payload=payload;
+        }
+        return transaction;
+    }
+
     public static ProtocolModel.Transaction changeProtobuf(byte[] msg) {
         ProtocolModel.Transaction.Builder tran = ProtocolModel.Transaction.newBuilder();
         //version
