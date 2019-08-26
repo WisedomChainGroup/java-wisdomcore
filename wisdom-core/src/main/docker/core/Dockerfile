@@ -7,4 +7,4 @@ COPY lib/ /app/lib/
 COPY run_wdc_core.sh /run_wdc_core.sh
 COPY version.json /version.json
 ENV CLASSPATH .:$JAVA_HOME/lib
-ENTRYPOINT ["/run_wdc_core.sh" ]
+ENTRYPOINT ["usr/bin/env", "bash", "/run_wdc_core.sh" ]
