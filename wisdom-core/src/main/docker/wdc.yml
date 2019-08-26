@@ -21,10 +21,12 @@ services:
     container_name: wdc_core_v0.0.3
     privileged: true
     volumes:
+      - /opt/wdc_logs:/logs
       - /opt/wdc_logs_v0.0.3:/logs
       - ./entry_point.sh:/entry_point.sh
       - ./version.json:/version.json
-      - /opt/wdc_leveldb:/leveldb        
+      - /opt/wdc_leveldb:/leveldb
+      - /opt/ipc:/ipc
     entrypoint: /usr/bin/env bash /entry_point.sh -d wdc_pgsql_v0.0.3:5432 -c '/usr/bin/env bash /run_wdc_core.sh';
     ports:
       - 19585:19585
