@@ -24,6 +24,7 @@ services:
     privileged: true
     volumes:
       - /opt/wdc_logs:/logs
+      - /opt/ipc:/ipc
     ports:
       - 9585:9585
       - 19585:19585
