@@ -19,7 +19,9 @@ import org.wisdom.sync.SyncManager;
 import org.wisdom.sync.TransactionHandler;
 
 import javax.annotation.PostConstruct;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -494,6 +496,26 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                         self.privateKey.sign(Util.getRawForSign(builder.build()))
                 )
         );
+    }
+
+    public String getNodePubKey() {
+        return Peer.PROTOCOL_NAME + "://" +
+                        Hex.encodeHexString(self.peerID) +
+                        "@" + self.hostPort();
+    }
+
+    public String getIP(){
+        InetAddress address = null;
+        try {
+            address = InetAddress.getLocalHost();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        return Objects.requireNonNull(address).getHostAddress();
+    }
+
+    public int getPort(){
+        return self.port;
     }
 
 }
