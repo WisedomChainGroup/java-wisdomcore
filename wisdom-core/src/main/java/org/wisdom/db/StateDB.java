@@ -67,16 +67,20 @@ public class StateDB {
 
     public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
         readWriteLock.readLock().lock();
-        Map<String, AccountState> result = new HashMap<>();
-        for (byte[] h : publicKeyHashes) {
-            AccountState account = getAccountUnsafe(blockHash, h);
-            if (account == null) {
-                continue;
+        Map<String, AccountState> res = null;
+        try {
+            res = new HashMap<>();
+            for (byte[] h : publicKeyHashes) {
+                AccountState account = getAccountUnsafe(blockHash, h);
+                if (account == null) {
+                    return null;
+                }
+                res.put(Hex.encodeHexString(h), account);
             }
-            result.put(Hex.encodeHexString(h),account);
+        } finally {
+            readWriteLock.readLock().unlock();
         }
-        readWriteLock.readLock().unlock();
-        return result;
+        return res;
     }
 
     // 或取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
