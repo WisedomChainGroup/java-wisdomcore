@@ -21,9 +21,7 @@ package org.wisdom.consensus.pow;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.crypto.HashUtil;
-import org.wisdom.core.TransactionPool;
 import org.wisdom.encoding.BigEndian;
-import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
@@ -58,16 +56,10 @@ public class Miner implements ApplicationListener {
     private ApplicationContext ctx;
 
     @Autowired
-    private JSONEncodeDecoder jsonEncodeDecoder;
-
-    @Autowired
     private WisdomBlockChain bc;
 
     @Autowired
     private TargetStateFactory targetStateFactory;
-
-    @Autowired
-    private TransactionPool txPool;
 
     @Autowired
     private PendingBlocksManager pendingBlocksManager;
@@ -83,6 +75,9 @@ public class Miner implements ApplicationListener {
 
     @Autowired
     PeningTransPool peningTransPool;
+
+    @Autowired
+    PackageMiner packageMiner;
 
     public Miner() {
     }
@@ -112,23 +107,9 @@ public class Miner implements ApplicationListener {
 
         block.body.get(0).nonce = nonce + 1;
 
-        // 防止 account 重复
-        Set<String> hasValidated = new HashSet<>();
-        List<Transaction> notWrittern = new ArrayList<>();
-        for (Transaction tx : peningTransPool.compare()) {
-            if (hasValidated.contains(Hex.encodeHexString(tx.from))) {
-                continue;
-            }
-            hasValidated.add(Hex.encodeHexString(tx.from));
-            // 校验需要事务
-            tx.height = block.nHeight;
-            // 防止写入重复的事务
-            if (bc.hasTransaction(tx.getHash())) {
-                continue;
-            }
-            // nonce 校验
-            notWrittern.add(tx);
-        }
+        //打包事务
+        List<Transaction> notWrittern=packageMiner.TransferCheck(parent.getHash(),block.nHeight,block);
+
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
         for (Transaction tx : newTranList) {

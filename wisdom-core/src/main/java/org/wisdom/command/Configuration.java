@@ -42,6 +42,9 @@ public class Configuration {
     @Value("${pool.pending.maxcount}")
     private long maxpending;
 
+    @Value("${pool.queuedtopending.maxcount}")
+    private long maxqpcount;
+
     public long getPoolcleardays() {
         return poolcleardays;
     }
@@ -64,5 +67,9 @@ public class Configuration {
 
     public long getMaxpending() {
         return maxpending;
+    }
+
+    public long getMaxqpcount() {
+        return maxqpcount;
     }
 }

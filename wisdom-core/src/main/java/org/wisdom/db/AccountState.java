@@ -15,6 +15,8 @@ public class AccountState {
     private Map<String, Incubator> incubatorMap;
     private Map<String, Incubator> shareincubMap;
 
+    public AccountState() {
+    }
 
     public AccountState(Account account, Map<String, Incubator> incubatorMap, Map<String, Incubator> shareincubMap) {
         this.account = account;

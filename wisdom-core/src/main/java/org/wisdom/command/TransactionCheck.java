@@ -186,7 +186,7 @@ public class TransactionCheck {
             //nonce
             long trannonce=transaction.nonce;
             long nownonce = accountDB.getNonce(frompubhash);
-            long maxnonce = nownonce + 64;
+            long maxnonce = nownonce + configuration.getMaxnonce();
             if (nownonce >= trannonce || trannonce > maxnonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small or Nonce too big. Over 64 Max");

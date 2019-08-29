@@ -65,15 +65,15 @@ public class StateDB {
         return encoder.encodeToString(hash);
     }
 
-    public List<AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
+    public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
         readWriteLock.readLock().lock();
-        List<AccountState> result = new ArrayList<>();
+        Map<String, AccountState> result = new HashMap<>();
         for (byte[] h : publicKeyHashes) {
             AccountState account = getAccountUnsafe(blockHash, h);
             if (account == null) {
-                return null;
+                continue;
             }
-            result.add(account);
+            result.put(Hex.encodeHexString(h),account);
         }
         readWriteLock.readLock().unlock();
         return result;

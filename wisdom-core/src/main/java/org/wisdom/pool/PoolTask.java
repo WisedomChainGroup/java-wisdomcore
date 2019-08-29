@@ -52,62 +52,34 @@ public class PoolTask {
 
     @Scheduled(fixedDelay = 5 * 1000)
     public void AdoptTopendingTask() {
-        List<TransPool> list = adoptTransPool.getAll();
-        long nowheight = wisdomBlockChain.currentHeader().nHeight;
-        Map<String, String> maps = new HashMap<>();
+        Map<String, List<TransPool>> map = adoptTransPool.getqueuedtopending();
+        IdentityHashMap<String, String> maps = new IdentityHashMap<>();
         List<TransPool> newlist = new ArrayList<>();
-        int index = 1;
-        for (TransPool t : list) {
-            Transaction tran = t.getTransaction();
-            String fromhex=Hex.encodeHexString(tran.from);
-            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-            long nownonce = accountDB.getNonce(frompubhash);
-            long nonce = tran.nonce;
-            if (nonce > nownonce) {
-                boolean statue=true;
-                //判断pendingnonce是否存在 状态不为2的地址
-                Map<String, PendingNonce> noncemap=peningTransPool.getPtnonce();
-                if(noncemap.containsKey(fromhex)){
-                    PendingNonce pendingNonce=noncemap.get(fromhex);
-                    int state=pendingNonce.getState();
-                    if(state!=2){
-                        statue=false;
-                    }
-                }
-                if(statue){
-                    if (transactionCheck.checkoutPool(tran)) {
-                        if (index > 5000) {
-                            break;
-                        } else {
-                            maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
-                            newlist.add(t);
-                            index++;
+        for (Map.Entry<String, List<TransPool>> entry : map.entrySet()) {
+            //判断pendingnonce是否存在 状态不为2的地址
+            PendingNonce pendingNonce = peningTransPool.findptnonce(entry.getKey());
+            if (pendingNonce.getState()==2) {
+                List<TransPool> list = entry.getValue();
+                for (TransPool transPool : list) {
+                    Transaction transaction = transPool.getTransaction();
+                    if(pendingNonce.getNonce()<transaction.nonce){
+                        if (transactionCheck.checkoutPool(transaction)) {
+                            newlist.add(transPool);
                         }
-                    } else {
-                        maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
                     }
-                }
-            } else if (nonce <= nownonce) {
-                if (index > 5000) {
-                    break;
-                } else {
-                    maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
+                    maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
                 }
             }
         }
-        if (maps.size() > 0) {
-            adoptTransPool.remove(maps);
-        }
-        if (newlist.size() > 0) {
-            peningTransPool.add(newlist);
-        }
+        adoptTransPool.remove(maps);
+        peningTransPool.add(newlist);
     }
 
-    @Scheduled(fixedDelay = 1 * 60 * 1000)
+    @Scheduled(fixedDelay = 30 * 1000)
     public void clearPool() {
         //adoptTransPool
         List<TransPool> list = adoptTransPool.getAll();
-        Map<String, String> maps = new HashMap<>();
+        IdentityHashMap<String, String> maps = new IdentityHashMap<>();
         for (TransPool transPool : list) {
             Transaction t = transPool.getTransaction();
             long nonce = t.nonce;
@@ -116,18 +88,18 @@ public class PoolTask {
             //nonce
             long nownonce = accountDB.getNonce(frompubhash);
             if (nownonce >= nonce) {
-                maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
+                maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                 continue;
             }
-            long daysBetween = (new Date().getTime() - transPool.getDatetime() + 1000000) / (60 * 60 * 24 * 1000);
+            long daysBetween = (new Date().getTime() - transPool.getDatetime() ) / (60 * 60 * 1000);
             if (daysBetween >= configuration.getPoolcleardays()) {
-                maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
+                maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                 continue;
             }
             //db
             Transaction transaction = wisdomBlockChain.getTransaction(t.getHash());
             if (transaction != null) {
-                maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
+                maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
             }
         }
         if (maps.size() > 0) {
@@ -135,33 +107,28 @@ public class PoolTask {
         }
         //peningTransPool
         List<TransPool> pendinglist = peningTransPool.getAll();
-        List<String> pendinglists = new ArrayList<>();
         List<Transaction> updatelist = new ArrayList<>();
-        Map<String,Long> map=new HashMap<>();
+        IdentityHashMap<String, Long> map = new IdentityHashMap<>();
         for (TransPool transPool : pendinglist) {
             Transaction t = transPool.getTransaction();
             long nonce = t.nonce;
             byte[] from = t.from;
-            String fromhex=Hex.encodeHexString(from);
             byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(from));
             //nonce
             long nownonce = accountDB.getNonce(frompubhash);
             if (nownonce >= nonce) {
-                pendinglists.add(peningTransPool.getKeyTrans(t));
-                map.put(fromhex,t.nonce);
+                map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                 continue;
             }
-            long daysBetween = (new Date().getTime() - transPool.getDatetime() + 1000000) / (60 * 60 * 24 * 1000);
+            long daysBetween = (new Date().getTime() - transPool.getDatetime()) / (60 * 60 * 1000);
             if (daysBetween >= configuration.getPoolcleardays()) {
-                pendinglists.add(peningTransPool.getKeyTrans(t));
-                map.put(fromhex,t.nonce);
+                map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                 continue;
             }
             //db
             Transaction transaction = wisdomBlockChain.getTransaction(t.getHash());
             if (transaction != null) {
-                pendinglists.add(peningTransPool.getKeyTrans(t));
-                map.put(fromhex,t.nonce);
+                map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                 continue;
             }
             //高度
@@ -188,25 +155,25 @@ public class PoolTask {
         if (updatelist.size() > 0) {
             peningTransPool.updatePool(updatelist, 0, 0);
         }
-        if (pendinglists.size() > 0) {
-            peningTransPool.remove(pendinglists,map);
+        if (map.size() > 0) {
+            peningTransPool.remove(map);
         }
     }
 
-    @Scheduled(cron="0 0 0/1 * * ?")
-    public void updatedbPool(){
-        Leveldb leveldb=new Leveldb();
-        List<TransPool> list=adoptTransPool.getAllFull();
-        List<Transaction> queuedlist=new ArrayList<>();
-        for(TransPool transPool:list){
+    @Scheduled(cron = "0 0 0/1 * * ?")
+    public void updatedbPool() {
+        Leveldb leveldb = new Leveldb();
+        List<TransPool> list = adoptTransPool.getAllFull();
+        List<Transaction> queuedlist = new ArrayList<>();
+        for (TransPool transPool : list) {
             queuedlist.add(transPool.getTransaction());
         }
-        String queuedjson = JSON.toJSONString(queuedlist,true);
-        leveldb.addPoolDb("QueuedPool",queuedjson);
+        String queuedjson = JSON.toJSONString(queuedlist, true);
+        leveldb.addPoolDb("QueuedPool", queuedjson);
 
-        List<TransPool> transPoolList=peningTransPool.getAllstate();
-        String pendingjson = JSON.toJSONString(transPoolList,true);
-        leveldb.addPoolDb("PendingPool",pendingjson);
+        List<TransPool> transPoolList = peningTransPool.getAllstate();
+        String pendingjson = JSON.toJSONString(transPoolList, true);
+        leveldb.addPoolDb("PendingPool", pendingjson);
     }
 
 
@@ -225,5 +192,4 @@ public class PoolTask {
             client.broadcastTransactions(totallist);
         }
     }*/
-
 }
