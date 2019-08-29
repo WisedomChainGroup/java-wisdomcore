@@ -16,13 +16,20 @@ import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.Controller.RPCClient;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.PeerServer;
 import org.wisdom.service.CommandService;
+import org.wisdom.service.HatchService;
 import org.wisdom.sync.TransactionHandler;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMessageEvent> {
@@ -35,7 +42,6 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     private FileReader reader;
 
     private FileWriter writer;
-
 
     @Autowired
     CommandService commandService;
@@ -60,6 +66,18 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
 
     @Autowired
     private Block genesis;
+
+    @Autowired
+    private AccountDB accountDB;
+
+    @Autowired
+    HatchService hatchService;
+
+    @Autowired
+    WisdomBlockChain bc;
+
+    @Autowired
+    JSONEncodeDecoder encodeDecoder;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -118,7 +136,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
      * @throws IOException
      * @throws InterruptedException
      */
-    public File createFifoPipe(String fifoName) throws IOException, InterruptedException {
+    private File createFifoPipe(String fifoName) throws IOException, InterruptedException {
         Process process;
         String[] command = new String[]{"mkfifo", fifoName};
         process = Runtime.getRuntime().exec(command);
@@ -147,27 +165,142 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return sendTranInfo(message);
             case "getNodeInfo":
                 return getNodeInfo();
+            case "getBalance":
+                return getBalance(message);
+            case "sendNonce":
+                return sendNonce(message);
+            case "height":
+                return getHeight();
+            case "blockHash":
+                return blockHash(message);
+            case "transactionConfirmed":
+                return transactionConfirmed(message);
+            case "getTransactionHeight":
+                return getTransactionHeight(message);
+            case "transaction":
+                return getTransaction(message);
+            case "getTransactionBlock":
+                return getTransactionBlock(message);
         }
         return "";
     }
 
+    private String getTransactionBlock(String message) {
+        JSONObject jo = (JSONObject) JSONObject.parse(message);
+        String blockHash = jo.getString("blockHash");
+        int type = jo.getInteger("type");
+        try {
+            List<Map<String, Object>> transactionList = accountDB.getTranBlockList(Hex.decodeHex(blockHash.toCharArray()), type);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("transactionList", transactionList);
+            return jsonObject.toJSONString();
+        } catch (DecoderException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String getTransaction(String txHash) {
+        try {
+            byte[] h = Hex.decodeHex(txHash);
+            Transaction tx = bc.getTransaction(h);
+            if (tx != null) {
+                return new String(encodeDecoder.encodeTransaction(tx));
+            }
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+        return "";
+    }
+
+
+    private String getTransactionHeight(String message) {
+        JSONObject jsonObject = new JSONObject();
+        JSONObject jo = (JSONObject) JSONObject.parse(message);
+        int height = jo.getInteger("height");
+        int type = jo.getInteger("type");
+        List<Map<String, Object>> transactionList = accountDB.getTranList(height, type);
+        jsonObject.put("transactionList", transactionList);
+        return jsonObject.toJSONString();
+    }
+
+    private String transactionConfirmed(String txHash) {
+        Block current = bc.currentHeader();
+        Transaction tx;
+        try {
+            tx = bc.getTransaction(Hex.decodeHex(txHash));
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("message", "not_confirmed");
+            if (current.nHeight - tx.height > 2) {
+                jsonObject.put("message", "confirmed");
+            }
+            return jsonObject.toJSONString();
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+
+    private String blockHash(String txHash) {
+        Transaction tx;
+        try {
+            tx = bc.getTransaction(Hex.decodeHex(txHash));
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("blockHash", Hex.encodeHexString(tx.blockHash));
+            jsonObject.put("height", tx.height);
+            return jsonObject.toJSONString();
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+
+    private String sendNonce(String publicKeyHash) {
+        long nonce = 0;
+        try {
+            nonce = accountDB.getNonce(Hex.decodeHex(publicKeyHash));
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("nonce", nonce);
+            return jsonObject.toString();
+        } catch (DecoderException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String getBalance(String message) {
+        try {
+            byte[] publicKey = Hex.decodeHex(message);
+            String balance = String.valueOf(accountDB.getBalance(publicKey));
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("balance", balance);
+            return jsonObject.toJSONString();
+        } catch (DecoderException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String getHeight() {
+        Block current = bc.currentHeader();
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("height", current.nHeight);
+        return jsonObject.toJSONString();
+    }
+
+
     private String getNodeInfo() {
         String networkType;
         if (genesis.getHashHexString().equals("add27a8cf6a42e30334e9f100cd42643ac0e2eed6896e9289bbcf8a8adaf814b")) {
-            networkType = "网络: 主网";
+            networkType = "production";
         } else {
-            networkType = "网络: 测试网";
+            networkType = "testing";
         }
         int port = peerServer.getPort();
         String publicKey = peerServer.getNodePubKey();
         String IP = peerServer.getIP();
-        JSONObject jsonObject=new JSONObject();
-        jsonObject.put("ip",IP);
-        jsonObject.put("publicKey",publicKey);
-        jsonObject.put("character",character);
-        jsonObject.put("version",version);
-        jsonObject.put("networkType",networkType);
-        jsonObject.put("port",port);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("ip", IP);
+        jsonObject.put("publicKey", publicKey);
+        jsonObject.put("character", character);
+        jsonObject.put("version", version);
+        jsonObject.put("networkType", networkType);
+        jsonObject.put("port", port);
         return jsonObject.toJSONString();
     }
 
@@ -208,4 +341,5 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             this.message = message;
         }
     }
+    
 }
