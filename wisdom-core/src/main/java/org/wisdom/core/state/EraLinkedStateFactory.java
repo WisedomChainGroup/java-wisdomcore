@@ -34,7 +34,6 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
     private int blocksPerEra;
     private static final Logger logger = LoggerFactory.getLogger(EraLinkedStateFactory.class);
     private T genesisState;
-    private WisdomBlockChain blockChain;
 
     public EraLinkedStateFactory(StateDB stateDB, WisdomBlockChain blockChain, int cacheSize, T genesisState, int blocksPerEra) {
         super(stateDB, blockChain, cacheSize);

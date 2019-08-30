@@ -57,7 +57,7 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
     }
 
     public T getInstance(Block block) {
-        if (block == null || !blockChain.hasBlock(block.getHash())) {
+        if (block == null || !stateDB.hasBlock(block.getHash())) {
             return null;
         }
         if (block.nHeight == 0) {

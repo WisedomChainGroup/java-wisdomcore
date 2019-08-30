@@ -111,7 +111,6 @@ public class Miner implements ApplicationListener {
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
 
-        System.out.println(new String(codec.encodeBlock(parent)));
         long nonce = factory.getInstance(parent).
                 getNonceFromPublicKeyHash(block.body.get(0).to);
 

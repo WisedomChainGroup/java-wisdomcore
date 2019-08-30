@@ -27,15 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  * pos table factory, lru cached
  */
 //@Component
-public class PosTableFactory extends EraLinkedStateFactory<PosTable> {
+public class PosTableFactory{
     private static final int cacheSize = 20;
 
     private static final int blocksPerEra = 20;
-
-
-    @Autowired
-    public PosTableFactory(WisdomBlockChain blockChain) {
-        super(blockChain, cacheSize, new PosTable(blockChain), blocksPerEra);
-        this.blockChain = blockChain;
-    }
 }

@@ -144,7 +144,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     public boolean hasBlock(byte[] hash) {
-        return blocksCache.hasBlock(hash);
+        return blocksCache.hasBlock(hash) ||
+                Arrays.equals(latestConfirmed.getHash(), hash) ||
+                bc.hasBlock(hash);
     }
 
     public Block getLastConfirmed() {
