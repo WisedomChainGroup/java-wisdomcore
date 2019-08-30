@@ -43,18 +43,13 @@ public class AdoptTransPool {
     }
 
     public void add(List<Transaction> txs) {
-        int index=size();
         for (Transaction t : txs) {
-            if(index>configuration.getMaxqueued()){
-                break;
-            }
             String from = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
             if (hasExist(from)) {
                 Map<String, TransPool> map = new HashMap<>();
                 TransPool tp = new TransPool(t, 0, new Date().getTime());
                 map.put(getKeyTrans(t), tp);
                 atpool.put(from, map);
-                index++;
             } else {
                 Map<String, TransPool> map = atpool.get(from);
                 if (map.containsKey(getKeyTrans(t))) {
@@ -64,13 +59,11 @@ public class AdoptTransPool {
                         TransPool tp = new TransPool(t, 0, new Date().getTime());
                         map.put(getKeyTrans(t), tp);
                         atpool.put(from, map);
-                        index++;
                     }
                 } else {
                     TransPool tp = new TransPool(t, 0, new Date().getTime());
                     map.put(getKeyTrans(t), tp);
                     atpool.put(from, map);
-                    index++;
                 }
             }
         }

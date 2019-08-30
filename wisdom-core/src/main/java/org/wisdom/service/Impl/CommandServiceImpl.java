@@ -19,6 +19,7 @@
 package org.wisdom.service.Impl;
 
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 
 import org.wisdom.core.account.Account;
@@ -49,6 +50,9 @@ public class CommandServiceImpl implements CommandService {
     @Autowired
     TransactionCheck transactionCheck;
 
+    @Autowired
+    Configuration configuration;
+
     @Override
     public APIResult verifyTransfer(byte[] transfer) {
         APIResult apiResult = new APIResult();
@@ -62,6 +66,13 @@ public class CommandServiceImpl implements CommandService {
             Account account=accountDB.selectaccount(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from)));
             apiResult=transactionCheck.TransactionVerify(tran,account);
             if(apiResult.getCode() == 5000){
+                return apiResult;
+            }
+            //超过queued上限
+            int index=adoptTransPool.size();
+            if((index++)>configuration.getMaxqueued()){
+                apiResult.setCode(5000);
+                apiResult.setMessage("The node memory is full, please try again later");
                 return apiResult;
             }
             adoptTransPool.add(Collections.singletonList(tran));
