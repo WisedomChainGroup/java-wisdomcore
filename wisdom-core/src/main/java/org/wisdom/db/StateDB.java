@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.core.Block;
+import org.wisdom.core.BlocksCache;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -43,11 +44,52 @@ public class StateDB {
 
     private ReadWriteLock readWriteLock;
 
+    // 未确认的区块
+    private Map<String, Block> blocksUnconfirmed;
+
     public StateDB() {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
+        this.blocksUnconfirmed = new ConcurrentLinkedHashMap.Builder<String, Block>()
+                .maximumWeightedCapacity(CACHE_SIZE).build();
     }
+
+    // 获取包含未确认的区块
+    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        this.readWriteLock.readLock().lock();
+        try {
+            BlocksCache c = new BlocksCache();
+            List<Block> res = bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
+            if (res == null || res.size() == sizeLimit) {
+                return res;
+            }
+            c.addBlocks(res);
+            if (clipInitial) {
+                blocksUnconfirmed.values().stream()
+                        .sorted((a, b) -> (int) (b.nHeight - a.nHeight))
+                        .forEach((b) -> {
+                            if (c.size() == sizeLimit || b.nHeight < startHeight || b.nHeight > stopHeight) {
+                                return;
+                            }
+                            c.addBlocks(Collections.singletonList(b));
+                        });
+            } else {
+                blocksUnconfirmed.values().stream()
+                        .sorted(Comparator.comparingLong(Block::getnHeight))
+                        .forEach((b) -> {
+                            if (c.size() == sizeLimit || b.nHeight < startHeight || b.nHeight > stopHeight) {
+                                return;
+                            }
+                            c.addBlocks(Collections.singletonList(b));
+                        });
+            }
+            return c.getAll();
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
+    }
+
 
     // 区块相对于已持久化的账本产生状态变更的账户
     private Map<String, Map<String, AccountState>> cache;
@@ -61,16 +103,20 @@ public class StateDB {
 
     public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
         readWriteLock.readLock().lock();
-        Map<String, AccountState> result = new HashMap<>();
-        for (byte[] h : publicKeyHashes) {
-            AccountState account = getAccountUnsafe(blockHash, h);
-            if (account == null) {
-                continue;
+        Map<String, AccountState> res = null;
+        try {
+            res = new HashMap<>();
+            for (byte[] h : publicKeyHashes) {
+                AccountState account = getAccountUnsafe(blockHash, h);
+                if (account == null) {
+                    return null;
+                }
+                res.put(Hex.encodeHexString(h), account);
             }
-            result.put(Hex.encodeHexString(h),account);
+        } finally {
+            readWriteLock.readLock().unlock();
         }
-        readWriteLock.readLock().unlock();
-        return result;
+        return res;
     }
 
     // 或取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证

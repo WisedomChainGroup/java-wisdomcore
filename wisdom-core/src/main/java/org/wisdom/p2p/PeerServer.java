@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * @author sal 1564319846@qq.com
@@ -206,6 +207,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             logger.info("peer found, address = " + p.toString() + " score = " + p.score);
             dial(p, LOOKUP);
         }
+    }
+
+    public Set<Peer> getBootstraps(){
+        return new HashSet<>(bootstrapPeers.values());
     }
 
     public Peer getSelf() {
