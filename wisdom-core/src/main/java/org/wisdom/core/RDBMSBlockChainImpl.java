@@ -502,6 +502,15 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 " where tx.to = ? and h.is_canonical = true", new Object[]{pubKeyHash}, new TransactionMapper()));
     }
 
+    @Override
+    public Block getLastConfirmedBlock() {
+        Long height = tmpl.queryForObject("select a.blockheight from account a order by a.blockheight desc LIMIT 1", Long.class);
+        if (height == null){
+            return null;
+        }
+        return getCanonicalBlock(height);
+    }
+
     @Async
     public void writeBlocksAsync(List<Block> blocks) {
         for (Block b : blocks) {

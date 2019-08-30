@@ -20,6 +20,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -74,6 +75,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
         this.writableBlocks = new BlocksCache(CACHE_SIZE);
+    }
+
+    @PostConstruct
+    public void init(){
+        this.latestConfirmed = bc.getLastConfirmedBlock();
     }
 
     @Scheduled(fixedDelay = 5000)

@@ -86,4 +86,6 @@ public interface WisdomBlockChain {
     void writeBlocksAsync(List<Block> blocks);
 
     Transaction getTransactionByTo(byte[] pubKeyHash);
+
+    Block getLastConfirmedBlock();
 }
