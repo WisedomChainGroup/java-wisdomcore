@@ -78,7 +78,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         this.latestConfirmed = bc.getLastConfirmedBlock();
     }
 
@@ -93,7 +93,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 });
     }
 
-    public Block getBestBlock(){
+    public Block getBestBlock() {
         return blocksCache.getLeaves().stream()
                 .max(Comparator.comparing(Block::getnHeight))
                 .orElseGet(bc::currentBlock);
@@ -116,7 +116,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return;
             }
             // 判断是否是孤块
-            if (!blocksCache.hasBlock(block.hashPrevBlock)) {
+            if (!Arrays.equals(this.latestConfirmed.getHash(), block.hashPrevBlock) && !blocksCache.hasBlock(block.hashPrevBlock)) {
                 return;
             }
             // 有区块正在更新状态 放到待写入队列中
