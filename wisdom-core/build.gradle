@@ -302,6 +302,8 @@ dependencies {
     compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.7'
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb-api
     compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.7'
+
+    compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
 }
 
 
