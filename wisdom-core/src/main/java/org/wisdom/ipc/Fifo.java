@@ -204,8 +204,26 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return modifyClearCycle(message);
             case "setIsLocalOnly":
                 return setIsLocalOnly(message);
+            case "modifyFeeLimit":
+                return modifyFeeLimit(message);
+            case "setP2PMode":
+                return setP2PMode(message);
         }
         return "";
+    }
+
+    private String setP2PMode(String message) {
+        if (!message.equals("rest") && !message.equals("grpc")) {
+            return InvalidParams;
+        }
+        ipcConfig.setP2pMode(message);
+        return ModifySuccess;
+    }
+
+    private String modifyFeeLimit(String message) {
+        int feeLimit = Integer.parseInt(message);
+        ipcConfig.setFeeLimit(feeLimit);
+        return ModifySuccess;
     }
 
     private String setIsLocalOnly(String message) {
@@ -215,7 +233,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private String modifyClearCycle(String cron) {
-        if (!validateCron(cron)){
+        if (!validateCron(cron)) {
             return InvalidCron;
         }
         ipcConfig.setClearCycle(cron);
@@ -223,18 +241,18 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private String modifyQueuedToPendingCycle(String cron) {
-        if (!validateCron(cron)){
+        if (!validateCron(cron)) {
             return InvalidCron;
         }
         ipcConfig.setQueuedToPendingCycle(cron);
         return ModifySuccess;
     }
 
-    private boolean validateCron(String cron){
+    private boolean validateCron(String cron) {
         return CronExpression.isValidExpression(cron);
     }
 
-    private String setVersion(String ver){
+    private String setVersion(String ver) {
         ipcConfig.setVersion(ver);
         return ModifySuccess;
     }

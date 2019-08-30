@@ -20,9 +20,6 @@ public class NodeInfoController {
     @Value("${node-character}")
     private String character;
 
-    @Value("${p2p.mode}")
-    private String p2pMode;
-
     @Value("${p2p.enable-discovery}")
     private boolean enableDiscovery;
 
@@ -45,7 +42,7 @@ public class NodeInfoController {
         Map<String, Object> info = new HashMap<>();
         info.put("peers", peersManager.getPeers().stream().map(Peer::toString).toArray());
         info.put("self", peersManager.getSelfAddress());
-        info.put("p2pMode", p2pMode);
+        info.put("p2pMode", config.getP2pMode());
         info.put("enableDiscovery", enableDiscovery);
         info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);
         return APIResult.newFailResult(2000, "SUCCESS", info);

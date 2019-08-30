@@ -150,10 +150,38 @@ def BD():
     print("BD")
 
 def BE():
-    print("BE")
+    print("是否支持json-rpc,true/false,true切换成rpc,false切换成grpc")
+    isRpc = bool(raw_input('input true or false:'))
+    global mode
+    if isRpc:
+        mode = 'rest'
+    else:            
+        mode = 'grpc'
+    message = json.dumps({'type':'setP2PMode','message':mode})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)    
 
 def BF():
-    print("BF")
+    print("是否支持gpc,true/false,true切换成grpc,false切换成rpc")
+    isGrpc = bool(raw_input('input true or false:'))
+    global mode
+    if isGrpc:
+        mode = 'grpc'
+    else:            
+        mode = 'rest'
+    message = json.dumps({'type':'setP2PMode','message':mode})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
 
 def BG():
     print("BG")
@@ -165,7 +193,16 @@ def BI():
     print("BI")
 
 def BJ():
-    print("BJ") 
+    print("请输入事务进入内存池最低手续费，默认是200000")
+    feeLimit = raw_input('input feeLimit:')
+    message = json.dumps({'type':'modifyFeeLimit','message':feeLimit})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
 
 def BK():
     print("请输入queued到pending的写入周期，格式如：*/5 * * * * ?")

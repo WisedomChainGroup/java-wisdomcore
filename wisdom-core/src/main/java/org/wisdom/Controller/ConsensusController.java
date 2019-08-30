@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
 import org.springframework.context.ApplicationContext;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.ipc.IpcConfig;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeersManager;
 import org.wisdom.p2p.entity.GetBlockQuery;
@@ -77,18 +78,11 @@ public class ConsensusController {
     @Autowired
     private ApplicationContext context;
 
-    @Value("${p2p.mode}")
-    private String p2pMode;
-
-    private boolean isP2PRestful;
-
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
 
-    @PostConstruct
-    public void init() {
-        this.isP2PRestful = p2pMode.equals("rest");
-    }
+    @Autowired
+    IpcConfig ipcConfig;
 
     @GetMapping(value = "/consensus/blocks")
     public Object handleGetBlocks(
@@ -144,7 +138,7 @@ public class ConsensusController {
         ).clip(
                 MAX_BLOCKS_IN_TRANSIT_PER_PEER, false
         );
-        if (isP2PRestful) {
+        if (ipcConfig.getP2pMode().equals("rest")) {
             context.getBean(SyncClient.class).getBlocks(query.start, query.stop, false);
         }
         return SUCCESS("received, start synchronizing");
@@ -160,7 +154,7 @@ public class ConsensusController {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
             return ERROR("invalid block proposal");
         }
-        if (isP2PRestful) {
+        if (ipcConfig.getP2pMode().equals("rest")) {
             context.getBean(SyncClient.class).receiveBlocks(Collections.singletonList(b));
         }
         return SUCCESS("proposal received");
@@ -181,10 +175,10 @@ public class ConsensusController {
         }
         for (Transaction tran : txs) {
             byte[] traninfo = tran.toRPCBytes();
-            APIResult apiResult=commandService.verifyTransfer(traninfo);
-            if(apiResult.getCode() == 5000){
-                logger.info("transaction Check failure,TxHash="+Hex.encodeHexString(tran.getHash())+",message:"+apiResult.getMessage());
-                return ERROR("transaction Check failure,TxHash="+Hex.encodeHexString(tran.getHash())+",message:"+apiResult.getMessage());
+            APIResult apiResult = commandService.verifyTransfer(traninfo);
+            if (apiResult.getCode() == 5000) {
+                logger.info("transaction Check failure,TxHash=" + Hex.encodeHexString(tran.getHash()) + ",message:" + apiResult.getMessage());
+                return ERROR("transaction Check failure,TxHash=" + Hex.encodeHexString(tran.getHash()) + ",message:" + apiResult.getMessage());
             }
         }
         return SUCCESS("transaction received successful");
