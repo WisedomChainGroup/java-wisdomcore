@@ -22,6 +22,7 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.ipc.IpcConfig;
 import org.wisdom.service.CommandService;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -69,8 +70,8 @@ public class CommandController {
     @Autowired
     private TransactionHandler transactionHandler;
 
-    @Value("${p2p.mode}")
-    private String p2pMode;
+    @Autowired
+    IpcConfig ipcConfig;
 
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
             "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
@@ -80,7 +81,7 @@ public class CommandController {
             APIResult result = commandService.verifyTransfer(traninfos);
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
-                if(p2pMode.equals("rest")){
+                if(ipcConfig.getP2pMode().equals("rest")){
                     RPCClient.broadcastTransactions(Collections.singletonList(t));
                 }else{
                     transactionHandler.broadcastTransactions(Collections.singletonList(t));
