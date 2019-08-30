@@ -23,6 +23,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.StateDB;
 
 import javax.annotation.PostConstruct;
 
@@ -36,12 +37,12 @@ public class TargetStateFactory extends EraLinkedStateFactory<TargetState> {
     private static final int CACHE_SIZE = 512;
 
     @Autowired
-    public TargetStateFactory(WisdomBlockChain blockChain, TargetState genesisState, @Value("${wisdom.consensus.blocks-per-era}") int blocksPerRea) {
-        super(blockChain, CACHE_SIZE, genesisState, blocksPerRea);
+    public TargetStateFactory(StateDB stateDB, WisdomBlockChain blockChain, TargetState genesisState, @Value("${wisdom.consensus.blocks-per-era}") int blocksPerRea) {
+        super(stateDB, blockChain, CACHE_SIZE, genesisState, blocksPerRea);
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         super.initCache();
     }
 }

@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
@@ -96,7 +97,50 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     public Block getBestBlock() {
         return blocksCache.getLeaves().stream()
                 .max(Comparator.comparing(Block::getnHeight))
-                .orElseGet(bc::currentBlock);
+                .orElse(this.latestConfirmed);
+    }
+
+    public Block getHeader(byte []hash){
+        if (Arrays.equals(latestConfirmed.getHash(), hash)) {
+            return this.latestConfirmed;
+        }
+        return Optional.ofNullable(blocksCache.getBlock(hash))
+                .orElseGet(() -> bc.getHeader(hash));
+    }
+
+    public Block findAncestorHeader(byte []hash, long height){
+        Block bHeader = getHeader(hash);
+        if (bHeader.nHeight < height){
+            return null;
+        }
+        while (bHeader.nHeight != height) {
+            bHeader = getHeader(bHeader.hashPrevBlock);
+        }
+        return bHeader;
+    }
+
+    public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
+        Block b = blocksCache.getBlock(bhash);
+        if(Arrays.equals(bhash, this.latestConfirmed.getHash())){
+            b = this.latestConfirmed;
+        }
+        if(b == null){
+            return bc.getAncestorBlocks(bhash, anum);
+        }
+        BlocksCache res = new BlocksCache();
+        List<Block> blocks = blocksCache.getAncestors(b)
+                .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
+        res.addBlocks(blocks);
+        res.addBlocks(bc.getAncestorBlocks(blocks.get(0).getHash(), anum));
+        return res.getAll();
+    }
+
+    public Block getBlock(byte[] hash) {
+        if (Arrays.equals(latestConfirmed.getHash(), hash)) {
+            return this.latestConfirmed;
+        }
+        return Optional.ofNullable(blocksCache.getBlock(hash))
+                .orElseGet(() -> bc.getBlock(hash));
     }
 
     public boolean hasBlock(byte[] hash) {

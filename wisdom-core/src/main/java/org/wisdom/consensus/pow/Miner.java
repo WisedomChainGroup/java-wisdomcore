@@ -38,6 +38,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.pool.PeningTransPool;
 
 import java.util.*;
@@ -48,10 +49,14 @@ public class Miner implements ApplicationListener {
     private static final Logger logger = LoggerFactory.getLogger(Miner.class);
     private static final int MAX_CACHE_SIZE = 1000;
 
+
     @Autowired
     private ConsensusConfig consensusConfig;
 
     private volatile MineThread thread;
+
+    @Autowired
+    private JSONEncodeDecoder codec;
 
     @Autowired
     private ApplicationContext ctx;
@@ -106,6 +111,7 @@ public class Miner implements ApplicationListener {
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
 
+        System.out.println(new String(codec.encodeBlock(parent)));
         long nonce = factory.getInstance(parent).
                 getNonceFromPublicKeyHash(block.body.get(0).to);
 
