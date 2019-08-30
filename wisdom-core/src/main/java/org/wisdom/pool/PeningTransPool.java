@@ -110,13 +110,11 @@ public class PeningTransPool {
             for(Map.Entry<Long, TransPool> entry1:map.entrySet()) {
                 TransPool transPool = entry1.getValue();
                 if (transPool.getState() == 0) {
-                    if(transPool.getTransaction().type==1){//只有转账事务打包时需要accountstate
-                        String key=entry.getKey();
-                        byte[] pubkey=Hex.decodeHex(key.toCharArray());
-                        byte[] pubkeyhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(pubkey));
-                        list.add(pubkeyhash);
-                        break;
-                    }
+                    String key=entry.getKey();
+                    byte[] pubkey=Hex.decodeHex(key.toCharArray());
+                    byte[] pubkeyhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(pubkey));
+                    list.add(pubkeyhash);
+                    break;
                 }
             }
         }

@@ -18,22 +18,27 @@
 
 package org.wisdom.core.event;
 
-import org.wisdom.core.Block;
 import org.springframework.context.ApplicationEvent;
 
 public class AccountUpdatedEvent extends ApplicationEvent {
-    private Block bestBlock;
+
+    private byte[] blockhash;
+
     /**
      * Create a new ApplicationEvent.
      *
      * @param source the object on which the event initially occurred (never {@code null})
      */
-    public AccountUpdatedEvent(Object source, Block bestBlock) {
+    public AccountUpdatedEvent(Object source, byte[] blockhash) {
         super(source);
-        this.bestBlock = bestBlock;
+        this.blockhash = blockhash;
     }
 
-    public Block getBestBlock() {
-        return bestBlock;
+    public byte[] getBlockhash() {
+        return blockhash;
+    }
+
+    public void setBlockhash(byte[] blockhash) {
+        this.blockhash = blockhash;
     }
 }

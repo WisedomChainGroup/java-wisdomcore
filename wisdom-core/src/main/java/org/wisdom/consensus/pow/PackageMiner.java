@@ -18,7 +18,7 @@ import org.wisdom.pool.TransPool;
 import java.util.*;
 
 //打包时选择事务
-//只校验转账事务,其他事务直接打包
+//校验转账事务和其他事务的余额,都更新AccountState
 @Component
 public class PackageMiner {
 
@@ -57,11 +57,11 @@ public class PackageMiner {
                 if (bc.hasTransaction(transaction.getHash())) {
                     continue;
                 }
-                if(transaction.type==1){//转账
-                    if(accountStateMap.containsKey(publicKeyHash)){
-                        AccountState accountState=accountStateMap.get(publicKeyHash);
-                        Account account=accountState.getAccount();
-                        long balance=account.getBalance();
+                if(accountStateMap.containsKey(publicKeyHash)) {
+                    AccountState accountState=accountStateMap.get(publicKeyHash);
+                    Account account=accountState.getAccount();
+                    long balance=account.getBalance();
+                    if(transaction.type==1){//转账
                         balance-=transaction.amount;
                         balance-=transaction.getFee();
                         if(balance<0){
@@ -87,9 +87,37 @@ public class PackageMiner {
                             toaccountState.setAccount(toaccount);
                             accountStateMap.put(tohash,toaccountState);
                         }
-                    }else{
-                        break;
+                    }else {//其他事务
+                        if(transaction.type==3){//存证事务,只需要扣除手续费
+                            balance-=transaction.getFee();
+                        }else if(transaction.type==9){//孵化事务
+                            balance-=transaction.getFee();
+                            balance-=transaction.amount;
+                        }else if(transaction.type==10 || transaction.type==11){//提取利息、分享
+                            balance-=transaction.getFee();
+                            balance+=transaction.amount;
+                        }else if(transaction.type==12){//本金
+                            balance-=transaction.getFee();
+                            balance+=transaction.amount;
+                            long incubatecost=account.getIncubatecost();
+                            incubatecost-=transaction.amount;
+                            if(incubatecost<0){
+                                removemap.put(new String(entry.getKey()),transaction.nonce);
+                                continue;
+                            }
+                            account.setIncubatecost(incubatecost);
+                        }
+                        if(balance<0){
+                            removemap.put(new String(entry.getKey()),transaction.nonce);
+                            continue;
+                        }else{
+                            account.setBalance(balance);
+                            accountState.setAccount(account);
+                            accountStateMap.put(publicKeyHash,accountState);
+                        }
                     }
+                }else{
+                    break;
                 }
                 transaction.height=height;
                 size+=transaction.size();
