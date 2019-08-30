@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 public class StateDB {
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final int CACHE_SIZE = 16;
+    private static final int CONFIRMS = 3;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -51,14 +52,35 @@ public class StateDB {
     private ReadWriteLock readWriteLock;
 
     // 未确认的区块
-    private Map<String, Block> blocksUnconfirmed;
+    private BlocksCache blocksCache;
 
     public StateDB() {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
-        this.blocksUnconfirmed = new ConcurrentLinkedHashMap.Builder<String, Block>()
-                .maximumWeightedCapacity(CACHE_SIZE).build();
+        this.blocksCache = new BlocksCache();
+    }
+
+    // 写入区块
+    public void writeBlock(Block block) {
+        this.readWriteLock.writeLock().lock();
+        try {
+            blocksCache.addBlocks(Collections.singletonList(block));
+            List<Block> confirmedBlocks = blocksCache.getAncestors(block)
+                    .stream().filter((b) -> b.nHeight <= block.nHeight - 3)
+                    .collect(Collectors.toList());
+            if (confirmedBlocks.size() == 0) {
+                return;
+            }
+            Block confirmed = confirmedBlocks.get(0);
+            boolean writeResult = bc.writeBlock(confirmed);
+            if (writeResult) {
+                blocksCache.deleteBlock(confirmed);
+                latestConfirmed = confirmed;
+            }
+        } finally {
+            this.readWriteLock.writeLock().unlock();
+        }
     }
 
     // 获取包含未确认的区块
@@ -72,19 +94,21 @@ public class StateDB {
             }
             c.addBlocks(res);
             if (clipInitial) {
-                blocksUnconfirmed.values().stream()
+                blocksCache.getAll().stream()
+                        .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
                         .sorted((a, b) -> (int) (b.nHeight - a.nHeight))
                         .forEach((b) -> {
-                            if (c.size() == sizeLimit || b.nHeight < startHeight || b.nHeight > stopHeight) {
+                            if (c.size() == sizeLimit) {
                                 return;
                             }
                             c.addBlocks(Collections.singletonList(b));
                         });
             } else {
-                blocksUnconfirmed.values().stream()
+                blocksCache.getAll().stream()
+                        .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
                         .sorted(Comparator.comparingLong(Block::getnHeight))
                         .forEach((b) -> {
-                            if (c.size() == sizeLimit || b.nHeight < startHeight || b.nHeight > stopHeight) {
+                            if (c.size() == sizeLimit) {
                                 return;
                             }
                             c.addBlocks(Collections.singletonList(b));
@@ -108,10 +132,9 @@ public class StateDB {
     }
 
     public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
-        readWriteLock.readLock().lock();
-        Map<String, AccountState> res = null;
+        readWriteLock.writeLock().lock();
         try {
-            res = new HashMap<>();
+            Map<String, AccountState> res = new HashMap<>();
             for (byte[] h : publicKeyHashes) {
                 AccountState account = getAccountUnsafe(blockHash, h);
                 if (account == null) {
@@ -119,10 +142,10 @@ public class StateDB {
                 }
                 res.put(Hex.encodeHexString(h), account);
             }
+            return res;
         } finally {
-            readWriteLock.readLock().unlock();
+            readWriteLock.writeLock().unlock();
         }
-        return res;
     }
 
     // 或取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证

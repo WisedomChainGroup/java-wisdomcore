@@ -361,19 +361,19 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public synchronized void writeBlock(Block block) {
+    public synchronized boolean writeBlock(Block block) {
         Optional<Block> parent = Optional.ofNullable(block)
                 .flatMap(b -> blockChainOptional.getHeader(b.hashPrevBlock));
         if (!parent.isPresent()) {
             // cannot find parent, write fail
-            return;
+            return false;
         }
         Block parentHeader = parent.get();
 
         // 单机挖矿时防止分叉
         if (blockChainOptional.hasBlock(block.getnHeight())
                 .orElse(true) && !allowFork) {
-            return;
+            return false;
         }
         long ptw = parentHeader.totalWeight;
         Optional<Block> current = blockChainOptional.currentHeader();
@@ -401,10 +401,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                         blockChainOptional.getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1)
                 );
         if (!refork.isPresent()) {
-            return;
+            return false;
         }
         if (refork.get() && !canonicalHeaders.isPresent()) {
-            return;
+            return false;
         }
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
@@ -439,6 +439,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (Optional.ofNullable(result).map(r -> r && isNewHeadBlock.get()).orElse(false)) {
             ctx.publishEvent(new NewBestBlockEvent(this, block));
         }
+        return Optional.ofNullable(result).orElse(false);
     }
 
     @Override

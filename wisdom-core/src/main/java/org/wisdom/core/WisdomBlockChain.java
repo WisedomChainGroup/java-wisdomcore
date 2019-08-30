@@ -64,7 +64,7 @@ public interface WisdomBlockChain {
     boolean isCanonical(byte[] hash);
 
     // write the block to the database
-    void writeBlock(Block block);
+    boolean writeBlock(Block block);
 
     // find b's ancestor header at height of anum
     Block findAncestorHeader(byte[] bhash, long anum);
