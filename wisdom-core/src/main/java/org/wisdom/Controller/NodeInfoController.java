@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.ipc.IpcConfig;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeersManager;
 
@@ -15,9 +16,6 @@ import java.util.Map;
 public class NodeInfoController {
     @Autowired
     private PeersManager peersManager;
-
-    @Value("${wisdom.version}")
-    private String version;
 
     @Value("${node-character}")
     private String character;
@@ -31,10 +29,13 @@ public class NodeInfoController {
     @Value("${p2p.max-blocks-per-transfer}")
     private int maxBlocksPerTransfer;
 
+    @Autowired
+    IpcConfig config;
+
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
         Map<String, Object> info = new HashMap<>();
-        info.put("version", this.version);
+        info.put("version", config.getVersion());
         info.put("character", character);
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }

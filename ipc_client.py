@@ -16,7 +16,7 @@ def select():
     print("A:发送事务 B:修改运行参数 C:获得节点信息 D:节点的账本信息")
     choice = raw_input('input A, B, C or D :')
     if choice not in ('A','B','C','D'):
-        select()
+        return select()
     return choice
 
 def DA():
@@ -117,7 +117,51 @@ def DH():
     s = os.read(rf, 1024)
     print ("received msg: %s" % s)
     time.sleep(1)
-    os.close(rf)    
+    os.close(rf)
+
+def BA():
+    message = json.dumps({'type':'modifyVersion','message':'v.11.11.1'})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
+
+def BB():
+    print("BB")    
+
+def BC():
+    print("BC")
+
+def BD():
+    print("BD")
+
+def BE():
+    print("BE")
+
+def BF():
+    print("BF")
+
+def BG():
+    print("BG")
+
+def BH():
+    print("BH")
+
+def BI():
+    print("BI")
+
+def BJ():
+    print("BJ") 
+
+def BK():
+    print("BK") 
+
+def BL():
+    print("BL")                        
+
 
 def A():
     print("请输入tranInfo")
@@ -132,7 +176,37 @@ def A():
     os.close(rf)
 
 def B():
-    print("此功能未完成，敬请期待!!!")
+    print("请选择一下操作：")
+    print("A:修改版本 B:修改最大允许连接的网络节点的数量 C:修改是否只有本机客户端才能连接 D:修改同步区块时，一次性请求获得的区块数 E:是否支持json-rpc F:是否支持grpc")
+    print("G:修改queued队列的事务上限 H:修改pending队列的事务上限 I:修改事务的过期时间 J:修改事务进入内存池最低手续费 K:queued到pending的写入周期 L:queued与pending的清理周期")
+    choice = raw_input('input A ~ L :')
+    if choice not in ('A','B','C','D','E','F','G','H','I','J','K','L'):
+        B()
+    if choice == 'A':
+        BA()
+    if choice == 'B':
+        BB()
+    if choice == 'C':
+        BC()
+    if choice == 'D':
+        BD()    
+    if choice == 'E':
+        BE()
+    if choice == 'F':
+        BF()
+    if choice == 'G':
+        BG()
+    if choice == 'H':
+        BH()
+    if choice == 'I':
+        BI()
+    if choice == 'J':
+        BJ()
+    if choice == 'K':
+        BK()
+    if choice == 'L':
+        BL()    
+
 
 def C():
     message = json.dumps({'type':'getNodeInfo','message':""})
@@ -178,7 +252,7 @@ switch = {
 
 try:
    switch[value]()
-except KeyError as e:
+except Exception as e:
    pass
 
 os.close(wf)

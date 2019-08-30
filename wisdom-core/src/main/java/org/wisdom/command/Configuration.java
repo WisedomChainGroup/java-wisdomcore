@@ -39,6 +39,10 @@ public class Configuration {
     @Value("${min.procedurefee}")
     private long min_procedurefee;
 
+    public void setMin_procedurefee(long min_procedurefee) {
+        this.min_procedurefee = min_procedurefee;
+    }
+
     @Value("${pool.clear.days}")
     private long poolcleardays;
 
