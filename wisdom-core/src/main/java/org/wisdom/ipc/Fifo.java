@@ -202,8 +202,16 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return modifyQueuedToPendingCycle(message);
             case "modifyClearCycle":
                 return modifyClearCycle(message);
+            case "setIsLocalOnly":
+                return setIsLocalOnly(message);
         }
         return "";
+    }
+
+    private String setIsLocalOnly(String message) {
+        boolean isLocalOnly = Boolean.parseBoolean(message);
+        ipcConfig.setLocalOnly(isLocalOnly);
+        return ModifySuccess;
     }
 
     private String modifyClearCycle(String cron) {

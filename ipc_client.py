@@ -135,7 +135,16 @@ def BB():
     print("BB")    
 
 def BC():
-    print("BC")
+    print("请输入是否只有本机客户端才能连接false/true,true的话会禁掉rpc")
+    isLocalOnly = raw_input('input false or true:')
+    message = json.dumps({'type':'setIsLocalOnly','message':isLocalOnly})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
 
 def BD():
     print("BD")
