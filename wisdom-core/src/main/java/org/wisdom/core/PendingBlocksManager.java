@@ -52,7 +52,7 @@ public class PendingBlocksManager {
             }
             logger.info("try to write blocks to local storage, size = " + chain.size());
             for (Block b : chain) {
-                if (bc.hasBlock(b.getHash())) {
+                if (stateDB.hasBlock(b.getHash())) {
                     logger.info("the block has written");
                     continue;
                 }
@@ -71,6 +71,7 @@ public class PendingBlocksManager {
         if (chain == null || chain.size() == 0) {
             return true;
         }
-        return bc.hasBlock(chain.get(chain.size() - 1).getHash());
+        byte[] hash = chain.get(chain.size() - 1).getHash();
+        return stateDB.hasBlock(hash) || bc.hasBlock(hash);
     }
 }

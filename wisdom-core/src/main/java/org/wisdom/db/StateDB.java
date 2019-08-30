@@ -87,11 +87,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 });
     }
 
-    public boolean hasBlock(byte[] hash){
+    public boolean hasBlock(byte[] hash) {
         return blocksCache.hasBlock(hash);
     }
 
-    public Block getLastConfirmed(){
+    public Block getLastConfirmed() {
         return latestConfirmed;
     }
 
@@ -104,10 +104,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return;
             }
             // 判断是否是孤块
-            if (!blocksCache.hasBlock(block.hashPrevBlock)){
+            if (!blocksCache.hasBlock(block.hashPrevBlock)) {
                 return;
             }
-            // 有区块正在更新状态 放到待写入中
+            // 有区块正在更新状态 放到待写入队列中
             if (pendingBlock != null) {
                 writableBlocks.addBlocks(Collections.singletonList(block));
                 return;
@@ -119,7 +119,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     .findFirst();
             confirmedBlock.ifPresent(b -> {
                 // 被确认的区块不在主分支上面
-                if (!Arrays.equals(latestConfirmed.getHash(), b.hashPrevBlock)){
+                if (!Arrays.equals(latestConfirmed.getHash(), b.hashPrevBlock)) {
                     return;
                 }
                 boolean writeResult = bc.writeBlock(b);
