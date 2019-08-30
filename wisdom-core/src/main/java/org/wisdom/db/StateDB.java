@@ -46,7 +46,7 @@ public class StateDB {
 
     private ReadWriteLock readWriteLock;
 
-    // 未确认的区块
+    // 包含未确认的区块
     private BlocksCache blocksCache;
 
     // 正在同步状态到数据库的区块
@@ -63,12 +63,20 @@ public class StateDB {
     public void writeBlock(Block block) {
         this.readWriteLock.writeLock().lock();
         try {
+            // 正在更新状态
+            if (pendingBlock != null) {
+                return;
+            }
+            // 这个区块所在高度已经被确认了
+            if (block.nHeight <= latestConfirmed.nHeight) {
+                return;
+            }
             blocksCache.addBlocks(Collections.singletonList(block));
             Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
                     .stream().filter((b) -> b.nHeight <= block.nHeight - 3)
                     .findFirst();
             confirmedBlock.ifPresent(b -> {
-                if(pendingBlock != null && Arrays.equals(pendingBlock.getHash(), block.getHash())){
+                if (pendingBlock != null && Arrays.equals(pendingBlock.getHash(), block.getHash())) {
                     return;
                 }
                 boolean writeResult = bc.writeBlock(b);
@@ -94,31 +102,18 @@ public class StateDB {
         try {
             BlocksCache c = new BlocksCache();
             List<Block> res = bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
-            if (res == null || res.size() == sizeLimit) {
+            if (res == null || res.size() >= sizeLimit) {
                 return res;
             }
             c.addBlocks(res);
-            if (clipInitial) {
-                blocksCache.getAll().stream()
-                        .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
-                        .sorted((a, b) -> (int) (b.nHeight - a.nHeight))
-                        .forEach((b) -> {
-                            if (c.size() == sizeLimit) {
-                                return;
-                            }
-                            c.addBlocks(Collections.singletonList(b));
-                        });
-            } else {
-                blocksCache.getAll().stream()
-                        .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
-                        .sorted(Comparator.comparingLong(Block::getnHeight))
-                        .forEach((b) -> {
-                            if (c.size() == sizeLimit) {
-                                return;
-                            }
-                            c.addBlocks(Collections.singletonList(b));
-                        });
-            }
+            blocksCache.getAll().stream()
+                    .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
+                    .forEach((b) -> {
+                        if (c.size() == sizeLimit) {
+                            return;
+                        }
+                        c.addBlocks(Collections.singletonList(b));
+                    });
             return c.getAll();
         } finally {
             this.readWriteLock.readLock().unlock();
@@ -157,9 +152,9 @@ public class StateDB {
         }
     }
 
-    // 或取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
+    // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
     private AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
-        Block header = bc.getHeader(blockHash);
+        Block header = blocksCache.getBlock(blockHash);
         if (header == null || header.nHeight < latestConfirmed.nHeight) {
             return null;
         }
@@ -167,7 +162,7 @@ public class StateDB {
             return getAccount(publicKeyHash);
         }
         // 判断新的区块是否在 main fork 上面
-        Block ancestor = bc.findAncestorHeader(blockHash, latestConfirmed.nHeight);
+        Block ancestor = blocksCache.getAncestor(header, latestConfirmed.nHeight);
         if (ancestor == null || !Arrays.equals(latestConfirmed.getHash(), ancestor.getHash())) {
             return null;
         }

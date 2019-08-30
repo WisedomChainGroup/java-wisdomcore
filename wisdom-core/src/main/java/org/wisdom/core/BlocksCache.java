@@ -48,6 +48,15 @@ public class BlocksCache {
         addBlocks(blocks);
     }
 
+    public Block getBlock(byte[] hash) {
+        readWriteLock.readLock().lock();
+        try {
+            return blocks.get(Hex.encodeHexString(hash));
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
     private List<Block> getBlocks(Set<String> hashes) {
         List<Block> res = new ArrayList<>();
         for (String h : hashes) {
@@ -333,6 +342,33 @@ public class BlocksCache {
         }
         keys.remove(bkey);
         return getBlocks(keys);
+    }
+
+    private Block getAncestorUnsafe(String bkey, long height) {
+        for (String key = bkey; key != null; key = parentIndex.get(key)) {
+            Block b = blocks.get(key);
+            if (b.nHeight == height){
+                return b;
+            }
+        }
+        return null;
+    }
+
+    public Block getAncestor(Block b, long height){
+        String bkey = b.getHashHexString();
+        String bparentKey = Hex.encodeHexString(b.hashPrevBlock);
+        this.readWriteLock.readLock().lock();
+        try {
+            if (blocks.containsKey(bkey)) {
+                return getAncestorUnsafe(bkey, height);
+            }
+            if (blocks.containsKey(bparentKey)) {
+                return getAncestorUnsafe(bparentKey, height);
+            }
+            return null;
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
     public List<Block> getAncestors(Block b) {
