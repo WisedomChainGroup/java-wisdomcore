@@ -58,7 +58,7 @@ public class PeningTransPool {
     }
 
     public int size() {
-        return ptpool.size();
+        return getAll().size();
     }
 
     public boolean hasExist(String key) {

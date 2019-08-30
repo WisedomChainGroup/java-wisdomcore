@@ -1,8 +1,6 @@
 package org.wisdom.db;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -13,19 +11,15 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.protobuf.tcp.command.HatchModel;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 @Component
 public class StateDB {
@@ -120,11 +114,7 @@ public class StateDB {
         if (account == null) {
             return null;
         }
-        List<Incubator> incubatorList = incubatorDB.selectList(publicKeyHash);
-        List<Incubator> shareincubList = incubatorDB.selectShareList(publicKeyHash);
-        Map<String, Incubator> incubatorMap = incubatorList.stream().collect(Collectors.toMap(Incubator::getTxhash, Incubator -> Incubator));
-        Map<String, Incubator> shareincubMap = shareincubList.stream().collect(Collectors.toMap(Incubator::getTxhash, Incubator -> Incubator));
-        return new AccountState(account, incubatorMap, shareincubMap);
+        return new AccountState(account);
     }
 
     private AccountState applyCoinbase(Transaction tx, AccountState accountState) {
@@ -165,16 +155,8 @@ public class StateDB {
         return accountState;
     }
 
-    private AccountState applyIncubate(Transaction tx, AccountState accountState) throws Exception {
+    private AccountState applyIncubate(Transaction tx, AccountState accountState){
         Account account = accountState.getAccount();
-        byte[] playload = tx.payload;
-        HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
-        int days = payloadproto.getType();
-        String sharpub = payloadproto.getSharePubkeyHash();
-        byte[] share_pubkeyhash = new byte[0];
-        if (sharpub != null && !sharpub.equals("")) {
-            share_pubkeyhash = Hex.decodeHex(sharpub.toCharArray());
-        }
         long balance;
         if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             balance = account.getBalance();
@@ -187,19 +169,6 @@ public class StateDB {
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
             accountState.setAccount(account);
-
-            long interest = tx.getInterest(tx.height, rateTable, days);
-            Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, interest, tx.height, days);
-            Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
-            incubatorMap.put(Hex.encodeHexString(tx.getHash()), incubator);
-            accountState.setIncubatorMap(incubatorMap);
-        }
-        if (Arrays.equals(share_pubkeyhash, account.getPubkeyHash())) {
-            long share = tx.getShare(tx.height, rateTable, days);
-            Incubator shareincub = new Incubator(share_pubkeyhash, tx.getHash(), tx.height, tx.amount, days, share, tx.height);
-            Map<String, Incubator> shareMap = accountState.getShareincubMap();
-            shareMap.put(Hex.encodeHexString(tx.getHash()), shareincub);
-            accountState.setShareincubMap(shareMap);
         }
         if (Arrays.equals(IncubatorAddress.resultpubhash(), account.getPubkeyHash())) {
             balance = account.getBalance();
@@ -214,7 +183,7 @@ public class StateDB {
         return accountState;
     }
 
-    private AccountState applyExtractInterest(Transaction tx, AccountState accountState) throws Exception {
+    private AccountState applyExtractInterest(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         long balance;
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
@@ -227,36 +196,10 @@ public class StateDB {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
-
-        String tranhash = Hex.encodeHexString(tx.payload);
-        Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
-        if (!incubatorMap.containsKey(tranhash)) {
-            throw new Exception("apply extract interest transaction failed: transaction" + tranhash + "not found");
-        }
-        Incubator incubator = incubatorMap.get(tranhash);
-        String rate = rateTable.selectrate(tx.height, incubator.getDays());
-        BigDecimal amounbig = BigDecimal.valueOf(tx.amount);
-        BigDecimal ratebig = new BigDecimal(rate);
-        long dayinterset = ratebig.multiply(amounbig).longValue();
-        long lastheight = incubator.getLast_blockheight_interest();
-        if (dayinterset > tx.amount) {
-            lastheight += configuration.getDay_count();
-        } else {
-            int extractday = (int) (tx.amount / dayinterset);
-            long extractheight = extractday * configuration.getDay_count();
-            lastheight += extractheight;
-        }
-        long lastinterset = incubator.getInterest_amount();
-        lastinterset -= tx.amount;
-        incubator.setHeight(tx.height);
-        incubator.setInterest_amount(lastinterset);
-        incubator.setLast_blockheight_interest(lastheight);
-        incubatorMap.put(tranhash, incubator);
-        accountState.setIncubatorMap(incubatorMap);
         return accountState;
     }
 
-    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState) throws Exception {
+    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState){
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
@@ -268,34 +211,6 @@ public class StateDB {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
-
-        String tranhash = Hex.encodeHexString(tx.payload);
-        Map<String, Incubator> shareMap = accountState.getShareincubMap();
-        if (!shareMap.containsKey(tranhash)) {
-            throw new Exception("apply extract sharing profit transaction failed: transaction" + tranhash + "not found");
-        }
-        Incubator incubator = shareMap.get(tranhash);
-        String rate = rateTable.selectrate(tx.height, incubator.getDays());
-        BigDecimal amounbig = BigDecimal.valueOf(tx.amount);
-        BigDecimal ratebig = new BigDecimal(rate);
-        BigDecimal onemul = amounbig.multiply(ratebig);
-        BigDecimal bl = BigDecimal.valueOf(0.1);
-        long dayinterset = onemul.multiply(bl).longValue();
-        long lastheight = incubator.getLast_blockheight_share();
-        if (dayinterset > tx.amount) {
-            lastheight += configuration.getDay_count();
-        } else {
-            int extractday = (int) (tx.amount / dayinterset);
-            long extractheight = extractday * configuration.getDay_count();
-            lastheight += extractheight;
-        }
-        long lastshare = incubator.getShare_amount();
-        lastshare -= tx.amount;
-        incubator.setHeight(tx.height);
-        incubator.setShare_amount(lastshare);
-        incubator.setLast_blockheight_share(lastheight);
-        shareMap.put(tranhash, incubator);
-        accountState.setShareincubMap(shareMap);
         return accountState;
     }
 
@@ -335,10 +250,6 @@ public class StateDB {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
-        String tranhash = Hex.encodeHexString(tx.payload);
-        Map<String, Incubator> incubatorMap = accountState.getIncubatorMap();
-        incubatorMap.remove(tranhash);
-        accountState.setIncubatorMap(incubatorMap);
         return accountState;
     }
 
