@@ -23,6 +23,7 @@ import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.TargetStateFactory;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -40,19 +41,18 @@ import java.util.Optional;
 // 4. 时间戳递增
 @Component
 public class ConsensusRule implements BlockRule {
-
-    @Autowired
-    private WisdomBlockChain bc;
-
     @Autowired
     private TargetStateFactory factory;
 
     @Autowired
     ConsensusConfig consensusConfig;
 
+    @Autowired
+    private StateDB stateDB;
+
     @Override
     public Result validateBlock(Block block) {
-        Block parent = bc.getBlock(block.hashPrevBlock);
+        Block parent = stateDB.getBlock(block.hashPrevBlock);
         // 不接受孤块
         if (parent == null) {
             return Result.Error("failed to find parent block");
