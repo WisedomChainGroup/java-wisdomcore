@@ -93,6 +93,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 });
     }
 
+    public Block getBestBlock(){
+        return blocksCache.getLeaves().stream()
+                .max(Comparator.comparing(Block::getnHeight))
+                .orElseGet(bc::currentBlock);
+    }
+
     public boolean hasBlock(byte[] hash) {
         return blocksCache.hasBlock(hash);
     }

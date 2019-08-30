@@ -21,6 +21,7 @@ package org.wisdom.consensus.pow;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -59,6 +60,9 @@ public class Miner implements ApplicationListener {
     private WisdomBlockChain bc;
 
     @Autowired
+    private StateDB stateDB;
+
+    @Autowired
     private TargetStateFactory targetStateFactory;
 
     @Autowired
@@ -90,7 +94,7 @@ public class Miner implements ApplicationListener {
     }
 
     private Block createBlock() throws Exception {
-        Block parent = bc.currentBlock();
+        Block parent = stateDB.getBestBlock();
         Block block = new Block();
         block.nVersion = parent.nVersion;
         block.hashPrevBlock = parent.getHash();
