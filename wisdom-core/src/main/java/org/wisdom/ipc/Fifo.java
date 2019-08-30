@@ -116,13 +116,13 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private void initFifo() throws IOException, InterruptedException {
-        File readFile = new File("/opt/ipc/pipe.in");
+        File readFile = new File("/ipc/pipe.in");
         if (!readFile.exists()) {
-            readFile = createFifoPipe("/opt/ipc/pipe.in");
+            readFile = createFifoPipe("/ipc/pipe.in");
         }
-        File writeFile = new File("/opt/ipc/pipe.out");
+        File writeFile = new File("/ipc/pipe.out");
         if (!writeFile.exists()) {
-            writeFile = createFifoPipe("/opt/ipc/pipe.out");
+            writeFile = createFifoPipe("/ipc/pipe.out");
         }
         reader = new FileReader(readFile);
         writer = new FileWriter(writeFile);
