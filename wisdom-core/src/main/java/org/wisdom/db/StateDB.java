@@ -49,6 +49,9 @@ public class StateDB {
     // 未确认的区块
     private BlocksCache blocksCache;
 
+    // 正在同步状态到数据库的区块
+    private Block pendingBlock;
+
     public StateDB() {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
@@ -65,11 +68,18 @@ public class StateDB {
                     .stream().filter((b) -> b.nHeight <= block.nHeight - 3)
                     .findFirst();
             confirmedBlock.ifPresent(b -> {
+                if(pendingBlock != null && Arrays.equals(pendingBlock.getHash(), block.getHash())){
+                    return;
+                }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
                     // 区块写入失败
                     return;
                 }
+                // 将这个区块标记为正在更新状态
+                pendingBlock = b;
+                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+                pendingBlock = null;
                 blocksCache.deleteBlock(b);
                 latestConfirmed = b;
             });
