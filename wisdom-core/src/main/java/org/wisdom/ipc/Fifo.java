@@ -1,9 +1,9 @@
 package org.wisdom.ipc;
 
 import com.alibaba.fastjson.JSONObject;
-import com.sun.javafx.runtime.SystemProperties;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,14 +13,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.support.GenericApplicationContext;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.MutablePropertySources;
+
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.Controller.RPCClient;
-import org.wisdom.command.Configuration;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
@@ -35,6 +31,8 @@ import java.io.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+
 
 @Component
 public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMessageEvent> {
@@ -91,6 +89,10 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     org.wisdom.command.Configuration Configuration;
 
     private static final String InvalidParams = "params is invalid";
+
+    private static final String ModifySuccess = "modify success";
+
+    private static final String InvalidCron = "cron is invalid";
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -196,13 +198,37 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return getTransactionBlock(message);
             case "modifyVersion":
                 return setVersion(message);
+            case "modifyQueuedToPendingCycle":
+                return modifyQueuedToPendingCycle(message);
+            case "modifyClearCycle":
+                return modifyClearCycle(message);
         }
         return "";
     }
 
+    private String modifyClearCycle(String cron) {
+        if (!validateCron(cron)){
+            return InvalidCron;
+        }
+        ipcConfig.setClearCycle(cron);
+        return ModifySuccess;
+    }
+
+    private String modifyQueuedToPendingCycle(String cron) {
+        if (!validateCron(cron)){
+            return InvalidCron;
+        }
+        ipcConfig.setQueuedToPendingCycle(cron);
+        return ModifySuccess;
+    }
+
+    private boolean validateCron(String cron){
+        return CronExpression.isValidExpression(cron);
+    }
+
     private String setVersion(String ver){
         ipcConfig.setVersion(ver);
-        return "modify success";
+        return ModifySuccess;
     }
 
     private String getTransactionBlock(String message) {

@@ -13,7 +13,7 @@ print("欢迎使用IPC客户端!!!")
 
 def select():
     print("请选择一下操作：")
-    print("A:发送事务 B:修改运行参数 C:获得节点信息 D:节点的账本信息")
+    print("A:发送事务 \nB:修改运行参数 \nC:获得节点信息 \nD:节点的账本信息")
     choice = raw_input('input A, B, C or D :')
     if choice not in ('A','B','C','D'):
         return select()
@@ -120,7 +120,9 @@ def DH():
     os.close(rf)
 
 def BA():
-    message = json.dumps({'type':'modifyVersion','message':'v.11.11.1'})
+    print("请输入version")
+    version = raw_input('input version:')
+    message = json.dumps({'type':'modifyVersion','message':version})
     os.write(wf, message)
     print ("sent msg: %s" % message)
     rf = os.open(read_path, os.O_RDONLY)
@@ -157,10 +159,29 @@ def BJ():
     print("BJ") 
 
 def BK():
-    print("BK") 
+    print("请输入queued到pending的写入周期，格式如：*/5 * * * * ?")
+    queuedToPendingCycle = raw_input('input queuedToPendingCycle:')
+    message = json.dumps({'type':'modifyQueuedToPendingCycle','message':queuedToPendingCycle})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
+
 
 def BL():
-    print("BL")                        
+    print("queued与pending的清理周期，格式如：0 */1 * * * ?")
+    clearCycle = raw_input('input clearCycle:')
+    message = json.dumps({'type':'modifyClearCycle','message':clearCycle})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    rf = os.open(read_path, os.O_RDONLY)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)                        
 
 
 def A():
@@ -177,8 +198,8 @@ def A():
 
 def B():
     print("请选择一下操作：")
-    print("A:修改版本 B:修改最大允许连接的网络节点的数量 C:修改是否只有本机客户端才能连接 D:修改同步区块时，一次性请求获得的区块数 E:是否支持json-rpc F:是否支持grpc")
-    print("G:修改queued队列的事务上限 H:修改pending队列的事务上限 I:修改事务的过期时间 J:修改事务进入内存池最低手续费 K:queued到pending的写入周期 L:queued与pending的清理周期")
+    print("A:修改版本 \nB:修改最大允许连接的网络节点的数量 \nC:修改是否只有本机客户端才能连接 \nD:修改同步区块时，一次性请求获得的区块数 \nE:是否支持json-rpc \nF:是否支持grpc")
+    print("G:修改queued队列的事务上限 \nH:修改pending队列的事务上限 \nI:修改事务的过期时间 \nJ:修改事务进入内存池最低手续费 \nK:queued到pending的写入周期 \nL:queued与pending的清理周期")
     choice = raw_input('input A ~ L :')
     if choice not in ('A','B','C','D','E','F','G','H','I','J','K','L'):
         B()
@@ -220,7 +241,7 @@ def C():
 
 def D():
     print("请选择一下操作：")
-    print("A:获取Nonce B:获取余额 C:查询当前区块高度 D:根据事务哈希获得所在区块哈希以及高度 E:根据事务哈希获得区块确认状态 F:根据区块高度获取事务列表 G:通过事务哈希获取事务 H:通过区块哈希获取事务列表")
+    print("A:获取Nonce \nB:获取余额 \nC:查询当前区块高度 \nD:根据事务哈希获得所在区块哈希以及高度 \nE:根据事务哈希获得区块确认状态 \nF:根据区块高度获取事务列表 \nG:通过事务哈希获取事务 \nH:通过区块哈希获取事务列表")
     choice = raw_input('input A ~ H :')
     if choice not in ('A','B','C','D','E','F','G','H'):
         D()
