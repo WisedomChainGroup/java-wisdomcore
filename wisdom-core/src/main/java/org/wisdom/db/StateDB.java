@@ -70,8 +70,6 @@ public class StateDB {
                     // 区块写入失败
                     return;
                 }
-                // 在这里同步该区块的 accounts 到数据库
-                List<AccountState> accounts = new ArrayList<>(cache.get(getLRUCacheKey(b.getHash())).values());
                 blocksCache.deleteBlock(b);
                 latestConfirmed = b;
             });
