@@ -3,6 +3,8 @@ package org.wisdom.db;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
@@ -12,6 +14,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -21,10 +24,20 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 @Component
-public class StateDB {
+public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
+
+    @Override
+    public void onApplicationEvent(AccountUpdatedEvent event) {
+        if (Arrays.equals(event.getBlockhash(), pendingBlock.getHash())) {
+            // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+            blocksCache.deleteBlock(pendingBlock);
+            latestConfirmed = pendingBlock;
+            pendingBlock = null;
+        }
+    }
+
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final int CACHE_SIZE = 16;
     private static final int CONFIRMS = 3;
@@ -46,37 +59,55 @@ public class StateDB {
 
     private ReadWriteLock readWriteLock;
 
-    // 包含未确认的区块
+    // 写入但未确认的区块
     private BlocksCache blocksCache;
 
     // 正在同步状态到数据库的区块
     private Block pendingBlock;
 
+    // 等待写入的区块
+    private BlocksCache writableBlocks;
+
     public StateDB() {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
-        this.blocksCache = new BlocksCache();
+        this.blocksCache = new BlocksCache(CACHE_SIZE);
+        this.writableBlocks = new BlocksCache(CACHE_SIZE);
+    }
+
+    @Scheduled(fixedDelay = 5000)
+    public void writeLoop() {
+        writableBlocks.getInitials()
+                .stream()
+                .findFirst()
+                .ifPresent(b -> {
+                    writableBlocks.deleteBlock(b);
+                    writeBlock(b);
+                });
     }
 
     // 写入区块
     public void writeBlock(Block block) {
         this.readWriteLock.writeLock().lock();
         try {
-            // 正在更新状态
-            if (pendingBlock != null) {
-                return;
-            }
             // 这个区块所在高度已经被确认了
             if (block.nHeight <= latestConfirmed.nHeight) {
                 return;
             }
+            // 有区块正在更新状态 放到待写入中
+            if (pendingBlock != null) {
+                writableBlocks.addBlocks(Collections.singletonList(block));
+                return;
+            }
+            writableBlocks.deleteBlock(block);
             blocksCache.addBlocks(Collections.singletonList(block));
             Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
-                    .stream().filter((b) -> b.nHeight <= block.nHeight - 3)
+                    .stream().filter((b) -> b.nHeight == block.nHeight - 3)
                     .findFirst();
             confirmedBlock.ifPresent(b -> {
-                if (pendingBlock != null && Arrays.equals(pendingBlock.getHash(), block.getHash())) {
+                // 被确认的区块不在主分支上面
+                if (!Arrays.equals(latestConfirmed.getHash(), b.hashPrevBlock)){
                     return;
                 }
                 boolean writeResult = bc.writeBlock(b);
@@ -86,10 +117,6 @@ public class StateDB {
                 }
                 // 将这个区块标记为正在更新状态
                 pendingBlock = b;
-                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-                pendingBlock = null;
-                blocksCache.deleteBlock(b);
-                latestConfirmed = b;
             });
         } finally {
             this.readWriteLock.writeLock().unlock();
