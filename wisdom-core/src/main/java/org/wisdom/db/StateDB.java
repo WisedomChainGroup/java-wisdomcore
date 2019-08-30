@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 @Component
 public class StateDB {
@@ -60,18 +61,20 @@ public class StateDB {
         this.readWriteLock.writeLock().lock();
         try {
             blocksCache.addBlocks(Collections.singletonList(block));
-            List<Block> confirmedBlocks = blocksCache.getAncestors(block)
+            Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
                     .stream().filter((b) -> b.nHeight <= block.nHeight - 3)
-                    .collect(Collectors.toList());
-            if (confirmedBlocks.size() == 0) {
-                return;
-            }
-            Block confirmed = confirmedBlocks.get(0);
-            boolean writeResult = bc.writeBlock(confirmed);
-            if (writeResult) {
-                blocksCache.deleteBlock(confirmed);
-                latestConfirmed = confirmed;
-            }
+                    .findFirst();
+            confirmedBlock.ifPresent(b -> {
+                boolean writeResult = bc.writeBlock(b);
+                if (!writeResult) {
+                    // 区块写入失败
+                    return;
+                }
+                // 在这里同步该区块的 accounts 到数据库
+                getAccountsUnsafe(b.getHash(), )
+                blocksCache.deleteBlock(b);
+                latestConfirmed = b;
+            });
         } finally {
             this.readWriteLock.writeLock().unlock();
         }
@@ -125,18 +128,22 @@ public class StateDB {
         return encoder.encodeToString(hash);
     }
 
+    public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
+        Map<String, AccountState> res = new HashMap<>();
+        for (byte[] h : publicKeyHashes) {
+            AccountState account = getAccountUnsafe(blockHash, h);
+            if (account == null) {
+                return null;
+            }
+            res.put(Hex.encodeHexString(h), account);
+        }
+        return res;
+    }
+
     public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
         readWriteLock.writeLock().lock();
         try {
-            Map<String, AccountState> res = new HashMap<>();
-            for (byte[] h : publicKeyHashes) {
-                AccountState account = getAccountUnsafe(blockHash, h);
-                if (account == null) {
-                    return null;
-                }
-                res.put(Hex.encodeHexString(h), account);
-            }
-            return res;
+            return getAccountsUnsafe(blockHash, publicKeyHashes);
         } finally {
             readWriteLock.writeLock().unlock();
         }
@@ -224,7 +231,7 @@ public class StateDB {
         return accountState;
     }
 
-    private AccountState applyIncubate(Transaction tx, AccountState accountState){
+    private AccountState applyIncubate(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         long balance;
         if (Arrays.equals(tx.to, account.getPubkeyHash())) {
@@ -268,7 +275,7 @@ public class StateDB {
         return accountState;
     }
 
-    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState){
+    private AccountState applyExtractSharingProfit(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
