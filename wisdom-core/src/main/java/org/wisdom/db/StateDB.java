@@ -71,7 +71,7 @@ public class StateDB {
                     return;
                 }
                 // 在这里同步该区块的 accounts 到数据库
-                getAccountsUnsafe(b.getHash(), )
+                List<AccountState> accounts = new ArrayList<>(cache.get(getLRUCacheKey(b.getHash())).values());
                 blocksCache.deleteBlock(b);
                 latestConfirmed = b;
             });

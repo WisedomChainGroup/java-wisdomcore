@@ -10,7 +10,7 @@ import org.wisdom.keystore.wallet.KeystoreAction;
 import java.util.*;
 
 public class Utils {
-    public List<byte[]> getAllPublicKeyHashes(Block b){
+    public static List<byte[]> getAllPublicKeyHashes(Block b){
         Set<byte[]> res = new HashSet<>();
         if(b.body == null){
             return new ArrayList<>();
