@@ -504,11 +504,15 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public Block getLastConfirmedBlock() {
-        Long height = tmpl.queryForObject("select a.blockheight from account a order by a.blockheight desc LIMIT 1", Long.class);
-        if (height == null){
-            return null;
+        try{
+            Long height = tmpl.queryForObject("select a.blockheight from account a order by a.blockheight desc LIMIT 1", Long.class);
+            if (height == null){
+                return null;
+            }
+            return getCanonicalBlock(height);
+        }catch (Exception e){
+            return genesis;
         }
-        return getCanonicalBlock(height);
     }
 
     @Async
