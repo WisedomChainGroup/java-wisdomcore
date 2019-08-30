@@ -87,12 +87,24 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 });
     }
 
+    public boolean hasBlock(byte[] hash){
+        return blocksCache.hasBlock(hash);
+    }
+
+    public Block getLastConfirmed(){
+        return latestConfirmed;
+    }
+
     // 写入区块
     public void writeBlock(Block block) {
         this.readWriteLock.writeLock().lock();
         try {
             // 这个区块所在高度已经被确认了
             if (block.nHeight <= latestConfirmed.nHeight) {
+                return;
+            }
+            // 判断是否是孤块
+            if (!blocksCache.hasBlock(block.hashPrevBlock)){
                 return;
             }
             // 有区块正在更新状态 放到待写入中
