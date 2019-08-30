@@ -1,6 +1,7 @@
 package org.wisdom.ipc;
 
 import com.alibaba.fastjson.JSONObject;
+import com.sun.javafx.runtime.SystemProperties;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -12,9 +13,14 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.MutablePropertySources;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.Controller.RPCClient;
+import org.wisdom.command.Configuration;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
@@ -26,7 +32,6 @@ import org.wisdom.service.HatchService;
 import org.wisdom.sync.TransactionHandler;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +84,14 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     @Autowired
     JSONEncodeDecoder encodeDecoder;
 
+    @Autowired
+    IpcConfig ipcConfig;
+
+    @Autowired
+    org.wisdom.command.Configuration Configuration;
+
+    private static final String InvalidParams = "params is invalid";
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
         if (!isLinuxSystem()) {
@@ -101,13 +114,13 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private void initFifo() throws IOException, InterruptedException {
-        File readFile = new File("/ipc/pipe.in");
+        File readFile = new File("/opt/ipc/pipe.in");
         if (!readFile.exists()) {
-            readFile = createFifoPipe("/ipc/pipe.in");
+            readFile = createFifoPipe("/opt/ipc/pipe.in");
         }
-        File writeFile = new File("/ipc/pipe.out");
+        File writeFile = new File("/opt/ipc/pipe.out");
         if (!writeFile.exists()) {
-            writeFile = createFifoPipe("/ipc/pipe.out");
+            writeFile = createFifoPipe("/opt/ipc/pipe.out");
         }
         reader = new FileReader(readFile);
         writer = new FileWriter(writeFile);
@@ -181,8 +194,15 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return getTransaction(message);
             case "getTransactionBlock":
                 return getTransactionBlock(message);
+            case "modifyVersion":
+                return setVersion(message);
         }
         return "";
+    }
+
+    private String setVersion(String ver){
+        ipcConfig.setVersion(ver);
+        return "modify success";
     }
 
     private String getTransactionBlock(String message) {
@@ -195,7 +215,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             jsonObject.put("transactionList", transactionList);
             return jsonObject.toJSONString();
         } catch (DecoderException e) {
-            return e.getMessage();
+            return InvalidParams;
         }
     }
 
@@ -207,7 +227,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return new String(encodeDecoder.encodeTransaction(tx));
             }
         } catch (Exception e) {
-            return e.getMessage();
+            return InvalidParams;
         }
         return "";
     }
@@ -235,7 +255,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             }
             return jsonObject.toJSONString();
         } catch (Exception e) {
-            return e.getMessage();
+            return InvalidParams;
         }
     }
 
@@ -248,7 +268,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             jsonObject.put("height", tx.height);
             return jsonObject.toJSONString();
         } catch (Exception e) {
-            return e.getMessage();
+            return InvalidParams;
         }
     }
 
@@ -260,7 +280,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             jsonObject.put("nonce", nonce);
             return jsonObject.toString();
         } catch (DecoderException e) {
-            return e.getMessage();
+            return InvalidParams;
         }
     }
 
@@ -272,7 +292,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             jsonObject.put("balance", balance);
             return jsonObject.toJSONString();
         } catch (DecoderException e) {
-            return e.getMessage();
+            return InvalidParams;
         }
     }
 
@@ -306,8 +326,8 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
 
     private String sendTranInfo(String tranInfo) {
         try {
-            byte[] traninfos = Hex.decodeHex(tranInfo.toCharArray());
-            APIResult result = commandService.verifyTransfer(traninfos);
+            byte[] transInfo = Hex.decodeHex(tranInfo);
+            APIResult result = commandService.verifyTransfer(transInfo);
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
                 if (p2pMode.equals("rest")) {
@@ -341,5 +361,5 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
             this.message = message;
         }
     }
-    
+
 }
