@@ -34,10 +34,11 @@ public class IpcConfig {
     private long tranLifetime;
 
     @Value("${wisdom.ipc-config.queued_to_pending_cycle}")
-    private long queuedToPendingCycle;
+    private String queuedToPendingCycle;
 
+    // 格式是 cron字符串
     @Value("${wisdom.ipc-config.clear-cycle}")
-    private long clearCycle;
+    private String clearCycle;
 
     @Value("${wisdom.ipc-config.local-only}")
     private boolean localOnly;
@@ -114,19 +115,19 @@ public class IpcConfig {
         configuration.setMin_procedurefee(feeLimit);
     }
 
-    public long getQueuedToPendingCycle() {
+    public String getQueuedToPendingCycle() {
         return queuedToPendingCycle;
     }
 
-    public void setQueuedToPendingCycle(long queuedToPendingCycle) {
+    public void setQueuedToPendingCycle(String queuedToPendingCycle) {
         this.queuedToPendingCycle = queuedToPendingCycle;
     }
 
-    public long getClearCycle() {
+    public String getClearCycle() {
         return clearCycle;
     }
 
-    public void setClearCycle(long clearCycle) {
+    public void setClearCycle(String clearCycle) {
         this.clearCycle = clearCycle;
     }
 
