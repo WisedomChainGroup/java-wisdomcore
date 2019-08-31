@@ -27,17 +27,20 @@ import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.consensus.pow.ValidatorStateFactory;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.StateDB;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.PeningTransPool;
 
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 // 账户规则校验
 // 1. 一个区块内一个只能有一个 from 的事务
@@ -67,12 +70,19 @@ public class AccountRule implements BlockRule {
     @Autowired
     PeningTransPool peningTransPool;
 
-    private boolean validateIncubator;
+    @Autowired
+    StateDB stateDB;
 
+    @Autowired
+    TransactionCheck transactionCheck;
+
+    private boolean validateIncubator;
 
     @Override
     public Result validateBlock(Block block) {
         Set<String> froms = new HashSet<>();
+        byte[] parenthash=block.hashPrevBlock;
+        Map<String,AccountState> map=new HashMap<>();
         if (block.nHeight > 30800) {
             long nowheight = wisdomBlockChain.currentHeader().nHeight;
             for (Transaction tx : block.body) {
@@ -86,7 +96,27 @@ public class AccountRule implements BlockRule {
                 }
                 // 校验转账事务
                 if (tx.type != Transaction.Type.COINBASE.ordinal()) {
-                    byte[] transfer = tx.toRPCBytes();
+                    byte[] pubkeyhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+                    String publichash=Hex.encodeHexString(pubkeyhash);
+                    Account account;
+//                    if(map.containsKey(publichash)){
+////                        AccountState accountState=
+////                        account=map.get(publichash);
+//                    }else{
+//                        AccountState accountState=stateDB.getAccountUnsafe(parenthash,pubkeyhash);
+//                        account=accountState.getAccount();
+//                        if(account==null){
+//                            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": The previous block did not track the account status!" );
+//                        }
+//                    }
+//                    APIResult apiResult=transactionCheck.TransactionVerify(tx,account);
+//                    if(apiResult.getCode()==5000){
+//                        peningTransPool.removeOne(publichash,tx.nonce);
+//                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
+//                    }
+                    //更新Account状态
+
+//                    byte[] transfer = tx.toRPCBytes();
 //                    APIResult apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, false, false);
 //                    if (apiResult.getCode() == 5000) {
 //                        String keys = peningTransPool.getKeyTrans(tx);

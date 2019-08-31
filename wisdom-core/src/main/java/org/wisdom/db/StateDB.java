@@ -250,7 +250,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
-    private AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+    public AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
         Block header = blocksCache.getBlock(blockHash);
         if (header == null || header.nHeight < latestConfirmed.nHeight) {
             return null;
