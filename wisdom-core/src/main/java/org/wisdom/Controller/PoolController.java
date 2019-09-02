@@ -50,10 +50,15 @@ public class PoolController {
                 json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                 json.put("type",transaction.type);
                 json.put("nonce",transaction.nonce);
-                json.put("from",Hex.encodeHexString(transaction.from));
                 json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                 json.put("amount",transaction.amount);
+                json.put("fee",transaction.getFee());
                 json.put("to",Hex.encodeHexString(transaction.to));
+                if(transaction.payload==null){
+                    json.put("payload",null);
+                }else{
+                    json.put("payload",Hex.encodeHexString(transaction.payload));
+                }
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 Date date = new Date(transPool.getDatetime());
                 json.put("datatime",sdf.format(date));
@@ -68,10 +73,15 @@ public class PoolController {
                 json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                 json.put("type",transaction.type);
                 json.put("nonce",transaction.nonce);
-                json.put("from",Hex.encodeHexString(transaction.from));
                 json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                 json.put("amount",transaction.amount);
+                json.put("fee",transaction.getFee());
                 json.put("to",Hex.encodeHexString(transaction.to));
+                if(transaction.payload==null){
+                    json.put("payload",null);
+                }else{
+                    json.put("payload",Hex.encodeHexString(transaction.payload));
+                }
                 json.put("state",transPool.getState());
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 Date date = new Date(transPool.getDatetime());
@@ -112,10 +122,15 @@ public class PoolController {
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
                     json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                     json.put("amount",transaction.amount);
+                    json.put("fee",transaction.getFee());
                     json.put("to",Hex.encodeHexString(transaction.to));
+                    if(transaction.payload==null){
+                        json.put("payload",null);
+                    }else{
+                        json.put("payload",Hex.encodeHexString(transaction.payload));
+                    }
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     Date date = new Date(adoptpool.getDatetime());
                     json.put("datatime",sdf.format(date));
@@ -130,10 +145,15 @@ public class PoolController {
                     json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
-                    json.put("from",transaction.from);
                     json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
                     json.put("amount",transaction.amount);
+                    json.put("fee",transaction.getFee());
                     json.put("to",Hex.encodeHexString(transaction.to));
+                    if(transaction.payload==null){
+                        json.put("payload",null);
+                    }else{
+                        json.put("payload",Hex.encodeHexString(transaction.payload));
+                    }
                     json.put("state",pendingpool.getState());
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     Date date = new Date(pendingpool.getDatetime());
