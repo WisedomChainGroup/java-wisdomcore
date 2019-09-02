@@ -57,3 +57,4 @@ node_modules
 leveldb
 
 gradle/wrapper/*
+package-lock.json
