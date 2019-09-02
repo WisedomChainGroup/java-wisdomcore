@@ -93,6 +93,9 @@ public class PackageMiner {
                         }else if(transaction.type==9){//孵化事务
                             balance-=transaction.getFee();
                             balance-=transaction.amount;
+                            long incubatecost=account.getIncubatecost();
+                            incubatecost+=transaction.amount;
+                            account.setIncubatecost(incubatecost);
                         }else if(transaction.type==10 || transaction.type==11){//提取利息、分享
                             balance-=transaction.getFee();
                             balance+=transaction.amount;

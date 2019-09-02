@@ -233,7 +233,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         for (byte[] h : publicKeyHashes) {
             AccountState account = getAccountUnsafe(blockHash, h);
             if (account == null) {
-                return null;
+                continue;
             }
             res.put(Hex.encodeHexString(h), account);
         }

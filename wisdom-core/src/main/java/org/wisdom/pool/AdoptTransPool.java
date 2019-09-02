@@ -108,15 +108,19 @@ public class AdoptTransPool {
 
     public void remove(IdentityHashMap<String, String> maps) {
         for (Map.Entry<String, String> entry : maps.entrySet()) {
-            if (!hasExist(entry.getKey())) {
-                Map<String, TransPool> map = atpool.get(entry.getKey());
-                if (map.containsKey(entry.getValue())) {
-                    map.remove(entry.getValue());
-                    if (map.size() == 0) {
-                        atpool.remove(entry.getKey());
-                    } else {
-                        atpool.put(entry.getKey(), map);
-                    }
+            removeOne(entry.getKey(),entry.getValue());
+        }
+    }
+
+    public void removeOne(String key,String mapkey){
+        if (!hasExist(key)) {
+            Map<String, TransPool> map = atpool.get(key);
+            if (map.containsKey(mapkey)) {
+                map.remove(mapkey);
+                if (map.size() == 0) {
+                    atpool.remove(key);
+                } else {
+                    atpool.put(key, map);
                 }
             }
         }

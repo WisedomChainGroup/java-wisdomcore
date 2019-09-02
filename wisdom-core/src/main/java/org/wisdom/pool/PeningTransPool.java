@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
@@ -15,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class PeningTransPool {
+
+    @Autowired
+    AdoptTransPool adoptTransPool;
 
     private Map<String, TreeMap<Long, TransPool>> ptpool;
 
@@ -180,6 +184,8 @@ public class PeningTransPool {
                 ptnonce.put(key,pendingNonce);
             }
         }
+        String keys = key + nonce;
+        adoptTransPool.removeOne(key,keys);
     }
 
     public void remove(IdentityHashMap<String, Long> map) {
