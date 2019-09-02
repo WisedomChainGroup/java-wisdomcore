@@ -58,8 +58,8 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     @Autowired
     RPCClient RPCClient;
 
-    @Value("${wisdom.version}")
-    private String version;
+    @Autowired
+    IpcConfig ipcConfig;
 
     @Value("${node-character}")
     private String character;
@@ -81,9 +81,6 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
 
     @Autowired
     JSONEncodeDecoder encodeDecoder;
-
-    @Autowired
-    IpcConfig ipcConfig;
 
     @Autowired
     org.wisdom.command.Configuration Configuration;
@@ -370,7 +367,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
         jsonObject.put("ip", IP);
         jsonObject.put("publicKey", publicKey);
         jsonObject.put("character", character);
-        jsonObject.put("version", version);
+        jsonObject.put("version", ipcConfig.getVersion());
         jsonObject.put("networkType", networkType);
         jsonObject.put("port", port);
         return jsonObject.toJSONString();

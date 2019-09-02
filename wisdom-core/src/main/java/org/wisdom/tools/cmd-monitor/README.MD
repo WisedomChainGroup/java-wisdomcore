@@ -31,3 +31,8 @@ node cmd.js count_proposals -f 1 -t '-1' -r localhost:8888
 ```bash
 node cmd.js --help
 ```
+
+- 等待Pool清空
+node wait-pool-empty.js -i access_key_id -k access_key_secret -p phone_number -t template_code -s signature
+
+
