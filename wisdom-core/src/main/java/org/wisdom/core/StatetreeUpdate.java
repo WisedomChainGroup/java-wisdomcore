@@ -88,6 +88,6 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
             e.printStackTrace();
             return;
         }
-        ctx.publishEvent(new AccountUpdatedEvent(this, b.getHash()));
+        ctx.publishEvent(new AccountUpdatedEvent(this, b));
     }
 }
