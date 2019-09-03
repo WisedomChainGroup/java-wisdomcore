@@ -146,7 +146,7 @@ public class AdoptTransPool {
             List<TransPool> transPoolList = new ArrayList<>();
             Map<String, TransPool> maps = compare(entry.getValue());
             for (Map.Entry<String, TransPool> entry1 : maps.entrySet()) {
-                if (index > configuration.getMaxqpcount()) {
+                if (index < configuration.getMaxqpcount()) {
                     TransPool t = entry1.getValue();
                     Transaction transaction = t.getTransaction();
                     if (transaction.type == 1) {//转账

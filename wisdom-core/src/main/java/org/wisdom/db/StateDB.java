@@ -280,11 +280,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
             return getAccount(publicKeyHash);
         }
-        // 判断新的区块是否在 main fork 上面
-        Block ancestor = blocksCache.getAncestor(header, latestConfirmed.nHeight);
-        if (ancestor == null || !Arrays.equals(latestConfirmed.getHash(), ancestor.getHash())) {
-            return null;
-        }
+        // 判断新的区块是否在 main fork 上面;
+//        Block ancestor = blocksCache.getAncestor(header, latestConfirmed.nHeight);
+//        if (ancestor == null || !Arrays.equals(latestConfirmed.getHash(), ancestor.getHash())) {
+//            return null;
+//        }
         // 判断是否在缓存中
         String blockKey = getLRUCacheKey(blockHash);
         String accountKey = getLRUCacheKey(publicKeyHash);
