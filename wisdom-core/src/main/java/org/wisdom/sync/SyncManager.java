@@ -184,7 +184,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onGetStatus(Context context, PeerServer server) {
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         Object resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
                 .setCurrentHeight(best.nHeight)
