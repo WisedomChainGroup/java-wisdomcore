@@ -33,6 +33,6 @@ node cmd.js --help
 ```
 
 - 等待Pool清空
-node wait-pool-empty.js -i access_key_id -k access_key_secret -p phone_number -t template_code -s signature
+node wait-pool-empty.js -i access_key_id -k access_key_secret -p phone_number -t template_code -s signature -a address
 
 
