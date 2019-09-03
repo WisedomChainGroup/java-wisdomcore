@@ -230,7 +230,7 @@ public class PeningTransPool {
         if(ptnonce.containsKey(key)){
             return ptnonce.get(key);
         }else{
-            return null;
+            return new PendingNonce(0,2);
         }
     }
 
