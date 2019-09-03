@@ -39,13 +39,19 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Override
     public void onApplicationEvent(AccountUpdatedEvent event) {
-        if (Arrays.equals(event.getBlockhash(), pendingBlock.getHash())) {
-            // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-            // 清除缓存
-            blocksCache.deleteBlock(pendingBlock);
-            latestConfirmed = pendingBlock;
-            pendingBlock = null;
-            cache.remove(getLRUCacheKey(event.getBlockhash()));
+        this.readWriteLock.writeLock().lock();
+        try {
+            if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
+                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+                logger.info("account update event received block height = " + event.getBlock().nHeight + " hash = " + event.getBlock().getHashHexString());
+                // 清除缓存
+                blocksCache.deleteBlock(pendingBlock);
+                latestConfirmed = pendingBlock;
+                pendingBlock = null;
+                cache.remove(getLRUCacheKey(event.getBlock().getHash()));
+            }
+        } finally {
+            this.readWriteLock.writeLock().unlock();
         }
     }
 
@@ -200,8 +206,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     return;
                 }
                 pendingBlock = b;
-                ctx.publishEvent(new NewBlockEvent(this, block));
-                ctx.publishEvent(new NewBestBlockEvent(this, block));
+                ctx.publishEvent(new NewBlockEvent(this, b));
+                ctx.publishEvent(new NewBestBlockEvent(this, b));
                 // 将这个区块标记为正在更新状态
             });
         } finally {
