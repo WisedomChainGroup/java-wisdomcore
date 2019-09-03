@@ -169,10 +169,20 @@ enable image
 docker-compose -f wdc.yml up -d
 ```
 
-## 4.	参考文档
+## 4.	Reference Document
 [https://docs.docker.com/](https://docs.docker.com/)  
 [https://docs.docker.com/compose/](https://docs.docker.com/compose/)
 
 
+## 5. IPC Client Instructions
 
+### 5.1 Environment
+
+In the Linux system, the program deployed by docker can use the IPC client
+
+### 5.2 Execution Statement
+
+```
+python2 ./ipc_client.py
+```
 
