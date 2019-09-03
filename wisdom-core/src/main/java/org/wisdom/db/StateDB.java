@@ -3,6 +3,7 @@ package org.wisdom.db;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -66,6 +67,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Autowired
     private ApplicationContext ctx;
+
+    @Value("${wisdom.consensus.block-confirms}")
+    private int blockConfirms;
 
     private ReadWriteLock readWriteLock;
 
@@ -182,7 +186,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             writableBlocks.deleteBlock(block);
             blocksCache.addBlocks(Collections.singletonList(block));
             Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
-                    .stream().filter((b) -> b.nHeight == block.nHeight - 3)
+                    .stream().filter((b) -> b.nHeight == block.nHeight - blockConfirms)
                     .findFirst();
             confirmedBlock.ifPresent(b -> {
                 // 被确认的区块不在主分支上面
@@ -194,10 +198,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     // 区块写入失败
                     return;
                 }
+                pendingBlock = b;
                 ctx.publishEvent(new NewBlockEvent(this, block));
                 ctx.publishEvent(new NewBestBlockEvent(this, block));
                 // 将这个区块标记为正在更新状态
-                pendingBlock = b;
             });
         } finally {
             this.readWriteLock.writeLock().unlock();
