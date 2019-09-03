@@ -370,9 +370,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
         Block parentHeader = parent.get();
 
-        // 单机挖矿时防止分叉
         if (blockChainOptional.hasBlock(block.getnHeight())
-                .orElse(true) && !allowFork) {
+                .orElse(true)) {
             return false;
         }
         long ptw = parentHeader.totalWeight;
@@ -457,13 +456,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public Block getLastConfirmedBlock() {
-        try{
+        try {
             Long height = tmpl.queryForObject("select a.blockheight from account a order by a.blockheight desc LIMIT 1", Long.class);
-            if (height == null){
+            if (height == null) {
                 return null;
             }
             return getCanonicalBlock(height);
-        }catch (Exception e){
+        } catch (Exception e) {
             return genesis;
         }
     }

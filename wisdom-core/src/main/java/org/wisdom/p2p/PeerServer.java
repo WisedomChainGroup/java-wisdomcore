@@ -300,13 +300,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
-                logger.error(t.toString());
-                logger.error("cannot connect to peer " + peer.toString() + " half its score");
                 int k = self.subTree(peer);
                 Peer p = peers.get(k);
                 if (p != null && p.equals(peer)) {
                     p.score /= 2;
                     if (p.score == 0) {
+                        logger.error("cannot connect to peer " + peer.toString() + " remove it");
                         removePeer(p);
                     }
                 }
