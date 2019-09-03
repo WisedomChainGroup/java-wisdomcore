@@ -5,19 +5,22 @@ const program = require('commander');
 
 let j;
 
-const task = (id, secret, params) => {
-    axios.get("http://localhost:19585/getPoolAddress?address="+params.PoolAddress)
+const task = function(){
+    axios.get("http://localhost:19585/getPoolAddress?address="+program.pool_address)
         .then((resp) => {
             if (resp.data.data.length === 0) {
-                sendServiceAlert(id, secret, {
-                    PhoneNumbers: params.PhoneNumbers,
-                    SignName: params.SignName,
-                    TemplateCode: params.TemplateCode,
+                sendServiceAlert(program.access_key_id, program.access_key_secret, {
+                    PhoneNumbers: program.phone_numbers,
+                    SignName: program.sign_name,
+                    TemplateCode: program.template_code,
                     Content: "Pool is empty"
                 });
                 j.cancel();
             }
-        }).catch(console.error)
+        }).catch((error)=> {
+        console.log(error);
+        j.cancel();
+    })
 };
 
 if (require.main === module) {
@@ -30,12 +33,7 @@ if (require.main === module) {
         .option('-t, --template_code <string>', 'template code')
         .option('-a, --pool_address <string>','address')
         .action(opts => {
-            j = schedule.scheduleJob('10 * * * * *', task(opts.access_key_id, opts.access_key_secret, {
-                PhoneNumbers: opts.phone_numbers,
-                SignName: opts.sign_name,
-                TemplateCode: opts.template_code,
-                PoolAddress: opts.pool_address
-            }));
+            j = schedule.scheduleJob('10 * * * * *', task);
         });
     program.parse(process.argv);
 }
