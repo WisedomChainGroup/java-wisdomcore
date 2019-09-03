@@ -187,12 +187,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             blocksCache.addBlocks(Collections.singletonList(block));
             Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
                     .stream().filter((b) -> b.nHeight == block.nHeight - blockConfirms)
+                    .filter(b -> Arrays.equals(this.latestConfirmed.getHash(), b.hashPrevBlock))
                     .findFirst();
             confirmedBlock.ifPresent(b -> {
                 // 被确认的区块不在主分支上面
-                if (!Arrays.equals(latestConfirmed.getHash(), b.hashPrevBlock)) {
-                    return;
-                }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
                     // 区块写入失败
