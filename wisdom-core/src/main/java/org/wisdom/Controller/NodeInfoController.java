@@ -31,6 +31,9 @@ public class NodeInfoController {
     @Value("${p2p.max-blocks-per-transfer}")
     private int maxBlocksPerTransfer;
 
+    @Value("${wisdom.consensus.allow-fork}")
+    private boolean allowFork;
+
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
         Map<String, Object> info = new HashMap<>();
@@ -47,6 +50,7 @@ public class NodeInfoController {
         info.put("p2pMode", p2pMode);
         info.put("enableDiscovery", enableDiscovery);
         info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);
+        info.put("allowFork", allowFork);
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 }
