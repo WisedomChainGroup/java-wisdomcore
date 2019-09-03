@@ -88,6 +88,7 @@ public class Miner implements ApplicationListener {
     @Autowired
     PackageMiner packageMiner;
 
+
     public Miner() {
     }
 
@@ -117,7 +118,7 @@ public class Miner implements ApplicationListener {
         block.body.get(0).nonce = nonce + 1;
 
         //打包事务
-        List<Transaction> notWrittern=packageMiner.TransferCheck(parent.getHash(),block.nHeight,block);
+        List<Transaction> notWrittern = packageMiner.TransferCheck(parent.getHash(), block.nHeight, block);
 
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
@@ -150,19 +151,21 @@ public class Miner implements ApplicationListener {
         if (!consensusConfig.isEnableMining()) {
             return;
         }
-        Block bestBlock = bc.currentBlock();
+        Block bestBlock = stateDB.getBestBlock();
         // 判断是否轮到自己出块
         Optional<Proposer> p = consensusConfig.getProposer(bestBlock, System.currentTimeMillis() / 1000);
-        p.map(x -> x.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash()) ? x : null)
-                .ifPresent(proposer -> {
-                    try {
-                        Block b = createBlock();
-                        thread = ctx.getBean(MineThread.class);
-                        thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+        p.ifPresent(proposer -> {
+            if (!proposer.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
+                return;
+            }
+            try {
+                Block b = createBlock();
+                thread = ctx.getBean(MineThread.class);
+                thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
