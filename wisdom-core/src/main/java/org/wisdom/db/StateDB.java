@@ -3,6 +3,7 @@ package org.wisdom.db;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,8 @@ import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.AccountUpdatedEvent;
+import org.wisdom.core.event.NewBestBlockEvent;
+import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -34,9 +37,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     public void onApplicationEvent(AccountUpdatedEvent event) {
         if (Arrays.equals(event.getBlockhash(), pendingBlock.getHash())) {
             // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+            // 清除缓存
             blocksCache.deleteBlock(pendingBlock);
             latestConfirmed = pendingBlock;
             pendingBlock = null;
+            cache.remove(getLRUCacheKey(event.getBlockhash()));
         }
     }
 
@@ -58,6 +63,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Autowired
     private Configuration configuration;
+
+    @Autowired
+    private ApplicationContext ctx;
 
     private ReadWriteLock readWriteLock;
 
@@ -83,6 +91,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.latestConfirmed = bc.getLastConfirmedBlock();
     }
 
+    // 定时清除待写入队列
     @Scheduled(fixedDelay = 5000)
     public void writeLoop() {
         writableBlocks.getInitials()
@@ -100,7 +109,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .orElse(this.latestConfirmed);
     }
 
-    public Block getHeader(byte []hash){
+    public Block getHeader(byte[] hash) {
         if (Arrays.equals(latestConfirmed.getHash(), hash)) {
             return this.latestConfirmed;
         }
@@ -108,9 +117,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .orElseGet(() -> bc.getHeader(hash));
     }
 
-    public Block findAncestorHeader(byte []hash, long height){
+    public Block findAncestorHeader(byte[] hash, long height) {
         Block bHeader = getHeader(hash);
-        if (bHeader.nHeight < height){
+        if (bHeader.nHeight < height) {
             return null;
         }
         while (bHeader.nHeight != height) {
@@ -121,10 +130,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
         Block b = blocksCache.getBlock(bhash);
-        if(Arrays.equals(bhash, this.latestConfirmed.getHash())){
+        if (Arrays.equals(bhash, this.latestConfirmed.getHash())) {
             b = this.latestConfirmed;
         }
-        if(b == null){
+        if (b == null) {
             return bc.getAncestorBlocks(bhash, anum);
         }
         BlocksCache res = new BlocksCache();
@@ -185,6 +194,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     // 区块写入失败
                     return;
                 }
+                ctx.publishEvent(new NewBlockEvent(this, block));
+                ctx.publishEvent(new NewBestBlockEvent(this, block));
                 // 将这个区块标记为正在更新状态
                 pendingBlock = b;
             });

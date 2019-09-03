@@ -49,7 +49,7 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
         if (cache.containsKey(key)) {
             return (T) cache.get(key);
         }
-        Block parent = blockChain.getBlock(block.hashPrevBlock);
+        Block parent = stateDB.getBlock(block.hashPrevBlock);
         T parentState = getFromCache(parent);
         T newState = (T) (parentState.copy().updateBlock(block));
         cache.put(key, newState);
