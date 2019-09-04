@@ -171,6 +171,29 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 bc.hasBlock(hash);
     }
 
+    public boolean hasTransaction(byte[] blockHash, byte[] transactionHash) {
+        readWriteLock.readLock().lock();
+        try {
+            return hasTransactionUnsafe(blockHash, transactionHash);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private boolean hasTransactionUnsafe(byte[] blockHash, byte[] transactionHash) {
+        if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
+            return bc.hasTransaction(transactionHash);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return true;
+        }
+        if (b.body.stream().anyMatch(tx -> Arrays.equals(tx.getHash(), transactionHash))) {
+            return true;
+        }
+        return hasTransactionUnsafe(b.hashPrevBlock, transactionHash);
+    }
+
     public Block getLastConfirmed() {
         return latestConfirmed;
     }
