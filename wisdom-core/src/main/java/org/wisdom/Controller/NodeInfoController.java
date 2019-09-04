@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.db.StateDB;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeersManager;
 
@@ -38,6 +39,9 @@ public class NodeInfoController {
     @Autowired
     private StateDB stateDB;
 
+    @Autowired
+    private JSONEncodeDecoder encodeDecoder;
+
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
         Map<String, Object> info = new HashMap<>();
@@ -60,6 +64,6 @@ public class NodeInfoController {
 
     @GetMapping(value = "/blocks/unconfirmed", produces = "application/json")
     public Object getNotConfirmed() {
-        return stateDB.getAll();
+        return encodeDecoder.encodeBlocks(stateDB.getAll());
     }
 }
