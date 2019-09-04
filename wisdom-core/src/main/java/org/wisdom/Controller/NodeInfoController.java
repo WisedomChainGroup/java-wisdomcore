@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.db.StateDB;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeersManager;
 
@@ -34,6 +35,9 @@ public class NodeInfoController {
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
 
+    @Autowired
+    private StateDB stateDB;
+
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
         Map<String, Object> info = new HashMap<>();
@@ -52,5 +56,10 @@ public class NodeInfoController {
         info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);
         info.put("allowFork", allowFork);
         return APIResult.newFailResult(2000, "SUCCESS", info);
+    }
+
+    @GetMapping(value = "/blocks/unconfirmed", produces = "application/json")
+    public Object getNotConfirmed() {
+        return stateDB.getAll();
     }
 }

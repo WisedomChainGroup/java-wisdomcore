@@ -45,10 +45,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
                 logger.info("account update event received block height = " + event.getBlock().nHeight + " hash = " + event.getBlock().getHashHexString());
                 // 清除缓存
-                blocksCache.deleteBlock(pendingBlock);
+                blocksCache.getAll()
+                        .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
+                        .forEach(b -> {
+                            blocksCache.deleteBlock(b);
+                            cache.remove(getLRUCacheKey(b.getHash()));
+                        });
                 latestConfirmed = pendingBlock;
                 pendingBlock = null;
-                cache.remove(getLRUCacheKey(event.getBlock().getHash()));
             }
         } finally {
             this.readWriteLock.writeLock().unlock();
@@ -336,6 +340,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return null;
         }
         return new AccountState(account);
+    }
+
+    public List<Block> getAll() {
+        return blocksCache.getAll();
     }
 
     private AccountState applyCoinbase(Transaction tx, AccountState accountState) {
