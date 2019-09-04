@@ -52,8 +52,12 @@ public class PackageMiner {
                     exit = true;
                     break;
                 }
-                // 防止写入重复的事务
+                // DB中防止写入重复的事务
                 if (bc.hasTransaction(transaction.getHash())) {
+                    continue;
+                }
+                //forkdb中防止写入重复事务
+                if(stateDB.hasTransaction(parenthash,transaction.getHash())){
                     continue;
                 }
                 // 没有获取到 AccountState
