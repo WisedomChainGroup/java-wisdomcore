@@ -273,12 +273,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
     public AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return getAccount(publicKeyHash);
+        }
         Block header = blocksCache.getBlock(blockHash);
         if (header == null || header.nHeight < latestConfirmed.nHeight) {
             return null;
-        }
-        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return getAccount(publicKeyHash);
         }
         // 判断新的区块是否在 main fork 上面;
 //        Block ancestor = blocksCache.getAncestor(header, latestConfirmed.nHeight);
@@ -296,7 +296,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (account == null) {
             return null;
         }
-        Block block = bc.getBlock(blockHash);
+        Block block = blocksCache.getBlock(blockHash);
         // 把这个区块的事务应用到上一个区块获取的 account，生成新的 account
         AccountState res = applyTransactions(block.body, account.copy());
         if (!cache.containsKey(blockKey)) {

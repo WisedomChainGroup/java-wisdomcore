@@ -115,8 +115,7 @@ public class PeningTransPool {
                 TransPool transPool = entry1.getValue();
                 if (transPool.getState() == 0) {
                     String key=entry.getKey();
-                    byte[] pubkey=Hex.decodeHex(key.toCharArray());
-                    byte[] pubkeyhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(pubkey));
+                    byte[] pubkeyhash=Hex.decodeHex(key.toCharArray());
                     list.add(pubkeyhash);
                     break;
                 }

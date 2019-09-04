@@ -42,8 +42,7 @@ public class PackageMiner {
         boolean exit = false;
         for (Map.Entry<String, TreeMap<Long, TransPool>> entry : maps.entrySet()) {
             byte[] key = Hex.decodeHex(entry.getKey().toCharArray());
-            byte[] pubkeyhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(key));
-            String publicKeyHash = Hex.encodeHexString(pubkeyhash);
+            String publicKeyHash = Hex.encodeHexString(key);
 
             TreeMap<Long, TransPool> treeMap = entry.getValue();
             for (Map.Entry<Long, TransPool> entry1 : treeMap.entrySet()) {

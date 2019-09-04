@@ -55,20 +55,20 @@ public class PoolTask {
         Map<String, List<TransPool>> map = adoptTransPool.getqueuedtopending();
         IdentityHashMap<String, String> maps = new IdentityHashMap<>();
         List<TransPool> newlist = new ArrayList<>();
-        int index=peningTransPool.size();
-        boolean state=false;
+        int index = peningTransPool.size();
+        boolean state = false;
         for (Map.Entry<String, List<TransPool>> entry : map.entrySet()) {
             //判断pendingnonce是否存在 状态不为2的地址
             PendingNonce pendingNonce = peningTransPool.findptnonce(entry.getKey());
-            if (pendingNonce.getState()==2) {
+            if (pendingNonce.getState() == 2) {
                 List<TransPool> list = entry.getValue();
                 for (TransPool transPool : list) {
                     Transaction transaction = transPool.getTransaction();
-                    if(pendingNonce.getNonce()<transaction.nonce){
+                    if (pendingNonce.getNonce() < transaction.nonce) {
                         if (transactionCheck.checkoutPool(transaction)) {
                             //超过pending上限
-                            if(index>configuration.getMaxpending()){
-                                state=true;
+                            if (index > configuration.getMaxpending()) {
+                                state = true;
                                 break;
                             }
                             newlist.add(transPool);
@@ -77,7 +77,7 @@ public class PoolTask {
                     }
                     maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
                 }
-                if(state){
+                if (state) {
                     break;
                 }
             }
@@ -102,7 +102,7 @@ public class PoolTask {
                 maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                 continue;
             }
-            long daysBetween = (new Date().getTime() - transPool.getDatetime() ) / (60 * 60 * 1000);
+            long daysBetween = (new Date().getTime() - transPool.getDatetime()) / (60 * 60 * 1000);
             if (daysBetween >= configuration.getPoolcleardays()) {
                 maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                 continue;
