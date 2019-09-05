@@ -343,7 +343,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     public List<Block> getAll() {
-        return blocksCache.getAll();
+        readWriteLock.readLock().lock();
+        try {
+            return blocksCache.getAll();
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
     }
 
     private AccountState applyCoinbase(Transaction tx, AccountState accountState) {
