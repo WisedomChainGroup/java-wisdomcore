@@ -227,15 +227,9 @@ public class PoolController {
                 return APIResult.newFailResult(5000,"Token check but");
             }
             byte[] pubkeyhash=KeystoreAction.addressToPubkeyHash(address);
-            PendingNonce pendingNonce=peningTransPool.findptnonce(Hex.encodeHexString(pubkeyhash));
-            if(pendingNonce!=null){
-                pendingNonce.setState(state);
-                pendingNonce.setNonce(nonce);
-                peningTransPool.updatePtNone(Hex.encodeHexString(pubkeyhash),pendingNonce);
-                return APIResult.newFailResult(2000,"SUCCESS");
-            }else{
-                return APIResult.newFailResult(5000,"The key cannot be queried");
-            }
+            PendingNonce pendingNonce=new PendingNonce(nonce,state);
+            peningTransPool.updatePtNone(Hex.encodeHexString(pubkeyhash),pendingNonce);
+            return APIResult.newFailResult(2000,"SUCCESS");
         }catch (Exception e){
             return APIResult.newFailResult(5000,"Address error");
         }
