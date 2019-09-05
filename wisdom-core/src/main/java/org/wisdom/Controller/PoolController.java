@@ -16,6 +16,7 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.pool.AdoptTransPool;
+import org.wisdom.pool.PendingNonce;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
 
@@ -192,6 +193,39 @@ public class PoolController {
             }
         } catch (DecoderException e) {
             return APIResult.newFailResult(5000,"Token conversions are problematic 16");
+        }
+    }
+
+    @RequestMapping(value="/updatePtNonce",method = RequestMethod.GET)
+    public Object getPtNonce(@RequestParam("key") String key){
+        PendingNonce pendingNonce=peningTransPool.getpt(key);
+        if(pendingNonce==null){
+            return APIResult.newFailResult(5000,"Query does not exist");
+        }
+        return APIResult.newFailResult(2000,"SUCCESS",pendingNonce);
+    }
+
+    @RequestMapping(value="/updatePtNonce",method = RequestMethod.POST)
+    public Object updatePtNonce(@RequestParam("tokenhash") String tokenhash, @RequestParam("pubkey") String pubkey,
+                                @RequestParam("nonce") long nonce, @RequestParam("state") int state){
+        try{
+            byte[] hash=Hex.decodeHex(tokenhash.toCharArray());
+            byte[] shahash=SHA3Utility.sha3256(hash);
+            String token=Hex.encodeHexString(shahash);
+            if(!token.equals("a772c260ae19e8972f1da3af77492fdb6b40f34a9b34b4a9021ecfd900f21e53")){
+                return APIResult.newFailResult(5000,"Token check but");
+            }
+            PendingNonce pendingNonce=peningTransPool.getpt(pubkey);
+            if(pendingNonce!=null){
+                pendingNonce.setState(state);
+                pendingNonce.setNonce(nonce);
+            }else{
+                pendingNonce=new PendingNonce(nonce,state);
+            }
+            peningTransPool.updatePtNone(pubkey,pendingNonce);
+            return APIResult.newFailResult(2000,"SUCCESS");
+        }catch (Exception e){
+            return APIResult.newFailResult(5000,"Address error");
         }
     }
 }
