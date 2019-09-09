@@ -18,10 +18,7 @@ import org.wisdom.ipc.IpcConfig;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 @Component
@@ -52,62 +49,42 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    TransactionCheck transactionCheck;
+
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        taskRegistrar.addTriggerTask(() -> {
-            List<TransPool> list = adoptTransPool.getAll();
-            long nowheight = wisdomBlockChain.currentHeader().nHeight;
-            Map<String, String> maps = new HashMap<>();
-            List<TransPool> newlist = new ArrayList<>();
-            int index = 1;
-            for (TransPool t : list) {
-                Transaction tran = t.getTransaction();
-                String fromhex=Hex.encodeHexString(tran.from);
-                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                long nownonce = accountDB.getNonce(frompubhash);
-                long nonce = tran.nonce;
-                if (nonce > nownonce) {
-                    boolean statue=true;
-                    //判断pendingnonce是否存在 状态不为2的地址
-                    Map<String, PendingNonce> noncemap=peningTransPool.getPtnonce();
-                    if(noncemap.containsKey(fromhex)){
-                        PendingNonce pendingNonce=noncemap.get(fromhex);
-                        int state=pendingNonce.getState();
-                        if(state!=2){
-                            statue=false;
-                        }
-                    }
-                    if(statue){
-                        if (TransactionCheck.checkoutPool(tran, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight)) {
-                            if (index > 5000) {
+        Map<String, List<TransPool>> map = adoptTransPool.getqueuedtopending();
+        IdentityHashMap<String, String> maps = new IdentityHashMap<>();
+        List<TransPool> newlist = new ArrayList<>();
+        int index = peningTransPool.size();
+        boolean state = false;
+        for (Map.Entry<String, List<TransPool>> entry : map.entrySet()) {
+            //判断pendingnonce是否存在 状态不为2的地址
+            PendingNonce pendingNonce = peningTransPool.findptnonce(entry.getKey());
+            if (pendingNonce.getState() == 2) {
+                List<TransPool> list = entry.getValue();
+                for (TransPool transPool : list) {
+                    Transaction transaction = transPool.getTransaction();
+                    if (pendingNonce.getNonce() < transaction.nonce) {
+                        if (transactionCheck.checkoutPool(transaction)) {
+                            //超过pending上限
+                            if (index > configuration.getMaxpending()) {
+                                state = true;
                                 break;
-                            } else {
-                                maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
-                                newlist.add(t);
-                                index++;
                             }
-                        } else {
-                            maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
+                            newlist.add(transPool);
+                            index++;
                         }
                     }
-                } else if (nonce <= nownonce) {
-                    if (index > 5000) {
-                        break;
-                    } else {
-                        maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
-                    }
+                    maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
+                }
+                if (state) {
+                    break;
                 }
             }
-            if (maps.size() > 0) {
-                adoptTransPool.remove(maps);
-            }
-            if (newlist.size() > 0) {
-                peningTransPool.add(newlist);
-            }
-        }, triggerContext -> {
-            //任务触发，可修改任务的执行周期
-            CronTrigger trigger = new CronTrigger(ipcConfig.getQueuedToPendingCycle());
-            return trigger.nextExecutionTime(triggerContext);
-        });
+        }
+        adoptTransPool.remove(maps);
+        peningTransPool.add(newlist);
     }
 }
