@@ -18,19 +18,17 @@
 
 package org.wisdom.merkletree;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.util.ByteUtil;
 
 public class MerkleTree {
 
-    private List<TreeNode> list;            //TreeNode List
     private TreeNode root;                  //根节点
+    private HashMap<Byte, List<TreeNode>> map; // 记录 TreeNode
 
     //构造函数
     public MerkleTree(List<String> contents) {
@@ -44,17 +42,17 @@ public class MerkleTree {
             return;
         }
         //初始化
-        list = new ArrayList<>();
+        map = new HashMap<>();
         //根据数据创建叶子节点
         List<TreeNode> leafList = createLeafList(contents);
-        list.addAll(leafList);
+        map.put(leafList.get(0).getLevel(), leafList);
         //创建父节点
         List<TreeNode> parents = createParentList(leafList);
-        list.addAll(parents);
+        map.put(parents.get(0).getLevel(), parents);
         //循环创建各级父节点直至根节点
         while (parents.size() > 1) {
             List<TreeNode> temp = createParentList(parents);
-            list.addAll(temp);
+            map.put(temp.get(0).getLevel(), temp);
             parents = temp;
         }
         root = parents.get(0);
@@ -62,7 +60,7 @@ public class MerkleTree {
 
     //创建父节点列表
     private List<TreeNode> createParentList(List<TreeNode> leafList) {
-        List<TreeNode> parents = new ArrayList<TreeNode>();
+        List<TreeNode> parents = new ArrayList<>();
         //空检验
         if (leafList == null || leafList.size() == 0) {
             return parents;
@@ -71,12 +69,18 @@ public class MerkleTree {
         int length = leafList.size();
         for (int i = 0; i < length - 1; i += 2) {
             TreeNode parent = createParentNode(leafList.get(i), leafList.get(i + 1));
+            parent.setIndex(i / 2);
             parents.add(parent);
         }
 
         //奇数个节点时，单独处理最后一个节点
         if (length % 2 != 0) {
             TreeNode parent = createParentNode(leafList.get(length - 1), null);
+            if (parents.size() == 0){
+                parent.setIndex(0);
+            }else {
+                parent.setIndex( parents.get(parents.size() - 1).getIndex() + 1);
+            }
             parents.add(parent);
         }
         return parents;
@@ -93,7 +97,7 @@ public class MerkleTree {
         String hash = left.getHash();
         if (right != null) {
             hash = Hex.encodeHexString(SHA3Utility.keccak256(ByteUtil.prepend(ByteUtil.byteMerger(left.getHash().getBytes(), right.getHash().getBytes()), left.getLevel())));
-        }else{
+        } else {
             hash = Hex.encodeHexString(SHA3Utility.keccak256(ByteUtil.prepend(ByteUtil.byteMerger(left.getHash().getBytes(), left.getHash().getBytes()), left.getLevel())));
         }
         //hash字段和data字段同值
@@ -117,41 +121,13 @@ public class MerkleTree {
             return leafList;
         }
 
-        for (String content : contents) {
-            TreeNode node = new TreeNode(content);
+        for (int i = 0; i < contents.size(); i++) {
+            TreeNode node = new TreeNode(contents.get(i));
             node.setLevel((byte) 1);
+            node.setIndex(i);
             leafList.add(node);
         }
         return leafList;
-    }
-
-    //遍历树
-    public void traverseTreeNodes() {
-        Collections.reverse(list);
-        TreeNode root = list.get(0);
-        traverseTreeNodes(root);
-
-    }
-
-    private void traverseTreeNodes(TreeNode node) {
-        if (node.getLeft() != null) {
-            traverseTreeNodes(node.getLeft());
-        }
-        if (node.getRight() != null) {
-            traverseTreeNodes(node.getRight());
-        }
-    }
-
-    public List<TreeNode> getList() {
-        if (list == null) {
-            return list;
-        }
-        Collections.reverse(list);
-        return list;
-    }
-
-    public void setList(List<TreeNode> list) {
-        this.list = list;
     }
 
     public TreeNode getRoot() {
@@ -162,8 +138,40 @@ public class MerkleTree {
         this.root = root;
     }
 
-    public static void main(String[] args) {
-        List<String> contents = Arrays.asList("TEST1");
-        new MerkleTree(contents);
+    public List<TreeNode> getLevelList(Byte level) {
+        return map.get(level);
     }
+
+    public int getLevelSize() {
+        return map.size();
+    }
+
+//    public static void main(String[] args) {
+//        List<String> hashes = new ArrayList<>();
+//        for (Transaction tx : createTransactionList()) {
+//            hashes.add(tx.getHashHexString());
+//        }
+//        Byte a = 14;
+//        List<TreeNode> list = new MerkleTree(hashes).getLevelList(a);
+//        System.out.println("---------------------size----------" + list.size());
+//        for (TreeNode node : list
+//        ) {
+//            System.out.println("---------------------1-----------" + node.getIndex());
+//        }
+//    }
+
+//    private static List<Transaction> createTransactionList() {
+//        List<Transaction> txs = new ArrayList<>();
+//        for (int i = 0; i < 10000; i++) {
+//            Transaction tx = Transaction.createEmpty();
+//            tx.type = Transaction.Type.TRANSFER.ordinal();
+//            tx.amount = 1;
+//            tx.nonce = 1;
+//            tx.gasPrice = 1;
+//            tx.payload = "111".getBytes();
+//            txs.add(tx.setHashHexString(i + ""));
+//        }
+//        return txs;
+//    }
+
 }

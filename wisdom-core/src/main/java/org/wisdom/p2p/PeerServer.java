@@ -25,7 +25,6 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  * @author sal 1564319846@qq.com
@@ -69,6 +68,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     @Autowired
     private TransactionHandler transactionHandler;
+
+    @Autowired
+    private MerkleHandler merkleHandler;
 
     @Value("${p2p.enable-discovery}")
     private boolean enableDiscovery;
@@ -143,7 +145,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 .use(filter)
                 .use(syncManager)
                 .use(transactionHandler)
-                .use(pmgr);
+                .use(pmgr)
+                .use(merkleHandler);
         startListening();
     }
 
@@ -307,7 +310,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 if (p != null && p.equals(peer)) {
                     p.score /= 2;
                     if (p.score == 0) {
-                        logger.error("cannot connect to peer " + peer.toString() + " remove it");
+                        logger.error("cannot connect to peer " + peer.toString() + " remote it");
                         removePeer(p);
                     }
                 }
@@ -489,6 +492,22 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             builder.setCode(WisdomOuterClass.Code.TRANSACTIONS);
             return sign(builder.setBody(((WisdomOuterClass.Transactions) msg).toByteString())).build();
         }
+        if (msg instanceof WisdomOuterClass.GetTreeNodes) {
+            builder.setCode(WisdomOuterClass.Code.GET_TREE_NODES);
+            return sign(builder.setBody(((WisdomOuterClass.GetTreeNodes) msg).toByteString())).build();
+        }
+        if (msg instanceof WisdomOuterClass.TreeNodes) {
+            builder.setCode(WisdomOuterClass.Code.TREE_NODES);
+            return sign(builder.setBody(((WisdomOuterClass.TreeNodes) msg).toByteString())).build();
+        }
+        if (msg instanceof WisdomOuterClass.GetMerkleTransactions) {
+            builder.setCode(WisdomOuterClass.Code.GET_MERKELE_TRANSACTIONS);
+            return sign(builder.setBody(((WisdomOuterClass.GetMerkleTransactions) msg).toByteString())).build();
+        }
+        if (msg instanceof WisdomOuterClass.MerkleTransactions) {
+            builder.setCode(WisdomOuterClass.Code.MERKLE_TRANSACTIONS);
+            return sign(builder.setBody(((WisdomOuterClass.MerkleTransactions) msg).toByteString())).build();
+        }
         logger.error("cannot deduce message type " + msg.getClass().toString());
         builder.setCode(WisdomOuterClass.Code.NOTHING).setBody(WisdomOuterClass.Nothing.newBuilder().build().toByteString());
         return sign(builder).build();
@@ -504,11 +523,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     public String getNodePubKey() {
         return Peer.PROTOCOL_NAME + "://" +
-                        Hex.encodeHexString(self.peerID) +
-                        "@" + self.hostPort();
+                Hex.encodeHexString(self.peerID) +
+                "@" + self.hostPort();
     }
 
-    public String getIP(){
+    public String getIP() {
         InetAddress address = null;
         try {
             address = InetAddress.getLocalHost();
@@ -518,7 +537,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return Objects.requireNonNull(address).getHostAddress();
     }
 
-    public int getPort(){
+    public int getPort() {
         return self.port;
     }
 

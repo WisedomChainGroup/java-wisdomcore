@@ -127,12 +127,15 @@ public class Transaction {
     private byte[] transactionHash;
     private int fee;
     private int days;
+
     public void setTransactionHash(byte[] transactionHash) {
         this.transactionHash = transactionHash;
     }
+
     public void setFee(int fee) {
         this.fee = fee;
     }
+
     public void setDays(int days) {
         this.days = days;
     }
@@ -247,10 +250,10 @@ public class Transaction {
     }
 
     @JsonIgnore
-    public int getdays(){
+    public int getdays() {
         try {
-            if(type==Type.INCUBATE.ordinal()){
-                HatchModel.Payload payloadproto=HatchModel.Payload.parseFrom(payload);
+            if (type == Type.INCUBATE.ordinal()) {
+                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(payload);
                 return payloadproto.getType();
             }
         } catch (InvalidProtocolBufferException e) {
@@ -261,25 +264,24 @@ public class Transaction {
     }
 
 
-
-    public long getInterest(long height, RateTable rateTable,int days){
-        long interest=0;
-        if(type==Type.INCUBATE.ordinal()){
-            String rate=rateTable.selectrate(height,days);
-            BigDecimal amountbig=BigDecimal.valueOf(amount);
-            BigDecimal ratebig=new BigDecimal(rate);
-            BigDecimal onemut=amountbig.multiply(ratebig);
-            BigDecimal daysbig=BigDecimal.valueOf(days);
-            interest=daysbig.multiply(onemut).longValue();
+    public long getInterest(long height, RateTable rateTable, int days) {
+        long interest = 0;
+        if (type == Type.INCUBATE.ordinal()) {
+            String rate = rateTable.selectrate(height, days);
+            BigDecimal amountbig = BigDecimal.valueOf(amount);
+            BigDecimal ratebig = new BigDecimal(rate);
+            BigDecimal onemut = amountbig.multiply(ratebig);
+            BigDecimal daysbig = BigDecimal.valueOf(days);
+            interest = daysbig.multiply(onemut).longValue();
         }
         return interest;
     }
 
-    public long getShare(long height, RateTable rateTable,int days){
-        if(type==Type.INCUBATE.ordinal()){
-            long  rate=getInterest(height, rateTable,days);
-            BigDecimal ratebig=BigDecimal.valueOf(rate);
-            BigDecimal lvbig=BigDecimal.valueOf(0.1);
+    public long getShare(long height, RateTable rateTable, int days) {
+        if (type == Type.INCUBATE.ordinal()) {
+            long rate = getInterest(height, rateTable, days);
+            BigDecimal ratebig = BigDecimal.valueOf(rate);
+            BigDecimal lvbig = BigDecimal.valueOf(0.1);
             return ratebig.multiply(lvbig).longValue();
         }
         return 0;
@@ -313,49 +315,49 @@ public class Transaction {
         return Arrays.concatenate(new byte[]{(byte) version}, getHash(), Arrays.copyOfRange(raw, 1, raw.length));
     }
 
-    public static Transaction transformByte(byte[] msg){
-        Transaction transaction=new Transaction();
+    public static Transaction transformByte(byte[] msg) {
+        Transaction transaction = new Transaction();
         //version
         byte[] version = ByteUtil.bytearraycopy(msg, 0, 1);
-        transaction.version=version[0];
+        transaction.version = version[0];
         msg = ByteUtil.bytearraycopy(msg, 1, msg.length - 1);
         //hash
         byte[] hash = ByteUtil.bytearraycopy(msg, 0, 32);
         msg = ByteUtil.bytearraycopy(msg, 32, msg.length - 32);
         //type
         byte[] type = ByteUtil.bytearraycopy(msg, 0, 1);
-        transaction.type=type[0];
+        transaction.type = type[0];
         msg = ByteUtil.bytearraycopy(msg, 1, msg.length - 1);
         //nonce
         byte[] nonce = ByteUtil.bytearraycopy(msg, 0, 8);
-        transaction.nonce=BigEndian.decodeUint64(nonce);
+        transaction.nonce = BigEndian.decodeUint64(nonce);
         msg = ByteUtil.bytearraycopy(msg, 8, msg.length - 8);
         //fromx
         byte[] from = ByteUtil.bytearraycopy(msg, 0, 32);
-        transaction.from=from;
+        transaction.from = from;
         msg = ByteUtil.bytearraycopy(msg, 32, msg.length - 32);
         //gasprice
         byte[] gasprice = ByteUtil.bytearraycopy(msg, 0, 8);
-        transaction.gasPrice=BigEndian.decodeUint64(gasprice);
+        transaction.gasPrice = BigEndian.decodeUint64(gasprice);
         msg = ByteUtil.bytearraycopy(msg, 8, msg.length - 8);
         //amount
         byte[] amount = ByteUtil.bytearraycopy(msg, 0, 8);
-        transaction.amount=BigEndian.decodeUint64(amount);
+        transaction.amount = BigEndian.decodeUint64(amount);
         msg = ByteUtil.bytearraycopy(msg, 8, msg.length - 8);
         //sig
         byte[] sig = ByteUtil.bytearraycopy(msg, 0, 64);
-        transaction.signature=sig;
+        transaction.signature = sig;
         msg = ByteUtil.bytearraycopy(msg, 64, msg.length - 64);
         //to
         byte[] to = ByteUtil.bytearraycopy(msg, 0, 20);
-        transaction.to=to;
+        transaction.to = to;
         msg = ByteUtil.bytearraycopy(msg, 20, msg.length - 20);
         //payloadlen
         byte[] payloadlen = ByteUtil.bytearraycopy(msg, 0, 4);
         if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x03) {//孵化器、提取利息、提取分享、提取本金、存证
             msg = ByteUtil.bytearraycopy(msg, 4, msg.length - 4);
             byte[] payload = ByteUtil.bytearraycopy(msg, 0, ByteUtil.byteArrayToInt(payloadlen));
-            transaction.payload=payload;
+            transaction.payload = payload;
         }
         return transaction;
     }
@@ -428,6 +430,5 @@ public class Transaction {
         Transaction tx = new JSONEncodeDecoder().decodeTransaction(json.getBytes());
         System.out.println(tx.getHashHexString());
     }
-
 
 }
