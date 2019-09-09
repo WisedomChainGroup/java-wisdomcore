@@ -361,84 +361,37 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public synchronized void writeBlock(Block block) {
+    public synchronized boolean writeBlock(Block block) {
         Optional<Block> parent = Optional.ofNullable(block)
                 .flatMap(b -> blockChainOptional.getHeader(b.hashPrevBlock));
         if (!parent.isPresent()) {
             // cannot find parent, write fail
-            return;
+            return false;
         }
         Block parentHeader = parent.get();
 
-        // 单机挖矿时防止分叉
         if (blockChainOptional.hasBlock(block.getnHeight())
-                .orElse(true) && !allowFork) {
-            return;
+                .orElse(true)) {
+            return false;
         }
         long ptw = parentHeader.totalWeight;
         Optional<Block> current = blockChainOptional.currentHeader();
         Optional<Long> localTW = current.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));
-        long externalTW = block.weight + ptw;
-        block.totalWeight = externalTW;
+        block.totalWeight = block.weight + ptw;
 
-        Optional<Boolean> isNewHeadBlock = localTW.map(x -> externalTW > x);
-        Optional<Boolean> parentIsCurrent = current.
-                map(Block::getHash)
-                .flatMap(h ->
-                        Optional.ofNullable(parentHeader.getHash())
-                                .map(y -> Arrays.areEqual(h, y))
-                );
-        Optional<Boolean> refork = isNewHeadBlock
-                .flatMap(
-                        x -> parentIsCurrent.map(y -> x && !y)
-                );
-        Optional<Block> commonAncestor = current
-                .flatMap(c ->
-                        blockChainOptional.findCommonAncestorHeader(parentHeader, c)
-                );
-        Optional<List<Block>> canonicalHeaders = commonAncestor
-                .flatMap(a ->
-                        blockChainOptional.getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1)
-                );
-        if (!refork.isPresent()) {
-            return;
-        }
-        if (refork.get() && !canonicalHeaders.isPresent()) {
-            return;
-        }
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
                 writeTotalWeight(block.getHash(), block.totalWeight);
                 writeBody(block);
-                if (!isNewHeadBlock.get()) {
-                    return true;
-                }
-                if (!refork.get()) {
-                    setCanonical(block.getHash());
-                    return true;
-                }
-                // delete previous fork's canonical hash
-                deleteCanonicals(commonAncestor.get().nHeight + 1, current.get().nHeight);
-                List<byte[]> hashes = new ArrayList<>();
-                // update canonical headers
-                for (Block h : canonicalHeaders.get()) {
-                    hashes.add(h.getHash());
-                }
-                hashes.add(block.getHash());
-                setCanonicals(hashes);
+                setCanonical(block.getHash());
             } catch (Exception e) {
                 status.setRollbackOnly();
                 return false;
             }
             return true;
         });
-        if (Optional.ofNullable(result).orElse(false)) {
-            ctx.publishEvent(new NewBlockEvent(this, block));
-        }
-        if (Optional.ofNullable(result).map(r -> r && isNewHeadBlock.get()).orElse(false)) {
-            ctx.publishEvent(new NewBestBlockEvent(this, block));
-        }
+        return Optional.ofNullable(result).orElse(false);
     }
 
     @Override
@@ -499,6 +452,19 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
                 "inner join header as h on ti.block_hash = h.block_hash" +
                 " where tx.to = ? and h.is_canonical = true", new Object[]{pubKeyHash}, new TransactionMapper()));
+    }
+
+    @Override
+    public Block getLastConfirmedBlock() {
+        try {
+            Long height = tmpl.queryForObject("select a.blockheight from account a order by a.blockheight desc LIMIT 1", Long.class);
+            if (height == null) {
+                return null;
+            }
+            return getCanonicalBlock(height);
+        } catch (Exception e) {
+            return genesis;
+        }
     }
 
     @Async

@@ -21,16 +21,14 @@ package org.wisdom.service.Impl;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.core.TransactionPool;
 
+import org.wisdom.core.account.Account;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.AdoptTransPool;
-import org.wisdom.pool.PeningTransPool;
-import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.service.CommandService;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,19 +39,7 @@ import java.util.*;
 public class CommandServiceImpl implements CommandService {
 
     @Autowired
-    WisdomBlockChain wisdomBlockChain;
-
-    @Autowired
-    Configuration configuration;
-
-    @Autowired
     AccountDB accountDB;
-
-    @Autowired
-    IncubatorDB incubatorDB;
-
-    @Autowired
-    TransactionPool transactionPool;
 
     @Autowired
     RateTable rateTable;
@@ -62,28 +48,40 @@ public class CommandServiceImpl implements CommandService {
     AdoptTransPool adoptTransPool;
 
     @Autowired
-    PeningTransPool peningTransPool;
+    TransactionCheck transactionCheck;
+
+    @Autowired
+    Configuration configuration;
 
     @Override
     public APIResult verifyTransfer(byte[] transfer) {
         APIResult apiResult = new APIResult();
+        Transaction tran;
         try {
-            long nowheight = wisdomBlockChain.currentHeader().nHeight;
-            apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, true, true);
+            apiResult = transactionCheck.TransactionFormatCheck(transfer);
             if (apiResult.getCode() == 5000) {
                 return apiResult;
             }
+            tran= (Transaction) apiResult.getData();
+            Account account=accountDB.selectaccount(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from)));
+            apiResult=transactionCheck.TransactionVerify(tran,account);
+            if(apiResult.getCode() == 5000){
+                return apiResult;
+            }
+            //超过queued上限
+            int index=adoptTransPool.size();
+            if((index++)>configuration.getMaxqueued()){
+                apiResult.setCode(5000);
+                apiResult.setMessage("The node memory is full, please try again later");
+                return apiResult;
+            }
+            adoptTransPool.add(Collections.singletonList(tran));
+            apiResult.setData(tran);
         } catch (Exception e) {
-            e.printStackTrace();
             apiResult.setCode(5000);
             apiResult.setMessage("Exception error");
             return apiResult;
         }
-        ProtocolModel.Transaction tranproto = Transaction.changeProtobuf(transfer);
-        Transaction tran = Transaction.fromProto(tranproto);
-        adoptTransPool.add(Collections.singletonList(tran));
-//        transactionPool.add(tran);
-        apiResult.setData(tran);
         return apiResult;
     }
 

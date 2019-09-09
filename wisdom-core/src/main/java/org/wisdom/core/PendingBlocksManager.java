@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.StateDB;
 
 import java.util.List;
 
@@ -35,6 +36,9 @@ public class PendingBlocksManager {
     private WisdomBlockChain bc;
 
     @Autowired
+    private StateDB stateDB;
+
+    @Autowired
     private CompositeBlockRule rule;
 
     private Logger logger = LoggerFactory.getLogger(PendingBlocksManager.class);
@@ -42,13 +46,13 @@ public class PendingBlocksManager {
     // 区块的写入全部走这里
     @Async
     public void addPendingBlocks(BlocksCache cache) {
-        for(List<Block> chain: cache.popLongestChains()){
+        for (List<Block> chain : cache.popLongestChains()) {
             if (chainHasWritten(chain)) {
                 continue;
             }
             logger.info("try to write blocks to local storage, size = " + chain.size());
             for (Block b : chain) {
-                if(bc.hasBlock(b.getHash())){
+                if (stateDB.hasBlock(b.getHash())) {
                     logger.info("the block has written");
                     continue;
                 }
@@ -58,15 +62,16 @@ public class PendingBlocksManager {
                     return;
                 }
                 b.weight = 1;
-                bc.writeBlock(b);
+                stateDB.writeBlock(b);
             }
         }
     }
 
-    private boolean chainHasWritten(List<Block> chain){
-        if(chain == null || chain.size() == 0){
+    private boolean chainHasWritten(List<Block> chain) {
+        if (chain == null || chain.size() == 0) {
             return true;
         }
-        return bc.hasBlock(chain.get(chain.size() - 1).getHash());
+        byte[] hash = chain.get(chain.size() - 1).getHash();
+        return stateDB.hasBlock(hash) || bc.hasBlock(hash);
     }
 }

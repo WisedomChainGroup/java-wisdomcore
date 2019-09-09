@@ -26,10 +26,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.StateDB;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -42,6 +44,9 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     @Autowired
     private WisdomBlockChain bc;
+
+    @Autowired
+    private StateDB stateDB;
 
     @Autowired
     private PendingBlocksManager pool;
@@ -57,7 +62,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     private boolean isOrphan(Block block) {
-        return !bc.hasBlock(block.hashPrevBlock);
+        return !stateDB.hasBlock(block.hashPrevBlock);
     }
 
     private void addBlock(Block block) {
@@ -66,7 +71,11 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     // remove orphans return writable blocks，过滤掉孤块
     public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
-        BlocksCache cache = new BlocksCache(blocks);
+        Block lastConfirmed = stateDB.getLastConfirmed();
+        BlocksCache cache = new BlocksCache(blocks.stream()
+                .filter(b -> b.nHeight > lastConfirmed.nHeight)
+                .collect(Collectors.toList())
+        );
         BlocksCache res = new BlocksCache();
         Block best = bc.currentHeader();
         for (Block init : cache.getInitials()) {

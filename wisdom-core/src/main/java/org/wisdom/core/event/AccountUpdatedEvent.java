@@ -18,22 +18,28 @@
 
 package org.wisdom.core.event;
 
-import org.wisdom.core.Block;
 import org.springframework.context.ApplicationEvent;
+import org.wisdom.core.Block;
 
 public class AccountUpdatedEvent extends ApplicationEvent {
-    private Block bestBlock;
+
+    private Block block;
+
     /**
      * Create a new ApplicationEvent.
      *
      * @param source the object on which the event initially occurred (never {@code null})
      */
-    public AccountUpdatedEvent(Object source, Block bestBlock) {
+    public AccountUpdatedEvent(Object source, Block block) {
         super(source);
-        this.bestBlock = bestBlock;
+        this.block = block;
     }
 
-    public Block getBestBlock() {
-        return bestBlock;
+    public Block getBlock() {
+        return block;
+    }
+
+    public void setBlock(Block block) {
+        this.block = block;
     }
 }

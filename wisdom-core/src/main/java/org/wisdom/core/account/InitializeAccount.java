@@ -3,12 +3,10 @@ package org.wisdom.core.account;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
 
 import java.io.*;
 

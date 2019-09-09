@@ -27,17 +27,20 @@ import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.consensus.pow.ValidatorStateFactory;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.StateDB;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.PeningTransPool;
 
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 // 账户规则校验
 // 1. 一个区块内一个只能有一个 from 的事务
@@ -67,14 +70,21 @@ public class AccountRule implements BlockRule {
     @Autowired
     PeningTransPool peningTransPool;
 
-    private boolean validateIncubator;
+    @Autowired
+    StateDB stateDB;
 
+    @Autowired
+    TransactionCheck transactionCheck;
+
+    private boolean validateIncubator;
 
     @Override
     public Result validateBlock(Block block) {
         Set<String> froms = new HashSet<>();
+        byte[] parenthash=block.hashPrevBlock;
+        List<byte[]> pubhashlist=block.getFromhashList(block);
+        Map<String,AccountState> map=stateDB.getAccounts(parenthash,pubhashlist);
         if (block.nHeight > 30800) {
-            long nowheight = wisdomBlockChain.currentHeader().nHeight;
             for (Transaction tx : block.body) {
                 String key = encoder.encodeToString(tx.from);
                 if (froms.contains(key)) {
@@ -84,15 +94,58 @@ public class AccountRule implements BlockRule {
                 if (!validateIncubator) {
                     continue;
                 }
-                // 校验转账事务
+                // 校验事务
                 if (tx.type != Transaction.Type.COINBASE.ordinal()) {
-                    byte[] transfer = tx.toRPCBytes();
-                    APIResult apiResult = TransactionCheck.TransactionVerifyResult(transfer, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, false, false);
-                    if (apiResult.getCode() == 5000) {
-                        String keys = peningTransPool.getKeyTrans(tx);
-                        String fromhex=Hex.encodeHexString(tx.from);
-                        peningTransPool.removeOne(keys,fromhex,tx.nonce);
+                    byte[] pubkeyhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+                    String publichash=Hex.encodeHexString(pubkeyhash);
+                    //校验格式
+                    APIResult apiResult=transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
+                    if(apiResult.getCode()==5000){
+                        peningTransPool.removeOne(publichash,tx.nonce);
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
+                    }
+                    AccountState accountState;
+                    if(map.containsKey(publichash)){
+                        accountState=map.get(publichash);
+                    }else{
+                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from！" );
+                    }
+                    Account account=accountState.getAccount();
+                    //数据校验
+                    apiResult=transactionCheck.TransactionVerify(tx,account);
+                    if(apiResult.getCode()==5000){
+                        peningTransPool.removeOne(publichash,tx.nonce);
+                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
+                    }
+                    //更新Account账户
+                    if(tx.type==Transaction.Type.TRANSFER.ordinal()){//转账
+                        long balance=account.getBalance();
+                        balance-=tx.amount;
+                        balance-=tx.getFee();
+                        account.setBalance(balance);
+                        accountState.setAccount(account);
+                        map.put(publichash,accountState);
+
+                        //to
+                        AccountState toaccountState;
+                        Account toaccount;
+                        String tohash=Hex.encodeHexString(tx.to);
+                        if(map.containsKey(tohash)){
+                            toaccountState=map.get(tohash);
+                            toaccount=toaccountState.getAccount();
+                        }else{
+                            toaccountState=new AccountState();
+                            toaccount=new Account(0,tx.to,0,0,0,0,0);
+                        }
+                        long tobalance=toaccount.getBalance();
+                        tobalance+=tx.amount;
+                        toaccount.setBalance(tobalance);
+                        toaccountState.setAccount(toaccount);
+                        map.put(tohash,toaccountState);
+                    }else {//其他事务
+                        account=updateAccount(account,tx);
+                        accountState.setAccount(account);
+                        map.put(publichash,accountState);
                     }
                 }
             }
@@ -114,5 +167,29 @@ public class AccountRule implements BlockRule {
 
     public AccountRule(@Value("${node-character}") String character) {
         this.validateIncubator = !character.equals("exchange");
+    }
+
+    public Account updateAccount(Account account,Transaction tx) {
+        long balance = account.getBalance();
+        if (tx.type == 3) {//存证事务,只需要扣除手续费
+            balance -= tx.getFee();
+        } else if (tx.type == 9) {//孵化事务
+            balance -= tx.getFee();
+            balance -= tx.amount;
+            long incubatecost = account.getIncubatecost();
+            incubatecost += tx.amount;
+            account.setIncubatecost(incubatecost);
+        } else if (tx.type == 10 || tx.type == 11) {//提取利息、分享
+            balance -= tx.getFee();
+            balance += tx.amount;
+        } else if (tx.type == 12) {//本金
+            balance -= tx.getFee();
+            balance += tx.amount;
+            long incubatecost = account.getIncubatecost();
+            incubatecost -= tx.amount;
+            account.setIncubatecost(incubatecost);
+        }
+        account.setBalance(balance);
+        return account;
     }
 }

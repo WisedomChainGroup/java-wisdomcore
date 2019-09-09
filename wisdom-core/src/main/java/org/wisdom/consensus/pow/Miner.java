@@ -21,9 +21,8 @@ package org.wisdom.consensus.pow;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.crypto.HashUtil;
-import org.wisdom.core.TransactionPool;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
-import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
@@ -39,6 +38,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.pool.PeningTransPool;
 
 import java.util.*;
@@ -49,25 +49,26 @@ public class Miner implements ApplicationListener {
     private static final Logger logger = LoggerFactory.getLogger(Miner.class);
     private static final int MAX_CACHE_SIZE = 1000;
 
+
     @Autowired
     private ConsensusConfig consensusConfig;
 
     private volatile MineThread thread;
 
     @Autowired
-    private ApplicationContext ctx;
+    private JSONEncodeDecoder codec;
 
     @Autowired
-    private JSONEncodeDecoder jsonEncodeDecoder;
+    private ApplicationContext ctx;
 
     @Autowired
     private WisdomBlockChain bc;
 
     @Autowired
-    private TargetStateFactory targetStateFactory;
+    private StateDB stateDB;
 
     @Autowired
-    private TransactionPool txPool;
+    private TargetStateFactory targetStateFactory;
 
     @Autowired
     private PendingBlocksManager pendingBlocksManager;
@@ -84,6 +85,10 @@ public class Miner implements ApplicationListener {
     @Autowired
     PeningTransPool peningTransPool;
 
+    @Autowired
+    PackageMiner packageMiner;
+
+
     public Miner() {
     }
 
@@ -95,7 +100,7 @@ public class Miner implements ApplicationListener {
     }
 
     private Block createBlock() throws Exception {
-        Block parent = bc.currentBlock();
+        Block parent = stateDB.getBestBlock();
         Block block = new Block();
         block.nVersion = parent.nVersion;
         block.hashPrevBlock = parent.getHash();
@@ -112,23 +117,9 @@ public class Miner implements ApplicationListener {
 
         block.body.get(0).nonce = nonce + 1;
 
-        // 防止 account 重复
-        Set<String> hasValidated = new HashSet<>();
-        List<Transaction> notWrittern = new ArrayList<>();
-        for (Transaction tx : peningTransPool.compare()) {
-            if (hasValidated.contains(Hex.encodeHexString(tx.from))) {
-                continue;
-            }
-            hasValidated.add(Hex.encodeHexString(tx.from));
-            // 校验需要事务
-            tx.height = block.nHeight;
-            // 防止写入重复的事务
-            if (bc.hasTransaction(tx.getHash())) {
-                continue;
-            }
-            // nonce 校验
-            notWrittern.add(tx);
-        }
+        //打包事务
+        List<Transaction> notWrittern = packageMiner.TransferCheck(parent.getHash(), block.nHeight, block);
+
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
         for (Transaction tx : newTranList) {
@@ -160,19 +151,21 @@ public class Miner implements ApplicationListener {
         if (!consensusConfig.isEnableMining()) {
             return;
         }
-        Block bestBlock = bc.currentBlock();
+        Block bestBlock = stateDB.getBestBlock();
         // 判断是否轮到自己出块
         Optional<Proposer> p = consensusConfig.getProposer(bestBlock, System.currentTimeMillis() / 1000);
-        p.map(x -> x.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash()) ? x : null)
-                .ifPresent(proposer -> {
-                    try {
-                        Block b = createBlock();
-                        thread = ctx.getBean(MineThread.class);
-                        thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+        p.ifPresent(proposer -> {
+            if (!proposer.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
+                return;
+            }
+            try {
+                Block b = createBlock();
+                thread = ctx.getBean(MineThread.class);
+                thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override

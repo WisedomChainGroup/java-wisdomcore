@@ -13,6 +13,7 @@ import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
+import org.wisdom.db.StateDB;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.service.Impl.CommandServiceImpl;
@@ -54,6 +55,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     @Autowired
     private BasicRule rule;
+
+    @Autowired
+    private StateDB stateDB;
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
@@ -118,7 +122,12 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
-        List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        List<Block> blocksToSend;
+        if (server.getBootstraps().contains(context.getPayload().getRemote())) {
+            blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        } else {
+            blocksToSend = bc.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        }
         if (blocksToSend != null && blocksToSend.size() > 0) {
             Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
             context.response(resp);
@@ -146,7 +155,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
 
         // 拉黑创世区块不相同的节点
         if (!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())) {
@@ -175,7 +184,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onGetStatus(Context context, PeerServer server) {
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         Object resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
                 .setCurrentHeight(best.nHeight)

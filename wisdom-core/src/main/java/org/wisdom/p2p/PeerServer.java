@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * @author sal 1564319846@qq.com
@@ -210,6 +211,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }
     }
 
+    public Set<Peer> getBootstraps(){
+        return new HashSet<>(bootstrapPeers.values());
+    }
+
     public Peer getSelf() {
         return self;
     }
@@ -297,13 +302,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
-                logger.error(t.toString());
-                logger.error("cannot connect to peer " + peer.toString() + " half its score");
                 int k = self.subTree(peer);
                 Peer p = peers.get(k);
                 if (p != null && p.equals(peer)) {
                     p.score /= 2;
                     if (p.score == 0) {
+                        logger.error("cannot connect to peer " + peer.toString() + " remove it");
                         removePeer(p);
                     }
                 }

@@ -21,6 +21,7 @@ package org.wisdom.consensus.pow;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.state.StateFactory;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.StateDB;
 
 import javax.annotation.PostConstruct;
 
@@ -28,12 +29,12 @@ import javax.annotation.PostConstruct;
 public class ValidatorStateFactory extends StateFactory<ValidatorState> {
     private static final int cacheSize = 512;
 
-    public ValidatorStateFactory(WisdomBlockChain blockChain, ValidatorState genesisState) {
-        super(blockChain, cacheSize, genesisState);
+    public ValidatorStateFactory(StateDB stateDB, WisdomBlockChain blockChain, ValidatorState genesisState) {
+        super(stateDB, blockChain, cacheSize, genesisState);
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         super.initCache();
     }
 }

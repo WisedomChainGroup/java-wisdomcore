@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -61,6 +62,27 @@ public class IncubatorDB {
         }
     }
 
+    public List<Incubator> selectList(byte[] pubkeyhash){
+        try {
+            String sql = "select * from incubator_state s,(\n" +
+                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.pubkeyhash=? group by i.txid_issue)as a\n" +
+                    "where s.txid_issue=a.txid_issue and s.height=a.height";
+            return tmpl.query(sql, new Object[]{pubkeyhash}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return new ArrayList<Incubator>();
+        }
+    }
+
+    public List<Incubator> selectShareList(byte[] pubkeyhash){
+        try {
+            String sql = "select * from incubator_state s,(\n" +
+                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.pubkeyhash=? group by i.txid_issue)as a\n" +
+                    "where s.txid_issue=a.txid_issue and s.height=a.height";
+            return tmpl.query(sql, new Object[]{pubkeyhash}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return new ArrayList<Incubator>();
+        }
+    }
 
     public int insertIncubator(Incubator incubator) {
         try {

@@ -19,6 +19,7 @@
 package org.wisdom.core;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.logging.log4j.util.PropertySource;
 
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -34,6 +35,12 @@ public class BlocksCache {
     private Map<Long, Set<String>> heightIndex;
     private Map<String, String> parentIndex;
     private ReadWriteLock readWriteLock;
+    private int sizeLimit;
+
+    public BlocksCache(int sizeLimit) {
+        this();
+        this.sizeLimit = sizeLimit;
+    }
 
     public BlocksCache() {
         this.blocks = new HashMap<>();
@@ -46,6 +53,15 @@ public class BlocksCache {
     public BlocksCache(List<Block> blocks) {
         this();
         addBlocks(blocks);
+    }
+
+    public Block getBlock(byte[] hash) {
+        readWriteLock.readLock().lock();
+        try {
+            return blocks.get(Hex.encodeHexString(hash));
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
     }
 
     private List<Block> getBlocks(Set<String> hashes) {
@@ -156,8 +172,14 @@ public class BlocksCache {
         if (childrenHashes.containsKey(prevHash)) {
             childrenHashes.get(prevHash).remove(bHash);
         }
+        if (childrenHashes.containsKey(prevHash) && childrenHashes.get(prevHash).size() == 0) {
+            childrenHashes.remove(prevHash);
+        }
         if (heightIndex.containsKey(b.nHeight)) {
             heightIndex.get(b.nHeight).remove(bHash);
+        }
+        if (heightIndex.containsKey(b.nHeight) && heightIndex.get(b.nHeight).size() == 0) {
+            heightIndex.remove(b.nHeight);
         }
         parentIndex.remove(bHash);
     }
@@ -231,6 +253,12 @@ public class BlocksCache {
         for (Block b : blocks) {
             if (b == null) {
                 continue;
+            }
+            while (sizeLimit != 0 && this.blocks.size() > sizeLimit) {
+                this.blocks.values()
+                        .stream()
+                        .min(Comparator.comparingLong(Block::getnHeight))
+                        .ifPresent(this::deleteBlockUnsafe);
             }
             String key = b.getHashHexString();
             if (this.blocks.containsKey(key)) {
@@ -333,6 +361,33 @@ public class BlocksCache {
         }
         keys.remove(bkey);
         return getBlocks(keys);
+    }
+
+    private Block getAncestorUnsafe(String bkey, long height) {
+        for (String key = bkey; key != null; key = parentIndex.get(key)) {
+            Block b = blocks.get(key);
+            if (b.nHeight == height) {
+                return b;
+            }
+        }
+        return null;
+    }
+
+    public Block getAncestor(Block b, long height) {
+        String bkey = b.getHashHexString();
+        String bparentKey = Hex.encodeHexString(b.hashPrevBlock);
+        this.readWriteLock.readLock().lock();
+        try {
+            if (blocks.containsKey(bkey)) {
+                return getAncestorUnsafe(bkey, height);
+            }
+            if (blocks.containsKey(bparentKey)) {
+                return getAncestorUnsafe(bparentKey, height);
+            }
+            return null;
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
     public List<Block> getAncestors(Block b) {

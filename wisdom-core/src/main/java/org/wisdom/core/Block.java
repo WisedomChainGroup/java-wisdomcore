@@ -26,6 +26,8 @@ import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.merkletree.MerkleTree;
 import org.wisdom.protobuf.tcp.ProtocolModel;
@@ -49,6 +51,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
+
+import static java.util.stream.Collectors.toList;
 
 @Component
 public class Block {
@@ -358,5 +362,13 @@ public class Block {
         h.nNonce = nNonce;
         h.blockNotice = blockNotice;
         return h;
+    }
+
+    public List<byte[]> getFromhashList(Block block){
+        List<Transaction> transactionList=block.body;
+        return transactionList.stream()
+                .filter(tx -> tx.type!=0)
+                .map(tx -> RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)))
+                .collect(toList());
     }
 }

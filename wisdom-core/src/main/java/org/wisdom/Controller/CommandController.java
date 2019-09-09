@@ -21,6 +21,7 @@ package org.wisdom.Controller;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.ipc.IpcConfig;
 import org.wisdom.service.CommandService;
@@ -66,6 +67,9 @@ public class CommandController {
 
     @Autowired
     RPCClient RPCClient;
+
+    @Autowired
+    private StateDB stateDB;
 
     @Autowired
     private TransactionHandler transactionHandler;
@@ -138,7 +142,7 @@ public class CommandController {
         try {
             int height = Integer.parseInt(id);
             if (height < 0) {
-                b = bc.currentBlock();
+                b = stateDB.getBestBlock();
             } else {
                 b = bc.getCanonicalBlock(height);
             }

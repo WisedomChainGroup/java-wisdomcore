@@ -22,6 +22,7 @@ import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.wisdom.db.StateDB;
 
 import java.util.List;
 
@@ -35,8 +36,8 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
 
     private T genesisState;
 
-    public StateFactory(WisdomBlockChain blockChain, int cacheSize, T genesisState) {
-        super(blockChain, cacheSize);
+    public StateFactory(StateDB stateDB, WisdomBlockChain blockChain, int cacheSize, T genesisState) {
+        super(stateDB, blockChain, cacheSize);
         this.genesisState = genesisState;
     }
 
@@ -48,7 +49,7 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
         if (cache.containsKey(key)) {
             return (T) cache.get(key);
         }
-        Block parent = blockChain.getBlock(block.hashPrevBlock);
+        Block parent = stateDB.getBlock(block.hashPrevBlock);
         T parentState = getFromCache(parent);
         T newState = (T) (parentState.copy().updateBlock(block));
         cache.put(key, newState);
@@ -56,7 +57,7 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
     }
 
     public T getInstance(Block block) {
-        if (block == null || !blockChain.hasBlock(block.getHash())) {
+        if (block == null || !stateDB.hasBlock(block.getHash())) {
             return null;
         }
         if (block.nHeight == 0) {

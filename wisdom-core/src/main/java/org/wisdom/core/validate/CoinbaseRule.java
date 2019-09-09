@@ -21,6 +21,7 @@ package org.wisdom.core.validate;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.ValidatorStateFactory;
+import org.wisdom.db.StateDB;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -38,6 +39,9 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
     @Autowired
     private WisdomBlockChain bc;
 
+    @Autowired
+    private StateDB stateDB;
+
     @Override
     public Result validateBlock(Block block) {
 
@@ -49,7 +53,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         if (coinbase.type != Transaction.Type.COINBASE.ordinal()) {
             return Result.Error("the first transaction of block body must be coin base");
         }
-        Block parent = bc.getBlock(block.hashPrevBlock);
+        Block parent = stateDB.getBlock(block.hashPrevBlock);
         if (parent == null) {
             return Result.Error("cannot find parent" + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
         }

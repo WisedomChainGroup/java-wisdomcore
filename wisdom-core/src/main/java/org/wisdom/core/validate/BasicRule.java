@@ -23,6 +23,7 @@ import org.bouncycastle.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.Block;
