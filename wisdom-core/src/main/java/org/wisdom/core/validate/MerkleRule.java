@@ -23,8 +23,11 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
+import org.wisdom.core.Block;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.protobuf.tcp.command.HatchModel;
@@ -42,7 +45,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 @Component
-public class MerkleRule {
+public class MerkleRule implements BlockRule {
 
     private static final Logger logger = LoggerFactory.getLogger(MerkleRule.class);
 
@@ -60,6 +63,40 @@ public class MerkleRule {
 
     @Autowired
     Configuration configuration;
+
+    private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
+
+    private boolean validateIncubator;
+
+    public MerkleRule(@Value("${node-character}") String character) {
+        this.validateIncubator = !character.equals("exchange");
+    }
+
+    @Override
+    public Result validateBlock(Block block) {
+        // 梅克尔根校验
+        if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
+            return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
+        }
+        try {
+            Map<String, Object> merklemap = validateMerkle(block.body, block.nHeight);
+            List<Account> accountList = (List<Account>) merklemap.get("account");
+            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
+            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
+                return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
+            }
+            // 交易所不校验孵化状态
+            if (!validateIncubator) {
+                return Result.SUCCESS;
+            }
+            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
+                return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
+            }
+        } catch (Exception e) {
+            return Result.Error("error occurs when validate merle hash");
+        }
+        return Result.SUCCESS;
+    }
 
     public Map<String, Object> validateMerkle(List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
         Map<String, Account> accmap = new HashMap<>();
