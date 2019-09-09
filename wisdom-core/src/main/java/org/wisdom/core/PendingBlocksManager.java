@@ -19,6 +19,7 @@
 package org.wisdom.core;
 
 import org.wisdom.core.validate.CompositeBlockRule;
+import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.wisdom.db.StateDB;
+import org.wisdom.merkletree.MerkleTreeManager;
 
 import java.util.List;
 
@@ -41,7 +43,13 @@ public class PendingBlocksManager {
     @Autowired
     private CompositeBlockRule rule;
 
+    @Autowired
+    private MerkleRule merkleRule;
+
     private Logger logger = LoggerFactory.getLogger(PendingBlocksManager.class);
+
+    @Autowired
+    private MerkleTreeManager merkleTreeManager;
 
     // 区块的写入全部走这里
     @Async
@@ -59,6 +67,11 @@ public class PendingBlocksManager {
                 Result res = rule.validateBlock(b);
                 if (!res.isSuccess()) {
                     logger.error("validate the block fail error = " + res.getMessage());
+                    return;
+                }
+                Result result = merkleRule.validateBlock(b);
+                if (!result.isSuccess()) {
+                    merkleTreeManager.writeBlockToCache(b);
                     return;
                 }
                 b.weight = 1;

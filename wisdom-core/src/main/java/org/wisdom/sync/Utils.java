@@ -3,6 +3,7 @@ package org.wisdom.sync;
 import com.google.protobuf.ByteString;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.merkletree.TreeNode;
 import org.wisdom.p2p.WisdomOuterClass;
 
 import java.util.ArrayList;
@@ -24,9 +25,9 @@ public class Utils {
         return t;
     }
 
-    public static List<Block> parseBlocks(List<WisdomOuterClass.Block> bks){
+    public static List<Block> parseBlocks(List<WisdomOuterClass.Block> bks) {
         List<Block> res = new ArrayList<>();
-        for(WisdomOuterClass.Block bk: bks){
+        for (WisdomOuterClass.Block bk : bks) {
             res.add(parseBlock(bk));
         }
         return res;
@@ -104,4 +105,49 @@ public class Utils {
         }
         return res;
     }
+
+    public static TreeNode parseTreeNode(WisdomOuterClass.TreeNode tn) {
+        TreeNode treeNode = new TreeNode();
+        treeNode.setData(tn.getData());
+        treeNode.setHash(tn.getHash());
+        byte level = (byte) (tn.getLevel() & 0xff);
+        treeNode.setLevel(level);
+        treeNode.setName(tn.getName());
+        treeNode.setIndex(tn.getIndex());
+        return treeNode;
+    }
+
+    public static List<TreeNode> parseTreeNodes(List<WisdomOuterClass.TreeNode> wts) {
+        List<TreeNode> treeNodes = new ArrayList<>();
+        for (WisdomOuterClass.TreeNode treeNode : wts) {
+            treeNodes.add(parseTreeNode(treeNode));
+        }
+        return treeNodes;
+    }
+
+    public static WisdomOuterClass.TreeNode encodeTreeNode(TreeNode treeNode) {
+        WisdomOuterClass.TreeNode.Builder bd = WisdomOuterClass.TreeNode.newBuilder()
+                .setData(treeNode.getData())
+                .setHash(treeNode.getHash())
+                .setName(treeNode.getName())
+                .setLevel(treeNode.getLevel())
+                .setIndex(treeNode.getIndex());
+        return bd.build();
+    }
+
+    public static List<WisdomOuterClass.TreeNode> encodeTreeNodes(List<TreeNode> treeNodes) {
+        List<WisdomOuterClass.TreeNode> res = new ArrayList<>();
+        for (TreeNode treeNode : treeNodes) {
+            res.add(encodeTreeNode(treeNode));
+        }
+        return res;
+    }
+
+    public static WisdomOuterClass.MerkleTransaction encodeMerkleTransaction(Transaction transaction, int index){
+        WisdomOuterClass.MerkleTransaction.Builder bd = WisdomOuterClass.MerkleTransaction.newBuilder()
+                .setTransaction(encodeTransaction(transaction))
+                .setIndex(index);
+        return bd.build();
+    }
+
 }

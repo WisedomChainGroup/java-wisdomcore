@@ -30,6 +30,7 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.merkletree.MerkleTree;
+import org.wisdom.merkletree.TreeNode;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Account;
@@ -46,9 +47,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -371,4 +370,21 @@ public class Block {
                 .map(tx -> RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)))
                 .collect(toList());
     }
+
+    public static List<TreeNode> getMerkleTreeNode(List<Transaction> txs, Byte level) {
+        List<String> hashes = new ArrayList<>();
+        for (Transaction tx : txs) {
+            hashes.add(tx.getHashHexString());
+        }
+        return new MerkleTree(hashes).getLevelList(level);
+    }
+
+    public static int getMerkleRootLevel(List<Transaction> txs){
+        List<String> hashes = new ArrayList<>();
+        for (Transaction tx : txs) {
+            hashes.add(tx.getHashHexString());
+        }
+        return new MerkleTree(hashes).getLevelSize();
+    }
+
 }
