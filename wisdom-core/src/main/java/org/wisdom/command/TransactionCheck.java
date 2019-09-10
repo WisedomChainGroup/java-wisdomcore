@@ -136,7 +136,7 @@ public class TransactionCheck {
                 return apiResult;
             }
             //toaddress
-            if (type[0] != 0x03) {//存证
+            if (type[0] == 0x03) {//存证
                 if(!Arrays.equals(new byte[20],topubkeyhash)){
                     apiResult.setCode(5000);
                     apiResult.setMessage("The depository transaction to is not empty");
