@@ -1,12 +1,17 @@
 package org.wisdom.merkletree;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.p2p.WisdomOuterClass;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class MerkleTreeManager {
@@ -15,6 +20,9 @@ public class MerkleTreeManager {
 
     @Autowired
     private ApplicationContext ctx;
+
+    @Autowired
+    private WisdomBlockChain bc;
 
     public MerkleTreeManager() {
         this.cache = new MerkleTreeCache();
@@ -42,6 +50,22 @@ public class MerkleTreeManager {
 
     public Block getCacheBlock(String blockHash) {
         return cache.getCacheBlock(blockHash);
+    }
+
+    @Scheduled(cron = "0 0 0/1 * * ?")
+    public void clearMerkleCache() {
+        Map<String, Block> maps = cache.getCacheBlocks();
+        for (Map.Entry<String, Block> entry : maps.entrySet()) {
+            String blockHash = entry.getKey();
+            try {
+                boolean exist = bc.hasBlock(Hex.decodeHex(blockHash.toCharArray()));
+                if (exist) {
+                    cache.removeBlock(blockHash);
+                }
+            } catch (DecoderException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }

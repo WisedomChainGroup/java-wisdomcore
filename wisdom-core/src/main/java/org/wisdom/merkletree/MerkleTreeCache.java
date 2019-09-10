@@ -63,6 +63,7 @@ public class MerkleTreeCache {
         this.blocks.remove(blockHash);
     }
 
+    // deep copy replace
     public Block replaceTransaction(String blockHash, List<WisdomOuterClass.MerkleTransaction> trans) {
         this.readWriteLock.writeLock().lock();
         Block block = replaceTransactionUnsafe(blockHash, trans);
@@ -71,7 +72,7 @@ public class MerkleTreeCache {
     }
 
     private Block replaceTransactionUnsafe(String blockHash, List<WisdomOuterClass.MerkleTransaction> trans) {
-        Block block = this.blocks.get(blockHash);
+        Block block = Block.deepCopy(this.blocks.get(blockHash));
         for (WisdomOuterClass.MerkleTransaction wm : trans) {
             block.body.set(wm.getIndex(), Utils.parseTransaction(wm.getTransaction()));
         }
@@ -90,6 +91,10 @@ public class MerkleTreeCache {
             return blocks.get(blockHash);
         }
         return null;
+    }
+
+    public Map<String, Block> getCacheBlocks() {
+        return blocks;
     }
 
 }

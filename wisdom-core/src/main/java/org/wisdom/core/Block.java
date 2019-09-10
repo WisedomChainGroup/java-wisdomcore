@@ -85,6 +85,28 @@ public class Block {
                 });
     }
 
+    public static Block deepCopy(Block b) {
+        Block block = new Block();
+        block.body = b.body;
+        block.blockHash = b.blockHash;
+        block.blockNotice = b.blockNotice;
+        block.nHeight = b.nHeight;
+        block.hashMerkleIncubate = b.hashMerkleIncubate;
+        block.blockSize = b.blockSize;
+        block.weight = b.weight;
+        block.hashCache = b.hashCache;
+        block.hashHexCache = b.hashHexCache;
+        block.hashPrevBlock = b.hashPrevBlock;
+        block.hashMerkleRoot = b.hashMerkleRoot;
+        block.hashMerkleState = b.hashMerkleState;
+        block.nBits = b.nBits;
+        block.nNonce = b.nNonce;
+        block.nTime = b.nTime;
+        block.nVersion = b.nVersion;
+        block.totalWeight = b.totalWeight;
+        return block;
+    }
+
     public static byte[] calculateMerkleRoot(List<Transaction> txs) {
         List<String> hashes = new ArrayList<>();
         for (Transaction tx : txs) {
@@ -363,10 +385,10 @@ public class Block {
         return h;
     }
 
-    public List<byte[]> getFromhashList(Block block){
-        List<Transaction> transactionList=block.body;
+    public List<byte[]> getFromhashList(Block block) {
+        List<Transaction> transactionList = block.body;
         return transactionList.stream()
-                .filter(tx -> tx.type!=0)
+                .filter(tx -> tx.type != 0)
                 .map(tx -> RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)))
                 .collect(toList());
     }
@@ -379,7 +401,7 @@ public class Block {
         return new MerkleTree(hashes).getLevelList(level);
     }
 
-    public static int getMerkleRootLevel(List<Transaction> txs){
+    public static int getMerkleRootLevel(List<Transaction> txs) {
         List<String> hashes = new ArrayList<>();
         for (Transaction tx : txs) {
             hashes.add(tx.getHashHexString());

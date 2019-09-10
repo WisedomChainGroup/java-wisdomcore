@@ -6,16 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
-import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.validate.BasicRule;
+import org.wisdom.core.validate.CompositeBlockRule;
+import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.db.StateDB;
-import org.wisdom.ipc.Fifo;
 import org.wisdom.merkletree.MerkleMessageEvent;
 import org.wisdom.merkletree.MerkleTree;
 import org.wisdom.merkletree.MerkleTreeManager;
@@ -37,7 +35,10 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     private MerkleTreeManager merkleTreeManager;
 
     @Autowired
-    private BasicRule basicRule;
+    private CompositeBlockRule compositeBlockRule;
+
+    @Autowired
+    private MerkleRule merkleRule;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -93,8 +94,16 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
 
     private void replaceTrans(byte[] blockHash, List<WisdomOuterClass.MerkleTransaction> wms) {
         Block block = merkleTreeManager.replaceTransaction(Hex.encodeHexString(blockHash), wms);
-        Result res = basicRule.validateBlock(block);
+        Result res = compositeBlockRule.validateBlock(block);
         if (!res.isSuccess()) {
+            Block b = merkleTreeManager.getCacheBlock(Hex.encodeHexString(blockHash));
+            if (b != null) {
+                getRootTreeNodes(b);
+            }
+            return;
+        }
+        Result result = merkleRule.validateBlock(block);
+        if (!result.isSuccess()) {
             Block b = merkleTreeManager.getCacheBlock(Hex.encodeHexString(blockHash));
             if (b != null) {
                 getRootTreeNodes(b);
@@ -245,6 +254,9 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         }
         List<Peer> ps = server.getPeers();
         if (ps == null || ps.size() == 0) {
+            return;
+        }
+        if (block == null) {
             return;
         }
         List<Transaction> txs = block.body;
