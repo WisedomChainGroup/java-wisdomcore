@@ -54,37 +54,44 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        Map<String, List<TransPool>> map = adoptTransPool.getqueuedtopending();
-        IdentityHashMap<String, String> maps = new IdentityHashMap<>();
-        List<TransPool> newlist = new ArrayList<>();
-        int index = peningTransPool.size();
-        boolean state = false;
-        for (Map.Entry<String, List<TransPool>> entry : map.entrySet()) {
-            //判断pendingnonce是否存在 状态不为2的地址
-            PendingNonce pendingNonce = peningTransPool.findptnonce(entry.getKey());
-            if (pendingNonce.getState() == 2) {
-                List<TransPool> list = entry.getValue();
-                for (TransPool transPool : list) {
-                    Transaction transaction = transPool.getTransaction();
-                    if (pendingNonce.getNonce() < transaction.nonce) {
-                        if (transactionCheck.checkoutPool(transaction)) {
-                            //超过pending上限
-                            if (index > configuration.getMaxpending()) {
-                                state = true;
-                                break;
+        taskRegistrar.addTriggerTask(() -> {
+            Map<String, List<TransPool>> map = adoptTransPool.getqueuedtopending();
+            IdentityHashMap<String, String> maps = new IdentityHashMap<>();
+            List<TransPool> newlist = new ArrayList<>();
+            int index = peningTransPool.size();
+            boolean state = false;
+            for (Map.Entry<String, List<TransPool>> entry : map.entrySet()) {
+                //判断pendingnonce是否存在 状态不为2的地址
+                PendingNonce pendingNonce = peningTransPool.findptnonce(entry.getKey());
+                if (pendingNonce.getState() == 2) {
+                    List<TransPool> list = entry.getValue();
+                    for (TransPool transPool : list) {
+                        Transaction transaction = transPool.getTransaction();
+                        if (pendingNonce.getNonce() < transaction.nonce) {
+                            if (transactionCheck.checkoutPool(transaction)) {
+                                //超过pending上限
+                                if (index > configuration.getMaxpending()) {
+                                    state = true;
+                                    break;
+                                }
+                                newlist.add(transPool);
+                                index++;
                             }
-                            newlist.add(transPool);
-                            index++;
                         }
+                        maps.put(entry.getKey(), adoptTransPool.getKey(transaction));
                     }
-                    maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
-                }
-                if (state) {
-                    break;
+                    if (state) {
+                        break;
+                    }
                 }
             }
-        }
-        adoptTransPool.remove(maps);
-        peningTransPool.add(newlist);
+            adoptTransPool.remove(maps);
+            peningTransPool.add(newlist);
+        }, triggerContext -> {
+            //任务触发，可修改任务的执行周期
+            CronTrigger trigger = new CronTrigger(ipcConfig.getQueuedToPendingCycle());
+            return trigger.nextExecutionTime(triggerContext);
+        });
     }
 }
+
