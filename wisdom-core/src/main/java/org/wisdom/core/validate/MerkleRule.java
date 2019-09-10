@@ -321,12 +321,12 @@ public class MerkleRule implements BlockRule {
                 fromaccount.setNonce(tran.nonce);
                 fromaccount.setBlockHeight(nowheight);
                 if (!Arrays.equals(frompubhash, tran.to)) {//投票自己投给自己
-                    long vote = toaccount.getVote();
-                    vote += tran.amount;
-                    toaccount.setVote(vote);
-                    toaccount.setBlockHeight(nowheight);
-                    accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
-                    accmap.put(Hex.encodeHexString(tran.to), toaccount);
+//                    long vote = toaccount.getVote();
+//                    vote += tran.amount;
+//                    toaccount.setVote(vote);
+//                    toaccount.setBlockHeight(nowheight);
+//                    accmap.put(Hex.encodeHexString(frompubhash), fromaccount);
+//                    accmap.put(Hex.encodeHexString(tran.to), toaccount);
                 } else {
                     long vote = fromaccount.getVote();
                     vote += tran.amount;
