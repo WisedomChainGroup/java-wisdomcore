@@ -78,7 +78,7 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                                 index++;
                             }
                         }
-                        maps.put(entry.getKey(), adoptTransPool.getKey(transaction));
+                        maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
                     }
                     if (state) {
                         break;
