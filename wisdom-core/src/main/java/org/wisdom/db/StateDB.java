@@ -456,6 +456,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return applyCoinbase(tx, accountState);
             case 0x01:
                 return applyTransfer(tx, accountState);
+            case 0x02:
+                return applyDeposit(tx, accountState);
             case 0x09:
                 return applyIncubate(tx, accountState);
             case 0x0a:
@@ -481,6 +483,20 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         incub -= tx.amount;
         account.setBalance(balance);
         account.setIncubatecost(incub);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        return accountState;
+    }
+
+    private AccountState applyDeposit(Transaction tx, AccountState accountState){
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        account.setBalance(balance);
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);

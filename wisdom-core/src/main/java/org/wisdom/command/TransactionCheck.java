@@ -18,8 +18,6 @@
 
 package org.wisdom.command;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -138,7 +136,13 @@ public class TransactionCheck {
                 return apiResult;
             }
             //toaddress
-            if (type[0] != 0x03) {//非存证
+            if (type[0] != 0x03) {//存证
+                if(!Arrays.equals(new byte[20],topubkeyhash)){
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The depository transaction to is not empty");
+                    return apiResult;
+                }
+            }else{//非存证
                 boolean verifyto = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte) 0x00)) == 0);
                 if (!verifyto) {
                     apiResult.setCode(5000);
@@ -150,7 +154,7 @@ public class TransactionCheck {
             //bytelength
             byte[] date = ByteUtil.bytearraycopy(tranlast, 0, 4);
             int length = ByteUtil.byteArrayToInt(date);
-            if (type[0] != 0x01 && type[0] != 0x02) {
+            if (type[0] != 0x01 && type[0] != 0x02 ) {//转账、投票
                 if (length == 0) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Payload cannot be empty");
