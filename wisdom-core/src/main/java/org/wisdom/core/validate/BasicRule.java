@@ -78,8 +78,8 @@ public class BasicRule implements BlockRule, TransactionRule {
         if (validator.validate(block).size() != 0) {
             return Result.Error(validator.validate(block).toArray()[0].toString());
         }
-        // 区块时间戳必须小于当前系统时间
-        if (block.nTime > System.currentTimeMillis() / 1000) {
+        // 区块时间戳必须在一个周期的时间内
+        if (block.nTime - System.currentTimeMillis() / 1000 > blockInterval) {
             return Result.Error("the received block timestamp too large");
         }
         // 区块大小限制

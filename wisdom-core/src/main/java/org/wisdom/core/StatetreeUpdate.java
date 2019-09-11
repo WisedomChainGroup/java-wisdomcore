@@ -59,6 +59,7 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
         Block b = event.getBlock();
         peningTransPool.updatePool(b.body, 2, b.nHeight);
         Map<String, Object> merklemap = null;
+
         try {
             merklemap = merkleRule.validateMerkle(b.body, b.nHeight);
             List<Account> accountList = (List<Account>) merklemap.get("account");
