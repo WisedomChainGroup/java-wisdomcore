@@ -41,7 +41,7 @@ public class MerkleTreeManager {
         }
     }
 
-    public Block replaceTransaction(String blockHash, List<WisdomOuterClass.MerkleTransaction> trans) {
+    public Block replaceTransaction(String blockHash, List<MerkleTransaction> trans) {
         if (cache.containBlock(blockHash)) {
             return cache.replaceTransaction(blockHash, trans);
         }
