@@ -14,6 +14,7 @@ import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
+import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -94,6 +95,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 等待写入的区块
     private BlocksCache writableBlocks;
+
+    @Autowired
+    public OrphanBlocksManager orphanBlocksManager;
 
     public StateDB() {
         this.readWriteLock = new ReentrantReadWriteLock();
@@ -212,6 +216,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             // 判断是否是孤块
             if (!Arrays.equals(this.latestConfirmed.getHash(), block.hashPrevBlock) && !blocksCache.hasBlock(block.hashPrevBlock)) {
+                orphanBlocksManager.addBlock(block);
                 return;
             }
             // 有区块正在更新状态 放到待写入队列中

@@ -65,7 +65,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         return !stateDB.hasBlock(block.hashPrevBlock);
     }
 
-    private void addBlock(Block block) {
+    public void addBlock(Block block) {
         orphans.addBlocks(Collections.singletonList(block));
     }
 
