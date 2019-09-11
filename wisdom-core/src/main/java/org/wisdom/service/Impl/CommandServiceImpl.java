@@ -64,6 +64,11 @@ public class CommandServiceImpl implements CommandService {
             }
             tran= (Transaction) apiResult.getData();
             Account account=accountDB.selectaccount(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from)));
+            if(account==null){
+                apiResult.setCode(5000);
+                apiResult.setMessage("Not sufficient funds");
+                return apiResult;
+            }
             apiResult=transactionCheck.TransactionVerify(tran,account);
             if(apiResult.getCode() == 5000){
                 return apiResult;
