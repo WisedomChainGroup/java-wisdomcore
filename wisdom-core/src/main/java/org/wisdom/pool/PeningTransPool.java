@@ -74,6 +74,12 @@ public class PeningTransPool {
         return null;
     }
 
+    public void updatePtNone(String key,PendingNonce pendingNonce){
+        if(ptnonce.containsKey(key)){
+            ptnonce.put(key,pendingNonce);
+        }
+    }
+
     public int size() {
         return ptpool.size();
     }
