@@ -58,7 +58,7 @@ import static java.util.stream.Collectors.toList;
 public class Block {
     public static final int MAX_NOTICE_LENGTH = 32;
     public static final int HASH_SIZE = 32;
-    public static final int MAX_BLOCK_SIZE = 8 * (1 << 20);
+    public static final int MAX_BLOCK_SIZE = 4 * (1 << 20);
     private static final Logger logger = LoggerFactory.getLogger(Block.class);
 
     public static byte[] calculatePOWHash(Block block) {
