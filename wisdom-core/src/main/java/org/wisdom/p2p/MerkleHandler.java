@@ -14,10 +14,7 @@ import org.wisdom.core.validate.CompositeBlockRule;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.db.StateDB;
-import org.wisdom.merkletree.MerkleMessageEvent;
-import org.wisdom.merkletree.MerkleTree;
-import org.wisdom.merkletree.MerkleTreeManager;
-import org.wisdom.merkletree.TreeNode;
+import org.wisdom.merkletree.*;
 import org.wisdom.sync.Utils;
 
 import java.util.ArrayList;
@@ -71,7 +68,6 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     }
 
     private void onMerleTransactions(Context context, PeerServer server) {
-        logger.info("---------------------------onMerleTransactions---------------------------------");
         WisdomOuterClass.MerkleTransactions wms = context.getPayload().getMerkleTransactions();
         // repeat sent
         if (wms.getMerketTransList().size() == 0) {
@@ -89,10 +85,10 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
                     .build();
             server.dial(ps.get(index), getMerkleTransactions);
         }
-        replaceTrans(wms.getBlockHash().toByteArray(), wms.getMerketTransList());
+        replaceTrans(wms.getBlockHash().toByteArray(), Utils.parseMerkleTransactions(wms.getMerketTransList()));
     }
 
-    private void replaceTrans(byte[] blockHash, List<WisdomOuterClass.MerkleTransaction> wms) {
+    private void replaceTrans(byte[] blockHash, List<MerkleTransaction> wms) {
         Block block = merkleTreeManager.replaceTransaction(Hex.encodeHexString(blockHash), wms);
         Result res = compositeBlockRule.validateBlock(block);
         if (!res.isSuccess()) {
@@ -116,7 +112,6 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     }
 
     private void onGetMerkleTransactions(Context context, PeerServer server) {
-        logger.info("---------------------------onGetMerkleTransactions---------------------------------");
         WisdomOuterClass.GetMerkleTransactions getMerkleTransactions = context.getPayload().getGetMerkleTransactions();
         List<TreeNode> treeNodes = Utils.parseTreeNodes(getMerkleTransactions.getTreeNodesList());
         byte[] blockHash = getMerkleTransactions.getBlockHash().toByteArray();
@@ -166,7 +161,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         }
         // 比对
         List<TreeNode> errorTreeNodes = new ArrayList<>();
-        Block block = bc.getBlock(wts.getBlockHash().toByteArray());
+        Block block = merkleTreeManager.getCacheBlock(Hex.encodeHexString(wts.getBlockHash().toByteArray()));
         if (block != null) {
             MerkleTree merkleTree = getMerkleTree(block);
             for (TreeNode treeNode : treeNodes) {
@@ -174,7 +169,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
                 int level = treeNode.getLevel();
                 if (merkleTree.getLevelList((byte) level) == null) {
                     merkleTreeManager.removeBlockToCache(Hex.encodeHexString(wts.getBlockHash().toByteArray()));
-                    break;
+                    return;
                 }
                 if (merkleTree.getLevelList((byte) level).size() - 1 < idx) {
                     errorTreeNodes.add(treeNode);
@@ -202,7 +197,6 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
                         .addAllTreeNodes(Utils.encodeTreeNodes(errorTreeNodes))
                         .build();
                 server.dial(ps.get(index), getMerkleTransactions);
-                logger.info("-------------------- sent merkle trans--------------------------------------" + errorTreeNodes.size());
             }
         }
     }
@@ -262,7 +256,6 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         List<Transaction> txs = block.body;
         byte level = (byte) (Block.getMerkleRootLevel(txs) & 0xff);
         List<TreeNode> parentTreeNodes = Block.getMerkleTreeNode(txs, level);
-        logger.info("---------------------sent merkle tree root----------------------------------");
         int index = Math.abs(ThreadLocalRandom.current().nextInt()) % ps.size();
         WisdomOuterClass.GetTreeNodes getTreeNodes = WisdomOuterClass.GetTreeNodes.newBuilder()
                 .setBlockHash(ByteString.copyFrom(block.getHash()))

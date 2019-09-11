@@ -1,12 +1,12 @@
 package org.wisdom.merkletree;
 
 import org.wisdom.core.Block;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.pool.TransPool;
 import org.wisdom.sync.Utils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -34,14 +34,14 @@ public class MerkleTreeCache {
     public boolean containBlock(Block block) {
         this.readWriteLock.readLock().lock();
         boolean isContain = containBlockUnsafe(block);
-        this.readWriteLock.readLock().lock();
+        this.readWriteLock.readLock().unlock();
         return isContain;
     }
 
     public boolean containBlock(String blockHash) {
         this.readWriteLock.readLock().lock();
         boolean isContain = containBlockUnsafe(blockHash);
-        this.readWriteLock.readLock().lock();
+        this.readWriteLock.readLock().unlock();
         return isContain;
     }
 
@@ -64,17 +64,24 @@ public class MerkleTreeCache {
     }
 
     // deep copy replace
-    public Block replaceTransaction(String blockHash, List<WisdomOuterClass.MerkleTransaction> trans) {
+    public Block replaceTransaction(String blockHash, List<MerkleTransaction> trans) {
         this.readWriteLock.writeLock().lock();
         Block block = replaceTransactionUnsafe(blockHash, trans);
         this.readWriteLock.writeLock().unlock();
         return block;
     }
 
-    private Block replaceTransactionUnsafe(String blockHash, List<WisdomOuterClass.MerkleTransaction> trans) {
+    private Block replaceTransactionUnsafe(String blockHash, List<MerkleTransaction> trans) {
         Block block = Block.deepCopy(this.blocks.get(blockHash));
-        for (WisdomOuterClass.MerkleTransaction wm : trans) {
-            block.body.set(wm.getIndex(), Utils.parseTransaction(wm.getTransaction()));
+        // sort
+        trans.sort(Comparator.comparingInt(MerkleTransaction::getIndex));
+        for (MerkleTransaction wm : trans) {
+            Transaction transaction = wm.getTransaction();
+            if (block.body.size() <= wm.getIndex()) {
+                block.body.add(transaction);
+            } else {
+                block.body.set(wm.getIndex(), transaction);
+            }
         }
         return block;
     }

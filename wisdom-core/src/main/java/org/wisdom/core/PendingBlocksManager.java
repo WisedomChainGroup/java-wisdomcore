@@ -72,7 +72,7 @@ public class PendingBlocksManager {
                 Result result = merkleRule.validateBlock(b);
                 if (!result.isSuccess()) {
                     merkleTreeManager.writeBlockToCache(b);
-                    return;
+                    continue;
                 }
                 b.weight = 1;
                 stateDB.writeBlock(b);

@@ -3,6 +3,7 @@ package org.wisdom.sync;
 import com.google.protobuf.ByteString;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.merkletree.MerkleTransaction;
 import org.wisdom.merkletree.TreeNode;
 import org.wisdom.p2p.WisdomOuterClass;
 
@@ -143,11 +144,27 @@ public class Utils {
         return res;
     }
 
-    public static WisdomOuterClass.MerkleTransaction encodeMerkleTransaction(Transaction transaction, int index){
+    public static WisdomOuterClass.MerkleTransaction encodeMerkleTransaction(Transaction transaction, int index) {
         WisdomOuterClass.MerkleTransaction.Builder bd = WisdomOuterClass.MerkleTransaction.newBuilder()
                 .setTransaction(encodeTransaction(transaction))
                 .setIndex(index);
         return bd.build();
     }
+
+    public static MerkleTransaction parseMerkleTransaction(WisdomOuterClass.MerkleTransaction wm) {
+        MerkleTransaction mt = new MerkleTransaction();
+        mt.setIndex(wm.getIndex());
+        mt.setTransaction(Utils.parseTransaction(wm.getTransaction()));
+        return mt;
+    }
+
+    public static List<MerkleTransaction> parseMerkleTransactions(List<WisdomOuterClass.MerkleTransaction> wms) {
+        List<MerkleTransaction> mts = new ArrayList<>();
+        for (WisdomOuterClass.MerkleTransaction wm : wms) {
+            mts.add(parseMerkleTransaction(wm));
+        }
+        return mts;
+    }
+
 
 }
