@@ -23,8 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.consensus.pow.ValidatorState;
-import org.wisdom.consensus.pow.ValidatorStateFactory;
+import org.wisdom.consensus.pow.PackageMiner;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
@@ -50,9 +49,6 @@ public class AccountRule implements BlockRule {
     static final Base64.Encoder encoder = Base64.getEncoder();
 
     @Autowired
-    private ValidatorStateFactory factory;
-
-    @Autowired
     WisdomBlockChain wisdomBlockChain;
 
     @Autowired
@@ -75,6 +71,9 @@ public class AccountRule implements BlockRule {
 
     @Autowired
     TransactionCheck transactionCheck;
+
+    @Autowired
+    PackageMiner packageMiner;
 
     private boolean validateIncubator;
 
@@ -119,7 +118,18 @@ public class AccountRule implements BlockRule {
                     }
                     //更新Account账户
                     if(tx.type==Transaction.Type.TRANSFER.ordinal()){//转账
-                        long balance=account.getBalance();
+                        AccountState toaccountState=new AccountState();
+                        Account toaccount;
+                        String tohash=Hex.encodeHexString(tx.to);
+                        if(map.containsKey(tohash)){
+                            toaccountState=map.get(tohash);
+                            toaccount=toaccountState.getAccount();
+                        }else{
+                            toaccount=new Account(0,tx.to,0,0,0,0,0);
+                        }
+                        List<Account> list=packageMiner.updateTransfer(account,toaccount,tx);
+
+                        /*long balance=account.getBalance();
                         balance-=tx.amount;
                         balance-=tx.getFee();
                         account.setBalance(balance);
@@ -127,21 +137,12 @@ public class AccountRule implements BlockRule {
                         map.put(publichash,accountState);
 
                         //to
-                        AccountState toaccountState;
-                        Account toaccount;
-                        String tohash=Hex.encodeHexString(tx.to);
-                        if(map.containsKey(tohash)){
-                            toaccountState=map.get(tohash);
-                            toaccount=toaccountState.getAccount();
-                        }else{
-                            toaccountState=new AccountState();
-                            toaccount=new Account(0,tx.to,0,0,0,0,0);
-                        }
+
                         long tobalance=toaccount.getBalance();
                         tobalance+=tx.amount;
                         toaccount.setBalance(tobalance);
                         toaccountState.setAccount(toaccount);
-                        map.put(tohash,toaccountState);
+                        map.put(tohash,toaccountState);*/
                     }else {//其他事务
                         account=updateAccount(account,tx);
                         accountState.setAccount(account);
@@ -149,18 +150,6 @@ public class AccountRule implements BlockRule {
                     }
                 }
             }
-        }
-        return Result.SUCCESS;
-    }
-
-    // validateBlock 内已经包含了对 nonce 的校验
-    public Result validateTransaction(ValidatorState state, Transaction transaction) {
-        if (transaction.type == Transaction.Type.COINBASE.ordinal()) {
-            return Result.SUCCESS;
-        }
-        // nonce 校验
-        if (state.getNonceFromPublicKey(transaction.from) + 1 != transaction.nonce) {
-            return Result.Error("wrong nonce = " + transaction.nonce + " required = " + state.getNonceFromPublicKey(transaction.from) + 1);
         }
         return Result.SUCCESS;
     }
@@ -191,5 +180,10 @@ public class AccountRule implements BlockRule {
         }
         account.setBalance(balance);
         return account;
+    }
+
+    public static void main(String[] args) {
+        List<String> s=null;
+        s.forEach(s1->System.out.println(s1));
     }
 }
