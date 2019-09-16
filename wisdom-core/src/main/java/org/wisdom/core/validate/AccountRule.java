@@ -83,6 +83,7 @@ public class AccountRule implements BlockRule {
         byte[] parenthash=block.hashPrevBlock;
         List<byte[]> pubhashlist=block.getFromhashList(block);
         Map<String,AccountState> map=stateDB.getAccounts(parenthash,pubhashlist);
+        List<Transaction> transactionList=new ArrayList<>();
         if (block.nHeight > 30800) {
             for (Transaction tx : block.body) {
                 String key = encoder.encodeToString(tx.from);
@@ -107,7 +108,7 @@ public class AccountRule implements BlockRule {
                     if(map.containsKey(publichash)){
                         accountState=map.get(publichash);
                     }else{
-                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from！" );
+                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from " );
                     }
                     Account account=accountState.getAccount();
                     //数据校验
@@ -117,8 +118,10 @@ public class AccountRule implements BlockRule {
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     //更新Account账户
-                    if(tx.type==Transaction.Type.TRANSFER.ordinal()){//转账
-                        AccountState toaccountState=new AccountState();
+                    if(tx.type==Transaction.Type.TRANSFER.ordinal()
+                            || tx.type==Transaction.Type.VOTE.ordinal()
+                            || tx.type==Transaction.Type.EXIT_VOTE.ordinal()){//转账、投票、撤回投票
+                        AccountState toaccountState;
                         Account toaccount;
                         String tohash=Hex.encodeHexString(tx.to);
                         if(map.containsKey(tohash)){
@@ -127,29 +130,33 @@ public class AccountRule implements BlockRule {
                         }else{
                             toaccount=new Account(0,tx.to,0,0,0,0,0);
                         }
-                        List<Account> list=packageMiner.updateTransfer(account,toaccount,tx);
-
-                        /*long balance=account.getBalance();
-                        balance-=tx.amount;
-                        balance-=tx.getFee();
-                        account.setBalance(balance);
-                        accountState.setAccount(account);
-                        map.put(publichash,accountState);
-
-                        //to
-
-                        long tobalance=toaccount.getBalance();
-                        tobalance+=tx.amount;
-                        toaccount.setBalance(tobalance);
-                        toaccountState.setAccount(toaccount);
-                        map.put(tohash,toaccountState);*/
+                        List<Account> list = null;
+                        if(tx.type==1){
+                            list=packageMiner.updateTransfer(account,toaccount,tx);
+                        }else if(tx.type==2){
+                            list=packageMiner.updateVote(account,toaccount,tx);
+                        }else if(tx.type==3){
+                            list=packageMiner.UpdateCancelVote(account,toaccount,tx);
+                        }
+                        if(list==null){
+                            return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
+                        }
+                        list.stream().forEach(a->{
+                            accountState.setAccount(a);
+                            map.put(publichash,accountState);
+                        });
                     }else {//其他事务
-                        account=updateAccount(account,tx);
-                        accountState.setAccount(account);
+                        Account otheraccount=packageMiner.UpdateOtherAccount(account,tx);
+                        if(otheraccount==null){
+                            return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
+                        }
+                        accountState.setAccount(otheraccount);
                         map.put(publichash,accountState);
                     }
                 }
+                transactionList.add(tx);
             }
+            peningTransPool.updatePool(transactionList,1,block.nHeight);
         }
         return Result.SUCCESS;
     }
@@ -158,32 +165,27 @@ public class AccountRule implements BlockRule {
         this.validateIncubator = !character.equals("exchange");
     }
 
-    public Account updateAccount(Account account,Transaction tx) {
-        long balance = account.getBalance();
-        if (tx.type == 3) {//存证事务,只需要扣除手续费
-            balance -= tx.getFee();
-        } else if (tx.type == 9) {//孵化事务
-            balance -= tx.getFee();
-            balance -= tx.amount;
-            long incubatecost = account.getIncubatecost();
-            incubatecost += tx.amount;
-            account.setIncubatecost(incubatecost);
-        } else if (tx.type == 10 || tx.type == 11) {//提取利息、分享
-            balance -= tx.getFee();
-            balance += tx.amount;
-        } else if (tx.type == 12) {//本金
-            balance -= tx.getFee();
-            balance += tx.amount;
-            long incubatecost = account.getIncubatecost();
-            incubatecost -= tx.amount;
-            account.setIncubatecost(incubatecost);
-        }
-        account.setBalance(balance);
-        return account;
-    }
-
-    public static void main(String[] args) {
-        List<String> s=null;
-        s.forEach(s1->System.out.println(s1));
-    }
+//    public Account updateAccount(Account account,Transaction tx) {
+//        long balance = account.getBalance();
+//        if (tx.type == 3) {//存证事务,只需要扣除手续费
+//            balance -= tx.getFee();
+//        } else if (tx.type == 9) {//孵化事务
+//            balance -= tx.getFee();
+//            balance -= tx.amount;
+//            long incubatecost = account.getIncubatecost();
+//            incubatecost += tx.amount;
+//            account.setIncubatecost(incubatecost);
+//        } else if (tx.type == 10 || tx.type == 11) {//提取利息、分享
+//            balance -= tx.getFee();
+//            balance += tx.amount;
+//        } else if (tx.type == 12) {//本金
+//            balance -= tx.getFee();
+//            balance += tx.amount;
+//            long incubatecost = account.getIncubatecost();
+//            incubatecost -= tx.amount;
+//            account.setIncubatecost(incubatecost);
+//        }
+//        account.setBalance(balance);
+//        return account;
+//    }
 }

@@ -18,7 +18,7 @@ public class PoolTask {
     @Autowired
     PeningTransPool peningTransPool;
 
-    @Scheduled(cron = "0 0 0/1 * * ?")
+    @Scheduled(cron = "0 0/10 * * * ?")
     public void updatedbPool() {
         Leveldb leveldb = new Leveldb();
         List<TransPool> list = adoptTransPool.getAllFull();
@@ -33,5 +33,7 @@ public class PoolTask {
         String pendingjson = JSON.toJSONString(transPoolList, true);
         leveldb.addPoolDb("PendingPool", pendingjson);
     }
+
+
 
 }

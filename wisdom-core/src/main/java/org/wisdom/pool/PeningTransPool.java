@@ -193,7 +193,7 @@ public class PeningTransPool {
         }
     }
 
-    public void nonceupdate(String key, long nonce) {
+    public void nonceupdate(String key, long nonce) {//进db,单nonce的事务pendingnonce修改为2
         if (ptnonce.containsKey(key)) {
             PendingNonce pendingNonce = ptnonce.get(key);
             if (pendingNonce.getNonce() == nonce) {
@@ -215,7 +215,7 @@ public class PeningTransPool {
                     map.put(t.nonce, transPool);
                     ptpool.put(fromhash, map);
                     if (type == 2) {//2 进db
-                        if (t.type != 1) {//非转账
+                        if (t.type != 1 && t.type != 2 && t.type != 13) {//排除转账、投票、撤回投票
                             //ptnonce
                             nonceupdate(fromhash, t.nonce);
                         }

@@ -83,7 +83,7 @@ public class PackageMiner {
                         } else {
                             toaccount = new Account(0, transaction.to, 0, 0, 0, 0, 0);
                         }
-                        List<Account> accountList=new ArrayList<>();
+                        List<Account> accountList=null;
                         if(transaction.type==1){
                             accountList=updateTransfer(fromaccount,toaccount,transaction);
                         }else if(transaction.type==2){
