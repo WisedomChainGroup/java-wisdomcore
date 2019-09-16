@@ -23,10 +23,6 @@ public class AdoptTransPool {
 
     private ConcurrentHashMap<String, Map<String, TransPool>> atpool;
 
-    public ConcurrentHashMap<String, Map<String, TransPool>> getAtpool() {
-        return atpool;
-    }
-
     public AdoptTransPool() {
         Leveldb leveldb = new Leveldb();
         this.atpool = new ConcurrentHashMap<>();
@@ -88,16 +84,6 @@ public class AdoptTransPool {
         return getKeyTrans(transaction);
     }
 
-    public boolean hasExistQueued(String key, String key1) {
-        if (atpool.containsKey(key)) {
-            Map<String, TransPool> map = atpool.get(key);
-            if (map.containsKey(key1)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     public boolean hasExist(String key) {
         if (atpool.containsKey(key)) {
             return false;
@@ -133,12 +119,12 @@ public class AdoptTransPool {
             for (Map.Entry<String, TransPool> entry1 : map.entrySet()) {
                 TransPool t = entry1.getValue();
                 list.add(t);
-//                break;
             }
         }
         return list;
     }
 
+    //转账、投票、撤回投票、抵押、撤回抵押可多nonce进入
     public Map<String, List<TransPool>> getqueuedtopending() {
         Map<String, List<TransPool>> map = new HashMap<>();
         int index = 0;
@@ -149,7 +135,7 @@ public class AdoptTransPool {
                 if (index < configuration.getMaxqpcount()) {
                     TransPool t = entry1.getValue();
                     Transaction transaction = t.getTransaction();
-                    if (transaction.type == 1) {//转账
+                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
@@ -194,13 +180,6 @@ public class AdoptTransPool {
                     return entrys.getValue();
                 }
             }
-        }
-        return null;
-    }
-
-    public Map<String, TransPool> getfromPool(String from) {
-        if (!hasExist(from)) {
-            return atpool.get(from);
         }
         return null;
     }
