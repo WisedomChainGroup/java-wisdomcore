@@ -354,7 +354,7 @@ public class Transaction {
         msg = ByteUtil.bytearraycopy(msg, 20, msg.length - 20);
         //payloadlen
         byte[] payloadlen = ByteUtil.bytearraycopy(msg, 0, 4);
-        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x03) {//孵化器、提取利息、提取分享、提取本金、存证
+        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x03 || type[0] == 0x0d) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
             msg = ByteUtil.bytearraycopy(msg, 4, msg.length - 4);
             byte[] payload = ByteUtil.bytearraycopy(msg, 0, ByteUtil.byteArrayToInt(payloadlen));
             transaction.payload = payload;

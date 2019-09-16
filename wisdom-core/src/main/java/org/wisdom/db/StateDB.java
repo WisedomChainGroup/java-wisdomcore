@@ -387,7 +387,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             balance = account.getBalance();
             balance += tx.amount;
             account.setBalance(balance);
-            account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
             accountState.setAccount(account);
         }
@@ -462,6 +461,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             case 0x01:
                 return applyTransfer(tx, accountState);
             case 0x02:
+                return applyVote(tx, accountState);
+            case 0x03:
                 return applyDeposit(tx, accountState);
             case 0x09:
                 return applyIncubate(tx, accountState);
@@ -471,6 +472,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return applyExtractSharingProfit(tx, accountState);
             case 0x0c:
                 return applyExtractCost(tx, accountState);
+            case 0x0d:
+                return applyCancelVote(tx, accountState);
             default:
                 throw new Exception("unsupported transaction type: " + Transaction.Type.values()[type].toString());
         }
@@ -505,6 +508,50 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
+        return accountState;
+    }
+
+    private AccountState applyVote(Transaction tx, AccountState accountState){
+        Account account = accountState.getAccount();
+        long balance;
+        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance-=tx.amount;
+            balance-=tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        if(Arrays.equals(tx.to,account.getPubkeyHash())){
+            long vote=account.getVote();
+            vote+=tx.amount;
+            account.setVote(vote);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        return accountState;
+    }
+
+    private AccountState applyCancelVote(Transaction tx, AccountState accountState){
+        Account account = accountState.getAccount();
+        long balance;
+        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance+=tx.amount;
+            balance-=tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        if(Arrays.equals(tx.to,account.getPubkeyHash())){
+            long vote=account.getVote();
+            vote-=tx.amount;
+            account.setVote(vote);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
         return accountState;
     }
 
