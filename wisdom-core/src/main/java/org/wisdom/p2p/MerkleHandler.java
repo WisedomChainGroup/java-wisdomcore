@@ -153,11 +153,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         WisdomOuterClass.TreeNodes wts = context.getPayload().getTreeNodes();
         List<TreeNode> treeNodes = Utils.parseTreeNodes(wts.getTreeNodesList());
         if (treeNodes.size() == 0) {
-            WisdomOuterClass.GetTreeNodes getTreeNodes = WisdomOuterClass.GetTreeNodes.newBuilder()
-                    .addAllParentNodes(wts.getParentNodesList())
-                    .setBlockHash(wts.getBlockHash())
-                    .build();
-            server.dial(ps.get(index), getTreeNodes);
+            merkleTreeManager.removeBlockToCache(Hex.encodeHexString(wts.getBlockHash().toByteArray()));
         }
         // 比对
         List<TreeNode> errorTreeNodes = new ArrayList<>();
