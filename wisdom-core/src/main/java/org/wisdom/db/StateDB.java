@@ -160,9 +160,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         BlocksCache res = new BlocksCache();
         List<Block> blocks = blocksCache.getAncestors(b)
                 .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
+        res.addBlocks(Collections.singletonList(b));
         res.addBlocks(blocks);
-        res.addBlocks(bc.getAncestorBlocks(blocks.get(0).getHash(), anum));
-        return res.getAll();
+        res.addBlocks(bc.getAncestorBlocks(blocks.get(0).hashPrevBlock, anum));
+        List<Block> all = res.getAll();
+        return all;
     }
 
     public Block getBlock(byte[] hash) {
