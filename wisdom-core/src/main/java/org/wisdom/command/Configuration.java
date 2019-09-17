@@ -76,4 +76,12 @@ public class Configuration {
     public long getMaxqpcount() {
         return maxqpcount;
     }
+
+    public void setMaxqueued(long maxqueued) {
+        this.maxqueued = maxqueued;
+    }
+
+    public void setMaxpending(long maxpending) {
+        this.maxpending = maxpending;
+    }
 }
