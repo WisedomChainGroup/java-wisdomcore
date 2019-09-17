@@ -232,7 +232,7 @@ public class MerkleRule implements BlockRule {
                     } else {
                         fromaccount = accountDB.selectaccount(frompubhash);
                     }
-                    List<Account> celvotelist = UpdateCancelVote(tran, toaccount, fromaccount, nowheight, frompubhash);
+                    List<Account> celvotelist = UpdateCancelVote(tran,fromaccount, toaccount, nowheight, frompubhash);
                     celvotelist.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
             }
@@ -350,7 +350,7 @@ public class MerkleRule implements BlockRule {
         return incubator;
     }
 
-    private List<Account> UpdateTransfer(Transaction tran,Account toaccount,Account fromaccount,long nowheight,byte[] frompubhash){
+    private List<Account> UpdateTransfer(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
         List<Account> list=new ArrayList<>();
         long frombalance = fromaccount.getBalance();
         frombalance -= tran.amount;
@@ -401,7 +401,7 @@ public class MerkleRule implements BlockRule {
         return fromaccount;
     }
 
-    private List<Account> UpdateVoteAccount(Transaction tran,Account toaccount,Account fromaccount,long nowheight,byte[] frompubhash){
+    private List<Account> UpdateVoteAccount(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
         List<Account> list=new ArrayList<>();
         long balance = fromaccount.getBalance();
         balance -= tran.amount;
@@ -425,7 +425,7 @@ public class MerkleRule implements BlockRule {
         return list;
     }
 
-    private List<Account> UpdateCancelVote(Transaction tran,Account toaccount,Account fromaccount,long nowheight,byte[] frompubhash){
+    private List<Account> UpdateCancelVote(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
         List<Account> list=new ArrayList<>();
         long balance = fromaccount.getBalance();
         balance -= tran.getFee();

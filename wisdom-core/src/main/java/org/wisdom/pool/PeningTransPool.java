@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
@@ -16,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class PeningTransPool {
+
+    private static final Logger logger = LoggerFactory.getLogger(PeningTransPool.class);
 
     @Autowired
     AdoptTransPool adoptTransPool;
@@ -48,15 +52,17 @@ public class PeningTransPool {
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
             if (ptpool.containsKey(fromhash)) {
                 TreeMap<Long, TransPool> map = ptpool.get(fromhash);
-                if (!map.containsKey(transaction.nonce)) {
-                    map.put(transaction.nonce, transPool);
-                    ptpool.put(fromhash, map);
-                    updateNonce(transaction.type, transaction.nonce, fromhash);
+                if(map.lastKey()>=transaction.nonce){
+                    logger.info("PendingPool reject Nonce small things , tx="+Hex.encodeHexString(transaction.getHash()));
+                    continue;
                 }
+                map.put(transaction.nonce, transPool);
+                this.ptpool.put(fromhash, map);
+                updateNonce(transaction.type, transaction.nonce, fromhash);
             } else {
                 TreeMap<Long, TransPool> map = new TreeMap<>();
                 map.put(transaction.nonce, transPool);
-                ptpool.put(fromhash, map);
+                this.ptpool.put(fromhash, map);
                 updateNonce(transaction.type, transaction.nonce, fromhash);
             }
         }
@@ -174,7 +180,11 @@ public class PeningTransPool {
             if (map.containsKey(nonce)) {
                 map.remove(nonce);
             }
-            ptpool.put(key, map);
+            if(map.size()==0){
+                ptpool.remove(key);
+            }else{
+                ptpool.put(key, map);
+            }
         }
         if (ptnonce.containsKey(key)) {
             PendingNonce pendingNonce = ptnonce.get(key);
@@ -183,8 +193,8 @@ public class PeningTransPool {
                 ptnonce.put(key, pendingNonce);
             }
         }
-        String keys = key + nonce;
-        adoptTransPool.removeOne(key, keys);
+//        String keys = key + nonce;
+//        adoptTransPool.removeOne(key, keys);
     }
 
     public void remove(IdentityHashMap<String, Long> map) {
