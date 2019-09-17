@@ -58,7 +58,7 @@ public class PendingBlocksManager {
                 }
                 Result res = rule.validateBlock(b);
                 if (!res.isSuccess()) {
-                    logger.error("validate the block fail error = " + res.getMessage());
+                    logger.error("validate the block at height " + b.nHeight + " fail error = " + res.getMessage());
                     return;
                 }
                 b.weight = 1;
