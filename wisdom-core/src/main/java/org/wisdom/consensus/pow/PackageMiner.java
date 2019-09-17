@@ -188,15 +188,15 @@ public class PackageMiner {
         if(Arrays.equals(fromaccount.getPubkeyHash(),toaccount.getPubkeyHash())){
             vote=fromaccount.getVote();
             vote-=transaction.amount;
+            if(vote<0){
+                return null;
+            }
             fromaccount.setVote(vote);
         }else{
             vote=toaccount.getVote();
             vote-=transaction.amount;
             toaccount.setVote(vote);
             list.add(toaccount);
-        }
-        if(vote<0){
-            return null;
         }
         fromaccount.setBalance(balance);
         list.add(fromaccount);

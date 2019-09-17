@@ -403,7 +403,7 @@ public class Transaction {
         //payloadlen
         byte[] payloadlen = ByteUtil.bytearraycopy(msg, 0, 4);
         tran.setPayloadlen(ByteUtil.byteArrayToInt(payloadlen));
-        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0d || type[0] == 0x03) {//孵化器、提取利息
+        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0d || type[0] == 0x03) {//孵化器、提取利息、提取分享、提取本金、撤回投票、存证
             msg = ByteUtil.bytearraycopy(msg, 4, msg.length - 4);
             byte[] payload = ByteUtil.bytearraycopy(msg, 0, ByteUtil.byteArrayToInt(payloadlen));
             tran.setPayload(ByteString.copyFrom(payload));

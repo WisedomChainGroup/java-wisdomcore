@@ -45,7 +45,7 @@ public class AdoptTransPool {
                 Map<String, TransPool> map = new HashMap<>();
                 TransPool tp = new TransPool(t, 0, new Date().getTime());
                 map.put(getKeyTrans(t), tp);
-                atpool.put(from, map);
+                this.atpool.put(from, map);
             } else {
                 Map<String, TransPool> map = atpool.get(from);
                 if (map.containsKey(getKeyTrans(t))) {
@@ -54,12 +54,12 @@ public class AdoptTransPool {
                     if (transaction.type == t.type) {//同一事务才可覆盖
                         TransPool tp = new TransPool(t, 0, new Date().getTime());
                         map.put(getKeyTrans(t), tp);
-                        atpool.put(from, map);
+                        this.atpool.put(from, map);
                     }
                 } else {
                     TransPool tp = new TransPool(t, 0, new Date().getTime());
                     map.put(getKeyTrans(t), tp);
-                    atpool.put(from, map);
+                    this.atpool.put(from, map);
                 }
             }
         }
