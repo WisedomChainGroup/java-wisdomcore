@@ -193,6 +193,8 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
                         .addAllTreeNodes(Utils.encodeTreeNodes(errorTreeNodes))
                         .build();
                 server.dial(ps.get(index), getMerkleTransactions);
+            } else {
+                merkleTreeManager.removeBlockToCache(Hex.encodeHexString(wts.getBlockHash().toByteArray()));
             }
         }
     }
