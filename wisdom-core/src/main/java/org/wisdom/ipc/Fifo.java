@@ -205,8 +205,24 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return modifyFeeLimit(message);
             case "setP2PMode":
                 return setP2PMode(message);
+            case "setQueuedMaxSize":
+                return setQueuedMaxSize(message);
+            case "setPendingMaxSize":
+                return setPendingMaxSize(message);
         }
         return "";
+    }
+
+    private String setPendingMaxSize(String message) {
+        int pendingMaxSize = Integer.parseInt(message);
+        ipcConfig.setPendingMaxSize(pendingMaxSize);
+        return ModifySuccess;
+    }
+
+    private String setQueuedMaxSize(String message) {
+        int queuedMaxSize = Integer.parseInt(message);
+        ipcConfig.setQueuedMaxSize(queuedMaxSize);
+        return ModifySuccess;
     }
 
     private String setP2PMode(String message) {

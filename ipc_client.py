@@ -163,10 +163,26 @@ def BF():
     os.close(rf)
 
 def BG():
-    print("BG")
+    print("Modify the transaction limit of the queued queue. The default is 60000.")
+    queuedLimit = raw_input('input queued limit:')
+    message = json.dumps({'type':'setQueuedMaxSize','message':queuedLimit})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
 
 def BH():
-    print("BH")
+    print("Modify the transaction limit of the pending queue. The default is 30000.")
+    pendingLimit = raw_input('input pending limit:')
+    message = json.dumps({'type':'setPendingMaxSize','message':pendingLimit})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
 
 def BI():
     print("BI")
