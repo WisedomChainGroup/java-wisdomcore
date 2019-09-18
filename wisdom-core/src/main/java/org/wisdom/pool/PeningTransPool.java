@@ -26,16 +26,17 @@ public class PeningTransPool {
     }
 
     public PeningTransPool() {
-        Leveldb leveldb=new Leveldb();
+        Leveldb leveldb = new Leveldb();
         this.ptpool = new ConcurrentHashMap<>();
         this.ptnonce = new ConcurrentHashMap<>();
-        try{
-            String dbdata=leveldb.readPoolDb("PendingPool");
-            if(dbdata!=null && !dbdata.equals("")){
-                List<TransPool> transPoolList=JSON.parseObject(dbdata,new TypeReference<ArrayList<TransPool>>() {});
+        try {
+            String dbdata = leveldb.readPoolDb("PendingPool");
+            if (dbdata != null && !dbdata.equals("")) {
+                List<TransPool> transPoolList = JSON.parseObject(dbdata, new TypeReference<ArrayList<TransPool>>() {
+                });
                 add(transPoolList);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             this.ptpool = new ConcurrentHashMap<>();
             this.ptnonce = new ConcurrentHashMap<>();
         }
@@ -89,19 +90,14 @@ public class PeningTransPool {
         if (t != null) {
             byte[] from = t.from;
             String froms = Hex.encodeHexString(from);
-            String key = froms + t.nonce;
-            return key;
+            return froms + t.nonce;
         } else {
             return null;
         }
     }
 
     public boolean hasExist(String key) {
-        if (ptpool.containsKey(key)) {
-            return false;
-        } else {
-            return true;
-        }
+        return !ptpool.containsKey(key);
     }
 
     public List<TransPool> getAll() {
@@ -115,26 +111,26 @@ public class PeningTransPool {
     public List<TransPool> getAllstate() {
         List<TransPool> list = new ArrayList<>();
         for (Map.Entry<String, TransPool> entry : ptpool.entrySet()) {
-            TransPool transPool=entry.getValue();
-            if(transPool.getState()!=2){
+            TransPool transPool = entry.getValue();
+            if (transPool.getState() != 2) {
                 list.add(entry.getValue());
             }
         }
         return list;
     }
 
-    public void removeOne(String key,String fromkey,long nonce){
+    public void removeOne(String key, String fromkey, long nonce) {
         if (!hasExist(key)) {
             ptpool.remove(key);
         }
-        if(ptnonce.containsKey(fromkey)){
-            PendingNonce pendingNonce=ptnonce.get(fromkey);
-            int state=pendingNonce.getState();
-            long nowptnonce=pendingNonce.getNonce();
-            if(state==0){
-                if(nowptnonce==nonce){
+        if (ptnonce.containsKey(fromkey)) {
+            PendingNonce pendingNonce = ptnonce.get(fromkey);
+            int state = pendingNonce.getState();
+            long nowptnonce = pendingNonce.getNonce();
+            if (state == 0) {
+                if (nowptnonce == nonce) {
                     pendingNonce.setState(2);
-                    ptnonce.put(fromkey,pendingNonce);
+                    ptnonce.put(fromkey, pendingNonce);
                 }
             }
         }
@@ -146,26 +142,26 @@ public class PeningTransPool {
                 ptpool.remove(s);
             }
         }
-        for(Map.Entry<String, Long> entry:map.entrySet()){
-            if(ptnonce.containsKey(entry.getKey())){
-                PendingNonce pendingNonce=ptnonce.get(entry.getKey());
-                long nowptnonce=pendingNonce.getNonce();
-                int state=pendingNonce.getState();
-                if(state==0){
-                    if(nowptnonce==entry.getValue()){
+        for (Map.Entry<String, Long> entry : map.entrySet()) {
+            if (ptnonce.containsKey(entry.getKey())) {
+                PendingNonce pendingNonce = ptnonce.get(entry.getKey());
+                long nowptnonce = pendingNonce.getNonce();
+                int state = pendingNonce.getState();
+                if (state == 0) {
+                    if (nowptnonce == entry.getValue()) {
                         pendingNonce.setState(2);
-                        ptnonce.put(entry.getKey(),pendingNonce);
+                        ptnonce.put(entry.getKey(), pendingNonce);
                     }
                 }
             }
         }
     }
 
-    public void nonceupdate(String key,int type){
-        if(ptnonce.containsKey(key)){
-            PendingNonce pendingNonce=ptnonce.get(key);
+    public void nonceupdate(String key, int type) {
+        if (ptnonce.containsKey(key)) {
+            PendingNonce pendingNonce = ptnonce.get(key);
             pendingNonce.setState(type);
-            ptnonce.put(key,pendingNonce);
+            ptnonce.put(key, pendingNonce);
         }
     }
 
@@ -197,7 +193,7 @@ public class PeningTransPool {
 
     public void updatePool(List<Transaction> txs, int type, long height) {
         for (Transaction t : txs) {
-            String fromhex=Hex.encodeHexString(t.from);
+            String fromhex = Hex.encodeHexString(t.from);
             String key = getKeyTrans(t);
             if (key != null) {
                 if (!hasExist(key)) {
@@ -205,8 +201,8 @@ public class PeningTransPool {
                     transPool.setState(type);
                     transPool.setHeight(height);
                     ptpool.put(key, transPool);
-                    if(type==2){
-                        nonceupdate(fromhex,type);
+                    if (type == 2) {
+                        nonceupdate(fromhex, type);
                     }
                 }
             }

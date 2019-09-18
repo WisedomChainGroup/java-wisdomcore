@@ -428,6 +428,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 hashes.add(block.getHash());
                 setCanonicals(hashes);
             } catch (Exception e) {
+                e.printStackTrace();
                 status.setRollbackOnly();
                 return false;
             }
