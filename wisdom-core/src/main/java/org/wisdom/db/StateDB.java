@@ -158,9 +158,25 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
         res.addBlocks(Collections.singletonList(b));
         res.addBlocks(blocks);
-        res.addBlocks(bc.getAncestorBlocks(blocks.get(0).hashPrevBlock, anum));
+        res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
+        if (all.size() != 120 || all.get(0).nHeight != anum || !isChain(all)){
+            logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        }else{
+            logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        }
         return all;
+    }
+
+    public static boolean isChain(List<Block> blocks){
+        for(int i = 0; i < blocks.size()-1; i++){
+            byte[] h1 = blocks.get(i).getHash();
+            byte[] h2 = blocks.get(i + 1).hashPrevBlock;
+            if (!Arrays.equals(h1, h2)){
+                return false;
+            }
+        }
+        return true;
     }
 
     public Block getBlock(byte[] hash) {
