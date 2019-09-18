@@ -19,6 +19,8 @@
 package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
@@ -45,6 +47,8 @@ import java.util.Set;
 @Component
 public class AccountRule implements BlockRule {
     static final Base64.Encoder encoder = Base64.getEncoder();
+
+    private static final Logger logger = LoggerFactory.getLogger(AccountRule.class);
 
     @Autowired
     private ValidatorStateFactory factory;
@@ -75,6 +79,7 @@ public class AccountRule implements BlockRule {
         Set<String> froms = new HashSet<>();
         if (block.nHeight > 30800) {
             long nowheight = wisdomBlockChain.currentHeader().nHeight;
+            boolean state=false;
             for (Transaction tx : block.body) {
                 String key = encoder.encodeToString(tx.from);
                 if (froms.contains(key)) {
@@ -92,9 +97,13 @@ public class AccountRule implements BlockRule {
                         String keys = peningTransPool.getKeyTrans(tx);
                         String fromhex=Hex.encodeHexString(tx.from);
                         peningTransPool.removeOne(keys,fromhex,tx.nonce);
-                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
+                        logger.info("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
+                        state=true;
                     }
                 }
+            }
+            if(state){
+                return Result.Error("Transaction validation failed , blockhash:"+Hex.encodeHexString(block.getHash()));
             }
         }
         return Result.SUCCESS;
