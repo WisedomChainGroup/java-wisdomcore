@@ -19,7 +19,6 @@ import org.wisdom.core.incubator.RateTable;
 import org.wisdom.ipc.IpcConfig;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.sync.SyncManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,8 +29,6 @@ import java.util.Map;
 @Component
 @EnableScheduling
 public class AdoptToPendingCronTask implements SchedulingConfigurer {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdoptToPendingCronTask.class);
 
     @Autowired
     IpcConfig ipcConfig;
@@ -92,7 +89,6 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                                 index++;
                             }
                         } else {
-                            logger.info("Queued to Pending check error tx="+tran.getHash());
                             maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
                         }
                     }

@@ -21,6 +21,8 @@ package org.wisdom.command;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.core.account.Account;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
@@ -41,6 +43,8 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 
 public class TransactionCheck {
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionCheck.class);
 
     public static APIResult TransactionVerifyResult(byte[] transfer, WisdomBlockChain wisdomBlockChain, Configuration configuration, AccountDB accountDB, IncubatorDB incubatorDB, RateTable rateTable, long nowheight, boolean b, boolean state) {
         APIResult apiResult = new APIResult();
@@ -457,6 +461,7 @@ public class TransactionCheck {
         byte[] info = t.toRPCBytes();
         APIResult apiResult = TransactionCheck.TransactionVerifyResult(info, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight, true, false);
         if (apiResult.getCode() == 5000) {
+            logger.info("Queued to Pending Check error, "+Hex.encodeHexString(t.getHash())+": "+apiResult.getMessage());
             return false;
         }
         return true;

@@ -57,7 +57,7 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
                     maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
                     continue;
                 }
-                long daysBetween = (new Date().getTime() - transPool.getDatetime() + 1000000) / (60 * 60 * 24 * 1000);
+                long daysBetween = (new Date().getTime() - transPool.getDatetime()) / (60 * 60 * 1000);
                 if (daysBetween >= configuration.getPoolcleardays()) {
                     maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
                     continue;
@@ -89,7 +89,7 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
                     map.put(fromhex, t.nonce);
                     continue;
                 }
-                long daysBetween = (new Date().getTime() - transPool.getDatetime() + 1000000) / (60 * 60 * 24 * 1000);
+                long daysBetween = (new Date().getTime() - transPool.getDatetime()) / (60 * 60 * 1000);
                 if (daysBetween >= configuration.getPoolcleardays()) {
                     pendinglists.add(peningTransPool.getKeyTrans(t));
                     map.put(fromhex, t.nonce);
@@ -135,5 +135,4 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
             return trigger.nextExecutionTime(triggerContext);
         });
     }
-
 }
