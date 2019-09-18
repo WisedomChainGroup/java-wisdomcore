@@ -48,21 +48,23 @@ public class PeningTransPool {
             String fromst = Hex.encodeHexString(from);
             long nonce = transPool.getTransaction().nonce;
             String key = fromst + nonce;
-            if (!hasExist(key)) {
-                ptpool.put(key, transPool);
-                PendingNonce pendingNonce = new PendingNonce(transPool.getTransaction().nonce, 0);
-                ptnonce.put(fromst, pendingNonce);
-                return;
-            }
-            if (
-                    ptnonce.containsKey(fromst)
-                            && ptnonce.get(fromst).getState() == 2
-                            && ptnonce.get(fromst).getNonce() < nonce
-            ) {
-                ptpool.put(key, transPool);
-                PendingNonce pendingNonce = new PendingNonce(transPool.getTransaction().nonce, 0);
-                ptnonce.put(fromst, pendingNonce);
-
+            if (hasExist(key)) {
+                if(ptnonce.containsKey(fromst)){
+                    PendingNonce noncepool=ptnonce.get(fromst);
+                    int state=noncepool.getState();
+                    if(state==2){
+                        long poolnonce=noncepool.getNonce();
+                        if(poolnonce<nonce){
+                            ptpool.put(key, transPool);
+                            PendingNonce pendingNonce=new PendingNonce(transPool.getTransaction().nonce,0);
+                            ptnonce.put(fromst,pendingNonce);
+                        }
+                    }
+                }else{
+                    ptpool.put(key, transPool);
+                    PendingNonce pendingNonce=new PendingNonce(transPool.getTransaction().nonce,0);
+                    ptnonce.put(fromst,pendingNonce);
+                }
             }
         }
     }
