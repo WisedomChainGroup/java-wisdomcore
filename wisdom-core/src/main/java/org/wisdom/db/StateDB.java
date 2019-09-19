@@ -125,16 +125,19 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private BlocksCache writableBlocks;
 
     @Autowired
+    public OrphanBlocksManager orphanBlocksManager;
+
+
     public StateDB(
             ValidatorState validatorState,
             TargetState targetState,
             ProposersState proposersState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             @Value("${wisdom.consensus.pow-wait}")
-                    int powWait,
+            int powWait,
             @Value("${miner.validators}") String validatorsFile,
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra
-    ) throws Exception{
+            ) throws Exception{
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
