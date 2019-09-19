@@ -63,7 +63,7 @@ public class ConsensusRule implements BlockRule {
             return Result.Error("block height invalid");
         }
         // 出块在是否在合理时间内出块
-        Optional<Proposer> p = consensusConfig.getProposer(parent, block.nTime);
+        Optional<Proposer> p = stateDB.getProposersFactory().getProposer(parent, block.nTime);
         if (!p.
                 map(x -> x.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to)))
                 .orElse(false)) {

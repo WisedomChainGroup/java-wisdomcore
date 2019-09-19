@@ -148,7 +148,7 @@ public class Miner implements ApplicationListener {
         }
         Block bestBlock = stateDB.getBestBlock();
         // 判断是否轮到自己出块
-        Optional<Proposer> p = consensusConfig.getProposer(bestBlock, System.currentTimeMillis() / 1000);
+        Optional<Proposer> p = stateDB.getProposersFactory().getProposer(bestBlock, System.currentTimeMillis() / 1000);
         p.ifPresent(proposer -> {
             if (!proposer.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
                 return;

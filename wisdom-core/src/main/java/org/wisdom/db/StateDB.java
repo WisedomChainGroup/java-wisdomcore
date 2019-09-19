@@ -2,16 +2,22 @@ package org.wisdom.db;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
+import org.wisdom.consensus.pow.ProposersFactory;
+import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
@@ -27,10 +33,13 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.keystore.wallet.KeystoreAction;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -40,6 +49,7 @@ import java.util.stream.Collectors;
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
+    private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
 
     public StateFactory getValidatorStateFactory() {
         return validatorStateFactory;
@@ -51,6 +61,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private StateFactory validatorStateFactory;
     private EraLinkedStateFactory targetStateFactory;
+
+    public ProposersFactory getProposersFactory() {
+        return proposersFactory;
+    }
+
+    private ProposersFactory proposersFactory;
 
     @Override
     public void onApplicationEvent(AccountUpdatedEvent event) {
@@ -108,7 +124,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private BlocksCache writableBlocks;
 
     @Autowired
-    public StateDB(ValidatorState validatorState, TargetState targetState, @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) {
+    public StateDB(
+            ValidatorState validatorState,
+            TargetState targetState,
+            ProposersState proposersState,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            @Value("${wisdom.consensus.pow-wait}")
+            int powWait,
+            @Value("${miner.validators}") String validatorsFile,
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra
+            ) throws Exception{
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
@@ -116,6 +141,29 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.writableBlocks = new BlocksCache(CACHE_SIZE);
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
+        this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
+        this.proposersFactory.setPowWait(powWait);
+
+        Resource resource;
+        try {
+            resource = new ClassPathResource(validatorsFile);
+        } catch (Exception e) {
+            resource = new FileSystemResource(validatorsFile);
+        }
+
+
+        this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
+                .map(v -> {
+                    try{
+                        URI uri = new URI(v);
+                        return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                    return null;
+                }).collect(Collectors.toList()));
+
+        this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
     }
 
     @PostConstruct
@@ -133,6 +181,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             validatorStateFactory.initCache(last, blocks);
             targetStateFactory.initCache(last, blocks);
+            proposersFactory.initCache(last, blocks);
             last = blocks.get(blocks.size() - 1);
         }
     }
