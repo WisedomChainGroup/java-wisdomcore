@@ -130,10 +130,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             ProposersState proposersState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             @Value("${wisdom.consensus.pow-wait}")
-            int powWait,
+                    int powWait,
             @Value("${miner.validators}") String validatorsFile,
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra
-            ) throws Exception{
+    ) throws Exception {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
@@ -154,10 +154,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
         this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
                 .map(v -> {
-                    try{
+                    try {
                         URI uri = new URI(v);
                         return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                     return null;
@@ -171,7 +171,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.latestConfirmed = bc.getLastConfirmedBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
-        while (blocksPerUpdate < 1024){
+        while (blocksPerUpdate < 1024) {
             blocksPerUpdate += blocksPerEra;
         }
         while (true) {
@@ -179,10 +179,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocks.size() < blocksPerUpdate) {
                 break;
             }
-            validatorStateFactory.initCache(last, blocks);
-            targetStateFactory.initCache(last, blocks);
-            proposersFactory.initCache(last, blocks);
-            last = blocks.get(blocks.size() - 1);
+            while (blocks.size() > 0) {
+                validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
+                targetStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
+                proposersFactory.initCache(last, blocks.subList(0, blocksPerEra));
+                last = blocks.get(blocksPerEra - 1);
+                blocks = blocks.subList(blocksPerEra, blocks.size());
+            }
+
         }
     }
 
