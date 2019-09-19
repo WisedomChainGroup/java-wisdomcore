@@ -72,7 +72,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         try {
             if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
                 // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-                logger.info("account update event received block height = " + event.getBlock().nHeight + " hash = " + event.getBlock().getHashHexString());
                 // 清除缓存
                 blocksCache.getAll()
                         .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
