@@ -177,6 +177,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocks.size() < blocksPerUpdate) {
                 break;
             }
+            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)){
+                logger.error("=================================== warning ======================");
+            }
             while (blocks.size() > 0) {
                 validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 targetStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
@@ -240,7 +243,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         res.addBlocks(blocks);
         res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
-        if (all.size() != 120 || all.get(0).nHeight != anum || !isChain(all)) {
+        if (all.size() != blocksPerEra || all.get(0).nHeight != anum || !isChain(all)) {
             logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         } else {
             logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
