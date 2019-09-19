@@ -68,13 +68,7 @@ public class Miner implements ApplicationListener {
     private StateDB stateDB;
 
     @Autowired
-    private TargetStateFactory targetStateFactory;
-
-    @Autowired
     private PendingBlocksManager pendingBlocksManager;
-
-    @Autowired
-    private ValidatorStateFactory factory;
 
     @Autowired
     MerkleRule merkleRule;
@@ -107,12 +101,13 @@ public class Miner implements ApplicationListener {
 
         // merkle state root
         block.nHeight = parent.nHeight + 1;
-        block.nBits = BigEndian.encodeUint256(targetStateFactory.getInstance(block).getTarget());
+        TargetState targetState = (TargetState) stateDB.getTargetStateFactory().getInstance(block);
+        block.nBits = BigEndian.encodeUint256(targetState.getTarget());
         block.nNonce = new byte[Block.HASH_SIZE];
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
-
-        long nonce = factory.getInstance(parent).
+        ValidatorState validatorState = (ValidatorState) stateDB.getValidatorStateFactory().getInstance(parent);
+        long nonce = validatorState.
                 getNonceFromPublicKeyHash(block.body.get(0).to);
 
         block.body.get(0).nonce = nonce + 1;

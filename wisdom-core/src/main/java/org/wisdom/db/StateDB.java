@@ -12,6 +12,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
+import org.wisdom.consensus.pow.TargetState;
+import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
 import org.wisdom.core.WisdomBlockChain;
@@ -23,6 +25,8 @@ import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.core.state.EraLinkedStateFactory;
+import org.wisdom.core.state.StateFactory;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
@@ -36,6 +40,17 @@ import java.util.stream.Collectors;
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
+
+    public StateFactory getValidatorStateFactory() {
+        return validatorStateFactory;
+    }
+
+    public EraLinkedStateFactory getTargetStateFactory() {
+        return targetStateFactory;
+    }
+
+    private StateFactory validatorStateFactory;
+    private EraLinkedStateFactory targetStateFactory;
 
     @Override
     public void onApplicationEvent(AccountUpdatedEvent event) {
@@ -60,7 +75,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     private static final Base64.Encoder encoder = Base64.getEncoder();
-    private static final int CACHE_SIZE = 16;
+    private static final int CACHE_SIZE = 32;
     private static final int CONFIRMS = 3;
 
     @Autowired
@@ -70,16 +85,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private AccountDB accountDB;
 
     @Autowired
-    private IncubatorDB incubatorDB;
-
-    @Autowired
-    private RateTable rateTable;
-
-    @Autowired
-    private Configuration configuration;
-
-    @Autowired
     private ApplicationContext ctx;
+
+    @Autowired
+    private Block genesis;
+
+    @Value("${wisdom.consensus.blocks-per-era}")
+    int blocksPerEra;
 
     @Value("${wisdom.consensus.block-confirms}")
     private int blockConfirms;
@@ -95,17 +107,30 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 等待写入的区块
     private BlocksCache writableBlocks;
 
-    public StateDB() {
+    @Autowired
+    public StateDB(ValidatorState validatorState, TargetState targetState, @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
         this.writableBlocks = new BlocksCache(CACHE_SIZE);
+        this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
+        this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
     }
 
     @PostConstruct
     public void init() {
         this.latestConfirmed = bc.getLastConfirmedBlock();
+        Block last = genesis;
+        while (true) {
+            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerEra);
+            if (blocks.size() < blocksPerEra) {
+                break;
+            }
+            validatorStateFactory.initCache(last, blocks);
+            targetStateFactory.initCache(last, blocks);
+            last = blocks.get(blocks.size() - 1);
+        }
     }
 
     // 定时清除待写入队列
@@ -160,19 +185,19 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         res.addBlocks(blocks);
         res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
-        if (all.size() != 120 || all.get(0).nHeight != anum || !isChain(all)){
+        if (all.size() != 120 || all.get(0).nHeight != anum || !isChain(all)) {
             logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        }else{
+        } else {
             logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
         return all;
     }
 
-    public static boolean isChain(List<Block> blocks){
-        for(int i = 0; i < blocks.size()-1; i++){
+    public static boolean isChain(List<Block> blocks) {
+        for (int i = 0; i < blocks.size() - 1; i++) {
             byte[] h1 = blocks.get(i).getHash();
             byte[] h2 = blocks.get(i + 1).hashPrevBlock;
-            if (!Arrays.equals(h1, h2)){
+            if (!Arrays.equals(h1, h2)) {
                 return false;
             }
         }
@@ -510,7 +535,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
-    private AccountState applyDeposit(Transaction tx, AccountState accountState){
+    private AccountState applyDeposit(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
@@ -524,21 +549,21 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
-    private AccountState applyVote(Transaction tx, AccountState accountState){
+    private AccountState applyVote(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         long balance;
         if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
             balance = account.getBalance();
-            balance-=tx.amount;
-            balance-=tx.getFee();
+            balance -= tx.amount;
+            balance -= tx.getFee();
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
             accountState.setAccount(account);
         }
-        if(Arrays.equals(tx.to,account.getPubkeyHash())){
-            long vote=account.getVote();
-            vote+=tx.amount;
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            long vote = account.getVote();
+            vote += tx.amount;
             account.setVote(vote);
             account.setBlockHeight(tx.height);
             accountState.setAccount(account);
@@ -546,21 +571,21 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
-    private AccountState applyCancelVote(Transaction tx, AccountState accountState){
+    private AccountState applyCancelVote(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         long balance;
         if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
             balance = account.getBalance();
-            balance+=tx.amount;
-            balance-=tx.getFee();
+            balance += tx.amount;
+            balance -= tx.getFee();
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
             accountState.setAccount(account);
         }
-        if(Arrays.equals(tx.to,account.getPubkeyHash())){
-            long vote=account.getVote();
-            vote-=tx.amount;
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            long vote = account.getVote();
+            vote -= tx.amount;
             account.setVote(vote);
             account.setBlockHeight(tx.height);
             accountState.setAccount(account);

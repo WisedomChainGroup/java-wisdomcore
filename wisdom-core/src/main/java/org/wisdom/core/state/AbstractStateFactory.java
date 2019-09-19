@@ -20,37 +20,50 @@ package org.wisdom.core.state;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.db.StateDB;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-public abstract class AbstractStateFactory<T extends State> {
+public abstract class AbstractStateFactory {
     static final Base64.Encoder encoder = Base64.getEncoder();
     protected StateDB stateDB;
-
-    protected ConcurrentMap<String, T> cache;
-
-    protected WisdomBlockChain blockChain;
+    protected State genesisState;
+    protected ConcurrentMap<String, State> cache;
 
     protected String getLRUCacheKey(byte[] hash) {
         return encoder.encodeToString(hash);
     }
 
 
-    protected T getFromCache(Block target) {
+    protected State getFromCache(Block target) {
         if (target == null) {
             return null;
         }
         return cache.get(getLRUCacheKey(target.getHash()));
     }
 
-    public AbstractStateFactory(StateDB stateDB, WisdomBlockChain blockChain, int cacheSize) {
+    public AbstractStateFactory(StateDB stateDB, State genesisState, int cacheSize) {
         this.stateDB = stateDB;
-        this.blockChain = blockChain;
-        this.cache = new ConcurrentLinkedHashMap.Builder<String, T>().maximumWeightedCapacity(cacheSize).build();
+        this.genesisState = genesisState;
+        this.cache = new ConcurrentLinkedHashMap.Builder<String, State>().maximumWeightedCapacity(cacheSize).build();
     }
 
-    public abstract T getInstance(Block block);
+    public abstract State getInstance(Block block);
+
+    public void initCache(Block lastUpdated, List<Block> blocks) {
+        if (lastUpdated.nHeight == 0) {
+            cache.put(
+                    getLRUCacheKey(blocks.get(blocks.size() - 1).getHash()),
+                    genesisState.copy().updateBlocks(blocks)
+            );
+            return;
+        }
+        State state = cache.get(getLRUCacheKey(lastUpdated.getHash()));
+        cache.put(
+                getLRUCacheKey(blocks.get(blocks.size() - 1).getHash()),
+                state.copy().updateBlocks(blocks)
+        );
+    }
 }
