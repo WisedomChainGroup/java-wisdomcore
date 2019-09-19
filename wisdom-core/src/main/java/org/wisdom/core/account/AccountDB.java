@@ -242,6 +242,16 @@ public class AccountDB {
         }
     }
 
+    public boolean hasExitMortgage(byte[] tranbyte) {
+        try {
+            String sql = "select count(*) from transaction t where t.payload=? and t.type=15";
+            int count = tmpl.queryForObject(sql, new Object[]{tranbyte}, Integer.class);
+            return count == 1 ? false : true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public List<Map<String, Object>> getTranList(int height, int type) {
         if (type == 100) {//全部
             String sql = "select encode(h.block_hash,'hex') as block_hash,h.height,t.version,encode(t.tx_hash,'hex') as tx_hash,t.type,t.nonce,encode(t.from,'hex') as from,t.gas_price,t.amount,encode(t.payload,'hex') as payload,\n" +
