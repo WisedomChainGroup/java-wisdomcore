@@ -71,8 +71,8 @@ public class ConsensusRule implements BlockRule {
         }
         // 难度值符合调整难度值
         TargetState state = (TargetState) targetStateFactory.getInstance(block);
-        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) > 0) {
-            return Result.Error("block nbits invalid");
+        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) != 0) {
+            return Result.Error("block at height " + block.nHeight + " nbits invalid " + Hex.encodeHexString(BigEndian.encodeUint256(state.getTarget())) + " expected " + Hex.encodeHexString(block.nBits) + " received");
         }
         return Result.SUCCESS;
     }

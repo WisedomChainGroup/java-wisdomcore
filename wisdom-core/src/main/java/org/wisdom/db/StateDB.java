@@ -89,7 +89,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final int CACHE_SIZE = 32;
-    private static final int CONFIRMS = 3;
 
     @Autowired
     private WisdomBlockChain bc;
