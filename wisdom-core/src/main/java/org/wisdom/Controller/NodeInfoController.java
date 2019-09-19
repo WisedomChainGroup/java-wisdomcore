@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
@@ -65,5 +66,11 @@ public class NodeInfoController {
     @GetMapping(value = "/blocks/unconfirmed", produces = "application/json")
     public Object getNotConfirmed() {
         return encodeDecoder.encodeBlocks(stateDB.getAll());
+    }
+
+    @GetMapping(value = "/proposers", produces = "application/json")
+    public Object getProposers() {
+        ProposersState state = (ProposersState) stateDB.getProposersFactory().getInstance(stateDB.getBestBlock());
+        return state.getProposers();
     }
 }

@@ -20,11 +20,8 @@ package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.keystore.wallet.Keystore;
 import org.wisdom.keystore.wallet.KeystoreAction;
-import org.wisdom.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +34,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class ConsensusConfig {
@@ -113,50 +109,5 @@ public class ConsensusConfig {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        ConsensusConfig cfg = new ConsensusConfig(new JSONEncodeDecoder(), "1pQfDX4fvz7uzBQuM9FbuoKWohmhg9TmY", "genesis/validators.json", true);
 
-        cfg.setPowWait(90);
-        Block p = new Block();
-        p.nHeight = 9005;
-        p.nTime = 1562875891;
-        p.body = new ArrayList<>();
-        Transaction tx = new Transaction();
-        tx.to = Hex.decodeHex("5b0a4c7e31c3123db40a4c14200b54b8e358294b".toCharArray());
-        p.body.add(tx);
-        cfg.getProposer(p, 1562875906)
-                .map(x -> x.pubkeyHash)
-                .ifPresent(System.out::println);
-        ;
-
-    }
-
-    public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
-        if (timeStamp <= parentBlock.nTime) {
-            return Optional.empty();
-        }
-        if (parentBlock.nHeight == 0) {
-            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), 0, Long.MAX_VALUE));
-        }
-        if (parentBlock.nHeight >= 9235) {
-            return Optional.of(new Proposer(getValidatorPubKeyHashes().get(0), -1, Long.MAX_VALUE));
-        }
-        long step = (timeStamp - parentBlock.nTime)
-                / powWait + 1;
-        String lastValidator = Hex
-                .encodeHexString(
-                        parentBlock.body.get(0).to
-                );
-        int lastValidatorIndex = getValidatorPubKeyHashes()
-                .indexOf(lastValidator);
-        int currentValidatorIndex = (int) (lastValidatorIndex + step) % getValidatorPubKeyHashes().size();
-        long endTime = parentBlock.nTime + step * powWait;
-        long startTime = endTime - powWait;
-        String validator = getValidatorPubKeyHashes().get(currentValidatorIndex);
-        return Optional.of(new Proposer(
-                validator,
-                startTime,
-                endTime
-        ));
-    }
 }
