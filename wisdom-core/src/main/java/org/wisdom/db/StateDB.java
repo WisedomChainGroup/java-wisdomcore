@@ -14,7 +14,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
@@ -29,8 +28,6 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
-import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -50,6 +47,7 @@ import java.util.stream.Collectors;
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
+    private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 1024;
 
     public StateFactory getValidatorStateFactory() {
         return validatorStateFactory;
@@ -171,7 +169,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.latestConfirmed = bc.getLastConfirmedBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
-        while (blocksPerUpdate < 1024) {
+        while (blocksPerUpdate < BLOCKS_PER_UPDATE_LOWER_BOUNDS) {
             blocksPerUpdate += blocksPerEra;
         }
         while (true) {
