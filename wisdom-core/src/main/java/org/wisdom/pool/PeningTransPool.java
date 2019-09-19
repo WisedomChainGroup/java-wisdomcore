@@ -101,6 +101,19 @@ public class PeningTransPool {
         return list;
     }
 
+    public List<TransPool> getAllFromState(String from){
+        List<TransPool> list = new ArrayList<>();
+        if (ptpool.containsKey(from)) {
+            TreeMap<Long, TransPool> map = ptpool.get(from);
+            for (Map.Entry<Long, TransPool> entry : map.entrySet()) {
+                if(entry.getValue().getState()!=2){
+                    list.add(entry.getValue());
+                }
+            }
+        }
+        return list;
+    }
+
     public TransPool getPoolTranHash(byte[] txhash) {
         for (Map.Entry<String, TreeMap<Long, TransPool>> entry : ptpool.entrySet()) {
             for (Map.Entry<Long, TransPool> entrys : entry.getValue().entrySet()) {
@@ -213,6 +226,18 @@ public class PeningTransPool {
         }
     }
 
+    public void updatePtNonce(List<String> listkey){
+        listkey.stream().forEach(l->{
+            if(ptnonce.containsKey(l)){
+                PendingNonce pendingNonce = ptnonce.get(l);
+                if(pendingNonce.getState()!=2){
+                    pendingNonce.setState(2);
+                    ptnonce.put(l, pendingNonce);
+                }
+            }
+        });
+    }
+
     public void updatePool(List<Transaction> txs, int type, long height) {
         for (Transaction t : txs) {
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
@@ -249,5 +274,16 @@ public class PeningTransPool {
         } else {
             ptnonce.put(fromhash, new PendingNonce(nonce, 0));
         }
+    }
+
+    public Map<String, PendingNonce> getPtnonce(){
+       Map<String, PendingNonce> maps=new HashMap<>();
+        for(Map.Entry<String, PendingNonce> entry: ptnonce.entrySet()){
+            PendingNonce pendingNonce=entry.getValue();
+            if(pendingNonce.getState()==0){
+                maps.put(entry.getKey(),entry.getValue());
+            }
+        }
+        return maps;
     }
 }
