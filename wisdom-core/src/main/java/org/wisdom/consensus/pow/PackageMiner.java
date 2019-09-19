@@ -106,6 +106,8 @@ public class PackageMiner {
                     case 10://提取利息
                     case 11://提取分享
                     case 12://本金
+                    case 14://抵押
+                    case 15://撤回抵押
                         Account account=UpdateOtherAccount(fromaccount,transaction);
                         if(account==null){
                             removemap.put(new String(entry.getKey()), transaction.nonce);
@@ -232,6 +234,24 @@ public class PackageMiner {
                 state=true;
             }
             fromaccount.setIncubatecost(incubatecost);
+        } else if(transaction.type == 14){//抵押
+            balance -= transaction.getFee();
+            balance -= transaction.amount;
+            long mortgage=fromaccount.getMortgage();
+            mortgage+=transaction.amount;
+            fromaccount.setMortgage(mortgage);
+        } else if(transaction.type == 15){//撤回抵押
+            balance -= transaction.getFee();
+            if(balance<0){
+                state=true;
+            }
+            balance+=transaction.amount;
+            long mortgage=fromaccount.getMortgage();
+            mortgage-=transaction.amount;
+            if(mortgage<0){
+                state=true;
+            }
+            fromaccount.setMortgage(mortgage);
         }
         if (state || balance < 0) {
             return null;

@@ -565,6 +565,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return applyExtractCost(tx, accountState);
             case 0x0d:
                 return applyCancelVote(tx, accountState);
+            case 0x0e:
+                return applyMortgage(tx, accountState);
+            case 0x0f:
+                return applyCancelMortgage(tx, accountState);
             default:
                 throw new Exception("unsupported transaction type: " + Transaction.Type.values()[type].toString());
         }
@@ -646,6 +650,40 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
+    public AccountState applyMortgage(Transaction tx, AccountState accountState){
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        balance-=tx.amount;
+        long mortgage=account.getMortgage();
+        mortgage+=tx.amount;
+        account.setBalance(balance);
+        account.setMortgage(mortgage);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        return accountState;
+    }
+
+    private AccountState applyCancelMortgage(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance-=tx.getFee();
+        long mortgage=account.getMortgage();
+        mortgage-=tx.amount;
+        account.setBalance(balance);
+        account.setMortgage(mortgage);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        return accountState;
+    }
 
     public AccountState applyTransactions(List<Transaction> txs, AccountState account) {
         for (Transaction Transaction : txs) {
