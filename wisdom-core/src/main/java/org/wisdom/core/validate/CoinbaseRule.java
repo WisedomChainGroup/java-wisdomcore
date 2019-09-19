@@ -20,11 +20,9 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.EconomicModel;
-import org.wisdom.consensus.pow.ValidatorStateFactory;
 import org.wisdom.db.StateDB;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,13 +32,10 @@ import org.springframework.stereotype.Component;
 public class CoinbaseRule implements BlockRule, TransactionRule {
 
     @Autowired
-    private ValidatorStateFactory factory;
-
-    @Autowired
-    private WisdomBlockChain bc;
-
-    @Autowired
     private StateDB stateDB;
+
+    public CoinbaseRule() {
+    }
 
     @Override
     public Result validateBlock(Block block) {

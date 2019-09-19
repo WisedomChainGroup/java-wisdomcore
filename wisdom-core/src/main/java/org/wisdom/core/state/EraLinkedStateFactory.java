@@ -21,7 +21,6 @@ package org.wisdom.core.state;
 import org.wisdom.core.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.db.StateDB;
 
 import java.util.List;
@@ -30,14 +29,12 @@ import java.util.List;
  * @author sal 1564319846@qq.com
  * era linked state factory, updates per era
  */
-public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory {
+public class EraLinkedStateFactory extends AbstractStateFactory {
     private int blocksPerEra;
     private static final Logger logger = LoggerFactory.getLogger(EraLinkedStateFactory.class);
-    private T genesisState;
 
-    public EraLinkedStateFactory(StateDB stateDB, WisdomBlockChain blockChain, int cacheSize, T genesisState, int blocksPerEra) {
-        super(stateDB, blockChain, cacheSize);
-        this.genesisState = genesisState;
+    public EraLinkedStateFactory(StateDB stateDB, int cacheSize, State genesisState, int blocksPerEra) {
+        super(stateDB, genesisState, cacheSize);
         this.blocksPerEra = blocksPerEra;
     }
 
@@ -50,7 +47,7 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
     }
 
 
-    private Block prevEralastBlock(Block target) {
+    private Block prevEraLast(Block target) {
         if (target.nHeight == 0) {
             return null;
         }
@@ -62,61 +59,48 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
     }
 
     @Override
-    public T getFromCache(Block eraHead) {
+    public State getFromCache(Block eraHead) {
         if (eraHead.nHeight == 0) {
             return genesisState;
         }
-        T t = (T) cache.get(getLRUCacheKey(eraHead.getHash()));
+        State t = cache.get(getLRUCacheKey(eraHead.getHash()));
         if (t != null) {
             return t;
         }
-        Block parentEraHead = prevEralastBlock(eraHead);
+        Block parentEraHead = prevEraLast(eraHead);
+        if (parentEraHead == null){
+            return null;
+        }
         t = getFromCache(parentEraHead);
         List<Block> blocks = stateDB.getAncestorBlocks(eraHead.getHash(), parentEraHead.nHeight + 1);
-        t = (T) t.copy().updateBlocks(blocks);
+        t = t.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), t);
         return t;
     }
 
-    public T getInstance(Block block) {
+    public State getInstance(Block block) {
         if (block == null) {
             return null;
         }
         if (block.nHeight == 0 || getEraAtBlockNumber(block.nHeight) == 0) {
             return genesisState;
         }
-        Block eraHead = prevEralastBlock(block);
+        Block eraHead = prevEraLast(block);
         if (eraHead == null) {
             return null;
         }
         State cached = getFromCache(eraHead);
         if (cached != null) {
-            return (T) cached;
+            return cached;
         }
-        T parentEraState = getInstance(eraHead);
+        State parentEraState = getInstance(eraHead);
         if (parentEraState == null) {
             return null;
         }
         List<Block> blocks = stateDB.getAncestorBlocks(eraHead.getHash(), eraHead.nHeight - (blocksPerEra - 1));
         State newState = parentEraState.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), newState);
-        return (T) newState;
-    }
-
-    // init cache when restart, avoid stack overflow
-    public void initCache() {
-        Block latest = this.blockChain.currentBlock();
-        if (latest.nHeight < blocksPerEra) {
-            return;
-        }
-        long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
-        Block confirmed = blockChain.getCanonicalBlock(latestHeight);
-        long era = getEraAtBlockNumber(confirmed.nHeight);
-        T state = genesisState;
-        for (int i = 0; i < era; i++) {
-            List<Block> bks = blockChain.getCanonicalBlocks(i * blocksPerEra + 1, blocksPerEra);
-            state = (T) state.copy().updateBlocks(bks);
-            cache.put(getLRUCacheKey(bks.get(bks.size() - 1).getHash()), state);
-        }
+        return newState;
     }
 }
+

@@ -19,44 +19,34 @@
 package org.wisdom.core.state;
 
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.wisdom.db.StateDB;
-
-import java.util.List;
 
 /**
  * @author sal 1564319846@qq.com
  * state factory, lru cached
  */
-public class StateFactory<T extends State> extends AbstractStateFactory {
-    private static Logger logger = LoggerFactory.getLogger(StateFactory.class);
-    private static final int BLOCKS_PER_UPDATE = 100;
+public class StateFactory extends AbstractStateFactory {
 
-    private T genesisState;
-
-    public StateFactory(StateDB stateDB, WisdomBlockChain blockChain, int cacheSize, T genesisState) {
-        super(stateDB, blockChain, cacheSize);
-        this.genesisState = genesisState;
+    public StateFactory(StateDB stateDB, int cacheSize, State genesisState) {
+        super(stateDB, genesisState, cacheSize);
     }
 
-    public T getFromCache(Block block) {
+    public State getFromCache(Block block) {
         if (block.nHeight == 0) {
             return genesisState;
         }
         String key = getLRUCacheKey(block.getHash());
         if (cache.containsKey(key)) {
-            return (T) cache.get(key);
+            return cache.get(key);
         }
         Block parent = stateDB.getBlock(block.hashPrevBlock);
-        T parentState = getFromCache(parent);
-        T newState = (T) (parentState.copy().updateBlock(block));
+        State parentState = getFromCache(parent);
+        State newState = parentState.copy().updateBlock(block);
         cache.put(key, newState);
         return newState;
     }
 
-    public T getInstance(Block block) {
+    public State getInstance(Block block) {
         if (block == null || !stateDB.hasBlock(block.getHash())) {
             return null;
         }
@@ -64,24 +54,5 @@ public class StateFactory<T extends State> extends AbstractStateFactory {
             return genesisState;
         }
         return getFromCache(block);
-    }
-
-    public T getCurrentState() {
-        Block target = blockChain.currentHeader();
-        return getInstance(target);
-    }
-
-    // init cache when restart, avoid stack overflow
-    public void initCache() {
-        Block latest = blockChain.currentBlock();
-        long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
-        Block confirmed = blockChain.getCanonicalBlock(latestHeight / BLOCKS_PER_UPDATE * BLOCKS_PER_UPDATE);
-        T state = genesisState;
-        for (long i = 0; i < confirmed.nHeight / BLOCKS_PER_UPDATE; i++) {
-            List<Block> bks = blockChain.getCanonicalBlocks(i * BLOCKS_PER_UPDATE + 1, BLOCKS_PER_UPDATE);
-            state = (T) state.copy().updateBlocks(bks);
-            cache.put(getLRUCacheKey(bks.get(bks.size() - 1).getHash()), state);
-        }
-
     }
 }
