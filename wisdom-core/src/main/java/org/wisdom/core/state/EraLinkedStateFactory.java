@@ -42,10 +42,9 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         return blocksPerEra;
     }
 
-    private long getEraAtBlockNumber(long number) {
+    protected long getEraAtBlockNumber(long number) {
         return (number - 1) / blocksPerEra;
     }
-
 
     private Block prevEraLast(Block target) {
         if (target.nHeight == 0) {
