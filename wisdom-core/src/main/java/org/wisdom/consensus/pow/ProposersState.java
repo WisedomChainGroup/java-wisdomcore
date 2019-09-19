@@ -86,6 +86,7 @@ public class ProposersState implements State {
             if (proposals[i] > 0) {
                 continue;
             }
+            logger.info("block the proposer " + proposers.get(i));
             blockList.add(proposers.get(i));
         }
         // 重新生成 proposers
