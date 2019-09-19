@@ -122,9 +122,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     public void init() {
         this.latestConfirmed = bc.getLastConfirmedBlock();
         Block last = genesis;
+        int blocksPerUpdate = 0;
+        while (blocksPerUpdate < 1024){
+            blocksPerUpdate += blocksPerEra;
+        }
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerEra);
-            if (blocks.size() < blocksPerEra) {
+            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
+            if (blocks.size() < blocksPerUpdate) {
                 break;
             }
             validatorStateFactory.initCache(last, blocks);

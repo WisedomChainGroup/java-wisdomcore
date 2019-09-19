@@ -18,7 +18,6 @@
 
 package org.wisdom.consensus.pow;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
