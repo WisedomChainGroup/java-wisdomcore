@@ -113,16 +113,26 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private void initFifo() throws IOException, InterruptedException {
-        File readFile = new File("/ipc/pipe.in");
+        String dir = CreateFifoDir();
+        File readFile = new File(dir + File.separator + "pipe.in");
         if (!readFile.exists()) {
-            readFile = createFifoPipe("/ipc/pipe.in");
+            readFile = createFifoPipe(dir + File.separator + "pipe.in");
         }
-        File writeFile = new File("/ipc/pipe.out");
+        File writeFile = new File(dir + File.separator + "pipe.out");
         if (!writeFile.exists()) {
-            writeFile = createFifoPipe("/ipc/pipe.out");
+            writeFile = createFifoPipe(dir + File.separator + "pipe.out");
         }
         reader = new FileReader(readFile);
         writer = new FileWriter(writeFile);
+    }
+
+    private String CreateFifoDir() {
+        File filePath = new File(System.getProperty("user.home") + File.separator + "ipc");
+        //判断该文件夹是否已存在
+        if (!filePath.exists()) {
+            filePath.mkdirs();
+        }
+        return filePath.getAbsolutePath();
     }
 
     private void closeFifo() throws IOException {

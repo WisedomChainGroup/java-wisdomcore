@@ -1,13 +1,17 @@
 package org.wisdom.db;
 
+import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.state.State;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * 包含了账户的所有信息，包括余额，孵化的金额等，提供深拷贝方法
  */
-public class AccountState {
+public class AccountState{
     private Account account;
 
     public AccountState() {
