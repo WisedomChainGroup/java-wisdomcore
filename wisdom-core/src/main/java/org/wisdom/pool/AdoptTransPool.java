@@ -21,7 +21,7 @@ public class AdoptTransPool {
     @Autowired
     Configuration configuration;
 
-    private ConcurrentHashMap<String, Map<String, TransPool>> atpool;
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
 
     public AdoptTransPool() {
         Leveldb leveldb = new Leveldb();
@@ -42,12 +42,12 @@ public class AdoptTransPool {
         for (Transaction t : txs) {
             String from = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
             if (hasExist(from)) {
-                Map<String, TransPool> map = new HashMap<>();
+                ConcurrentHashMap<String, TransPool> map = new ConcurrentHashMap<>();
                 TransPool tp = new TransPool(t, 0, new Date().getTime());
                 map.put(getKeyTrans(t), tp);
                 this.atpool.put(from, map);
             } else {
-                Map<String, TransPool> map = atpool.get(from);
+                ConcurrentHashMap<String, TransPool> map = atpool.get(from);
                 if (map.containsKey(getKeyTrans(t))) {
                     TransPool transPool = map.get(getKeyTrans(t));
                     Transaction transaction = transPool.getTransaction();
@@ -100,7 +100,7 @@ public class AdoptTransPool {
 
     public void removeOne(String key,String mapkey){
         if (!hasExist(key)) {
-            Map<String, TransPool> map = atpool.get(key);
+            ConcurrentHashMap<String, TransPool> map = atpool.get(key);
             if (map.containsKey(mapkey)) {
                 map.remove(mapkey);
                 if (map.size() == 0) {
@@ -114,7 +114,7 @@ public class AdoptTransPool {
 
     public List<TransPool> getAll() {
         List<TransPool> list = new ArrayList<>();
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             Map<String, TransPool> map = compare(entry.getValue());
             for (Map.Entry<String, TransPool> entry1 : map.entrySet()) {
                 TransPool t = entry1.getValue();
@@ -128,7 +128,7 @@ public class AdoptTransPool {
     public Map<String, List<TransPool>> getqueuedtopending() {
         Map<String, List<TransPool>> map = new HashMap<>();
         int index = 0;
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             List<TransPool> transPoolList = new ArrayList<>();
             Map<String, TransPool> maps = compare(entry.getValue());
             for (Map.Entry<String, TransPool> entry1 : maps.entrySet()) {
@@ -153,7 +153,7 @@ public class AdoptTransPool {
     public List<TransPool> getAllFrom(String from) {
         List<TransPool> list = new ArrayList<>();
         if (!hasExist(from)) {
-            Map<String, TransPool> map = atpool.get(from);
+            ConcurrentHashMap<String, TransPool> map = atpool.get(from);
             for (Map.Entry<String, TransPool> entry : map.entrySet()) {
                 TransPool t = entry.getValue();
                 list.add(t);
@@ -164,7 +164,7 @@ public class AdoptTransPool {
 
     public List<TransPool> getAllFull() {
         List<TransPool> list = new ArrayList<>();
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             for (Map.Entry<String, TransPool> entrys : entry.getValue().entrySet()) {
                 list.add(entrys.getValue());
             }
@@ -173,7 +173,7 @@ public class AdoptTransPool {
     }
 
     public TransPool getPoolTranHash(byte[] txhash) {
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             for (Map.Entry<String, TransPool> entrys : entry.getValue().entrySet()) {
                 Transaction t = entrys.getValue().getTransaction();
                 if (Arrays.equals(t.getHash(), txhash)) {
