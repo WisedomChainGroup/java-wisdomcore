@@ -3,6 +3,7 @@ package org.wisdom.consensus.pow;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
@@ -37,7 +38,7 @@ public class ProposersState implements State {
             this.publicKeyHash = publicKeyHash;
         }
 
-        public Proposer copy(){
+        public Proposer copy() {
             return new Proposer(mortgage, votes, publicKeyHash);
         }
     }
@@ -46,18 +47,18 @@ public class ProposersState implements State {
     private List<String> proposers;
     private Set<String> blockList;
 
-    public ProposersState() {
+    @Autowired
+    public ProposersState(
+    ) {
         all = new HashMap<>();
         blockList = new HashSet<>();
         proposers = new ArrayList<>();
     }
 
     public List<Proposer> getProposers() {
-        List<Proposer> res = new ArrayList<>();
-        for(int i = 0; i < proposers.size() && i < MAXIMUM_PROPOSERS; i++){
-            res.add(all.get(proposers.get(i)));
-        }
-        return res;
+        return proposers.stream()
+                .map(k -> all.get(k))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -76,7 +77,6 @@ public class ProposersState implements State {
             updateBlock(b);
             int idx = proposers.indexOf(Hex.encodeHexString(b.body.get(0).to));
             if (idx < 0 || idx >= proposals.length) {
-                logger.error("index overflow invalid proposer");
                 continue;
             }
             proposals[idx]++;
@@ -103,7 +103,9 @@ public class ProposersState implements State {
                         return (int) (y.mortgage - x.mortgage);
                     }
                     return y.publicKeyHash.compareTo(x.publicKeyHash);
-                }).map(p -> p.publicKeyHash).collect(Collectors.toList());
+                })
+                .limit(MAXIMUM_PROPOSERS)
+                .map(p -> p.publicKeyHash).collect(Collectors.toList());
         return this;
     }
 
@@ -152,12 +154,12 @@ public class ProposersState implements State {
     public State copy() {
         ProposersState state = new ProposersState();
         state.all = new HashMap<>();
-        for(String key: all.keySet()){
+        for (String key : all.keySet()) {
             state.all.put(key, all.get(key).copy());
         }
         state.blockList = new HashSet<>(blockList);
         state.proposers = new ArrayList<>();
-        if (proposers == null){
+        if (proposers == null) {
             return state;
         }
         state.proposers = new ArrayList<>(proposers);
