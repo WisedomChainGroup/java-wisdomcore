@@ -75,7 +75,7 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         List<Block> blocks = stateDB.getAncestorBlocks(eraHead.getHash(), parentEraHead.nHeight + 1);
         t = t.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), t);
-        return t;
+        return t.copy();
     }
 
     public State getInstance(Block block) {
