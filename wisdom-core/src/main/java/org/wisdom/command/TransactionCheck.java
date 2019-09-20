@@ -121,7 +121,7 @@ public class TransactionCheck {
             tranlast = ByteUtil.bytearraycopy(tranlast, 64, tranlast.length - 64);
             //topubkeyhash
             byte[] topubkeyhash = ByteUtil.bytearraycopy(tranlast, 0, 20);
-            if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c) {
+            if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0e || type[0] == 0x0f) {
                 if (!Arrays.equals(frompubhash, topubkeyhash)) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("From and To are different");
@@ -154,7 +154,7 @@ public class TransactionCheck {
             //bytelength
             byte[] date = ByteUtil.bytearraycopy(tranlast, 0, 4);
             int length = ByteUtil.byteArrayToInt(date);
-            if (type[0] != 0x01 && type[0] != 0x02 ) {//转账、投票
+            if (type[0] != 0x01 && type[0] != 0x02 && type[0] != 0x0e) {//转账、投票、抵押,没有payload
                 if (length == 0) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Payload cannot be empty");
@@ -207,19 +207,19 @@ public class TransactionCheck {
             long tranbalance = transaction.amount;
             if (account != null) {
                 long nowbalance = account.getBalance();
-                if (type == 0x01 || type == 0x09) {
+                if (type == 0x01 || type == 0x09 ) {
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
                     }
-                } else if (type == 0x03 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x0d) {
+                } else if (type == 0x03 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x0d || type == 0x0f) {
                     if (transaction.getFee() > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
                     }
-                } else if (type == 0x02) {//vote
+                } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
@@ -229,7 +229,7 @@ public class TransactionCheck {
                     long remainder = (long) (tranbalance % 100000000);
                     if (remainder != 0) {
                         apiResult.setCode(5000);
-                        apiResult.setMessage("The vote is not an integer");
+                        apiResult.setMessage("TThe amount must be an integer");
                         return apiResult;
                     }
                 }
@@ -267,6 +267,9 @@ public class TransactionCheck {
                 break;
             case 0x0d://撤回投票
                 apiResult = CheckRecallVote(amount, payload, topubkeyhash);
+                break;
+            case 0x0f://撤回抵押
+                apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
                 break;
         }
         return apiResult;
@@ -401,18 +404,20 @@ public class TransactionCheck {
                     apiResult.setMessage("Abnormal withdrawal amount");
                     return apiResult;
                 } else {
-                    int muls = (int) (nowincub % totalrate);
-                    if (muls != 0) {//数据不对
-                        long syamount = muls;
-                        if (syamount != amount) {
+                    if(transaction.height>40000){
+                        int muls = (int) (nowincub % totalrate);
+                        if (muls != 0) {//数据不对
+                            long syamount = muls;
+                            if (syamount != amount) {
+                                apiResult.setCode(5000);
+                                apiResult.setMessage("Abnormal withdrawal amount");
+                                return apiResult;
+                            }
+                        } else {
                             apiResult.setCode(5000);
                             apiResult.setMessage("Abnormal withdrawal amount");
                             return apiResult;
                         }
-                    } else {
-                        apiResult.setCode(5000);
-                        apiResult.setMessage("Abnormal withdrawal amount");
-                        return apiResult;
                     }
                 }
             } else {
@@ -498,13 +503,13 @@ public class TransactionCheck {
         boolean hasvote = accountDB.hasExitVote(payload);
         if (!hasvote) {
             apiResult.setCode(5000);
-            apiResult.setMessage("No voting business was withdrawn");
+            apiResult.setMessage("The vote has been withdrawn");
             return apiResult;
         }
         Transaction transaction = wisdomBlockChain.getTransaction(payload);
         if (transaction == null) {
             apiResult.setCode(5000);
-            apiResult.setMessage("Unable to get poll transaction");
+            apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
         if (!Arrays.equals(transaction.to, topubkeyhash)) {
@@ -524,6 +529,52 @@ public class TransactionCheck {
             return apiResult;
         }
         if (account.getVote() < amount) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The withdrawal amount is incorrect");
+            return apiResult;
+        }
+        apiResult.setCode(2000);
+        apiResult.setMessage("SUCCESS");
+        return apiResult;
+    }
+
+
+    private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
+        APIResult apiResult = new APIResult();
+        if (payload.length != 32) {//抵押事务哈希
+            apiResult.setCode(5000);
+            apiResult.setMessage("The mortgage transaction payload was incorrectly formatted");
+            return apiResult;
+        }
+        boolean hasmortgage = accountDB.hasExitMortgage(payload);
+        if(!hasmortgage){
+            apiResult.setCode(5000);
+            apiResult.setMessage("The mortgage has been withdrawn");
+            return apiResult;
+        }
+        Transaction transaction = wisdomBlockChain.getTransaction(payload);
+        if (transaction == null) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("Unable to get mortgage transaction");
+            return apiResult;
+        }
+        if (!Arrays.equals(transaction.to, topubkeyhash)) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("You have to withdraw your mortgage");
+            return apiResult;
+        }
+        if (transaction.amount != amount) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The number of mortgage is not correct");
+            return apiResult;
+        }
+        Account account = accountDB.selectaccount(topubkeyhash);
+        if (account == null) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("Unable to withdraw");
+            return apiResult;
+        }
+        if (account.getMortgage() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
             return apiResult;

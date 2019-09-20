@@ -85,6 +85,9 @@ public class AccountRule implements BlockRule {
         Map<String,AccountState> map=stateDB.getAccounts(parenthash,pubhashlist);
         List<Transaction> transactionList=new ArrayList<>();
         if (block.nHeight > 30800) {
+            if(block.nHeight==32772){
+                System.out.println("进来了");
+            }
             for (Transaction tx : block.body) {
                 String key = encoder.encodeToString(tx.from);
                 if (froms.contains(key)) {

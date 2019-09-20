@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
 public abstract class AbstractStateFactory {
-    static final Base64.Encoder encoder = Base64.getEncoder();
+    private static final Base64.Encoder encoder = Base64.getEncoder();
     protected StateDB stateDB;
     protected State genesisState;
     protected ConcurrentMap<String, State> cache;

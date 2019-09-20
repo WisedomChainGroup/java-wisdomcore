@@ -18,6 +18,8 @@
 
 package org.wisdom.core.account;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wisdom.core.orm.TransactionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -29,7 +31,7 @@ import java.util.Map;
 
 @Component
 public class AccountDB {
-
+    public static final Logger logger = LoggerFactory.getLogger(AccountDB.class);
     @Autowired
     private JdbcTemplate tmpl;
 
@@ -96,6 +98,7 @@ public class AccountDB {
             String sql = "insert into account values(?,?,?,?,?,?,?)";
             return tmpl.update(sql, new Object[]{account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage()});
         } catch (Exception e) {
+            logger.error("FATAL DEAD LOCK !!!!!!!!!!!!!!!!!!!!!");
             e.printStackTrace();
             return 0;
         }
@@ -117,6 +120,7 @@ public class AccountDB {
             String sql = "insert into account(id,blockheight,pubkeyhash,nonce,balance,incubatecost,mortgage,vote) VALUES(?,?,?,?,?,?,?,?) on conflict(id) do nothing";
             return tmpl.batchUpdate(sql, Object);
         } catch (Exception e) {
+            logger.error("FATAL DEAD LOCK !!!!!!!!!!!!!!!!!!!!!");
             e.printStackTrace();
             return null;
         }
@@ -235,6 +239,16 @@ public class AccountDB {
     public boolean hasExitVote(byte[] tranbyte) {
         try {
             String sql = "select count(*) from transaction t where t.payload=? and t.type=13";
+            int count = tmpl.queryForObject(sql, new Object[]{tranbyte}, Integer.class);
+            return count == 1 ? false : true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean hasExitMortgage(byte[] tranbyte) {
+        try {
+            String sql = "select count(*) from transaction t where t.payload=? and t.type=15";
             int count = tmpl.queryForObject(sql, new Object[]{tranbyte}, Integer.class);
             return count == 1 ? false : true;
         } catch (Exception e) {

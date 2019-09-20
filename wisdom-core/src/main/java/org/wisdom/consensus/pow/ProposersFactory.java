@@ -43,8 +43,10 @@ public class ProposersFactory extends EraLinkedStateFactory {
             return Optional.of(new Proposer(initialProposers.get(0), 0, Long.MAX_VALUE));
         }
 
+        boolean enableMultiMiners = getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinerJoinEra;
+
         // 到了开启多节点挖矿的纪元
-        if (parentBlock.nHeight + 1 > (allowMinerJoinEra - 1) * getBlocksPerEra()) {
+        if (enableMultiMiners) {
             if (parentBlock.nHeight % getBlocksPerEra() == 0) {
                 ProposersState state = (ProposersState) getFromCache(parentBlock);
                 proposers = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
@@ -55,9 +57,10 @@ public class ProposersFactory extends EraLinkedStateFactory {
         }
 
         // 9236 开始单机挖矿
-        if (parentBlock.nHeight >= 9235) {
+        if (parentBlock.nHeight >= 9235 && !enableMultiMiners) {
             return Optional.of(new Proposer(initialProposers.get(0), -1, Long.MAX_VALUE));
         }
+
         long step = (timeStamp - parentBlock.nTime)
                 / powWait + 1;
         String lastValidator = Hex

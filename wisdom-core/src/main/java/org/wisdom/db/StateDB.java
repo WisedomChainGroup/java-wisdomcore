@@ -14,7 +14,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
@@ -29,8 +28,6 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
-import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -50,6 +47,7 @@ import java.util.stream.Collectors;
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
+    private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
 
     public StateFactory getValidatorStateFactory() {
         return validatorStateFactory;
@@ -74,7 +72,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         try {
             if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
                 // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-                logger.info("account update event received block height = " + event.getBlock().nHeight + " hash = " + event.getBlock().getHashHexString());
                 // 清除缓存
                 blocksCache.getAll()
                         .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
@@ -92,7 +89,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final int CACHE_SIZE = 32;
-    private static final int CONFIRMS = 3;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -130,10 +126,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             ProposersState proposersState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             @Value("${wisdom.consensus.pow-wait}")
-            int powWait,
+                    int powWait,
             @Value("${miner.validators}") String validatorsFile,
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra
-            ) throws Exception{
+    ) throws Exception {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
@@ -154,10 +150,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
         this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
                 .map(v -> {
-                    try{
+                    try {
                         URI uri = new URI(v);
                         return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                     return null;
@@ -171,7 +167,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.latestConfirmed = bc.getLastConfirmedBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
-        while (blocksPerUpdate < 1024){
+        while (blocksPerUpdate < BLOCKS_PER_UPDATE_LOWER_BOUNDS) {
             blocksPerUpdate += blocksPerEra;
         }
         while (true) {
@@ -179,10 +175,17 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocks.size() < blocksPerUpdate) {
                 break;
             }
-            validatorStateFactory.initCache(last, blocks);
-            targetStateFactory.initCache(last, blocks);
-            proposersFactory.initCache(last, blocks);
-            last = blocks.get(blocks.size() - 1);
+            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)) {
+                logger.error("=================================== warning ======================");
+            }
+            while (blocks.size() > 0) {
+                validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
+                targetStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
+                proposersFactory.initCache(last, blocks.subList(0, blocksPerEra));
+                last = blocks.get(blocksPerEra - 1);
+                blocks = blocks.subList(blocksPerEra, blocks.size());
+            }
+
         }
     }
 
@@ -238,7 +241,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         res.addBlocks(blocks);
         res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
-        if (all.size() != 120 || all.get(0).nHeight != anum || !isChain(all)) {
+        if (all.size() != blocksPerEra || all.get(0).nHeight != anum || !isChain(all)) {
             logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         } else {
             logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -364,13 +367,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
 
     // 区块相对于已持久化的账本产生状态变更的账户
+    // block hash -> public key hash -> account
     private Map<String, Map<String, AccountState>> cache;
 
     // 最新确认的区块
     private Block latestConfirmed;
 
     protected String getLRUCacheKey(byte[] hash) {
-        return encoder.encodeToString(hash);
+        return Hex.encodeHexString(hash);
     }
 
     public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
@@ -412,7 +416,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         String blockKey = getLRUCacheKey(blockHash);
         String accountKey = getLRUCacheKey(publicKeyHash);
         if (cache.containsKey(blockKey) && cache.get(blockKey).containsKey(accountKey)) {
-            return cache.get(blockKey).get(accountKey);
+            return cache.get(blockKey).get(accountKey).copy();
         }
         // 如果缓存不存在则进行回溯
         AccountState account = getAccountUnsafe(header.hashPrevBlock, publicKeyHash);
@@ -426,7 +430,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             cache.put(blockKey, new ConcurrentHashMap<>());
         }
         cache.get(blockKey).put(accountKey, res);
-        return res;
+        return res.copy();
     }
 
     // 获取已经持久化的账户
@@ -565,6 +569,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return applyExtractCost(tx, accountState);
             case 0x0d:
                 return applyCancelVote(tx, accountState);
+            case 0x0e:
+                return applyMortgage(tx, accountState);
+            case 0x0f:
+                return applyCancelMortgage(tx, accountState);
             default:
                 throw new Exception("unsupported transaction type: " + Transaction.Type.values()[type].toString());
         }
@@ -646,14 +654,48 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
+    public AccountState applyMortgage(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        balance -= tx.amount;
+        long mortgage = account.getMortgage();
+        mortgage += tx.amount;
+        account.setBalance(balance);
+        account.setMortgage(mortgage);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        return accountState;
+    }
+
+    private AccountState applyCancelMortgage(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        long mortgage = account.getMortgage();
+        mortgage -= tx.amount;
+        account.setBalance(balance);
+        account.setMortgage(mortgage);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        return accountState;
+    }
 
     public AccountState applyTransactions(List<Transaction> txs, AccountState account) {
-        for (Transaction Transaction : txs) {
+        for (Transaction transaction : txs) {
             try {
-                account = applyTransaction(Transaction, account);
                 if (account == null) {
                     return null;
                 }
+                account = applyTransaction(transaction, account);
             } catch (Exception e) {
                 return null;
             }

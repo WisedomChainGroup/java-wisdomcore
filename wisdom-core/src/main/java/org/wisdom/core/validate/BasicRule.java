@@ -68,7 +68,7 @@ public class BasicRule implements BlockRule, TransactionRule {
             return Result.Error("null block");
         }
         if (Math.abs(best.nHeight - block.nHeight) > orphanHeightsRange) {
-            return Result.Error("the block height" + block.nHeight + " is too small, current height is " + best.nHeight);
+            return Result.Error("the block height " + block.nHeight + " is too small or too large, current height is " + best.nHeight);
         }
         // 区块基本校验 字段值非空
         if (validator.validate(block).size() != 0) {
