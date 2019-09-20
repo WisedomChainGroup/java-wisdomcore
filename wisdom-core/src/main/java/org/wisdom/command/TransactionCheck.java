@@ -207,7 +207,7 @@ public class TransactionCheck {
             long tranbalance = transaction.amount;
             if (account != null) {
                 long nowbalance = account.getBalance();
-                if (type == 0x01 || type == 0x09 || type == 0x0e) {
+                if (type == 0x01 || type == 0x09 ) {
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
@@ -219,7 +219,7 @@ public class TransactionCheck {
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
                     }
-                } else if (type == 0x02) {//vote
+                } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
@@ -229,7 +229,7 @@ public class TransactionCheck {
                     long remainder = (long) (tranbalance % 100000000);
                     if (remainder != 0) {
                         apiResult.setCode(5000);
-                        apiResult.setMessage("The vote is not an integer");
+                        apiResult.setMessage("TThe amount must be an integer");
                         return apiResult;
                     }
                 }
@@ -404,18 +404,20 @@ public class TransactionCheck {
                     apiResult.setMessage("Abnormal withdrawal amount");
                     return apiResult;
                 } else {
-                    int muls = (int) (nowincub % totalrate);
-                    if (muls != 0) {//数据不对
-                        long syamount = muls;
-                        if (syamount != amount) {
+                    if(transaction.height>40000){
+                        int muls = (int) (nowincub % totalrate);
+                        if (muls != 0) {//数据不对
+                            long syamount = muls;
+                            if (syamount != amount) {
+                                apiResult.setCode(5000);
+                                apiResult.setMessage("Abnormal withdrawal amount");
+                                return apiResult;
+                            }
+                        } else {
                             apiResult.setCode(5000);
                             apiResult.setMessage("Abnormal withdrawal amount");
                             return apiResult;
                         }
-                    } else {
-                        apiResult.setCode(5000);
-                        apiResult.setMessage("Abnormal withdrawal amount");
-                        return apiResult;
                     }
                 }
             } else {

@@ -175,7 +175,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocks.size() < blocksPerUpdate) {
                 break;
             }
-            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)){
+            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)) {
                 logger.error("=================================== warning ======================");
             }
             while (blocks.size() > 0) {
@@ -367,13 +367,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
 
     // 区块相对于已持久化的账本产生状态变更的账户
+    // block hash -> public key hash -> account
     private Map<String, Map<String, AccountState>> cache;
 
     // 最新确认的区块
     private Block latestConfirmed;
 
     protected String getLRUCacheKey(byte[] hash) {
-        return encoder.encodeToString(hash);
+        return Hex.encodeHexString(hash);
     }
 
     public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
@@ -384,7 +385,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 continue;
             }
             res.put(Hex.encodeHexString(h), account);
-        }
+         }
         return res;
     }
 
@@ -399,6 +400,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
     public AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+        if (Hex.encodeHexString(publicKeyHash).equals("99e561de422763169626c07a178eb2f95a7c6272") && Hex.encodeHexString(blockHash).equals("5399997db5eb903e46026e7c988a0c654e2ca5bfe4e37704e2a8c2f096cc1cd3")){
+            logger.info("!!!!!!!!!!!!");
+        }
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
             return getAccount(publicKeyHash);
         }
@@ -653,16 +657,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
-    public AccountState applyMortgage(Transaction tx, AccountState accountState){
+    public AccountState applyMortgage(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
         }
         long balance = account.getBalance();
         balance -= tx.getFee();
-        balance-=tx.amount;
-        long mortgage=account.getMortgage();
-        mortgage+=tx.amount;
+        balance -= tx.amount;
+        long mortgage = account.getMortgage();
+        mortgage += tx.amount;
         account.setBalance(balance);
         account.setMortgage(mortgage);
         account.setNonce(tx.nonce);
@@ -677,9 +681,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return accountState;
         }
         long balance = account.getBalance();
-        balance-=tx.getFee();
-        long mortgage=account.getMortgage();
-        mortgage-=tx.amount;
+        balance -= tx.getFee();
+        long mortgage = account.getMortgage();
+        mortgage -= tx.amount;
         account.setBalance(balance);
         account.setMortgage(mortgage);
         account.setNonce(tx.nonce);
@@ -689,11 +693,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     public AccountState applyTransactions(List<Transaction> txs, AccountState account) {
-        for (Transaction Transaction : txs) {
+        for (Transaction transaction : txs) {
             try {
-                account = applyTransaction(Transaction, account);
+                account = applyTransaction(transaction, account);
                 if (account == null) {
                     return null;
+                }
+                if (account.getAccount().getBalance() < 0) {
+                    logger.error(transaction.getHashHexString());
+                    logger.error("negative balance");
                 }
             } catch (Exception e) {
                 return null;

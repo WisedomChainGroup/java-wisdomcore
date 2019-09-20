@@ -235,6 +235,9 @@ public class MerkleRule implements BlockRule {
                     List<Account> celvotelist = UpdateCancelVote(tran,fromaccount, toaccount, nowheight, frompubhash);
                     celvotelist.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
+                case 0x0e://mortgage
+
+                    break;
             }
         }
         if (isdisplay) {
