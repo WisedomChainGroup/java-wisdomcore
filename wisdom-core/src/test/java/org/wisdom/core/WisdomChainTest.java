@@ -243,7 +243,6 @@ public abstract class WisdomChainTest {
         assert bc.getTransaction(getGenesis().body.get(0).getHash()) != null;
     }
 
-    // TODO: benchmark
     @Test
     public void testWriteBlocks() {
         WisdomBlockChain bc = getChain();

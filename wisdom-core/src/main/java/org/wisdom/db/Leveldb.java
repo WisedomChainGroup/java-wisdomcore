@@ -39,7 +39,6 @@ public class Leveldb {
                 try {
                     db.close();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -57,14 +56,12 @@ public class Leveldb {
                 return new String(valueByte);
             }
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } finally {
             if (db != null) {
                 try {
                     db.close();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }

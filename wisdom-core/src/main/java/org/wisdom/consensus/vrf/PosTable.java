@@ -45,14 +45,12 @@ public class PosTable implements State {
         this.updateBlock(blockChain.getGenesis());
     }
 
-    // TODO: fresh state
     public State updateBlock(Block block) {
         this.counter.incrementAndGet();
         System.out.println(block.nHeight);
         return this;
     }
 
-    // TODO: deep copy
     public State copy() {
         PosTable newPosTable = new PosTable();
         newPosTable.counter = new AtomicLong(this.counter.get());
