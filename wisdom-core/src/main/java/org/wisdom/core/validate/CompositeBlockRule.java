@@ -50,9 +50,6 @@ public class CompositeBlockRule implements BlockRule {
     @Autowired
     private SignatureRule signatureRule;
 
-    @Autowired
-    private MerkleRule merkleRule;
-
     public void addRule(BlockRule... rules) {
         Collections.addAll(rulers, rules);
     }
@@ -74,6 +71,6 @@ public class CompositeBlockRule implements BlockRule {
 
     @PostConstruct
     public void init() {
-        addRule(basicRule, addressRule, coinbaseRule, consensusRule, signatureRule, accountRule, merkleRule);
+        addRule(basicRule, addressRule, coinbaseRule, consensusRule, signatureRule, accountRule);
     }
 }

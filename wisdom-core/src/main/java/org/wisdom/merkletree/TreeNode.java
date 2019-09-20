@@ -18,7 +18,6 @@
 
 package org.wisdom.merkletree;
 
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
@@ -31,14 +30,16 @@ public class TreeNode {
     private String name;                //节点名称
     private Byte level;              //级别
 
-    public TreeNode(){
+    private int index;             // 叶子节点的位置，从0开始，其他节点是-1
+
+    public TreeNode() {
 
     }
 
-    public TreeNode(String data){
+    public TreeNode(String data) {
         this.data = data;
         this.hash = Hex.encodeHexString(SHA3Utility.keccak256(data.getBytes()));
-        this.name = "[节点:"+ data + "]";
+        this.name = "[节点:" + data + "]";
     }
 
     public TreeNode getLeft() {
@@ -87,5 +88,33 @@ public class TreeNode {
 
     public void setLevel(Byte level) {
         this.level = level;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public static TreeNode copy(TreeNode treeNode) {
+        TreeNode tn = new TreeNode();
+        tn.setIndex(treeNode.getIndex());
+        tn.setName(treeNode.getName());
+        tn.setLevel(treeNode.getLevel());
+        tn.setHash(treeNode.getHash());
+        tn.setData(treeNode.getData());
+        tn.setLeft(treeNode.getLeft());
+        tn.setRight(treeNode.getRight());
+        return tn;
+    }
+
+    @Override
+    public String toString() {
+        return "TreeNode{" +
+                "level=" + level +
+                ", index=" + index +
+                '}';
     }
 }
