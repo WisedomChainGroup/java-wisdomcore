@@ -241,6 +241,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         res.addBlocks(blocks);
         res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
+
+        // TODO: remove code assertion
         if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
             logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         } else {
