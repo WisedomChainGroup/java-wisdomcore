@@ -22,6 +22,11 @@ enum Code {
     // 以下需要中继支持
     PROPOSAL = 9;
     TRANSACTIONS = 10;
+    // 以下新增
+    GET_MERKELE_TRANSACTIONS=11; // 请求获取Merket事物
+    MERKLE_TRANSACTIONS = 12; // 接受Merket事务
+    GET_TREE_NODES=13; // 请求获取Tree_Nodes
+    TREE_NODES=14; // 接受TREE_NODES
 }
 
 enum ClipDirection {
@@ -132,4 +137,39 @@ message Block {
     bytes n_bits = 8;
     bytes nonce = 9;
     repeated Transaction body = 10;
+}
+
+message GetMerkleTransactions{
+    bytes block_hash = 1;
+    repeated TreeNode tree_nodes = 2; // 认定有问题的TreeNodes集合
+}
+
+message MerkleTransactions{
+    bytes block_hash = 1;
+    repeated TreeNode tree_nodes = 2; // 认定有问题的TreeNodes集合
+    repeated MerkleTransaction merket_trans = 3;
+}
+
+message MerkleTransaction{
+    Transaction transaction = 1;
+    int32 index = 2; // 事务在区块中的位置
+}
+
+message GetTreeNodes{
+    bytes block_hash = 1;
+    repeated TreeNode parent_nodes = 2; // 获取parent_nodes的子节点集合
+}
+
+message TreeNodes {
+    bytes block_hash = 1;
+    repeated TreeNode tree_nodes = 2;
+    repeated TreeNode parent_nodes = 3; // 返回请求的parent_nodes
+}
+
+message TreeNode {
+    string hash = 1;
+    int32 level = 2;
+    string name = 3;
+    string data = 4; // 当level=1时，data是tx_hash
+    int32 index = 5; // 每一层的index都不会重复
 }
