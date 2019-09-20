@@ -1,0 +1,6 @@
+POST http://{{host_port}}/sendBalance?pubkeyhash={{publickey_hash}}
+Accept: */*
+Cache-Control: no-cache
+// 查看余额
+// 用 http-client.env.json 设置环境变量 https://www.jetbrains.com/help/idea/http-client-in-product-code-editor.html#using_env_vars
+###
