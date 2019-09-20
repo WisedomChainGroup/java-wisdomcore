@@ -21,6 +21,7 @@ import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
+import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -66,26 +67,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private ProposersFactory proposersFactory;
 
-    @Override
-    public void onApplicationEvent(AccountUpdatedEvent event) {
-        this.readWriteLock.writeLock().lock();
-        try {
-            if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
-                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-                // 清除缓存
-                blocksCache.getAll()
-                        .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
-                        .forEach(b -> {
-                            blocksCache.deleteBlock(b);
-                            cache.remove(getLRUCacheKey(b.getHash()));
-                        });
-                latestConfirmed = pendingBlock;
-                pendingBlock = null;
-            }
-        } finally {
-            this.readWriteLock.writeLock().unlock();
-        }
-    }
+
+    // 区块相对于已持久化的账本产生状态变更的账户
+    // block hash -> public key hash -> account
+    private Map<String, Map<String, AccountState>> cache;
+
+    // 最新确认的区块
+    private Block latestConfirmed;
 
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final int CACHE_SIZE = 32;
@@ -119,7 +107,31 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 等待写入的区块
     private BlocksCache writableBlocks;
 
+    @Override
+    public void onApplicationEvent(AccountUpdatedEvent event) {
+        this.readWriteLock.writeLock().lock();
+        try {
+            if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
+                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+                // 清除缓存
+                blocksCache.getAll()
+                        .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
+                        .forEach(b -> {
+                            blocksCache.deleteBlock(b);
+                            cache.remove(getLRUCacheKey(b.getHash()));
+                        });
+                latestConfirmed = pendingBlock;
+                pendingBlock = null;
+            }
+        } finally {
+            this.readWriteLock.writeLock().unlock();
+        }
+    }
+
     @Autowired
+    public OrphanBlocksManager orphanBlocksManager;
+
+
     public StateDB(
             ValidatorState validatorState,
             TargetState targetState,
@@ -175,6 +187,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocks.size() < blocksPerUpdate) {
                 break;
             }
+
+            // TODO: remove assertion codes
             if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)) {
                 logger.error("=================================== warning ======================");
             }
@@ -241,7 +255,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         res.addBlocks(blocks);
         res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
-        if (all.size() != blocksPerEra || all.get(0).nHeight != anum || !isChain(all)) {
+
+        // TODO: remove code assertion
+        if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
             logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         } else {
             logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -311,6 +327,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             // 判断是否是孤块
             if (!Arrays.equals(this.latestConfirmed.getHash(), block.hashPrevBlock) && !blocksCache.hasBlock(block.hashPrevBlock)) {
+                orphanBlocksManager.addBlock(block);
                 return;
             }
             // 有区块正在更新状态 放到待写入队列中
@@ -365,13 +382,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-
-    // 区块相对于已持久化的账本产生状态变更的账户
-    // block hash -> public key hash -> account
-    private Map<String, Map<String, AccountState>> cache;
-
-    // 最新确认的区块
-    private Block latestConfirmed;
 
     protected String getLRUCacheKey(byte[] hash) {
         return Hex.encodeHexString(hash);
