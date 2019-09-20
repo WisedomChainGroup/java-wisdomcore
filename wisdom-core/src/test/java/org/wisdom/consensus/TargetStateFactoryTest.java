@@ -1,7 +1,6 @@
 package org.wisdom.consensus;
 
 import org.wisdom.config.TestConfig;
-import org.wisdom.consensus.pow.TargetStateFactory;
 import org.wisdom.core.Block;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,10 +19,4 @@ public class TargetStateFactoryTest {
     @Autowired
     private Block genesis;
 
-    @Test
-    public void test(){
-        TargetStateFactory targetStateFactory = ctx.getBean(TargetStateFactory.class);
-        assert targetStateFactory != null;
-        assert targetStateFactory.getInstance(genesis) != null;
-    }
 }

@@ -18,8 +18,6 @@
 
 package org.wisdom.core;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.commons.codec.DecoderException;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.event.NewBestBlockEvent;
@@ -82,10 +80,7 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
                 });
             }
             incubatorDB.insertIncubatorList(incubatorobjct);
-        } catch (InvalidProtocolBufferException e) {
-            e.printStackTrace();
-            return;
-        } catch (DecoderException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
