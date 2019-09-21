@@ -84,7 +84,7 @@ public class TargetState implements State {
             rate = new BigFraction(1, MAX_ADJUST_RATE);
         }
         target = safeTyMul(target, rate);
-        logger.info("update blocks start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight + " target = " + Hex.encodeHexString(BigEndian.encodeUint256(target)));
+//        logger.info("update blocks start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight + " target = " + Hex.encodeHexString(BigEndian.encodeUint256(target)));
         return this;
     }
 
