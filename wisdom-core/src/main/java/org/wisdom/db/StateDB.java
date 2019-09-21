@@ -336,7 +336,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 orphanBlocksManager.addBlock(block);
                 return;
             }
-
+            // 已经写入过的区块
+            if (blocksCache.hasBlock(block.getHash())) {
+                return;
+            }
             // 有区块正在更新状态 放到待写入队列中
             if (pendingBlock != null) {
                 writableBlocks.addBlocks(Collections.singletonList(block));
@@ -352,6 +355,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             );
             List<Block> ancestors = blocksCache.getAncestors(block);
             for (Block b : ancestors) {
+                // 区块不能确认自己
                 if (Arrays.equals(b.getHash(), block.getHash())) {
                     continue;
                 }
@@ -362,6 +366,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             Collections.reverse(ancestors);
 
+            // 试图查找被确认的区块，找到则更新到 db
             List<Block> confirmedAncestors = new ArrayList<>();
             for (int i = 0; i < ancestors.size(); i++) {
                 Block b = ancestors.get(i);
@@ -378,19 +383,24 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return;
             }
 
-            for (Block b : confirmedAncestors) {
-                // wait for account update
+            // 更新到 db
+            for (int i = 0; i < confirmedAncestors.size(); ) {
+                Block b = confirmedAncestors.get(i);
+                // CAS 锁，等待上一个区块状态更新成功
                 while (pendingBlock != null) {
                     logger.info("wait for account updated...");
                 }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
-                    return;
+                    // 数据库 写入失败 重试写入
+                    logger.error("write block to database failed, retrying...");
+                    continue;
                 }
                 logger.info("write block at height " + b.nHeight + " to db success");
                 pendingBlock = b;
                 ctx.publishEvent(new NewBlockEvent(this, b));
                 ctx.publishEvent(new NewBestBlockEvent(this, b));
+                i++;
             }
         } finally {
             this.readWriteLock.writeLock().unlock();
