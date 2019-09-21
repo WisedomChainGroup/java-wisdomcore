@@ -80,10 +80,10 @@ public class NodeInfoController {
         res.put("proposers", stateDB.getProposersFactory().getProposers(best));
         res.put("height", best.nHeight);
         if (allowMinersJoinEra > 0){
-            res.put("enableMinerJoin", true);
+            res.put("enableMinerJoins", true);
             res.put("minerJoinsHeight", allowMinersJoinEra * blocksPerEra + 1);
         }else{
-            res.put("enableMinerJoin", false);
+            res.put("enableMinerJoins", false);
         }
         return res;
     }
