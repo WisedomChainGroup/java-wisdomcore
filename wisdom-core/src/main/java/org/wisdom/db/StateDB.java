@@ -29,6 +29,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -72,6 +73,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // block hash -> public key hash -> account
     private Map<String, Map<String, AccountState>> cache;
 
+    // 区块的后续确认
+    private Map<String, Set<String>> confirms;
+
+    // 最少确认数量
+    private Map<String, Integer> leastConfirms;
+
     // 最新确认的区块
     private Block latestConfirmed;
 
@@ -109,22 +116,20 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Override
     public void onApplicationEvent(AccountUpdatedEvent event) {
-        this.readWriteLock.writeLock().lock();
-        try {
-            if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
-                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-                // 清除缓存
-                blocksCache.getAll()
-                        .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
-                        .forEach(b -> {
-                            blocksCache.deleteBlock(b);
-                            cache.remove(getLRUCacheKey(b.getHash()));
-                        });
-                latestConfirmed = pendingBlock;
-                pendingBlock = null;
-            }
-        } finally {
-            this.readWriteLock.writeLock().unlock();
+        if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
+            // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+            // 清除缓存
+            blocksCache.getAll()
+                    .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
+                    .forEach(b -> {
+                        blocksCache.deleteBlock(b);
+                        cache.remove(getLRUCacheKey(b.getHash()));
+                        confirms.remove(b.getHashHexString());
+                        leastConfirms.remove(b.getHashHexString());
+                    });
+            latestConfirmed = pendingBlock;
+            pendingBlock = null;
+            logger.info("update account at height " + event.getBlock().nHeight + " to db success");
         }
     }
 
@@ -151,6 +156,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
         this.proposersFactory.setPowWait(powWait);
+        this.confirms = new HashMap<>();
+        this.leastConfirms = new HashMap<>();
 
         Resource resource;
         try {
@@ -158,7 +165,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         } catch (Exception e) {
             resource = new FileSystemResource(validatorsFile);
         }
-
 
         this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
                 .map(v -> {
@@ -330,6 +336,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 orphanBlocksManager.addBlock(block);
                 return;
             }
+
             // 有区块正在更新状态 放到待写入队列中
             if (pendingBlock != null) {
                 writableBlocks.addBlocks(Collections.singletonList(block));
@@ -337,22 +344,54 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             writableBlocks.deleteBlock(block);
             blocksCache.addBlocks(Collections.singletonList(block));
-            Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
-                    .stream().filter((b) -> b.nHeight == block.nHeight - blockConfirms)
-                    .filter(b -> Arrays.equals(this.latestConfirmed.getHash(), b.hashPrevBlock))
-                    .findFirst();
-            confirmedBlock.ifPresent(b -> {
-                // 被确认的区块不在主分支上面
+            leastConfirms.put(block.getHashHexString(),
+                    (int) Math.ceil(
+                            proposersFactory.getProposers(getBlock(block.hashPrevBlock)).size()
+                                    * 2.0 / 3
+                    )
+            );
+            List<Block> ancestors = blocksCache.getAncestors(block);
+            for (Block b : ancestors) {
+                if (Arrays.equals(b.getHash(), block.getHash())) {
+                    continue;
+                }
+                if (!confirms.containsKey(b.getHashHexString())) {
+                    confirms.put(b.getHashHexString(), new HashSet<>());
+                }
+                confirms.get(b.getHashHexString()).add(Hex.encodeHexString(block.body.get(0).to));
+            }
+            Collections.reverse(ancestors);
+
+            List<Block> confirmedAncestors = new ArrayList<>();
+            for (int i = 0; i < ancestors.size(); i++) {
+                Block b = ancestors.get(i);
+                if (confirms.get(b.getHashHexString()).size() < leastConfirms.get(b.getHashHexString())) {
+                    continue;
+                }
+                // 发现有可以确认的区块
+                confirmedAncestors = ancestors.subList(i, ancestors.size());
+                Collections.reverse(confirmedAncestors);
+                break;
+            }
+
+            if (confirmedAncestors.size() == 0) {
+                return;
+            }
+
+            for (Block b : confirmedAncestors) {
+                // wait for account update
+                while (pendingBlock != null) {
+                    logger.info("wait for account updated...");
+                }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
-                    // 区块写入失败
                     return;
                 }
+                logger.info("write block at height " + b.nHeight + " to db success");
                 pendingBlock = b;
                 ctx.publishEvent(new NewBlockEvent(this, b));
                 ctx.publishEvent(new NewBestBlockEvent(this, b));
-                // 将这个区块标记为正在更新状态
-            });
+            }
         } finally {
             this.readWriteLock.writeLock().unlock();
         }
