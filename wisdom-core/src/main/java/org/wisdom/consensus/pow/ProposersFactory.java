@@ -33,32 +33,36 @@ public class ProposersFactory extends EraLinkedStateFactory {
         this.allowMinerJoinEra = allowMinerJoinEra;
     }
 
-    public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
-        List<String> proposers = initialProposers;
-
-        if (timeStamp <= parentBlock.nTime) {
-            return Optional.empty();
-        }
-        if (parentBlock.nHeight == 0) {
-            return Optional.of(new Proposer(initialProposers.get(0), 0, Long.MAX_VALUE));
-        }
-
+    public List<String> getProposers(Block parentBlock) {
         boolean enableMultiMiners = getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinerJoinEra;
 
-        // 到了开启多节点挖矿的纪元
         if (enableMultiMiners) {
             if (parentBlock.nHeight % getBlocksPerEra() == 0) {
                 ProposersState state = (ProposersState) getFromCache(parentBlock);
-                proposers = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+                return state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
             } else {
                 ProposersState state = (ProposersState) getInstance(parentBlock);
-                proposers = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+                return state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
             }
         }
 
         // 9236 开始单机挖矿
-        if (parentBlock.nHeight >= 9235 && !enableMultiMiners) {
-            return Optional.of(new Proposer(initialProposers.get(0), -1, Long.MAX_VALUE));
+        if (parentBlock.nHeight >= 9235) {
+            return initialProposers.subList(0, 1);
+        }
+
+        return initialProposers;
+    }
+
+    public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
+        List<String> proposers = getProposers(parentBlock);
+
+        if (timeStamp <= parentBlock.nTime) {
+            return Optional.empty();
+        }
+
+        if (parentBlock.nHeight == 0) {
+            return Optional.of(new Proposer(proposers.get(0), 0, Long.MAX_VALUE));
         }
 
         long step = (timeStamp - parentBlock.nTime)

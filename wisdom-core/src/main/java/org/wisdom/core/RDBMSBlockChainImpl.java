@@ -18,11 +18,13 @@
 
 package org.wisdom.core;
 
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.event.NewBestBlockEvent;
-import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.orm.BlockMapper;
 import org.wisdom.core.orm.TransactionMapper;
 import org.slf4j.Logger;
@@ -59,7 +61,20 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return res.get(0);
     }
 
-    private void createIndices() {
+    private void createTableAndIndices() throws Exception {
+        String ddl = "ddl.sql";
+        Resource resource;
+        try {
+            resource = new ClassPathResource(ddl);
+        } catch (Exception e) {
+            resource = new FileSystemResource(ddl);
+        }
+        assert resource.exists();
+
+        String sql = new String(IOUtils.toByteArray(resource.getInputStream()));
+        for(String s: sql.split(";")){
+            tmpl.update(s.trim());
+        }
         tmpl.batchUpdate(
                 "create index if not exists header_height_index on header (height desc)",
                 "create index if not exists header_total_weight_index on header (total_weight desc)",
@@ -246,7 +261,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             @Value("${clear-data}") boolean clearData,
             BlockChainOptional blockChainOptional,
             @Value("${wisdom.consensus.allow-fork}") boolean allowFork
-    ) {
+    ) throws Exception{
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
@@ -254,6 +269,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         this.dataname = dataname;
         this.blockChainOptional = blockChainOptional;
         this.allowFork = allowFork;
+        createTableAndIndices();
         if (clearData) {
             clearData();
         }
@@ -263,7 +279,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             tmpl.execute(sql);//更换属主
         }
         tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
-        createIndices();
         if (!dbHasGenesis()) {
             clearData();
             writeGenesis(genesis);
