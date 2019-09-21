@@ -47,6 +47,9 @@ public class BasicRule implements BlockRule, TransactionRule {
     @Autowired
     private WisdomBlockChain bc;
 
+    @Autowired
+    private StateDB stateDB;
+
     @Value("${wisdom.consensus.block-interval}")
     private int blockInterval;
 
@@ -63,7 +66,7 @@ public class BasicRule implements BlockRule, TransactionRule {
 
     @Override
     public Result validateBlock(Block block) {
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         if (block == null) {
             return Result.Error("null block");
         }

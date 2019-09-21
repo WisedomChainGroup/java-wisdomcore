@@ -82,8 +82,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 最新确认的区块
     private Block latestConfirmed;
 
-    private static final Base64.Encoder encoder = Base64.getEncoder();
-    private static final int CACHE_SIZE = 32;
+    private static final Base64.Encoder encodeNr = Base64.getEncoder();
+    private static final int CACHE_SIZE = 4096;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -129,7 +129,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     });
             latestConfirmed = pendingBlock;
             pendingBlock = null;
-//            logger.info("update account at height " + event.getBlock().nHeight + " to db success");
+            logger.info("update account at height " + event.getBlock().nHeight + " to db success");
         }
     }
 
@@ -245,7 +245,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (bHeader.nHeight < height) {
             return null;
         }
-        while (bHeader.nHeight != height) {
+        while (bHeader != null && bHeader.nHeight != height) {
             bHeader = getHeader(bHeader.hashPrevBlock);
         }
         return bHeader;
@@ -401,7 +401,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     logger.error("write block to database failed, retrying...");
                     continue;
                 }
-//                logger.info("write block at height " + b.nHeight + " to db success");
+                logger.info("write block at height " + b.nHeight + " to db success");
                 pendingBlock = b;
                 ctx.publishEvent(new NewBlockEvent(this, b));
                 ctx.publishEvent(new NewBestBlockEvent(this, b));
