@@ -45,11 +45,20 @@ public class ProposersState implements State {
         }
     }
 
+    public Map<String, Proposer> getAll() {
+        return all;
+    }
+
+    public Set<String> getBlockList() {
+        return blockList;
+    }
+
     private Map<String, Proposer> all;
     private List<String> proposers;
     private Set<String> blockList;
     private int allowMinersJoinEra;
     private int blockInterval;
+    private List<Proposer> candidates;
 
     @Autowired
     public ProposersState(
@@ -69,12 +78,35 @@ public class ProposersState implements State {
                 .collect(Collectors.toList());
     }
 
+    public List<Proposer> getCandidates() {
+        if (candidates != null) {
+            return candidates;
+        }
+        candidates = getAll().values()
+                .stream()
+                .filter(p -> !blockList.contains(p.publicKeyHash))
+                .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
+                .sorted(ProposersState::compareProposer)
+                .collect(Collectors.toList());
+        return candidates;
+    }
+
     @Override
     public State updateBlock(Block block) {
         for (Transaction t : block.body) {
             updateTransaction(t);
         }
         return this;
+    }
+
+    public static int compareProposer(Proposer x, Proposer y) {
+        if (x.votes != y.votes) {
+            return (int) (y.votes - x.votes);
+        }
+        if (x.mortgage != y.votes) {
+            return (int) (y.mortgage - x.mortgage);
+        }
+        return y.publicKeyHash.compareTo(x.publicKeyHash);
     }
 
     @Override
@@ -108,15 +140,7 @@ public class ProposersState implements State {
                 // 过滤掉抵押数量不足的节点
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
                 // 按照 投票，抵押，字典依次排序
-                .sorted((x, y) -> {
-                    if (x.votes != y.votes) {
-                        return (int) (y.votes - x.votes);
-                    }
-                    if (x.mortgage != y.votes) {
-                        return (int) (y.mortgage - x.mortgage);
-                    }
-                    return y.publicKeyHash.compareTo(x.publicKeyHash);
-                })
+                .sorted(ProposersState::compareProposer)
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
         return this;

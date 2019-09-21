@@ -85,6 +85,9 @@ public class NodeInfoController {
         }else{
             res.put("enableMinerJoins", false);
         }
+        ProposersState proposersState = (ProposersState) stateDB.getProposersFactory().getInstance(best);
+        res.put("blockList", proposersState.getBlockList());
+        res.put("votes", proposersState.getCandidates());
         return res;
     }
 }
