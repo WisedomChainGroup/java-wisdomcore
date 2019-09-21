@@ -178,6 +178,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 }).collect(Collectors.toList()));
 
         this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
+        if(allowMinersJoinEra < 0){
+            logger.info("miners join is disabled");
+        }else {
+            logger.info("miners join is enabled, allow miners join at height " + (allowMinersJoinEra * blocksPerEra + 1));
+        }
     }
 
     @PostConstruct
