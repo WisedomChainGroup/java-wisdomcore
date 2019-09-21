@@ -37,22 +37,27 @@ public class ProposersFactory extends EraLinkedStateFactory {
         boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
                 getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
 
-        if (enableMultiMiners) {
-            if (parentBlock.nHeight % getBlocksPerEra() == 0) {
-                ProposersState state = (ProposersState) getFromCache(parentBlock);
-                return state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
-            } else {
-                ProposersState state = (ProposersState) getInstance(parentBlock);
-                return state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
-            }
-        }
-
-        // 9236 开始单机挖矿
-        if (parentBlock.nHeight >= 9235) {
+        if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
             return initialProposers.subList(0, 1);
         }
 
+        if (!enableMultiMiners) {
+            return initialProposers;
+        }
+
+        List<String> res;
+        if (parentBlock.nHeight % getBlocksPerEra() == 0) {
+            ProposersState state = (ProposersState) getFromCache(parentBlock);
+            res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+        } else {
+            ProposersState state = (ProposersState) getInstance(parentBlock);
+            res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+        }
+        if (res.size() > 0) {
+            return res;
+        }
         return initialProposers;
+
     }
 
     public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
