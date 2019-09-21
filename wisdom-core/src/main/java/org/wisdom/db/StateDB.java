@@ -123,13 +123,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
                     .forEach(b -> {
                         blocksCache.deleteBlock(b);
-                        cache.remove(getLRUCacheKey(b.getHash()));
+                        cache.remove(b.getHashHexString());
                         confirms.remove(b.getHashHexString());
                         leastConfirms.remove(b.getHashHexString());
                     });
             latestConfirmed = pendingBlock;
             pendingBlock = null;
-            logger.info("update account at height " + event.getBlock().nHeight + " to db success");
+//            logger.info("update account at height " + event.getBlock().nHeight + " to db success");
         }
     }
 
@@ -401,7 +401,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     logger.error("write block to database failed, retrying...");
                     continue;
                 }
-                logger.info("write block at height " + b.nHeight + " to db success");
+//                logger.info("write block at height " + b.nHeight + " to db success");
                 pendingBlock = b;
                 ctx.publishEvent(new NewBlockEvent(this, b));
                 ctx.publishEvent(new NewBestBlockEvent(this, b));
