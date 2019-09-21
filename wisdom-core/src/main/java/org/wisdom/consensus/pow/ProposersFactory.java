@@ -34,7 +34,7 @@ public class ProposersFactory extends EraLinkedStateFactory {
     }
 
     public List<String> getProposers(Block parentBlock) {
-        boolean enableMultiMiners = getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinerJoinEra;
+        boolean enableMultiMiners = allowMinerJoinEra >=0 && getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinerJoinEra;
 
         if (enableMultiMiners) {
             if (parentBlock.nHeight % getBlocksPerEra() == 0) {
