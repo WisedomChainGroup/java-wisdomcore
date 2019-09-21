@@ -430,7 +430,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                         }
                         c.addBlocks(Collections.singletonList(b));
                     });
-            return c.getAll();
+            List<Block> all = c.getAll();
+            // TODO: remove assertion code
+            if( all.size() > sizeLimit ){
+                logger.error("getBlocks assertion failed");
+            }
+            return all;
         } finally {
             this.readWriteLock.readLock().unlock();
         }

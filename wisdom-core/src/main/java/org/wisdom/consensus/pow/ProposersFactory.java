@@ -17,7 +17,7 @@ public class ProposersFactory extends EraLinkedStateFactory {
 
     private List<String> initialProposers;
 
-    private long allowMinerJoinEra;
+    private long allowMinersJoinEra;
 
     public void setPowWait(int powWait) {
         this.powWait = powWait;
@@ -29,12 +29,13 @@ public class ProposersFactory extends EraLinkedStateFactory {
         this.initialProposers = initialProposers;
     }
 
-    public void setAllowMinerJoinEra(long allowMinerJoinEra) {
-        this.allowMinerJoinEra = allowMinerJoinEra;
+    public void setAllowMinerJoinEra(long allowMinersJoinEra) {
+        this.allowMinersJoinEra = allowMinersJoinEra;
     }
 
     public List<String> getProposers(Block parentBlock) {
-        boolean enableMultiMiners = allowMinerJoinEra >=0 && getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinerJoinEra;
+        boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
+                getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
 
         if (enableMultiMiners) {
             if (parentBlock.nHeight % getBlocksPerEra() == 0) {

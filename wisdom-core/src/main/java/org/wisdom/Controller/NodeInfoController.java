@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.ProposersState;
+import org.wisdom.core.Block;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
@@ -43,6 +44,10 @@ public class NodeInfoController {
     @Autowired
     private JSONEncodeDecoder encodeDecoder;
 
+    @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra;
+
+    @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra;
+
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
         Map<String, Object> info = new HashMap<>();
@@ -70,7 +75,16 @@ public class NodeInfoController {
 
     @GetMapping(value = "/proposers", produces = "application/json")
     public Object getProposers() {
-        ProposersState state = (ProposersState) stateDB.getProposersFactory().getInstance(stateDB.getBestBlock());
-        return state.getProposers();
+        Block best = stateDB.getBestBlock();
+        Map<String, Object> res = new HashMap<>();
+        res.put("proposers", stateDB.getProposersFactory().getProposers(best));
+        res.put("height", best.nHeight);
+        if (allowMinersJoinEra > 0){
+            res.put("enableMinerJoin", true);
+            res.put("minerJoinsHeight", allowMinersJoinEra * blocksPerEra + 1);
+        }else{
+            res.put("enableMinerJoin", false);
+        }
+        return res;
     }
 }
