@@ -436,11 +436,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-
-    protected String getLRUCacheKey(byte[] hash) {
-        return Hex.encodeHexString(hash);
-    }
-
     public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
         Map<String, AccountState> res = new HashMap<>();
         for (byte[] h : publicKeyHashes) {
@@ -477,8 +472,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 //            return null;
 //        }
         // 判断是否在缓存中
-        String blockKey = getLRUCacheKey(blockHash);
-        String accountKey = getLRUCacheKey(publicKeyHash);
+        String blockKey = Hex.encodeHexString(blockHash);
+        String accountKey = Hex.encodeHexString(publicKeyHash);
         if (cache.containsKey(blockKey) && cache.get(blockKey).containsKey(accountKey)) {
             return cache.get(blockKey).get(accountKey).copy();
         }
