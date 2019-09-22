@@ -390,8 +390,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             return false;
         }
         long ptw = parentHeader.totalWeight;
-        Optional<Block> current = blockChainOptional.currentHeader();
-        Optional<Long> localTW = current.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));
         block.totalWeight = block.weight + ptw;
 
         Boolean result = txTmpl.execute((TransactionStatus status) -> {

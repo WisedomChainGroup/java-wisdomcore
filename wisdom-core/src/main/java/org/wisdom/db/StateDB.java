@@ -111,9 +111,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 正在同步状态到数据库的区块
     private Block pendingBlock;
 
-    // 等待写入的区块
-    private BlocksCache writableBlocks;
-
     @Override
     public void onApplicationEvent(AccountUpdatedEvent event) {
         if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
@@ -151,7 +148,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
-        this.writableBlocks = new BlocksCache(CACHE_SIZE);
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
@@ -200,7 +196,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
             // TODO: remove assertion codes
-            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)) {
+            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) || blocks.size() != blocksPerUpdate) {
                 logger.error("=================================== warning ======================");
             }
             while (blocks.size() > 0) {
@@ -212,18 +208,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
         }
-    }
-
-    // 定时清除待写入队列
-    @Scheduled(fixedDelay = 5000)
-    public void writeLoop() {
-        writableBlocks.getInitials()
-                .stream()
-                .findFirst()
-                .ifPresent(b -> {
-                    writableBlocks.deleteBlock(b);
-                    writeBlock(b);
-                });
     }
 
     public Block getBestBlock() {
@@ -345,12 +329,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocksCache.hasBlock(block.getHash())) {
                 return;
             }
-            // 有区块正在更新状态 放到待写入队列中
-            if (pendingBlock != null) {
-                writableBlocks.addBlocks(Collections.singletonList(block));
-                return;
-            }
-            writableBlocks.deleteBlock(block);
             blocksCache.addBlocks(Collections.singletonList(block));
             leastConfirms.put(block.getHashHexString(),
                     (int) Math.ceil(
@@ -378,6 +356,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 if (confirms.get(b.getHashHexString()).size() < leastConfirms.get(b.getHashHexString())) {
                     continue;
                 }
+//                if (block.nHeight - b.nHeight < 3){
+//                    continue;
+//                }
                 // 发现有可以确认的区块
                 confirmedAncestors = ancestors.subList(i, ancestors.size());
                 Collections.reverse(confirmedAncestors);
@@ -406,6 +387,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 ctx.publishEvent(new NewBlockEvent(this, b));
                 ctx.publishEvent(new NewBestBlockEvent(this, b));
                 i++;
+            }
+            while (pendingBlock != null) {
+                logger.info("wait for account updated...");
             }
         } finally {
             this.readWriteLock.writeLock().unlock();
