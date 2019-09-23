@@ -59,3 +59,5 @@ gradle/wrapper/*
 package-lock.json
 # test config
 *-test.json
+
+http-client.env.json

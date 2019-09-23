@@ -19,6 +19,7 @@
 package org.wisdom.core.state;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.Block;
 import org.wisdom.db.StateDB;
 
@@ -27,13 +28,12 @@ import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
 public abstract class AbstractStateFactory {
-    private static final Base64.Encoder encoder = Base64.getEncoder();
     protected StateDB stateDB;
     protected State genesisState;
     protected ConcurrentMap<String, State> cache;
 
     protected String getLRUCacheKey(byte[] hash) {
-        return encoder.encodeToString(hash);
+        return Hex.encodeHexString(hash);
     }
 
 

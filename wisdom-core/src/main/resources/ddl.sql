@@ -49,25 +49,6 @@ create table if not exists header
     is_canonical boolean default true
 );
 
-
-/*
- Navicat Premium Data Transfer
-
- Source Server         : localhost
- Source Server Type    : PostgreSQL
- Source Server Version : 90611
- Source Host           : localhost:5432
- Source Catalog        : postgres
- Source Schema         : public
-
- Target Server Type    : PostgreSQL
- Target Server Version : 90611
- File Encoding         : 65001
-
- Date: 04/07/2019 15:19:36
-*/
-
-
 CREATE TABLE if not exists account (
                                     "id" bytea NOT NULL,
                                     "blockheight" int4 NOT NULL,
@@ -80,38 +61,7 @@ CREATE TABLE if not exists account (
                                     constraint "pk_utxo" primary key ("id")
 )
 ;
-COMMENT ON COLUMN "public"."account"."id" IS '主键ID';
-COMMENT ON COLUMN "public"."account"."blockheight" IS '区块高度';
-COMMENT ON COLUMN "public"."account"."pubkeyhash" IS '地址的公钥哈希';
-COMMENT ON COLUMN "public"."account"."nonce" IS 'nonce,防止重放攻击';
-COMMENT ON COLUMN "public"."account"."balance" IS 'WDC余额';
-COMMENT ON COLUMN "public"."account"."incubatecost" IS '孵化本金';
-COMMENT ON COLUMN "public"."account"."mortgage" IS '抵押金额';
-COMMENT ON COLUMN "public"."account"."vote" IS '投票数';
-COMMENT ON TABLE "public"."account" IS '账户对象';
 
-
-/*
- Navicat Premium Data Transfer
-
- Source Server         : localhost
- Source Server Type    : PostgreSQL
- Source Server Version : 90611
- Source Host           : localhost:5432
- Source Catalog        : postgres
- Source Schema         : public
-
- Target Server Type    : PostgreSQL
- Target Server Version : 90611
- File Encoding         : 65001
-
- Date: 04/07/2019 20:20:33
-*/
-
-
--- ----------------------------
--- Table structure for incubator_state
--- ----------------------------
 CREATE TABLE if not exists incubator_state (
                                             "id" bytea NOT NULL,
                                             "share_pubkeyhash" bytea,
@@ -126,15 +76,5 @@ CREATE TABLE if not exists incubator_state (
                                             constraint pk_incubator_state PRIMARY KEY ("id")
 )
 ;
-COMMENT ON COLUMN "public"."incubator_state"."id" IS 'id txhash+height';
-COMMENT ON COLUMN "public"."incubator_state"."share_pubkeyhash" IS '推荐者公钥哈希';
-COMMENT ON COLUMN "public"."incubator_state"."pubkeyhash" IS '孵化者公钥哈希';
-COMMENT ON COLUMN "public"."incubator_state"."txid_issue" IS '申请孵化事务哈希';
-COMMENT ON COLUMN "public"."incubator_state"."height" IS '高度';
-COMMENT ON COLUMN "public"."incubator_state"."cost" IS '本金';
-COMMENT ON COLUMN "public"."incubator_state"."interest_amount" IS '利息余额';
-COMMENT ON COLUMN "public"."incubator_state"."share_amount" IS '分享余额';
-COMMENT ON COLUMN "public"."incubator_state"."last_blockheight_interest" IS '上次提取利息高度';
-COMMENT ON COLUMN "public"."incubator_state"."last_blockheight_share" IS '上次提取分享收益高度';
-COMMENT ON TABLE "public"."incubator_state" IS '孵化器状态';
+
 

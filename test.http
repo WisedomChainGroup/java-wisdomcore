@@ -1,0 +1,21 @@
+POST http://{{host_port}}/sendBalance?pubkeyhash={{publickey_hash}}
+Accept: */*
+Cache-Control: no-cache
+{"pubkeyhash": {{publickey_hash}}}
+// 查看余额
+// 用 http-client.env.json 设置环境变量 https://www.jetbrains.com/help/idea/http-client-in-product-code-editor.html#using_env_vars
+###
+
+GET http://{{host_port}}/block/-1
+Accept: */*
+Cache-Control: no-cache
+// 查看最新区块
+// 用 http-client.env.json 设置环境变量 https://www.jetbrains.com/help/idea/http-client-in-product-code-editor.html#using_env_vars
+###
+
+GET http://{{host_port}}/proposers
+Accept: */*
+Cache-Control: no-cache
+// 查看矿工列表、矿工黑名单、票数信息
+// 用 http-client.env.json 设置环境变量 https://www.jetbrains.com/help/idea/http-client-in-product-code-editor.html#using_env_vars
+###

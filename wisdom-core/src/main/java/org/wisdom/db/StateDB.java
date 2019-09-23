@@ -29,6 +29,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -72,11 +73,17 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // block hash -> public key hash -> account
     private Map<String, Map<String, AccountState>> cache;
 
+    // 区块的后续确认
+    private Map<String, Set<String>> confirms;
+
+    // 最少确认数量
+    private Map<String, Integer> leastConfirms;
+
     // 最新确认的区块
     private Block latestConfirmed;
 
-    private static final Base64.Encoder encoder = Base64.getEncoder();
-    private static final int CACHE_SIZE = 32;
+    private static final Base64.Encoder encodeNr = Base64.getEncoder();
+    private static final int CACHE_SIZE = 4096;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -104,27 +111,22 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 正在同步状态到数据库的区块
     private Block pendingBlock;
 
-    // 等待写入的区块
-    private BlocksCache writableBlocks;
-
     @Override
     public void onApplicationEvent(AccountUpdatedEvent event) {
-        this.readWriteLock.writeLock().lock();
-        try {
-            if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
-                // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
-                // 清除缓存
-                blocksCache.getAll()
-                        .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
-                        .forEach(b -> {
-                            blocksCache.deleteBlock(b);
-                            cache.remove(getLRUCacheKey(b.getHash()));
-                        });
-                latestConfirmed = pendingBlock;
-                pendingBlock = null;
-            }
-        } finally {
-            this.readWriteLock.writeLock().unlock();
+        if (Arrays.equals(event.getBlock().getHash(), pendingBlock.getHash())) {
+            // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
+            // 清除缓存
+            blocksCache.getAll()
+                    .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
+                    .forEach(b -> {
+                        blocksCache.deleteBlock(b);
+                        cache.remove(b.getHashHexString());
+                        confirms.remove(b.getHashHexString());
+                        leastConfirms.remove(b.getHashHexString());
+                    });
+            latestConfirmed = pendingBlock;
+            pendingBlock = null;
+            logger.info("update account at height " + event.getBlock().nHeight + " to db success");
         }
     }
 
@@ -146,11 +148,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
-        this.writableBlocks = new BlocksCache(CACHE_SIZE);
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
         this.proposersFactory.setPowWait(powWait);
+        this.confirms = new HashMap<>();
+        this.leastConfirms = new HashMap<>();
 
         Resource resource;
         try {
@@ -158,7 +161,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         } catch (Exception e) {
             resource = new FileSystemResource(validatorsFile);
         }
-
 
         this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
                 .map(v -> {
@@ -172,6 +174,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 }).collect(Collectors.toList()));
 
         this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
+        if(allowMinersJoinEra < 0){
+            logger.info("miners join is disabled");
+        }else {
+            logger.info("miners join is enabled, allow miners join at height " + (allowMinersJoinEra * blocksPerEra + 1));
+        }
     }
 
     @PostConstruct
@@ -189,7 +196,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
             // TODO: remove assertion codes
-            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)) {
+            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) || blocks.size() != blocksPerUpdate) {
                 logger.error("=================================== warning ======================");
             }
             while (blocks.size() > 0) {
@@ -201,18 +208,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
         }
-    }
-
-    // 定时清除待写入队列
-    @Scheduled(fixedDelay = 5000)
-    public void writeLoop() {
-        writableBlocks.getInitials()
-                .stream()
-                .findFirst()
-                .ifPresent(b -> {
-                    writableBlocks.deleteBlock(b);
-                    writeBlock(b);
-                });
     }
 
     public Block getBestBlock() {
@@ -234,7 +229,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (bHeader.nHeight < height) {
             return null;
         }
-        while (bHeader.nHeight != height) {
+        while (bHeader != null && bHeader.nHeight != height) {
             bHeader = getHeader(bHeader.hashPrevBlock);
         }
         return bHeader;
@@ -330,29 +325,72 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 orphanBlocksManager.addBlock(block);
                 return;
             }
-            // 有区块正在更新状态 放到待写入队列中
-            if (pendingBlock != null) {
-                writableBlocks.addBlocks(Collections.singletonList(block));
+            // 已经写入过的区块
+            if (blocksCache.hasBlock(block.getHash())) {
                 return;
             }
-            writableBlocks.deleteBlock(block);
             blocksCache.addBlocks(Collections.singletonList(block));
-            Optional<Block> confirmedBlock = blocksCache.getAncestors(block)
-                    .stream().filter((b) -> b.nHeight == block.nHeight - blockConfirms)
-                    .filter(b -> Arrays.equals(this.latestConfirmed.getHash(), b.hashPrevBlock))
-                    .findFirst();
-            confirmedBlock.ifPresent(b -> {
-                // 被确认的区块不在主分支上面
+            leastConfirms.put(block.getHashHexString(),
+                    (int) Math.ceil(
+                            proposersFactory.getProposers(getBlock(block.hashPrevBlock)).size()
+                                    * 2.0 / 3
+                    )
+            );
+            List<Block> ancestors = blocksCache.getAncestors(block);
+            for (Block b : ancestors) {
+                // 区块不能确认自己
+                if (Arrays.equals(b.getHash(), block.getHash())) {
+                    continue;
+                }
+                if (!confirms.containsKey(b.getHashHexString())) {
+                    confirms.put(b.getHashHexString(), new HashSet<>());
+                }
+                confirms.get(b.getHashHexString()).add(Hex.encodeHexString(block.body.get(0).to));
+            }
+            Collections.reverse(ancestors);
+
+            // 试图查找被确认的区块，找到则更新到 db
+            List<Block> confirmedAncestors = new ArrayList<>();
+            for (int i = 0; i < ancestors.size(); i++) {
+                Block b = ancestors.get(i);
+                if (confirms.get(b.getHashHexString()).size() < leastConfirms.get(b.getHashHexString())) {
+                    continue;
+                }
+//                if (block.nHeight - b.nHeight < 3){
+//                    continue;
+//                }
+                // 发现有可以确认的区块
+                confirmedAncestors = ancestors.subList(i, ancestors.size());
+                Collections.reverse(confirmedAncestors);
+                break;
+            }
+
+            if (confirmedAncestors.size() == 0) {
+                return;
+            }
+
+            // 更新到 db
+            for (int i = 0; i < confirmedAncestors.size(); ) {
+                Block b = confirmedAncestors.get(i);
+                // CAS 锁，等待上一个区块状态更新成功
+                while (pendingBlock != null) {
+                    logger.info("wait for account updated...");
+                }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
-                    // 区块写入失败
-                    return;
+                    // 数据库 写入失败 重试写入
+                    logger.error("write block to database failed, retrying...");
+                    continue;
                 }
+                logger.info("write block at height " + b.nHeight + " to db success");
                 pendingBlock = b;
                 ctx.publishEvent(new NewBlockEvent(this, b));
                 ctx.publishEvent(new NewBestBlockEvent(this, b));
-                // 将这个区块标记为正在更新状态
-            });
+                i++;
+            }
+            while (pendingBlock != null) {
+                logger.info("wait for account updated...");
+            }
         } finally {
             this.readWriteLock.writeLock().unlock();
         }
@@ -376,15 +414,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                         }
                         c.addBlocks(Collections.singletonList(b));
                     });
-            return c.getAll();
+            List<Block> all = c.getAll();
+            // TODO: remove assertion code
+            if( all.size() > sizeLimit ){
+                logger.error("getBlocks assertion failed");
+            }
+            return all;
         } finally {
             this.readWriteLock.readLock().unlock();
         }
-    }
-
-
-    protected String getLRUCacheKey(byte[] hash) {
-        return Hex.encodeHexString(hash);
     }
 
     public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
@@ -423,8 +461,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 //            return null;
 //        }
         // 判断是否在缓存中
-        String blockKey = getLRUCacheKey(blockHash);
-        String accountKey = getLRUCacheKey(publicKeyHash);
+        String blockKey = Hex.encodeHexString(blockHash);
+        String accountKey = Hex.encodeHexString(publicKeyHash);
         if (cache.containsKey(blockKey) && cache.get(blockKey).containsKey(accountKey)) {
             return cache.get(blockKey).get(accountKey).copy();
         }

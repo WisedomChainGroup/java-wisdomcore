@@ -4,9 +4,11 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.State;
 
 import java.util.*;
@@ -43,22 +45,50 @@ public class ProposersState implements State {
         }
     }
 
+    public Map<String, Proposer> getAll() {
+        return all;
+    }
+
+    public Set<String> getBlockList() {
+        return blockList;
+    }
+
     private Map<String, Proposer> all;
     private List<String> proposers;
     private Set<String> blockList;
+    private int allowMinersJoinEra;
+    private int blockInterval;
+    private List<Proposer> candidates;
 
     @Autowired
     public ProposersState(
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval
     ) {
         all = new HashMap<>();
         blockList = new HashSet<>();
         proposers = new ArrayList<>();
+        this.allowMinersJoinEra = allowMinersJoinEra;
+        this.blockInterval = blockInterval;
     }
 
     public List<Proposer> getProposers() {
         return proposers.stream()
                 .map(k -> all.get(k))
                 .collect(Collectors.toList());
+    }
+
+    public List<Proposer> getCandidates() {
+        if (candidates != null) {
+            return candidates;
+        }
+        candidates = getAll().values()
+                .stream()
+                .filter(p -> !blockList.contains(p.publicKeyHash))
+                .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
+                .sorted(ProposersState::compareProposer)
+                .collect(Collectors.toList());
+        return candidates;
     }
 
     @Override
@@ -69,8 +99,22 @@ public class ProposersState implements State {
         return this;
     }
 
+    public static int compareProposer(Proposer x, Proposer y) {
+        if (x.votes != y.votes) {
+            return (int) (y.votes - x.votes);
+        }
+        if (x.mortgage != y.votes) {
+            return (int) (y.mortgage - x.mortgage);
+        }
+        return y.publicKeyHash.compareTo(x.publicKeyHash);
+    }
+
     @Override
     public State updateBlocks(List<Block> blocks) {
+        boolean enableMultiMiners = allowMinersJoinEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(
+                blocks.get(0).nHeight, blockInterval
+        ) >= allowMinersJoinEra;
+
         // 统计出块数量
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
@@ -82,7 +126,7 @@ public class ProposersState implements State {
             proposals[idx]++;
         }
         // 拉黑不出块的节点
-        for (int i = 0; i < proposals.length; i++) {
+        for (int i = 0; i < proposals.length && enableMultiMiners; i++) {
             if (proposals[i] > 0) {
                 continue;
             }
@@ -96,15 +140,7 @@ public class ProposersState implements State {
                 // 过滤掉抵押数量不足的节点
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
                 // 按照 投票，抵押，字典依次排序
-                .sorted((x, y) -> {
-                    if (x.votes != y.votes) {
-                        return (int) (y.votes - x.votes);
-                    }
-                    if (x.mortgage != y.votes) {
-                        return (int) (y.mortgage - x.mortgage);
-                    }
-                    return y.publicKeyHash.compareTo(x.publicKeyHash);
-                })
+                .sorted(ProposersState::compareProposer)
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
         return this;
@@ -153,7 +189,7 @@ public class ProposersState implements State {
 
     @Override
     public State copy() {
-        ProposersState state = new ProposersState();
+        ProposersState state = new ProposersState(this.allowMinersJoinEra, this.blockInterval);
         state.all = new HashMap<>();
         for (String key : all.keySet()) {
             state.all.put(key, all.get(key).copy());

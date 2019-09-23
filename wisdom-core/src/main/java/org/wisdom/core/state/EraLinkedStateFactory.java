@@ -42,7 +42,7 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         return blocksPerEra;
     }
 
-    protected long getEraAtBlockNumber(long number) {
+    public static long getEraAtBlockNumber(long number, int blocksPerEra) {
         return (number - 1) / blocksPerEra;
     }
 
@@ -50,7 +50,7 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         if (target.nHeight == 0) {
             return null;
         }
-        long lastHeaderNumber = getEraAtBlockNumber(target.nHeight) * blocksPerEra;
+        long lastHeaderNumber = getEraAtBlockNumber(target.nHeight, this.blocksPerEra) * blocksPerEra;
         if (lastHeaderNumber == target.nHeight - 1) {
             return stateDB.getHeader(target.hashPrevBlock);
         }
@@ -67,7 +67,7 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
             return t;
         }
         Block parentEraHead = prevEraLast(eraHead);
-        if (parentEraHead == null){
+        if (parentEraHead == null) {
             return null;
         }
         t = getFromCache(parentEraHead);
@@ -81,7 +81,7 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         if (block == null) {
             return null;
         }
-        if (block.nHeight == 0 || getEraAtBlockNumber(block.nHeight) == 0) {
+        if (block.nHeight == 0 || getEraAtBlockNumber(block.nHeight, this.blocksPerEra) == 0) {
             return genesisState;
         }
         Block eraHead = prevEraLast(block);

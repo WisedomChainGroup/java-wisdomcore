@@ -17,7 +17,7 @@ public class ProposersFactory extends EraLinkedStateFactory {
 
     private List<String> initialProposers;
 
-    private long allowMinerJoinEra;
+    private long allowMinersJoinEra;
 
     public void setPowWait(int powWait) {
         this.powWait = powWait;
@@ -29,36 +29,46 @@ public class ProposersFactory extends EraLinkedStateFactory {
         this.initialProposers = initialProposers;
     }
 
-    public void setAllowMinerJoinEra(long allowMinerJoinEra) {
-        this.allowMinerJoinEra = allowMinerJoinEra;
+    public void setAllowMinerJoinEra(long allowMinersJoinEra) {
+        this.allowMinersJoinEra = allowMinersJoinEra;
+    }
+
+    public List<String> getProposers(Block parentBlock) {
+        boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
+                getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
+
+        if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
+            return initialProposers.subList(0, 1);
+        }
+
+        if (!enableMultiMiners) {
+            return initialProposers;
+        }
+
+        List<String> res;
+        if (parentBlock.nHeight % getBlocksPerEra() == 0) {
+            ProposersState state = (ProposersState) getFromCache(parentBlock);
+            res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+        } else {
+            ProposersState state = (ProposersState) getInstance(parentBlock);
+            res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+        }
+        if (res.size() > 0) {
+            return res;
+        }
+        return initialProposers;
+
     }
 
     public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
-        List<String> proposers = initialProposers;
+        List<String> proposers = getProposers(parentBlock);
 
         if (timeStamp <= parentBlock.nTime) {
             return Optional.empty();
         }
+
         if (parentBlock.nHeight == 0) {
-            return Optional.of(new Proposer(initialProposers.get(0), 0, Long.MAX_VALUE));
-        }
-
-        boolean enableMultiMiners = getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinerJoinEra;
-
-        // 到了开启多节点挖矿的纪元
-        if (enableMultiMiners) {
-            if (parentBlock.nHeight % getBlocksPerEra() == 0) {
-                ProposersState state = (ProposersState) getFromCache(parentBlock);
-                proposers = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
-            } else {
-                ProposersState state = (ProposersState) getInstance(parentBlock);
-                proposers = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
-            }
-        }
-
-        // 9236 开始单机挖矿
-        if (parentBlock.nHeight >= 9235 && !enableMultiMiners) {
-            return Optional.of(new Proposer(initialProposers.get(0), -1, Long.MAX_VALUE));
+            return Optional.of(new Proposer(proposers.get(0), 0, Long.MAX_VALUE));
         }
 
         long step = (timeStamp - parentBlock.nTime)
