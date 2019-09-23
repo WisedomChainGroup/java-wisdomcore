@@ -43,7 +43,7 @@ public class StateFactory extends AbstractStateFactory {
         State parentState = getFromCache(parent);
         State newState = parentState.copy().updateBlock(block);
         cache.put(key, newState);
-        return newState;
+        return newState.copy();
     }
 
     public State getInstance(Block block) {
