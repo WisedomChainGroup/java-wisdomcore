@@ -121,7 +121,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     // 定时清理距离当前高度超过 50 的孤块
     @Scheduled(fixedRate = 30 * 1000)
     public void clearOrphans() {
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         for (Block init : orphans.getInitials()) {
             if (Math.abs(best.nHeight - init.nHeight) < orphanHeightsRange) {
                 continue;

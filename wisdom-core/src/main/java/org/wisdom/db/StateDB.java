@@ -322,7 +322,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             // 判断是否是孤块
             if (!Arrays.equals(this.latestConfirmed.getHash(), block.hashPrevBlock) && !blocksCache.hasBlock(block.hashPrevBlock)) {
-                orphanBlocksManager.addBlock(block);
                 return;
             }
             // 已经写入过的区块
