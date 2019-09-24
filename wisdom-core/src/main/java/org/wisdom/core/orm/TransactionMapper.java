@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 public class TransactionMapper implements RowMapper<Transaction> {
     @Override
@@ -40,6 +41,8 @@ public class TransactionMapper implements RowMapper<Transaction> {
         tx.to = rs.getBytes("to");
         tx.height = rs.getLong("height");
         tx.blockHash = rs.getBytes("block_hash");
+        // TODO: remove assertion codes
+        assert Arrays.equals(tx.getHash(), rs.getBytes("tx_hash"));
         return tx;
     }
 }

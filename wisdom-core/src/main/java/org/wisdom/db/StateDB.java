@@ -196,7 +196,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
             // TODO: remove assertion codes
-            if (!Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) || blocks.size() != blocksPerUpdate) {
+            if (
+                    !Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
+                            || blocks.size() != blocksPerUpdate
+                            || !isChain(blocks)
+            ) {
                 logger.error("=================================== warning ======================");
             }
             while (blocks.size() > 0) {

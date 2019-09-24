@@ -43,9 +43,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     private BlocksCache orphans;
 
     @Autowired
-    private WisdomBlockChain bc;
-
-    @Autowired
     private StateDB stateDB;
 
     @Autowired
@@ -118,18 +115,12 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
 
-    // 定时清理距离当前高度超过 50 的孤块
+    // 定时清理距离当前高度已经被确认的区块
     @Scheduled(fixedRate = 30 * 1000)
     public void clearOrphans() {
-        Block best = stateDB.getBestBlock();
-        for (Block init : orphans.getInitials()) {
-            if (Math.abs(best.nHeight - init.nHeight) < orphanHeightsRange) {
-                continue;
-            }
-            List<Block> descendantBlocks = new ArrayList<>();
-            descendantBlocks.add(init);
-            descendantBlocks.addAll(orphans.getDescendantBlocks(init));
-            orphans.deleteBlocks(descendantBlocks);
-        }
+        Block lastConfirmed = stateDB.getLastConfirmed();
+        orphans.getAll().stream()
+                .filter(b -> b.nHeight <= lastConfirmed.nHeight)
+                .forEach(b -> orphans.deleteBlock(b));
     }
 }

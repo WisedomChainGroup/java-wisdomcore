@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 public class BlockMapper implements RowMapper<Block> {
     @Override
@@ -40,7 +41,8 @@ public class BlockMapper implements RowMapper<Block> {
         header.nBits = rs.getBytes("nbits");
         header.blockNotice = rs.getBytes("block_notice");
         header.totalWeight = rs.getLong("total_weight");
-        header.setHashCache(rs.getBytes("block_hash"));
+        // TODO: remove assertion codes
+        assert Arrays.equals(header.getHash(), rs.getBytes("block_hash"));
         return header;
     }
 }
