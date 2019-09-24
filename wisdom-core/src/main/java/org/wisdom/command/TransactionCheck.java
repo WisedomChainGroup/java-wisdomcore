@@ -304,6 +304,11 @@ public class TransactionCheck {
                 long inheight = 0;
                 long nowincub = 0;
                 if (type[0] == 0x0b) {//提取分享收益
+                    if(!Arrays.equals(topubkeyhash,incubator.getShare_pubkeyhash())){
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("The account is inconsistent with the hatcher-sharing user");
+                        return apiResult;
+                    }
                     if (incubator.getShare_amount() == 0 || incubator.getShare_amount() < amount) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("The sharing income cannot be withdrawn or is greater than the amount that can be withdrawn");
@@ -316,6 +321,11 @@ public class TransactionCheck {
                     inheight = incubator.getLast_blockheight_share();
                     nowincub = incubator.getShare_amount();
                 } else {//提取利息
+                    if(!Arrays.equals(topubkeyhash,incubator.getPubkeyhash())){
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("The account is inconsistent with the incubator user");
+                        return apiResult;
+                    }
                     if (incubator.getInterest_amount() == 0 || incubator.getInterest_amount() < amount) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Interest income cannot be withdrawn or is greater than the amount that can be withdrawn");
@@ -389,6 +399,11 @@ public class TransactionCheck {
                 if (incubator == null) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Unable to query incubation status");
+                    return apiResult;
+                }
+                if(!Arrays.equals(incubator.getPubkeyhash(),topubkeyhash)){
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("This hatch is not yours, you can't get the principal out");
                     return apiResult;
                 }
                 if (incubator.getInterest_amount() != 0 || incubator.getCost() == 0) {
