@@ -77,7 +77,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 .collect(Collectors.toList())
         );
         BlocksCache res = new BlocksCache();
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         for (Block init : cache.getInitials()) {
             List<Block> descendantBlocks = new ArrayList<>();
             descendantBlocks.add(init);
