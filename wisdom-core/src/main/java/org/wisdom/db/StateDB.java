@@ -117,17 +117,26 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
             // 清除缓存
             blocksCache.getAll()
-                    .stream().filter(b -> b.nHeight <= pendingBlock.nHeight)
-                    .forEach(b -> {
-                        blocksCache.deleteBlock(b);
-                        cache.remove(b.getHashHexString());
-                        confirms.remove(b.getHashHexString());
-                        leastConfirms.remove(b.getHashHexString());
-                    });
+                    .stream().filter(b -> b.nHeight == pendingBlock.nHeight
+                    && !Arrays.equals(b.getHash(), pendingBlock.getHash()))
+                    .map(b -> {
+                        List<Block> toDelete = blocksCache.getDescendantBlocks(b);
+                        toDelete.add(b);
+                        return toDelete;
+                    })
+                    .forEach(blocks -> blocks.forEach(this::deleteCache));
+            deleteCache(pendingBlock);
             latestConfirmed = pendingBlock;
             pendingBlock = null;
             logger.info("update account at height " + event.getBlock().nHeight + " to db success");
         }
+    }
+
+    public void deleteCache(Block b) {
+        blocksCache.deleteBlock(b);
+        cache.remove(b.getHashHexString());
+        confirms.remove(b.getHashHexString());
+        leastConfirms.remove(b.getHashHexString());
     }
 
     @Autowired
@@ -174,9 +183,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 }).collect(Collectors.toList()));
 
         this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
-        if(allowMinersJoinEra < 0){
+        if (allowMinersJoinEra < 0) {
             logger.info("miners join is disabled");
-        }else {
+        } else {
             logger.info("miners join is enabled, allow miners join at height " + (allowMinersJoinEra * blocksPerEra + 1));
         }
     }
@@ -419,7 +428,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     });
             List<Block> all = c.getAll();
             // TODO: remove assertion code
-            if( all.size() > sizeLimit ){
+            if (all.size() > sizeLimit) {
                 logger.error("getBlocks assertion failed");
             }
             return all;
