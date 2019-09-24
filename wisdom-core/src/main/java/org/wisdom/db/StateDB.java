@@ -117,7 +117,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             // 接收到状态更新完成事件后，将这个区块标记为状态已更新完成
             // 清除缓存
             blocksCache.getAll()
-                    .stream().filter(b -> b.nHeight == pendingBlock.nHeight
+                    .stream().filter(b -> b.nHeight <= pendingBlock.nHeight
                     && !Arrays.equals(b.getHash(), pendingBlock.getHash()))
                     .map(b -> {
                         List<Block> toDelete = blocksCache.getDescendantBlocks(b);
