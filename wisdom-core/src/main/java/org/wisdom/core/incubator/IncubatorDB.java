@@ -64,23 +64,23 @@ public class IncubatorDB {
 
     public List<Incubator> selectList(byte[] pubkeyhash){
         try {
-            String sql = "select * from incubator_state s,(\n" +
-                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.pubkeyhash=? group by i.txid_issue)as a\n" +
-                    "where s.txid_issue=a.txid_issue and s.height=a.height";
+            String sql = "select s.* from incubator_state s left join (\n" +
+                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.pubkeyhash=? and i.cost>=0 group by i.txid_issue) aa\n" +
+                    "on s.txid_issue=aa.txid_issue where s.height=aa.height";
             return tmpl.query(sql, new Object[]{pubkeyhash}, new IncubatorRowMapper());
         } catch (Exception e) {
-            return new ArrayList<Incubator>();
+            return new ArrayList<>();
         }
     }
 
     public List<Incubator> selectShareList(byte[] pubkeyhash){
         try {
-            String sql = "select * from incubator_state s,(\n" +
-                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.pubkeyhash=? group by i.txid_issue)as a\n" +
-                    "where s.txid_issue=a.txid_issue and s.height=a.height";
+            String sql = "select s.* from incubator_state s left join (\n" +
+                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.share_pubkeyhash=? and i.share_amount>=0 group by i.txid_issue) aa\n" +
+                    "on s.txid_issue=aa.txid_issue where s.height=aa.height";
             return tmpl.query(sql, new Object[]{pubkeyhash}, new IncubatorRowMapper());
         } catch (Exception e) {
-            return new ArrayList<Incubator>();
+            return new ArrayList<>();
         }
     }
 

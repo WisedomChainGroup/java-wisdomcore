@@ -23,6 +23,8 @@ import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 
 import org.wisdom.core.account.Account;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.AdoptTransPool;
@@ -40,6 +42,9 @@ public class CommandServiceImpl implements CommandService {
 
     @Autowired
     AccountDB accountDB;
+
+    @Autowired
+    IncubatorDB incubatorDB;
 
     @Autowired
     RateTable rateTable;
@@ -69,7 +74,11 @@ public class CommandServiceImpl implements CommandService {
                 apiResult.setMessage("The from account does not exist");
                 return apiResult;
             }
-            apiResult=transactionCheck.TransactionVerify(tran,account);
+            Incubator incubator=null;
+            if(tran.type==0x0a || tran.type==0x0b || tran.type==0x0c){
+                incubator=incubatorDB.selectIncubator(tran.payload);
+            }
+            apiResult=transactionCheck.TransactionVerify(tran,account,incubator);
             if(apiResult.getCode() == 5000){
                 return apiResult;
             }

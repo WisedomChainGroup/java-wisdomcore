@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.core.account.Account;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -54,6 +55,9 @@ public class TransactionCheck {
 
     @Autowired
     WisdomBlockChain wisdomBlockChain;
+
+    @Autowired
+    StateDB stateDB;
 
     @Autowired
     RateTable rateTable;
@@ -187,7 +191,7 @@ public class TransactionCheck {
         }
     }
 
-    public APIResult TransactionVerify(Transaction transaction, Account account) {
+    public APIResult TransactionVerify(Transaction transaction, Account account, Incubator incubator) {
         APIResult apiResult = new APIResult();
         try {
             byte[] from = transaction.from;
@@ -195,10 +199,9 @@ public class TransactionCheck {
             //nonce
             long trannonce = transaction.nonce;
             long nownonce = accountDB.getNonce(frompubhash);
-            long maxnonce = nownonce + configuration.getMaxnonce();
-            if (nownonce >= trannonce || trannonce > maxnonce) {
+            if (nownonce >= trannonce ) {
                 apiResult.setCode(5000);
-                apiResult.setMessage("Nonce is too small or Nonce too big. Over 64 Max");
+                apiResult.setMessage("Nonce is too small");
                 return apiResult;
             }
             //type
@@ -237,7 +240,7 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                return PayloadCheck(payload, type, transaction.amount, transaction.to);
+                return PayloadCheck(payload, type, transaction.amount, transaction.to,incubator);
             }
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -249,7 +252,7 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    public APIResult PayloadCheck(byte[] payload, int type, long amount, byte[] topubkeyhash) {
+    public APIResult PayloadCheck(byte[] payload, int type, long amount, byte[] topubkeyhash, Incubator incubator) {
         APIResult apiResult = new APIResult();
         switch (type) {
             case 0x09://孵化器
@@ -257,13 +260,13 @@ public class TransactionCheck {
                 break;
             case 0x0a:
             case 0x0b://提取利息、提取分享收益
-                apiResult = CheckInterAndShare(type, amount, payload);
+                apiResult = CheckInterAndShare(type, amount, payload,incubator,topubkeyhash);
                 break;
             case 0x03://存证
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x0c://提取本金
-                apiResult = CheckCost(amount, payload);
+                apiResult = CheckCost(amount, payload,incubator,topubkeyhash);
                 break;
             case 0x0d://撤回投票
                 apiResult = CheckRecallVote(amount, payload, topubkeyhash);
@@ -291,7 +294,7 @@ public class TransactionCheck {
                 apiResult.setMessage("Abnormal incubation days");
                 return apiResult;
             }
-            long nowheight = wisdomBlockChain.currentHeader().nHeight;
+            long nowheight = stateDB.getBestBlock().nHeight;
             String nowrate = rateTable.selectrate(nowheight, days);
             //利息和分享收益
             BigDecimal amountbig = BigDecimal.valueOf(amount);
@@ -333,7 +336,7 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckInterAndShare(int type, long amount, byte[] payload) {
+    private APIResult CheckInterAndShare(int type, long amount, byte[] payload, Incubator incubator, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
         try {
             if (payload.length != 32) {//事务哈希
@@ -355,7 +358,6 @@ public class TransactionCheck {
             BigDecimal capitalbig = BigDecimal.valueOf(capital);
             BigDecimal ratebig = new BigDecimal(rate);
             BigDecimal totalratebig = capitalbig.multiply(ratebig);
-            Incubator incubator = incubatorDB.selectIncubator(payload);
             if (incubator == null) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Unable to query incubation status");
@@ -372,6 +374,11 @@ public class TransactionCheck {
             long inheight = 0;
             long nowincub = 0;
             if (type == 0x0b) {//提取分享收益
+                if(!Arrays.equals(topubkeyhash,incubator.getShare_pubkeyhash())){
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The account is inconsistent with the hatcher-sharing user");
+                    return apiResult;
+                }
                 if (incubator.getShare_amount() == 0 || incubator.getShare_amount() < amount) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("The sharing income cannot be withdrawn or is greater than the amount that can be withdrawn");
@@ -384,6 +391,11 @@ public class TransactionCheck {
                 inheight = incubator.getLast_blockheight_share();
                 nowincub = incubator.getShare_amount();
             } else {//提取利息
+                if(!Arrays.equals(topubkeyhash,incubator.getPubkeyhash())){
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The account is inconsistent with the incubator user");
+                    return apiResult;
+                }
                 if (incubator.getInterest_amount() == 0 || incubator.getInterest_amount() < amount) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Interest income cannot be withdrawn or is greater than the amount that can be withdrawn");
@@ -435,7 +447,7 @@ public class TransactionCheck {
                     return apiResult;
                 }
                 int blockcount = mul * configuration.getDay_count();
-                long nowheight = wisdomBlockChain.currentHeader().nHeight;
+                long nowheight = stateDB.getBestBlock().nHeight;
                 if ((inheight + blockcount) > nowheight) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("In excess of the amount available");
@@ -464,18 +476,21 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckCost(long amount, byte[] payload) {
+    private APIResult CheckCost(long amount, byte[] payload, Incubator incubator, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
         if (payload.length != 32) {//事务哈希
             apiResult.setCode(5000);
             apiResult.setMessage("Incubate transaction format errors");
             return apiResult;
         }
-
-        Incubator incubator = incubatorDB.selectIncubator(payload);
         if (incubator == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to query incubation status");
+            return apiResult;
+        }
+        if(!Arrays.equals(incubator.getPubkeyhash(),topubkeyhash)){
+            apiResult.setCode(5000);
+            apiResult.setMessage("This hatch is not yours, you can't get the principal out");
             return apiResult;
         }
         if (incubator.getInterest_amount() != 0 || incubator.getCost() == 0) {
@@ -584,8 +599,8 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    public boolean checkoutPool(Transaction t) {
-        APIResult apiResult = TransactionVerify(t, null);
+    public boolean checkoutPool(Transaction t,Incubator incubator) {
+        APIResult apiResult = TransactionVerify(t, null, incubator);
         if (apiResult.getCode() == 5000) {
             return false;
         }

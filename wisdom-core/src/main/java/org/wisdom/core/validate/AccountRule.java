@@ -29,6 +29,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,10 +85,8 @@ public class AccountRule implements BlockRule {
         List<byte[]> pubhashlist=block.getFromhashList(block);
         Map<String,AccountState> map=stateDB.getAccounts(parenthash,pubhashlist);
         List<Transaction> transactionList=new ArrayList<>();
-        if (block.nHeight > 30800) {
-            if(block.nHeight==32772){
-                System.out.println("进来了");
-            }
+//        boolean result=true;
+        if (block.nHeight > 0) {
             for (Transaction tx : block.body) {
                 String key = encoder.encodeToString(tx.from);
                 if (froms.contains(key)) {
@@ -105,19 +104,41 @@ public class AccountRule implements BlockRule {
                     APIResult apiResult=transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
                     if(apiResult.getCode()==5000){
                         peningTransPool.removeOne(publichash,tx.nonce);
+/*                        uncheckedTrans.add(tx.getHashHexString(),apiResult.getMessage());
+                        result=false;
+                        continue;*/
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     AccountState accountState;
                     if(map.containsKey(publichash)){
                         accountState=map.get(publichash);
                     }else{
+//                        uncheckedTrans.add(tx.getHashHexString(),apiResult.getMessage());
+//                        result=false;
+//                        continue;
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from " );
                     }
                     Account account=accountState.getAccount();
+                    Map<String,Incubator> interestMap=null;
+                    if(tx.type==0x0a || tx.type==0x0c){
+                        interestMap=accountState.getInterestMap();
+                    }else if(tx.type==0x0b){
+                        interestMap=accountState.getShareMap();
+                    }
+                    Incubator forkincubator=null;
+                    if(interestMap!=null){
+                        forkincubator=interestMap.get(Hex.encodeHexString(tx.payload));
+//                        if(forkincubator==null){
+//                            System.out.println("Transaction failed ,tx:"+Hex.encodeHexString(tx.getHash())+"--->Incubator:"+Hex.encodeHexString(tx.payload));
+//                        }
+                    }
                     //数据校验
-                    apiResult=transactionCheck.TransactionVerify(tx,account);
+                    apiResult=transactionCheck.TransactionVerify(tx,account, forkincubator);
                     if(apiResult.getCode()==5000){
                         peningTransPool.removeOne(publichash,tx.nonce);
+//                        uncheckedTrans.add(tx.getHashHexString(),apiResult.getMessage());
+//                        result=false;
+//                        continue;
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     //更新Account账户
@@ -142,6 +163,9 @@ public class AccountRule implements BlockRule {
                             list=packageMiner.UpdateCancelVote(account,toaccount,tx);
                         }
                         if(list==null){
+//                            uncheckedTrans.add(tx.getHashHexString(),"Update account cannot be null");
+//                            result=false;
+//                            continue;
                             return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
                         }
                         list.stream().forEach(a->{
@@ -151,14 +175,38 @@ public class AccountRule implements BlockRule {
                     }else {//其他事务
                         Account otheraccount=packageMiner.UpdateOtherAccount(account,tx);
                         if(otheraccount==null){
+//                            uncheckedTrans.add(tx.getHashHexString(),"Update account cannot be null");
+//                            result=false;
+//                            continue;
                             return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
                         }
                         accountState.setAccount(otheraccount);
+
+                        Map<String,Incubator> maps=null;
+                        if(tx.type==10){
+                            maps=accountState.getInterestMap();
+                            Incubator incubator=packageMiner.UpdateIncubtor(maps,tx,block.nHeight);
+                            maps.put(Hex.encodeHexString(tx.payload),incubator);
+                            accountState.setInterestMap(maps);
+                        }else if(tx.type==11){
+                            maps=accountState.getShareMap();
+                            Incubator incubator=packageMiner.UpdateIncubtor(maps,tx,block.nHeight);
+                            maps.put(Hex.encodeHexString(tx.payload),incubator);
+                            accountState.setShareMap(maps);
+                        }else if(tx.type==12){
+                            maps=accountState.getInterestMap();
+                            Incubator incubator=packageMiner.UpdateIncubtor(maps,tx,block.nHeight);
+                            maps.put(Hex.encodeHexString(tx.payload),incubator);
+                            accountState.setInterestMap(maps);
+                        }
                         map.put(publichash,accountState);
                     }
                 }
                 transactionList.add(tx);
             }
+//            if(!result){
+//                return Result.Error("Transaction validation failed");
+//            }
             peningTransPool.updatePool(transactionList,1,block.nHeight);
         }
         return Result.SUCCESS;

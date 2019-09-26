@@ -309,7 +309,7 @@ public class MerkleRule implements BlockRule {
         return toaccount;
     }
 
-    private Incubator UpdateExtIncuator(Transaction tran,long nowheight,Incubator incubator){
+    public Incubator UpdateExtIncuator(Transaction tran,long nowheight,Incubator incubator){
         Transaction transaction = wisdomBlockChain.getTransaction(tran.payload);
         int days = transaction.getdays();
         String rate = rateTable.selectrate(transaction.height, days);//利率
@@ -389,7 +389,7 @@ public class MerkleRule implements BlockRule {
         return toaccount;
     }
 
-    private Incubator UpdateCostIncubator(Incubator incubator,long nowheight){
+    public Incubator UpdateCostIncubator(Incubator incubator,long nowheight){
         incubator.setCost(0);
         incubator.setHeight(nowheight);
         return incubator;

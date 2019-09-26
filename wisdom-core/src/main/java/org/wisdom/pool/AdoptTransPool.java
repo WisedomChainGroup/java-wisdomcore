@@ -124,7 +124,7 @@ public class AdoptTransPool {
         return list;
     }
 
-    //转账、投票、撤回投票、抵押、撤回抵押可多nonce进入
+    //转账、投票、撤回投票、(抵押、撤回抵押)可多nonce进入
     public Map<String, List<TransPool>> getqueuedtopending() {
         Map<String, List<TransPool>> map = new HashMap<>();
         int index = 0;
@@ -135,7 +135,7 @@ public class AdoptTransPool {
                 if (index < configuration.getMaxqpcount()) {
                     TransPool t = entry1.getValue();
                     Transaction transaction = t.getTransaction();
-                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
+                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 13 ) {
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
