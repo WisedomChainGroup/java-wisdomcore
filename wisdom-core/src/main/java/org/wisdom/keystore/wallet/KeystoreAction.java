@@ -21,6 +21,10 @@ package org.wisdom.keystore.wallet;
 import com.google.common.primitives.Bytes;
 import com.google.gson.Gson;
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.io.IOUtils;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileUrlResource;
+import org.springframework.core.io.Resource;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.apache.commons.codec.binary.Hex;
@@ -335,5 +339,9 @@ public class KeystoreAction {
         }else {//地址格式错误
             return  -2;
         }
+    }
+
+    public static void main(String[] args){
+
     }
 }

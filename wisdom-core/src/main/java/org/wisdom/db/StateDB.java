@@ -83,7 +83,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private Block latestConfirmed;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
-    private static final int CACHE_SIZE = 4096;
+    private static final int CACHE_SIZE = 512;
 
     @Autowired
     private WisdomBlockChain bc;
