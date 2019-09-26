@@ -125,7 +125,7 @@ public class TransactionCheck {
             tranlast = ByteUtil.bytearraycopy(tranlast, 64, tranlast.length - 64);
             //topubkeyhash
             byte[] topubkeyhash = ByteUtil.bytearraycopy(tranlast, 0, 20);
-            if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0e || type[0] == 0x0f) {
+            if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0d || type[0] == 0x0e || type[0] == 0x0f) {
                 if (!Arrays.equals(frompubhash, topubkeyhash)) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("From and To are different");
@@ -527,7 +527,7 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
-        if (!Arrays.equals(transaction.to, topubkeyhash)) {
+        if (!Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from)), topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("You have to withdraw your vote");
             return apiResult;
