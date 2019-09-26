@@ -25,6 +25,7 @@ import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.consensus.pow.PackageMiner;
 import org.wisdom.core.Block;
+import org.wisdom.core.WhitelistTransaction;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -76,6 +77,9 @@ public class AccountRule implements BlockRule {
     @Autowired
     PackageMiner packageMiner;
 
+    @Autowired
+    WhitelistTransaction whitelistTransaction;
+
     private boolean validateIncubator;
 
     @Override
@@ -88,6 +92,9 @@ public class AccountRule implements BlockRule {
 //        boolean result=true;
         if (block.nHeight > 0) {
             for (Transaction tx : block.body) {
+                if(whitelistTransaction.IsUnchecked(tx.getHashHexString())){
+                    continue;
+                }
                 String key = encoder.encodeToString(tx.from);
                 if (froms.contains(key)) {
                     return Result.Error("duplicated account found");
