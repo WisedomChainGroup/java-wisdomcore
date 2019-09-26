@@ -1,6 +1,5 @@
 package org.wisdom.pool;
 
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
@@ -12,11 +11,10 @@ import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.ipc.IpcConfig;
-import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
 
 import java.util.*;
 
@@ -68,7 +66,11 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                     for (TransPool transPool : list) {
                         Transaction transaction = transPool.getTransaction();
                         if (pendingNonce.getNonce() < transaction.nonce) {
-                            if (transactionCheck.checkoutPool(transaction)) {
+                            Incubator incubator=null;
+                            if(transaction.type==0x0a || transaction.type==0x0b || transaction.type==0x0c){
+                                incubator=incubatorDB.selectIncubator(transaction.payload);
+                            }
+                            if (transactionCheck.checkoutPool(transaction,incubator)) {
                                 //超过pending上限
                                 if (index > configuration.getMaxpending()) {
                                     state = true;

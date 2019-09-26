@@ -53,7 +53,7 @@ public class PeningTransPool {
             if (ptpool.containsKey(fromhash)) {
                 TreeMap<Long, TransPool> map = ptpool.get(fromhash);
                 if(map.lastKey()>=transaction.nonce){
-                    logger.info("PendingPool reject Nonce small things , tx="+Hex.encodeHexString(transaction.getHash()));
+                    logger.info("PendingPool reject Nonce small transaction , tx="+Hex.encodeHexString(transaction.getHash()));
                     continue;
                 }
                 map.put(transaction.nonce, transPool);

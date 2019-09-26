@@ -1,6 +1,8 @@
 package org.wisdom.db;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -12,7 +14,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
@@ -30,12 +31,16 @@ import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
+import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
+import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
@@ -44,6 +49,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toMap;
 
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
@@ -90,6 +97,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Autowired
     private AccountDB accountDB;
+
+    @Autowired
+    private IncubatorDB incubatorDB;
+
+    @Autowired
+    private RateTable rateTable;
+
+    @Autowired
+    private MerkleRule merkleRule;
 
     @Autowired
     private ApplicationContext ctx;
@@ -485,6 +501,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         Block block = blocksCache.getBlock(blockHash);
         // 把这个区块的事务应用到上一个区块获取的 account，生成新的 account
+        for(Transaction tx: block.body){
+            tx.height = block.nHeight;
+        }
         AccountState res = applyTransactions(block.body, account.copy());
         if (!cache.containsKey(blockKey)) {
             cache.put(blockKey, new ConcurrentHashMap<>());
@@ -495,11 +514,30 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取已经持久化的账户
     public AccountState getAccount(byte[] publicKeyHash) {
-        Account account = accountDB.selectaccount(publicKeyHash);
+        Optional<Account> account = accountDB.hasAccount(publicKeyHash);
         if (account == null) {
             return null;
         }
-        return new AccountState(account);
+
+        AccountState accountState = account.map(x -> {
+            AccountState accountState1 = new AccountState();
+            accountState1.setAccount(x);
+            return accountState1;
+        }).orElse(new AccountState(publicKeyHash));
+
+        List<Incubator> incubatorList=incubatorDB.selectList(publicKeyHash);
+        Map<String,Incubator> inester=new HashMap<>();
+        if(incubatorList.size()>0){
+            inester=incubatorList.stream().collect(toMap(i->Hex.encodeHexString(i.getTxid_issue()),i->i));
+        }
+        accountState.setInterestMap(inester);
+        List<Incubator> shareList=incubatorDB.selectShareList(publicKeyHash);
+        Map<String,Incubator> share=new HashMap<>();
+        if(shareList.size()>0){
+            share=shareList.stream().collect(toMap(i->Hex.encodeHexString(i.getTxid_issue()),i->i));
+        }
+        accountState.setShareMap(share);
+        return accountState;
     }
 
     public List<Block> getAll() {
@@ -548,8 +586,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return accountState;
     }
 
-    private AccountState applyIncubate(Transaction tx, AccountState accountState) {
+    private AccountState applyIncubate(Transaction tx, AccountState accountState) throws InvalidProtocolBufferException, DecoderException {
         Account account = accountState.getAccount();
+        HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tx.payload);
+        int days = payloadproto.getType();
+        String sharpub = payloadproto.getSharePubkeyHash();
         long balance;
         if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             balance = account.getBalance();
@@ -561,7 +602,20 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             account.setIncubatecost(incub);
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
+            Incubator incubator=new Incubator(tx.to,tx.getHash(),tx.height,tx.amount,tx.getInterest(tx.height,rateTable,days),tx.height,days);
+            Map<String,Incubator> maps=accountState.getInterestMap();
+            maps.put(Hex.encodeHexString(tx.getHash()),incubator);
+            accountState.setInterestMap(maps);
             accountState.setAccount(account);
+        }
+        if(sharpub != null && sharpub != ""){
+            byte[] sharepublic=Hex.decodeHex(sharpub.toCharArray());
+            if(Arrays.equals(sharepublic,account.getPubkeyHash())){
+                Incubator share=new Incubator(sharepublic,tx.getHash(),tx.height,tx.amount,days,tx.getShare(tx.height,rateTable,days),tx.height);
+                Map<String,Incubator> sharemaps=accountState.getShareMap();
+                sharemaps.put(Hex.encodeHexString(tx.getHash()),share);
+                accountState.setShareMap(sharemaps);
+            }
         }
         if (Arrays.equals(IncubatorAddress.resultpubhash(), account.getPubkeyHash())) {
             balance = account.getBalance();
@@ -589,6 +643,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
+
+        Map<String,Incubator> map=accountState.getInterestMap();
+        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
+        if(incubator==null){
+            logger.info("Interest payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+            return accountState;
+        }
+        incubator=merkleRule.UpdateExtIncuator(tx,tx.height,incubator);
+        map.put(Hex.encodeHexString(tx.payload),incubator);
+        accountState.setInterestMap(map);
         return accountState;
     }
 
@@ -604,6 +668,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
+
+        Map<String,Incubator> map=accountState.getShareMap();
+        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
+        if(incubator==null){
+            logger.info("Share payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+            return accountState;
+        }
+        incubator=merkleRule.UpdateExtIncuator(tx,tx.height,incubator);
+        map.put(Hex.encodeHexString(tx.payload),incubator);
+        accountState.setShareMap(map);
         return accountState;
     }
 
@@ -653,6 +727,17 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
+
+        Map<String,Incubator> map=accountState.getInterestMap();
+        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
+        if(incubator==null){
+            logger.info("Cost payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+            return accountState;
+        }
+        incubator.setCost(0);
+        incubator.setHeight(tx.height);
+        map.put(Hex.encodeHexString(tx.payload),incubator);
+        accountState.setInterestMap(map);
         return accountState;
     }
 

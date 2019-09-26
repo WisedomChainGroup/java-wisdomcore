@@ -28,6 +28,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class AccountDB {
@@ -50,6 +51,20 @@ public class AccountDB {
             String sql = "select * from account b where b.pubkeyhash=? order by b.blockheight desc LIMIT 1";
             return tmpl.queryForObject(sql, new Object[]{pubkeyhash}, new BeanPropertyRowMapper<>(Account.class));
         } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public Optional<Account> hasAccount(byte[] publicKeyHash) {
+        try {
+            String sql = "select * from account b where b.pubkeyhash=? order by b.blockheight desc LIMIT 1";
+            List<Account> accounts = tmpl.query(sql, new Object[]{publicKeyHash}, new BeanPropertyRowMapper<>(Account.class));
+            if (accounts.size() > 0) {
+                return Optional.of(accounts.get(0));
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }

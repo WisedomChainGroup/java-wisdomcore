@@ -8,10 +8,10 @@ import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
-import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
 
@@ -30,6 +30,9 @@ public class PackageMiner {
 
     @Autowired
     WisdomBlockChain bc;
+
+    @Autowired
+    MerkleRule merkleRule;
 
 
     public List<Transaction> TransferCheck(byte[] parenthash, long height, Block block) throws DecoderException {
@@ -115,6 +118,32 @@ public class PackageMiner {
                             break;
                         }
                         accountState.setAccount(account);
+
+                        Map<String,Incubator> map=null;
+                        if(transaction.type==10){
+                            map=accountState.getInterestMap();
+                            Incubator incubator=UpdateIncubtor(map,transaction,block.nHeight);
+                            if(incubator.getInterest_amount()<0 || incubator.getLast_blockheight_interest()>block.nHeight){
+                                removemap.put(new String(entry.getKey()), transaction.nonce);
+                                break;
+                            }
+                            map.put(Hex.encodeHexString(transaction.payload),incubator);
+                            accountState.setInterestMap(map);
+                        }else if(transaction.type==11){
+                            map=accountState.getShareMap();
+                            Incubator incubator=UpdateIncubtor(map,transaction,block.nHeight);
+                            if(incubator.getShare_amount()<0 || incubator.getLast_blockheight_share()>block.nHeight){
+                                removemap.put(new String(entry.getKey()), transaction.nonce);
+                                break;
+                            }
+                            map.put(Hex.encodeHexString(transaction.payload),incubator);
+                            accountState.setShareMap(map);
+                        }else if(transaction.type==12){
+                            map=accountState.getInterestMap();
+                            Incubator incubator=UpdateIncubtor(map,transaction,block.nHeight);
+                            map.put(Hex.encodeHexString(transaction.payload),incubator);
+                            accountState.setInterestMap(map);
+                        }
                         accountStateMap.put(publicKeyHash, accountState);
                         break;
                 }
@@ -258,5 +287,16 @@ public class PackageMiner {
         }
         fromaccount.setBalance(balance);
         return fromaccount;
+    }
+
+    public Incubator UpdateIncubtor(Map<String, Incubator> map, Transaction transaction, long hieght){
+        Incubator incubator=map.get(Hex.encodeHexString(transaction.payload));
+        if(transaction.type==10 || transaction.type==11){
+            incubator=merkleRule.UpdateExtIncuator(transaction,hieght,incubator);
+        }
+        if(transaction.type==12){
+            incubator=merkleRule.UpdateCostIncubator(incubator,hieght);
+        }
+        return incubator;
     }
 }
