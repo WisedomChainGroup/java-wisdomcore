@@ -114,7 +114,7 @@ public class TransactionCheck {
             //amount
             byte[] amountbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
             long amount = ByteUtil.byteArrayToLong(amountbyte);
-            if (amount < 0 ) {
+            if (amount < 0) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The amount cannot be negative");
                 return apiResult;
@@ -141,12 +141,12 @@ public class TransactionCheck {
             }
             //toaddress
             if (type[0] == 0x03) {//存证
-                if(!Arrays.equals(new byte[20],topubkeyhash)){
+                if (!Arrays.equals(new byte[20], topubkeyhash)) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("The depository transaction to is not empty");
                     return apiResult;
                 }
-            }else{//非存证
+            } else {//非存证
                 boolean verifyto = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte) 0x00)) == 0);
                 if (!verifyto) {
                     apiResult.setCode(5000);
@@ -199,7 +199,7 @@ public class TransactionCheck {
             //nonce
             long trannonce = transaction.nonce;
             long nownonce = accountDB.getNonce(frompubhash);
-            if (nownonce >= trannonce ) {
+            if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small");
                 return apiResult;
@@ -210,7 +210,7 @@ public class TransactionCheck {
             long tranbalance = transaction.amount;
             if (account != null) {
                 long nowbalance = account.getBalance();
-                if (type == 0x01 || type == 0x09 ) {
+                if (type == 0x01 || type == 0x09) {
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
@@ -240,7 +240,7 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                return PayloadCheck(payload, type, transaction.amount, transaction.to,incubator);
+                return PayloadCheck(payload, type, transaction.amount, transaction.to, incubator);
             }
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -260,13 +260,13 @@ public class TransactionCheck {
                 break;
             case 0x0a:
             case 0x0b://提取利息、提取分享收益
-                apiResult = CheckInterAndShare(type, amount, payload,incubator,topubkeyhash);
+                apiResult = CheckInterAndShare(type, amount, payload, incubator, topubkeyhash);
                 break;
             case 0x03://存证
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x0c://提取本金
-                apiResult = CheckCost(amount, payload,incubator,topubkeyhash);
+                apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
                 break;
             case 0x0d://撤回投票
                 apiResult = CheckRecallVote(amount, payload, topubkeyhash);
@@ -374,7 +374,7 @@ public class TransactionCheck {
             long inheight = 0;
             long nowincub = 0;
             if (type == 0x0b) {//提取分享收益
-                if(!Arrays.equals(topubkeyhash,incubator.getShare_pubkeyhash())){
+                if (!Arrays.equals(topubkeyhash, incubator.getShare_pubkeyhash())) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("The account is inconsistent with the hatcher-sharing user");
                     return apiResult;
@@ -391,7 +391,7 @@ public class TransactionCheck {
                 inheight = incubator.getLast_blockheight_share();
                 nowincub = incubator.getShare_amount();
             } else {//提取利息
-                if(!Arrays.equals(topubkeyhash,incubator.getPubkeyhash())){
+                if (!Arrays.equals(topubkeyhash, incubator.getPubkeyhash())) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("The account is inconsistent with the incubator user");
                     return apiResult;
@@ -416,7 +416,7 @@ public class TransactionCheck {
                     apiResult.setMessage("Abnormal withdrawal amount");
                     return apiResult;
                 } else {
-                    if(transaction.height>40000){
+                    if (transaction.height > 40000) {
                         int muls = (int) (nowincub % totalrate);
                         if (muls != 0) {//数据不对
                             long syamount = muls;
@@ -488,7 +488,7 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to query incubation status");
             return apiResult;
         }
-        if(!Arrays.equals(incubator.getPubkeyhash(),topubkeyhash)){
+        if (!Arrays.equals(incubator.getPubkeyhash(), topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("This hatch is not yours, you can't get the principal out");
             return apiResult;
@@ -501,6 +501,12 @@ public class TransactionCheck {
         if (amount != incubator.getCost() || amount == 0) {
             apiResult.setCode(5000);
             apiResult.setMessage("Wrong amount of principal withdrawal");
+            return apiResult;
+        }
+        Account account = accountDB.selectaccount(topubkeyhash);
+        if (account.getIncubatecost() < 0 || account.getIncubatecost() < amount) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The withdrawal amount is incorrect");
             return apiResult;
         }
         apiResult.setCode(2000);
@@ -527,7 +533,8 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
-        if (!Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from)), topubkeyhash)) {
+        byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
+        if (!Arrays.equals(tranfrom, topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("You have to withdraw your vote");
             return apiResult;
@@ -537,13 +544,13 @@ public class TransactionCheck {
             apiResult.setMessage("The number of votes is not correct");
             return apiResult;
         }
-        Account account = accountDB.selectaccount(topubkeyhash);
+        Account account = accountDB.selectaccount(tranfrom);
         if (account == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to withdraw");
             return apiResult;
         }
-        if (account.getVote() < amount) {
+        if (account.getVote() < 0 || account.getVote() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
             return apiResult;
@@ -562,7 +569,7 @@ public class TransactionCheck {
             return apiResult;
         }
         boolean hasmortgage = accountDB.hasExitMortgage(payload);
-        if(!hasmortgage){
+        if (!hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
@@ -599,7 +606,7 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    public boolean checkoutPool(Transaction t,Incubator incubator) {
+    public boolean checkoutPool(Transaction t, Incubator incubator) {
         APIResult apiResult = TransactionVerify(t, null, incubator);
         if (apiResult.getCode() == 5000) {
             return false;
