@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
@@ -49,9 +50,11 @@ public class NodeInfoController {
     @Autowired
     private JSONEncodeDecoder encodeDecoder;
 
-    @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra;
+    @Value("${wisdom.consensus.blocks-per-era}")
+    int blocksPerEra;
 
-    @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra;
+    @Value("${wisdom.allow-miner-joins-era}")
+    int allowMinersJoinEra;
 
     @GetMapping(value = {"/version", "/"}, produces = "application/json")
     public Object getVersion() {
@@ -84,10 +87,10 @@ public class NodeInfoController {
         Map<String, Object> res = new HashMap<>();
         res.put("proposers", stateDB.getProposersFactory().getProposers(best));
         res.put("height", best.nHeight);
-        if (allowMinersJoinEra > 0){
+        if (allowMinersJoinEra > 0) {
             res.put("enableMinerJoins", true);
             res.put("minerJoinsHeight", allowMinersJoinEra * blocksPerEra + 1);
-        }else{
+        } else {
             res.put("enableMinerJoins", false);
         }
         ProposersState proposersState = (ProposersState) stateDB.getProposersFactory().getInstance(best);
@@ -101,22 +104,58 @@ public class NodeInfoController {
         Block best = stateDB.getBestBlock();
         Map<String, Object> res = new HashMap<>();
         byte[] publicKeyHash = null;
-        try{
+        try {
             publicKeyHash = Hex.decodeHex(account);
-            if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE){
+            if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
                 publicKeyHash = Address.publicKeyToHash(publicKeyHash);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             publicKeyHash = Address.addressToPublicKeyHash(account);
         }
-        if (publicKeyHash == null){
+        if (publicKeyHash == null) {
             return "invalid account";
         }
         AccountState state = stateDB.getAccount(best.getHash(), publicKeyHash);
-        if (state == null){
+        if (state == null) {
             return "database error";
         }
+
         state.getAccount().setBlockHeight(best.nHeight);
-        return encodeDecoder.encode(state.getAccount());
+
+        return encodeDecoder.encode(new Account(
+                state.getAccount().getPubkeyHash(),
+                state.getAccount().getNonce(),
+                state.getAccount().getBalance(),
+                state.getAccount().getIncubatecost(),
+                state.getAccount().getMortgage(),
+                state.getAccount().getVote()
+                ));
+    }
+
+    private static class Account {
+        public byte[] publicKeyHash;
+
+        public String address;
+
+        public long nonce;
+
+        public String balance;
+
+        public String incubateCost;
+
+
+        public String mortgage;
+
+        public String votes;
+
+        public Account(byte[] publicKeyHash, long nonce, long balance, long incubateCost, long mortgage, long votes) {
+            this.publicKeyHash = publicKeyHash;
+            this.nonce = nonce;
+            this.balance = balance * 1.0 / EconomicModel.WDC + " WDC";
+            this.incubateCost = incubateCost * 1.0 / EconomicModel.WDC + " WDC";
+            this.mortgage = mortgage + " WDC";
+            this.votes = votes + " WDC";
+            this.address = Address.publicKeyHashToAddress(publicKeyHash) ;
+        }
     }
 }
