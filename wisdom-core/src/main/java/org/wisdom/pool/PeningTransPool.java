@@ -206,6 +206,7 @@ public class PeningTransPool {
         if (ptnonce.containsKey(key)) {
             PendingNonce pendingNonce = ptnonce.get(key);
             if (pendingNonce.getNonce() == nonce) {
+                pendingNonce.setNonce(0);
                 pendingNonce.setState(2);
                 ptnonce.put(key, pendingNonce);
             }
