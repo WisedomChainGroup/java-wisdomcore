@@ -453,6 +453,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
+    public AccountState getAccount(byte[] blockHash, byte[] publicKeyHash){
+        readWriteLock.readLock().lock();
+        try{
+            return getAccountUnsafe(blockHash, publicKeyHash);
+        }finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
     public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
         Map<String, AccountState> res = new HashMap<>();
         for (byte[] h : publicKeyHashes) {
@@ -476,6 +485,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
     public AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
             return getAccount(publicKeyHash);
         }
@@ -513,7 +523,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     // 获取已经持久化的账户
-    public AccountState getAccount(byte[] publicKeyHash) {
+    private AccountState getAccount(byte[] publicKeyHash) {
         Optional<Account> account = accountDB.hasAccount(publicKeyHash);
         if (account == null) {
             return null;
@@ -558,7 +568,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         long balance = account.getBalance();
         balance += tx.amount;
         account.setBalance(balance);
-        account.setNonce(tx.nonce);
+//        account.setNonce(tx.nonce);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
         return accountState;

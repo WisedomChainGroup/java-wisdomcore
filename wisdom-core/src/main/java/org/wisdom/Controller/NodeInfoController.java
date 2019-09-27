@@ -1,16 +1,21 @@
 package org.wisdom.Controller;
 
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeersManager;
+import org.wisdom.util.Address;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -89,5 +94,24 @@ public class NodeInfoController {
         res.put("blockList", proposersState.getBlockList());
         res.put("votes", proposersState.getCandidates());
         return res;
+    }
+
+    @GetMapping(value = "/account/{account}", produces = "application/json")
+    public Object getVotes(@PathVariable("account") String account) {
+        Block best = stateDB.getBestBlock();
+        byte[] publicKeyHash = null;
+        try{
+            publicKeyHash = Hex.decodeHex(account);
+            if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE){
+                publicKeyHash = Address.publicKeyToHash(publicKeyHash);
+            }
+        }catch (Exception e){
+            publicKeyHash = Address.addressToPublicKeyHash(account);
+        }
+        if (publicKeyHash == null){
+            return "invalid account";
+        }
+        AccountState state = stateDB.getAccount(best.getHash(), publicKeyHash);
+        return encodeDecoder.encode(state.getAccount());
     }
 }

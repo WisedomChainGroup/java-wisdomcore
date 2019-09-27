@@ -194,11 +194,9 @@ public class TransactionCheck {
     public APIResult TransactionVerify(Transaction transaction, Account account, Incubator incubator) {
         APIResult apiResult = new APIResult();
         try {
-            byte[] from = transaction.from;
-            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(from));
             //nonce
             long trannonce = transaction.nonce;
-            long nownonce = accountDB.getNonce(frompubhash);
+            long nownonce = account.getNonce();
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small");
