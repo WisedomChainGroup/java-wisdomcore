@@ -125,7 +125,7 @@ public class TransactionCheck {
             tranlast = ByteUtil.bytearraycopy(tranlast, 64, tranlast.length - 64);
             //topubkeyhash
             byte[] topubkeyhash = ByteUtil.bytearraycopy(tranlast, 0, 20);
-            if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0d || type[0] == 0x0e || type[0] == 0x0f) {
+            if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x0e || type[0] == 0x0f) {
                 if (!Arrays.equals(frompubhash, topubkeyhash)) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("From and To are different");
@@ -238,7 +238,8 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                return PayloadCheck(payload, type, transaction.amount, transaction.to, incubator);
+                byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
+                return PayloadCheck(payload, type, transaction.amount,frompubhash, transaction.to, incubator);
             }
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -250,7 +251,7 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    public APIResult PayloadCheck(byte[] payload, int type, long amount, byte[] topubkeyhash, Incubator incubator) {
+    public APIResult PayloadCheck(byte[] payload, int type, long amount, byte[] frompubhash, byte[] topubkeyhash, Incubator incubator) {
         APIResult apiResult = new APIResult();
         switch (type) {
             case 0x09://孵化器
@@ -267,7 +268,7 @@ public class TransactionCheck {
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
                 break;
             case 0x0d://撤回投票
-                apiResult = CheckRecallVote(amount, payload, topubkeyhash);
+                apiResult = CheckRecallVote(amount, payload,frompubhash, topubkeyhash);
                 break;
             case 0x0f://撤回抵押
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
@@ -512,7 +513,7 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckRecallVote(long amount, byte[] payload, byte[] topubkeyhash) {
+    private APIResult CheckRecallVote(long amount, byte[] payload, byte[] frompubkeyhash, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
         if (payload.length != 32) {//投票事务哈希
             apiResult.setCode(5000);
@@ -532,7 +533,7 @@ public class TransactionCheck {
             return apiResult;
         }
         byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
-        if (!Arrays.equals(tranfrom, topubkeyhash)) {
+        if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to,topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("You have to withdraw your vote");
             return apiResult;

@@ -158,14 +158,13 @@ public class AccountRule implements BlockRule {
                             map.put(tohash, accountState);
                         }
                     }else if(tx.type==Transaction.Type.EXIT_VOTE.ordinal()){//撤回投票
-                        Transaction votetrans=wisdomBlockChain.getTransaction(tx.payload);
                         Account votetoaccount;
                         AccountState tovoteaccountState;
-                        if(map.containsKey(Hex.encodeHexString(votetrans.to))){
-                            tovoteaccountState = map.get(Hex.encodeHexString(votetrans.to));
+                        if(map.containsKey(Hex.encodeHexString(tx.to))){
+                            tovoteaccountState = map.get(Hex.encodeHexString(tx.to));
                             votetoaccount=tovoteaccountState.getAccount();
                         }else{
-                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,votetrans.to);
+                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,tx.to);
                             votetoaccount=tovoteaccountState.getAccount();
                         }
                         Map<String,Account> cancelaccountList=packageMiner.UpdateCancelVote(account,votetoaccount,tx);
@@ -177,7 +176,7 @@ public class AccountRule implements BlockRule {
                             map.put(publichash,accountState);
                         }else if(cancelaccountList.containsKey("toaccount")){
                             tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
-                            map.put(Hex.encodeHexString(votetrans.to),accountState);
+                            map.put(Hex.encodeHexString(tx.to),accountState);
                         }
                     }else {//其他事务
                         Account otheraccount=packageMiner.UpdateOtherAccount(account,tx);

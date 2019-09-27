@@ -34,9 +34,6 @@ public class PackageMiner {
     @Autowired
     MerkleRule merkleRule;
 
-    @Autowired
-    WisdomBlockChain wisdomBlockChain;
-
 
     public List<Transaction> TransferCheck(byte[] parenthash, long height, Block block) throws DecoderException {
         List<Transaction> notWrittern = new ArrayList<>();
@@ -109,14 +106,13 @@ public class PackageMiner {
                         }
                         break;
                     case 13://撤回投票
-                        Transaction votetrans=wisdomBlockChain.getTransaction(transaction.payload);
                         Account votetoaccount;
                         AccountState tovoteaccountState;
-                        if(accountStateMap.containsKey(Hex.encodeHexString(votetrans.to))){
-                            tovoteaccountState = accountStateMap.get(Hex.encodeHexString(votetrans.to));
+                        if(accountStateMap.containsKey(Hex.encodeHexString(transaction.to))){
+                            tovoteaccountState = accountStateMap.get(Hex.encodeHexString(transaction.to));
                             votetoaccount=tovoteaccountState.getAccount();
                         }else{
-                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,votetrans.to);
+                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,transaction.to);
                             votetoaccount=tovoteaccountState.getAccount();
                         }
                         Map<String,Account> cancelaccountList=UpdateCancelVote(fromaccount,votetoaccount,transaction);
@@ -130,7 +126,7 @@ public class PackageMiner {
                             accountStateMap.put(publicKeyHash,accountState);
                         }else if(cancelaccountList.containsKey("toaccount")){
                             tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
-                            accountStateMap.put(Hex.encodeHexString(votetrans.to),accountState);
+                            accountStateMap.put(Hex.encodeHexString(transaction.to),accountState);
                         }
                         break;
                     case 3://存证事务,只需要扣除手续费

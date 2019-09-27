@@ -436,18 +436,18 @@ public class MerkleRule implements BlockRule {
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tran.nonce);
         fromaccount.setBlockHeight(nowheight);
-        if(!Arrays.equals(frompubhash, tran.to)){
+        if(Arrays.equals(frompubhash, tran.to)){//撤回自己投给自己的投票
+            long vote = fromaccount.getVote();
+            vote-=tran.amount;
+            fromaccount.setVote(vote);
+            list.add(fromaccount);
+        }else{
             long vote = toaccount.getVote();
             vote -= tran.amount;
             toaccount.setVote(vote);
             toaccount.setBlockHeight(nowheight);
             list.add(fromaccount);
             list.add(toaccount);
-        }else{//撤回自己的投票
-            long vote = fromaccount.getVote();
-            vote-=tran.amount;
-            fromaccount.setVote(vote);
-            list.add(fromaccount);
         }
         return list;
     }
