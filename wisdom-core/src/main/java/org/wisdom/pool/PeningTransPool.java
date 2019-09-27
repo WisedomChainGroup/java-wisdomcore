@@ -290,4 +290,10 @@ public class PeningTransPool {
         }
         return maps;
     }
+
+    public void removePendingnonce(String key){
+        if(ptnonce.containsKey(key)){
+            ptnonce.remove(key);
+        }
+    }
 }
