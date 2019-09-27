@@ -194,9 +194,15 @@ public class TransactionCheck {
     public APIResult TransactionVerify(Transaction transaction, Account account, Incubator incubator) {
         APIResult apiResult = new APIResult();
         try {
+            byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
             //nonce
             long trannonce = transaction.nonce;
-            long nownonce = account.getNonce();
+            long nownonce;
+            if(account==null){
+                nownonce=accountDB.getNonce(frompubhash);
+            }else{
+                nownonce=account.getNonce();
+            }
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small");
@@ -238,7 +244,6 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
                 return PayloadCheck(payload, type, transaction.amount,frompubhash, transaction.to, incubator);
             }
         } catch (Exception e) {
