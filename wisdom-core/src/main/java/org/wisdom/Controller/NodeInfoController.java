@@ -99,6 +99,7 @@ public class NodeInfoController {
     @GetMapping(value = "/account/{account}", produces = "application/json")
     public Object getVotes(@PathVariable("account") String account) {
         Block best = stateDB.getBestBlock();
+        Map<String, Object> res = new HashMap<>();
         byte[] publicKeyHash = null;
         try{
             publicKeyHash = Hex.decodeHex(account);
@@ -112,6 +113,10 @@ public class NodeInfoController {
             return "invalid account";
         }
         AccountState state = stateDB.getAccount(best.getHash(), publicKeyHash);
+        if (state == null){
+            return "database error";
+        }
+        state.getAccount().setBlockHeight(best.nHeight);
         return encodeDecoder.encode(state.getAccount());
     }
 }
