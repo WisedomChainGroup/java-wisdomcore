@@ -300,6 +300,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return true;
     }
 
+    public BlocksCache getBlocksCache() {
+        return blocksCache;
+    }
+
     public Block getBlock(byte[] hash) {
         if (Arrays.equals(latestConfirmed.getHash(), hash)) {
             return this.latestConfirmed;

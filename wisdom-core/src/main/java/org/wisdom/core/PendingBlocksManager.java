@@ -59,8 +59,9 @@ public class PendingBlocksManager {
                 continue;
             }
             logger.info("try to write blocks to local storage, size = " + chain.size());
+            Block lastConfirmed = stateDB.getLastConfirmed();
             for (Block b : chain) {
-                if (stateDB.hasBlock(b.getHash())) {
+                if (b.nHeight <= lastConfirmed.nHeight || stateDB.getBlocksCache().hasBlock(b.getHash())) {
                     logger.info("the block has written");
                     continue;
                 }
