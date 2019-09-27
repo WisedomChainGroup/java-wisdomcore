@@ -544,7 +544,7 @@ public class TransactionCheck {
             apiResult.setMessage("The number of votes is not correct");
             return apiResult;
         }
-        Account account = accountDB.selectaccount(tranfrom);
+        Account account = accountDB.selectaccount(transaction.to);
         if (account == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to withdraw");

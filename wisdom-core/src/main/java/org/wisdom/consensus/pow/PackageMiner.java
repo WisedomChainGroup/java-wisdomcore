@@ -34,6 +34,9 @@ public class PackageMiner {
     @Autowired
     MerkleRule merkleRule;
 
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
+
 
     public List<Transaction> TransferCheck(byte[] parenthash, long height, Block block) throws DecoderException {
         List<Transaction> notWrittern = new ArrayList<>();
@@ -77,32 +80,58 @@ public class PackageMiner {
                 switch (transaction.type){
                     case 1://转账
                     case 2:////投票
-                    case 13://撤回投票
                         String tohash = Hex.encodeHexString(transaction.to);
                         Account toaccount;
+                        AccountState toaccountState=new AccountState();
                         if (accountStateMap.containsKey(tohash)) {
-                            AccountState toaccountState = accountStateMap.get(tohash);
+                            toaccountState = accountStateMap.get(tohash);
                             toaccount = toaccountState.getAccount();
                         } else {
                             toaccount = new Account(0, transaction.to, 0, 0, 0, 0, 0);
                         }
-                        List<Account> accountList=null;
+                        Map<String,Account> accountList=null;
                         if(transaction.type==1){
                             accountList=updateTransfer(fromaccount,toaccount,transaction);
                         }else if(transaction.type==2){
                             accountList=updateVote(fromaccount,toaccount,transaction);
-                        }else if(transaction.type==13){
-                            accountList=UpdateCancelVote(fromaccount,toaccount,transaction);
                         }
                         if(accountList==null){
                             removemap.put(new String(entry.getKey()), transaction.nonce);
                             state=true;
                             break;
                         }
-                        accountList.stream().forEach(a-> {
-                            accountState.setAccount(a);
-                            accountStateMap.put(publicKeyHash, accountState);
-                        });
+                        if(accountList.containsKey("fromaccount")){
+                            accountState.setAccount(accountList.get("fromaccount"));
+                            accountStateMap.put(publicKeyHash,accountState);
+                        }else if(accountList.containsKey("toaccount")){
+                            toaccountState.setAccount(accountList.get("toaccount"));
+                            accountStateMap.put(tohash,accountState);
+                        }
+                        break;
+                    case 13://撤回投票
+                        Transaction votetrans=wisdomBlockChain.getTransaction(transaction.payload);
+                        Account votetoaccount;
+                        AccountState tovoteaccountState;
+                        if(accountStateMap.containsKey(Hex.encodeHexString(votetrans.to))){
+                            tovoteaccountState = accountStateMap.get(Hex.encodeHexString(votetrans.to));
+                            votetoaccount=tovoteaccountState.getAccount();
+                        }else{
+                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,votetrans.to);
+                            votetoaccount=tovoteaccountState.getAccount();
+                        }
+                        Map<String,Account> cancelaccountList=UpdateCancelVote(fromaccount,votetoaccount,transaction);
+                        if(cancelaccountList==null){
+                            removemap.put(new String(entry.getKey()), transaction.nonce);
+                            state=true;
+                            break;
+                        }
+                        if(cancelaccountList.containsKey("fromaccount")){
+                            accountState.setAccount(cancelaccountList.get("fromaccount"));
+                            accountStateMap.put(publicKeyHash,accountState);
+                        }else if(cancelaccountList.containsKey("toaccount")){
+                            tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
+                            accountStateMap.put(Hex.encodeHexString(votetrans.to),accountState);
+                        }
                         break;
                     case 3://存证事务,只需要扣除手续费
                     case 9://孵化事务
@@ -163,8 +192,8 @@ public class PackageMiner {
         return notWrittern;
     }
 
-    public List<Account> updateTransfer(Account fromaccount, Account toaccount, Transaction transaction){
-        List<Account> list=new ArrayList<>();
+    public Map<String,Account> updateTransfer(Account fromaccount, Account toaccount, Transaction transaction){
+        Map<String,Account> map=new HashMap<>();
         long balance = fromaccount.getBalance();
         balance -= transaction.amount;
         balance -= transaction.getFee();
@@ -174,18 +203,18 @@ public class PackageMiner {
             long tobalance = toaccount.getBalance();
             tobalance += transaction.amount;
             toaccount.setBalance(tobalance);
-            list.add(toaccount);
+            map.put("toaccount",toaccount);
         }
         if(balance < 0){
             return null;
         }
         fromaccount.setBalance(balance);
-        list.add(fromaccount);
-        return list;
+        map.put("fromaccount",fromaccount);
+        return map;
     }
 
-    public List<Account> updateVote(Account fromaccount, Account toaccount, Transaction transaction){
-        List<Account> list=new ArrayList<>();
+    public Map<String,Account> updateVote(Account fromaccount, Account toaccount, Transaction transaction){
+        Map<String,Account> map=new HashMap<>();
         long balance = fromaccount.getBalance();
         balance -= transaction.amount;
         balance -= transaction.getFee();
@@ -197,41 +226,42 @@ public class PackageMiner {
             long vote=toaccount.getVote();
             vote+=transaction.amount;
             toaccount.setVote(vote);
-            list.add(toaccount);
+            map.put("toaccount",toaccount);
         }
         if(balance < 0){
             return null;
         }
         fromaccount.setBalance(balance);
-        list.add(fromaccount);
-        return list;
+        map.put("fromaccount",fromaccount);
+        return map;
     }
 
-    public List<Account> UpdateCancelVote(Account fromaccount, Account toaccount, Transaction transaction){
-        List<Account> list=new ArrayList<>();
+    public Map<String,Account> UpdateCancelVote(Account fromaccount, Account votetoccount, Transaction transaction){
+        Map<String,Account> map=new HashMap<>();
         long balance = fromaccount.getBalance();
         balance -= transaction.getFee();
         if(balance<0){
             return null;
         }
         balance+=transaction.amount;
+        //to-
         long vote;
-        if(Arrays.equals(fromaccount.getPubkeyHash(),toaccount.getPubkeyHash())){
+        if(Arrays.equals(fromaccount.getPubkeyHash(),votetoccount.getPubkeyHash())){//撤回自己投给自己的投票
             vote=fromaccount.getVote();
             vote-=transaction.amount;
-            if(vote<0){
-                return null;
-            }
             fromaccount.setVote(vote);
         }else{
-            vote=toaccount.getVote();
+            vote=votetoccount.getVote();
             vote-=transaction.amount;
-            toaccount.setVote(vote);
-            list.add(toaccount);
+            votetoccount.setVote(vote);
+            map.put("toaccount",votetoccount);
+        }
+        if(vote<0){
+            return null;
         }
         fromaccount.setBalance(balance);
-        list.add(fromaccount);
-        return list;
+        map.put("fromaccount",fromaccount);
+        return map;
     }
 
     public Account UpdateOtherAccount(Account fromaccount,Transaction transaction){
@@ -253,14 +283,14 @@ public class PackageMiner {
             balance += transaction.amount;
         } else if (transaction.type == 12) {//本金
             balance -= transaction.getFee();
-            if(balance<0){
-                state=true;
+            if (balance < 0) {
+                state = true;
             }
             balance += transaction.amount;
             long incubatecost = fromaccount.getIncubatecost();
             incubatecost -= transaction.amount;
             if (incubatecost < 0) {
-                state=true;
+                state = true;
             }
             fromaccount.setIncubatecost(incubatecost);
         } else if(transaction.type == 14){//抵押

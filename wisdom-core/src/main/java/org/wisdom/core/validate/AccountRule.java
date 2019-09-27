@@ -84,22 +84,15 @@ public class AccountRule implements BlockRule {
 
     @Override
     public Result validateBlock(Block block) {
-        Set<String> froms = new HashSet<>();
         byte[] parenthash=block.hashPrevBlock;
         List<byte[]> pubhashlist=block.getFromhashList(block);
         Map<String,AccountState> map=stateDB.getAccounts(parenthash,pubhashlist);
         List<Transaction> transactionList=new ArrayList<>();
-//        boolean result=true;
         if (block.nHeight > 0) {
             for (Transaction tx : block.body) {
                 if(whitelistTransaction.IsUnchecked(tx.getHashHexString())){
                     continue;
                 }
-                String key = encoder.encodeToString(tx.from);
-                if (froms.contains(key)) {
-                    return Result.Error("duplicated account found");
-                }
-                froms.add(key);
                 if (!validateIncubator) {
                     continue;
                 }
@@ -111,18 +104,12 @@ public class AccountRule implements BlockRule {
                     APIResult apiResult=transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
                     if(apiResult.getCode()==5000){
                         peningTransPool.removeOne(publichash,tx.nonce);
-/*                        uncheckedTrans.add(tx.getHashHexString(),apiResult.getMessage());
-                        result=false;
-                        continue;*/
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     AccountState accountState;
                     if(map.containsKey(publichash)){
                         accountState=map.get(publichash);
                     }else{
-//                        uncheckedTrans.add(tx.getHashHexString(),apiResult.getMessage());
-//                        result=false;
-//                        continue;
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from " );
                     }
                     Account account=accountState.getAccount();
@@ -135,56 +122,66 @@ public class AccountRule implements BlockRule {
                     Incubator forkincubator=null;
                     if(interestMap!=null){
                         forkincubator=interestMap.get(Hex.encodeHexString(tx.payload));
-//                        if(forkincubator==null){
-//                            System.out.println("Transaction failed ,tx:"+Hex.encodeHexString(tx.getHash())+"--->Incubator:"+Hex.encodeHexString(tx.payload));
-//                        }
                     }
                     //数据校验
                     apiResult=transactionCheck.TransactionVerify(tx,account, forkincubator);
                     if(apiResult.getCode()==5000){
                         peningTransPool.removeOne(publichash,tx.nonce);
-//                        uncheckedTrans.add(tx.getHashHexString(),apiResult.getMessage());
-//                        result=false;
-//                        continue;
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     //更新Account账户
                     if(tx.type==Transaction.Type.TRANSFER.ordinal()
-                            || tx.type==Transaction.Type.VOTE.ordinal()
-                            || tx.type==Transaction.Type.EXIT_VOTE.ordinal()){//转账、投票、撤回投票
-                        AccountState toaccountState;
+                            || tx.type==Transaction.Type.VOTE.ordinal()) {//转账、投票
+                        AccountState toaccountState = null;
                         Account toaccount;
-                        String tohash=Hex.encodeHexString(tx.to);
-                        if(map.containsKey(tohash)){
-                            toaccountState=map.get(tohash);
-                            toaccount=toaccountState.getAccount();
+                        String tohash = Hex.encodeHexString(tx.to);
+                        if (map.containsKey(tohash)) {
+                            toaccountState = map.get(tohash);
+                            toaccount = toaccountState.getAccount();
+                        } else {
+                            toaccount = new Account(0, tx.to, 0, 0, 0, 0, 0);
+                        }
+                        Map<String, Account> mapaccount = null;
+                        if (tx.type == 1) {
+                            mapaccount = packageMiner.updateTransfer(account, toaccount, tx);
+                        } else if (tx.type == 2) {
+                            mapaccount = packageMiner.updateVote(account, toaccount, tx);
+                        }
+                        if (mapaccount == null) {
+                            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
+                        }
+                        if (mapaccount.containsKey("fromaccount")) {
+                            accountState.setAccount(mapaccount.get("fromaccount"));
+                            map.put(publichash, accountState);
+                        } else if (mapaccount.containsKey("toaccount")) {
+                            toaccountState.setAccount(mapaccount.get("toaccount"));
+                            map.put(tohash, accountState);
+                        }
+                    }else if(tx.type==Transaction.Type.EXIT_VOTE.ordinal()){//撤回投票
+                        Transaction votetrans=wisdomBlockChain.getTransaction(tx.payload);
+                        Account votetoaccount;
+                        AccountState tovoteaccountState;
+                        if(map.containsKey(Hex.encodeHexString(votetrans.to))){
+                            tovoteaccountState = map.get(Hex.encodeHexString(votetrans.to));
+                            votetoaccount=tovoteaccountState.getAccount();
                         }else{
-                            toaccount=new Account(0,tx.to,0,0,0,0,0);
+                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,votetrans.to);
+                            votetoaccount=tovoteaccountState.getAccount();
                         }
-                        List<Account> list = null;
-                        if(tx.type==1){
-                            list=packageMiner.updateTransfer(account,toaccount,tx);
-                        }else if(tx.type==2){
-                            list=packageMiner.updateVote(account,toaccount,tx);
-                        }else if(tx.type==3){
-                            list=packageMiner.UpdateCancelVote(account,toaccount,tx);
+                        Map<String,Account> cancelaccountList=packageMiner.UpdateCancelVote(account,votetoaccount,tx);
+                        if(cancelaccountList==null){
+                            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
-                        if(list==null){
-//                            uncheckedTrans.add(tx.getHashHexString(),"Update account cannot be null");
-//                            result=false;
-//                            continue;
-                            return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
-                        }
-                        list.stream().forEach(a->{
-                            accountState.setAccount(a);
+                        if(cancelaccountList.containsKey("fromaccount")){
+                            accountState.setAccount(cancelaccountList.get("fromaccount"));
                             map.put(publichash,accountState);
-                        });
+                        }else if(cancelaccountList.containsKey("toaccount")){
+                            tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
+                            map.put(Hex.encodeHexString(votetrans.to),accountState);
+                        }
                     }else {//其他事务
                         Account otheraccount=packageMiner.UpdateOtherAccount(account,tx);
                         if(otheraccount==null){
-//                            uncheckedTrans.add(tx.getHashHexString(),"Update account cannot be null");
-//                            result=false;
-//                            continue;
                             return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
                         }
                         accountState.setAccount(otheraccount);
@@ -211,9 +208,6 @@ public class AccountRule implements BlockRule {
                 }
                 transactionList.add(tx);
             }
-//            if(!result){
-//                return Result.Error("Transaction validation failed");
-//            }
             peningTransPool.updatePool(transactionList,1,block.nHeight);
         }
         return Result.SUCCESS;

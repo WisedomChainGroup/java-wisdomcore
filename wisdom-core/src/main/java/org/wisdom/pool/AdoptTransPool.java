@@ -25,7 +25,7 @@ public class AdoptTransPool {
 
     public AdoptTransPool() {
         Leveldb leveldb = new Leveldb();
-        this.atpool = new ConcurrentHashMap<>();
+        atpool = new ConcurrentHashMap<>();
         try {
             String dbdata = leveldb.readPoolDb("QueuedPool");
             if (dbdata != null && !dbdata.equals("")) {
@@ -34,7 +34,7 @@ public class AdoptTransPool {
                 add(list);
             }
         } catch (Exception e) {
-            this.atpool = new ConcurrentHashMap<>();
+            atpool = new ConcurrentHashMap<>();
         }
     }
 
@@ -45,7 +45,7 @@ public class AdoptTransPool {
                 ConcurrentHashMap<String, TransPool> map = new ConcurrentHashMap<>();
                 TransPool tp = new TransPool(t, 0, new Date().getTime());
                 map.put(getKeyTrans(t), tp);
-                this.atpool.put(from, map);
+                atpool.put(from, map);
             } else {
                 ConcurrentHashMap<String, TransPool> map = atpool.get(from);
                 if (map.containsKey(getKeyTrans(t))) {
@@ -54,12 +54,12 @@ public class AdoptTransPool {
                     if (transaction.type == t.type) {//同一事务才可覆盖
                         TransPool tp = new TransPool(t, 0, new Date().getTime());
                         map.put(getKeyTrans(t), tp);
-                        this.atpool.put(from, map);
+                        atpool.put(from, map);
                     }
                 } else {
                     TransPool tp = new TransPool(t, 0, new Date().getTime());
                     map.put(getKeyTrans(t), tp);
-                    this.atpool.put(from, map);
+                    atpool.put(from, map);
                 }
             }
         }

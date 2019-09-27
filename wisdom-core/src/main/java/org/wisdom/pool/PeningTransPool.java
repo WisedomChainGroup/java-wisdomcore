@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -24,14 +25,17 @@ public class PeningTransPool {
     @Autowired
     AdoptTransPool adoptTransPool;
 
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
+
     private Map<String, TreeMap<Long, TransPool>> ptpool;
 
     private Map<String, PendingNonce> ptnonce;
 
     public PeningTransPool() {
         Leveldb leveldb = new Leveldb();
-        this.ptpool = new ConcurrentHashMap<>();
-        this.ptnonce = new ConcurrentHashMap<>();
+        ptpool = new ConcurrentHashMap<>();
+        ptnonce = new ConcurrentHashMap<>();
         try {
             String dbdata = leveldb.readPoolDb("PendingPool");
             if (dbdata != null && !dbdata.equals("")) {
@@ -40,8 +44,8 @@ public class PeningTransPool {
                 add(transPoolList);
             }
         } catch (Exception e) {
-            this.ptpool = new ConcurrentHashMap<>();
-            this.ptnonce = new ConcurrentHashMap<>();
+            ptpool = new ConcurrentHashMap<>();
+            ptnonce = new ConcurrentHashMap<>();
         }
     }
 
@@ -57,12 +61,12 @@ public class PeningTransPool {
                     continue;
                 }
                 map.put(transaction.nonce, transPool);
-                this.ptpool.put(fromhash, map);
+                ptpool.put(fromhash, map);
                 updateNonce(transaction.type, transaction.nonce, fromhash);
             } else {
                 TreeMap<Long, TransPool> map = new TreeMap<>();
                 map.put(transaction.nonce, transPool);
-                this.ptpool.put(fromhash, map);
+                ptpool.put(fromhash, map);
                 updateNonce(transaction.type, transaction.nonce, fromhash);
             }
         }
