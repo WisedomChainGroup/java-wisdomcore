@@ -19,6 +19,8 @@
 package org.wisdom.command;
 
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
@@ -43,6 +45,7 @@ import java.util.Arrays;
 
 @Component
 public class TransactionCheck {
+    private static final Logger logger = LoggerFactory.getLogger(TransactionCheck.class);
 
     @Autowired
     Configuration configuration;
@@ -613,6 +616,7 @@ public class TransactionCheck {
     public boolean checkoutPool(Transaction t, Incubator incubator) {
         APIResult apiResult = TransactionVerify(t, null, incubator);
         if (apiResult.getCode() == 5000) {
+            logger.info("Queued to Pending, memory pool check error, tx:"+t.getHashHexString()+", "+apiResult.getMessage());
             return false;
         }
         return true;
