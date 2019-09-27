@@ -207,7 +207,6 @@ public class PoolController {
                 Transaction transaction=transPool.getTransaction();
                 String fromhash=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from)));
                 peningTransPool.removeOne(fromhash,transaction.nonce);
-                peningTransPool.removePendingnonce(fromhash);
                 return APIResult.newFailResult(2000,"SUCCESS");
             }else{
                 return  APIResult.newFailResult(5000,"Transaction hash query not found");
