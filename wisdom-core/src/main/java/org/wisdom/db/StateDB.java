@@ -528,7 +528,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    private Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
+    private Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
         Map<String, AccountState> res = new HashMap<>();
         for (byte[] h : publicKeyHashes) {
             AccountState account = getAccountUnsafe(blockHash, h);
@@ -540,7 +540,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return res;
     }
 
-    public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
+    public Map<String, AccountState> getAccounts(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
         readWriteLock.writeLock().lock();
         try {
             return getAccountsUnsafe(blockHash, publicKeyHashes);

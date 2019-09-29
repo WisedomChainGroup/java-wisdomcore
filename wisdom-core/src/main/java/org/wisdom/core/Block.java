@@ -32,6 +32,7 @@ import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.merkletree.MerkleTree;
 import org.wisdom.merkletree.TreeNode;
 import org.wisdom.protobuf.tcp.ProtocolModel;
+import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -52,6 +53,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 @Component
 public class Block {
@@ -385,11 +387,12 @@ public class Block {
         return h;
     }
 
-    public List<byte[]> getFromhashList(Block block) {
-        List<Transaction> transactionList = block.body;
-        return transactionList.stream()
+    public List<byte[]> getFromsPublicKeyHash() {
+        return body.stream()
                 .filter(tx -> tx.type != 0)
-                .map(tx -> RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)))
+                .map(tx -> Address.publicKeyToAddress(tx.from))
+                .distinct()
+                .map(Address::addressToPublicKeyHash)
                 .collect(toList());
     }
 

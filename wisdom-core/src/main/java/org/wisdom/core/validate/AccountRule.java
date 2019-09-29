@@ -85,7 +85,7 @@ public class AccountRule implements BlockRule {
     @Override
     public Result validateBlock(Block block) {
         byte[] parenthash = block.hashPrevBlock;
-        List<byte[]> pubhashlist = block.getFromhashList(block);
+        List<byte[]> pubhashlist = block.getFromsPublicKeyHash();
         Map<String, AccountState> map = stateDB.getAccounts(parenthash, pubhashlist);
         if (map == null){
             return Result.Error("get accounts from database failed");
