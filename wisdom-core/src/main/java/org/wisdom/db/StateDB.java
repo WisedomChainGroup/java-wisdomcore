@@ -286,7 +286,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         BlocksCache res = new BlocksCache();
         List<Block> blocks = blocksCache.getAncestors(b)
                 .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
-        res.addBlocks(Collections.singletonList(b));
         res.addBlocks(blocks);
         res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
         List<Block> all = res.getAll();
@@ -372,7 +371,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocksCache.hasBlock(block.getHash())) {
                 return;
             }
-            blocksCache.addBlocks(Collections.singletonList(block));
+            blocksCache.addBlock(block);
             leastConfirms.put(block.getHashHexString(),
                     (int) Math.ceil(
                             proposersFactory.getProposers(getBlock(block.hashPrevBlock)).size()
@@ -381,12 +380,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             );
             List<Block> ancestors = blocksCache.getAncestors(block);
             for (Block b : ancestors) {
+                if (!confirms.containsKey(b.getHashHexString())) {
+                    confirms.put(b.getHashHexString(), new HashSet<>());
+                }
                 // 区块不能确认自己
                 if (Arrays.equals(b.getHash(), block.getHash())) {
                     continue;
-                }
-                if (!confirms.containsKey(b.getHashHexString())) {
-                    confirms.put(b.getHashHexString(), new HashSet<>());
                 }
                 confirms.get(b.getHashHexString()).add(Hex.encodeHexString(block.body.get(0).to));
             }
@@ -441,28 +440,32 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取包含未确认的区块
     public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        if (sizeLimit == 0){
+            return new ArrayList<>();
+        }
         this.readWriteLock.readLock().lock();
         try {
             BlocksCache c = new BlocksCache();
-            List<Block> res = bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
-            if (res == null || res.size() >= sizeLimit) {
-                return res;
+            // 从数据库获取一部分
+            if (startHeight < latestConfirmed.nHeight) {
+                c.addBlocks(bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial));
             }
-            c.addBlocks(res);
-            blocksCache.getAll().stream()
-                    .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
-                    .forEach((b) -> {
-                        if (c.size() == sizeLimit) {
-                            return;
-                        }
-                        c.addBlocks(Collections.singletonList(b));
-                    });
+            List<Block> blocks = blocksCache.getAll();
+            blocks.add(latestConfirmed);
+
+            // 从 forkdb 获取一部分
+            blocks.stream().filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
+                    .forEach(c::addBlock);
+
+            // 按需进行裁剪
             List<Block> all = c.getAll();
-            // TODO: remove assertion code
-            if (all.size() > sizeLimit) {
-                logger.error("getBlocks assertion failed");
+            if (sizeLimit > all.size() || sizeLimit < 0) {
+                sizeLimit = all.size();
             }
-            return all;
+            if (clipInitial) {
+                return all.subList(all.size() - sizeLimit, all.size());
+            }
+            return all.subList(0, sizeLimit);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
@@ -540,10 +543,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 获取已经持久化的账户
     private AccountState getAccount(byte[] publicKeyHash) {
         Optional<Account> account = accountDB.hasAccount(publicKeyHash);
-        if (account == null) {
-            return null;
-        }
-
         AccountState accountState = account.map(x -> {
             AccountState accountState1 = new AccountState();
             accountState1.setAccount(x);

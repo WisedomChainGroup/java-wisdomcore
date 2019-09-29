@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    private BlocksCache orphans;
+    private BlocksCacheThreadSafetyWrapper orphans;
 
     @Autowired
     private StateDB stateDB;
@@ -55,7 +55,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
 
     public OrphanBlocksManager() {
-        this.orphans = new BlocksCache();
+        this.orphans = new BlocksCacheThreadSafetyWrapper();
     }
 
     private boolean isOrphan(Block block) {
@@ -63,7 +63,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     public void addBlock(Block block) {
-        orphans.addBlocks(Collections.singletonList(block));
+        orphans.addBlock(block);
     }
 
     // remove orphans return writable blocks，过滤掉孤块
@@ -76,9 +76,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         BlocksCache res = new BlocksCache();
         Block best = stateDB.getBestBlock();
         for (Block init : cache.getInitials()) {
-            List<Block> descendantBlocks = new ArrayList<>();
-            descendantBlocks.add(init);
-            descendantBlocks.addAll(cache.getDescendantBlocks(init));
+            List<Block> descendantBlocks = cache.getDescendantBlocks(init);
             if (!isOrphan(init)) {
                 res.addBlocks(descendantBlocks);
                 continue;
@@ -102,7 +100,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
             if (!isOrphan(ini)) {
                 logger.info("writable orphan block found in pool");
                 List<Block> descendants = orphans.getDescendantBlocks(ini);
-                descendants.add(ini);
                 orphans.deleteBlocks(descendants);
                 pool.addPendingBlocks(new BlocksCache(descendants));
             }

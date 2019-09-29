@@ -168,7 +168,7 @@ public class Miner implements ApplicationListener {
         if (event instanceof NewBlockMinedEvent) {
             Block o = ((NewBlockMinedEvent) event).getBlock();
             logger.info("new block mined event triggered");
-            pendingBlocksManager.addPendingBlocks(new BlocksCache(Collections.singletonList(o)));
+            pendingBlocksManager.addPendingBlocks(new BlocksCache(o));
         }
         if (event instanceof NewBestBlockEvent && thread != null) {
             thread.terminate();
