@@ -57,6 +57,4 @@ async function main() {
     return await pool.query("delete from account where blockheight >= $1", [HEIGHT])
 }
 
-main().then(() => {
-    console.log("success")
-}).catch(console.error)
+main().then(console.log).catch(console.error)
