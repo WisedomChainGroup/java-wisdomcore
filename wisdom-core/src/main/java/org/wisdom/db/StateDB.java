@@ -399,9 +399,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 if (confirms.get(b.getHashHexString()).size() < leastConfirms.get(b.getHashHexString())) {
                     continue;
                 }
-//                if (block.nHeight - b.nHeight < 3) {
-//                    continue;
-//                }
+                if (block.nHeight - b.nHeight < 3) {
+                    continue;
+                }
                 // 发现有可以确认的区块
                 confirmedAncestors = ancestors.subList(i, ancestors.size());
                 Collections.reverse(confirmedAncestors);
