@@ -119,6 +119,11 @@ public class TransactionCheck {
                 apiResult.setMessage("The amount cannot be negative");
                 return apiResult;
             }
+            if (amount == 0 && type[0] == 0x02) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("The amount cannot be zero");
+                return apiResult;
+            }
             tranlast = ByteUtil.bytearraycopy(tranlast, 8, tranlast.length - 8);
             //sig
             byte[] sigdate = ByteUtil.bytearraycopy(tranlast, 0, 64);
@@ -194,14 +199,14 @@ public class TransactionCheck {
     public APIResult TransactionVerify(Transaction transaction, Account account, Incubator incubator) {
         APIResult apiResult = new APIResult();
         try {
-            byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
+            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
             //nonce
             long trannonce = transaction.nonce;
             long nownonce;
-            if(account==null){
-                nownonce=accountDB.getNonce(frompubhash);
-            }else{
-                nownonce=account.getNonce();
+            if (account == null) {
+                nownonce = accountDB.getNonce(frompubhash);
+            } else {
+                nownonce = account.getNonce();
             }
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
@@ -244,7 +249,7 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                return PayloadCheck(payload, type, transaction.amount,frompubhash, transaction.to, incubator);
+                return PayloadCheck(payload, type, transaction.amount, frompubhash, transaction.to, incubator);
             }
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -273,7 +278,7 @@ public class TransactionCheck {
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
                 break;
             case 0x0d://撤回投票
-                apiResult = CheckRecallVote(amount, payload,frompubhash, topubkeyhash);
+                apiResult = CheckRecallVote(amount, payload, frompubhash, topubkeyhash);
                 break;
             case 0x0f://撤回抵押
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
@@ -538,7 +543,7 @@ public class TransactionCheck {
             return apiResult;
         }
         byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
-        if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to,topubkeyhash)) {
+        if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to, topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("You have to withdraw your vote");
             return apiResult;
