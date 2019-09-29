@@ -387,6 +387,7 @@ public class Block {
         return h;
     }
 
+    @JsonIgnore
     public List<byte[]> getFromsPublicKeyHash() {
         return body.stream()
                 .filter(tx -> tx.type != 0)
