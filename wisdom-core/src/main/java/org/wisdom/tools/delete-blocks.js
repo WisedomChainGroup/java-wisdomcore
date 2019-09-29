@@ -23,13 +23,15 @@ program
 
 program.parse(process.argv)
 
+
 const config = {
-    user: program.username | 'postgres',
-    database: program.database | 'postgres',
-    password: program.password | '',
-    port: program.port | 5432,
-    host: program.host | 'localhost'
+    user: program.username || 'postgres',
+    database: program.database || 'postgres',
+    password: program.password || '',
+    port: program.port || 5432,
+    host: program.host || 'localhost'
 }
+
 
 const pool = new pg.Pool(config)
 
