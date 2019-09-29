@@ -279,7 +279,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     public Block findAncestorHeader(byte[] hash, long height) {
         this.readWriteLock.readLock().lock();
-        try{
+        try {
             Block bHeader = getHeaderUnsafe(hash);
             if (bHeader.nHeight < height) {
                 return null;
@@ -288,7 +288,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 bHeader = getHeaderUnsafe(bHeader.hashPrevBlock);
             }
             return bHeader;
-        }finally {
+        } finally {
             this.readWriteLock.readLock().unlock();
         }
 
@@ -345,13 +345,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     public Block getBlock(byte[] hash) {
         this.readWriteLock.readLock().lock();
-        try{
+        try {
             if (Arrays.equals(latestConfirmed.getHash(), hash)) {
                 return this.latestConfirmed;
             }
             return Optional.ofNullable(blocksCache.getBlock(hash))
                     .orElseGet(() -> bc.getBlock(hash));
-        }finally {
+        } finally {
             this.readWriteLock.readLock().unlock();
         }
 
@@ -359,11 +359,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     public boolean hasBlock(byte[] hash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return blocksCache.hasBlock(hash) ||
                     Arrays.equals(latestConfirmed.getHash(), hash) ||
                     bc.hasBlock(hash);
-        }finally {
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -383,10 +383,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         String key = Hex.encodeHexString(blockHash);
         Block b = blocksCache.getBlock(blockHash);
-        if(b == null){
+        if (b == null) {
             return true;
         }
-        if (transactionIndex.containsKey(key) && transactionIndex.get(key).contains(Hex.encodeHexString(transactionHash))){
+        if (transactionIndex.containsKey(key) && transactionIndex.get(key).contains(Hex.encodeHexString(transactionHash))) {
             return true;
         }
         return hasTransactionUnsafe(b.hashPrevBlock, transactionHash);
@@ -415,7 +415,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             blocksCache.addBlock(block);
 
             // 写入事务索引
-            if(!transactionIndex.containsKey(block.getHashHexString())){
+            if (!transactionIndex.containsKey(block.getHashHexString())) {
                 transactionIndex.put(block.getHashHexString(), new HashSet<>());
             }
             block.body.forEach(t -> transactionIndex.get(block.getHashHexString()).add(t.getHashHexString()));
@@ -464,12 +464,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 Block b = confirmedAncestors.get(i);
                 // CAS 锁，等待上一个区块状态更新成功
                 while (pendingBlock != null) {
-                    logger.info("wait for account updated...");
+                    logger.info("wait for account at" + new String(codec.encodeBlock(pendingBlock)) + " updated...");
                 }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
                     // 数据库 写入失败 重试写入
-                    logger.error("write block to database failed, retrying...");
+                    logger.error("write block " + new String(codec.encodeBlock(b)) + " to database failed, retrying...");
                     continue;
                 }
                 logger.info("write block at height " + b.nHeight + " to db success");
@@ -479,7 +479,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 i++;
             }
             while (pendingBlock != null) {
-                logger.info("wait for account updated...");
+                logger.info("wait for account at" + new String(codec.encodeBlock(pendingBlock)) + " updated...");
             }
         } finally {
             this.readWriteLock.writeLock().unlock();
