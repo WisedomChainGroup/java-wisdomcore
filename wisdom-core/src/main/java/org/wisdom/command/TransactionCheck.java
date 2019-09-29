@@ -119,7 +119,7 @@ public class TransactionCheck {
                 apiResult.setMessage("The amount cannot be negative");
                 return apiResult;
             }
-            if (amount == 0 && type[0] == 0x02) {
+            if (amount == 0 && (type[0] == 0x02 || type[0] == 0x0e)) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The amount cannot be zero");
                 return apiResult;
