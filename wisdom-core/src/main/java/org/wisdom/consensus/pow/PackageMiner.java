@@ -112,7 +112,7 @@ public class PackageMiner {
                             tovoteaccountState = accountStateMap.get(Hex.encodeHexString(transaction.to));
                             votetoaccount=tovoteaccountState.getAccount();
                         }else{
-                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,transaction.to);
+                            tovoteaccountState=stateDB.getAccount(parenthash,transaction.to);
                             votetoaccount=tovoteaccountState.getAccount();
                         }
                         Map<String,Account> cancelaccountList=UpdateCancelVote(fromaccount,votetoaccount,transaction);

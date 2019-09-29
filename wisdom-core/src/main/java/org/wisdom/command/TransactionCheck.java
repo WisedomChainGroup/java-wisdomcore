@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.account.Account;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.db.StateDB;
@@ -30,6 +31,7 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
@@ -203,11 +205,11 @@ public class TransactionCheck {
             //nonce
             long trannonce = transaction.nonce;
             long nownonce;
-            if (account == null) {
-                nownonce = accountDB.getNonce(frompubhash);
-            } else {
+//            if (account == null) {
+//                nownonce = accountDB.getNonce(frompubhash);
+//            } else {
                 nownonce = account.getNonce();
-            }
+//            }
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small");
@@ -238,7 +240,7 @@ public class TransactionCheck {
                         return apiResult;
                     }
                     //求余
-                    long remainder = (long) (tranbalance % 100000000);
+                    long remainder = tranbalance % EconomicModel.WDC;
                     if (remainder != 0) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("TThe amount must be an integer");
@@ -616,7 +618,11 @@ public class TransactionCheck {
     }
 
     public boolean checkoutPool(Transaction t, Incubator incubator) {
-        APIResult apiResult = TransactionVerify(t, null, incubator);
+        Account account = accountDB.selectaccount(Address.publicKeyToHash(t.from));
+        if (account == null){
+            return false;
+        }
+        APIResult apiResult = TransactionVerify(t, account, incubator);
         if (apiResult.getCode() == 5000) {
             return false;
         }

@@ -22,7 +22,6 @@ import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
-import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -44,7 +43,6 @@ import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import javax.annotation.PostConstruct;
-import java.math.BigInteger;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,6 +88,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 最新确认的区块
     private Block latestConfirmed;
+
+    // 事务缓存
+    private Map<String, Set<String>> transactionIndex;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
     private static final int CACHE_SIZE = 512;
@@ -155,11 +156,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         cache.remove(b.getHashHexString());
         confirms.remove(b.getHashHexString());
         leastConfirms.remove(b.getHashHexString());
+        transactionIndex.remove(b.getHashHexString());
     }
-
-    @Autowired
-    public OrphanBlocksManager orphanBlocksManager;
-
 
     public StateDB(
             ValidatorState validatorState,
@@ -175,6 +173,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
+        this.transactionIndex = new HashMap<>();
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
@@ -242,21 +241,26 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     public Block getBestBlock() {
-        return blocksCache.getLeaves().stream()
-                .max((a, b) -> {
-                    if (a.nHeight != b.nHeight) {
-                        return (int) (a.nHeight - b.nHeight);
-                    }
-                    // pow 更小的占优势
-                    return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
-                            .compareTo(
-                                    BigEndian.decodeUint256(Block.calculatePOWHash(b))
-                            );
-                })
-                .orElse(this.latestConfirmed);
+        this.readWriteLock.readLock().lock();
+        try {
+            return blocksCache.getLeaves().stream()
+                    .max((a, b) -> {
+                        if (a.nHeight != b.nHeight) {
+                            return (int) (a.nHeight - b.nHeight);
+                        }
+                        // pow 更小的占优势
+                        return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
+                                .compareTo(
+                                        BigEndian.decodeUint256(Block.calculatePOWHash(b))
+                                );
+                    })
+                    .orElse(this.latestConfirmed);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
-    public Block getHeader(byte[] hash) {
+    private Block getHeaderUnsafe(byte[] hash) {
         if (Arrays.equals(latestConfirmed.getHash(), hash)) {
             return this.latestConfirmed;
         }
@@ -264,39 +268,59 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .orElseGet(() -> bc.getHeader(hash));
     }
 
+    public Block getHeader(byte[] hash) {
+        this.readWriteLock.readLock().lock();
+        try {
+            return getHeaderUnsafe(hash);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
+    }
+
     public Block findAncestorHeader(byte[] hash, long height) {
-        Block bHeader = getHeader(hash);
-        if (bHeader.nHeight < height) {
-            return null;
+        this.readWriteLock.readLock().lock();
+        try{
+            Block bHeader = getHeaderUnsafe(hash);
+            if (bHeader.nHeight < height) {
+                return null;
+            }
+            while (bHeader != null && bHeader.nHeight != height) {
+                bHeader = getHeaderUnsafe(bHeader.hashPrevBlock);
+            }
+            return bHeader;
+        }finally {
+            this.readWriteLock.readLock().unlock();
         }
-        while (bHeader != null && bHeader.nHeight != height) {
-            bHeader = getHeader(bHeader.hashPrevBlock);
-        }
-        return bHeader;
+
     }
 
     public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
-        Block b = blocksCache.getBlock(bhash);
-        if (Arrays.equals(bhash, this.latestConfirmed.getHash())) {
-            b = this.latestConfirmed;
-        }
-        if (b == null) {
-            return bc.getAncestorBlocks(bhash, anum);
-        }
-        BlocksCache res = new BlocksCache();
-        List<Block> blocks = blocksCache.getAncestors(b)
-                .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
-        res.addBlocks(blocks);
-        res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
-        List<Block> all = res.getAll();
+        this.readWriteLock.readLock().lock();
+        try {
+            Block b = blocksCache.getBlock(bhash);
+            if (Arrays.equals(bhash, this.latestConfirmed.getHash())) {
+                b = this.latestConfirmed;
+            }
+            if (b == null) {
+                return bc.getAncestorBlocks(bhash, anum);
+            }
+            BlocksCache res = new BlocksCache();
+            List<Block> blocks = blocksCache.getAncestors(b)
+                    .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
+            res.addBlocks(blocks);
+            res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
+            List<Block> all = res.getAll();
 
-        // TODO: remove code assertion
-        if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
-            logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        } else {
-            logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            // TODO: remove code assertion
+            if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
+                logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            } else {
+                logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            }
+            return all;
+        } finally {
+            this.readWriteLock.readLock().unlock();
         }
-        return all;
     }
 
     public static boolean isChain(List<Block> blocks) {
@@ -310,22 +334,38 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return true;
     }
 
-    public BlocksCache getBlocksCache() {
-        return blocksCache;
+    public boolean hasBlockInCache(byte[] hash) {
+        this.readWriteLock.readLock().lock();
+        try {
+            return blocksCache.hasBlock(hash);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
     public Block getBlock(byte[] hash) {
-        if (Arrays.equals(latestConfirmed.getHash(), hash)) {
-            return this.latestConfirmed;
+        this.readWriteLock.readLock().lock();
+        try{
+            if (Arrays.equals(latestConfirmed.getHash(), hash)) {
+                return this.latestConfirmed;
+            }
+            return Optional.ofNullable(blocksCache.getBlock(hash))
+                    .orElseGet(() -> bc.getBlock(hash));
+        }finally {
+            this.readWriteLock.readLock().unlock();
         }
-        return Optional.ofNullable(blocksCache.getBlock(hash))
-                .orElseGet(() -> bc.getBlock(hash));
+
     }
 
     public boolean hasBlock(byte[] hash) {
-        return blocksCache.hasBlock(hash) ||
-                Arrays.equals(latestConfirmed.getHash(), hash) ||
-                bc.hasBlock(hash);
+        readWriteLock.readLock().lock();
+        try{
+            return blocksCache.hasBlock(hash) ||
+                    Arrays.equals(latestConfirmed.getHash(), hash) ||
+                    bc.hasBlock(hash);
+        }finally {
+            readWriteLock.readLock().unlock();
+        }
     }
 
     public boolean hasTransaction(byte[] blockHash, byte[] transactionHash) {
@@ -341,11 +381,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
             return bc.hasTransaction(transactionHash);
         }
+        String key = Hex.encodeHexString(blockHash);
         Block b = blocksCache.getBlock(blockHash);
-        if (b == null) {
+        if(b == null){
             return true;
         }
-        if (b.body.stream().anyMatch(tx -> Arrays.equals(tx.getHash(), transactionHash))) {
+        if (transactionIndex.containsKey(key) && transactionIndex.get(key).contains(Hex.encodeHexString(transactionHash))){
             return true;
         }
         return hasTransactionUnsafe(b.hashPrevBlock, transactionHash);
@@ -372,6 +413,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return;
             }
             blocksCache.addBlock(block);
+
+            // 写入事务索引
+            if(!transactionIndex.containsKey(block.getHashHexString())){
+                transactionIndex.put(block.getHashHexString(), new HashSet<>());
+            }
+            block.body.forEach(t -> transactionIndex.get(block.getHashHexString()).add(t.getHashHexString()));
+
             leastConfirms.put(block.getHashHexString(),
                     (int) Math.ceil(
                             proposersFactory.getProposers(getBlock(block.hashPrevBlock)).size()
@@ -440,7 +488,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取包含未确认的区块
     public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
-        if (sizeLimit == 0){
+        if (sizeLimit == 0 || startHeight > stopHeight) {
             return new ArrayList<>();
         }
         this.readWriteLock.readLock().lock();
@@ -480,12 +528,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
+    private Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
         Map<String, AccountState> res = new HashMap<>();
         for (byte[] h : publicKeyHashes) {
             AccountState account = getAccountUnsafe(blockHash, h);
             if (account == null) {
-                continue;
+                return null;
             }
             res.put(Hex.encodeHexString(h), account);
         }
@@ -502,7 +550,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
-    public AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+    private AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
 
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
             return getAccount(publicKeyHash);
@@ -632,7 +680,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             accountState.setInterestMap(maps);
             accountState.setAccount(account);
         }
-        if (sharpub != null && sharpub != "") {
+        if (sharpub != null && !sharpub.equals("")) {
             byte[] sharepublic = Hex.decodeHex(sharpub.toCharArray());
             if (Arrays.equals(sharepublic, account.getPubkeyHash())) {
                 Incubator share = new Incubator(sharepublic, tx.getHash(), tx.height, tx.amount, days, tx.getShare(tx.height, rateTable, days), tx.height);

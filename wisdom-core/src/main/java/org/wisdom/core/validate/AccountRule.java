@@ -84,13 +84,16 @@ public class AccountRule implements BlockRule {
 
     @Override
     public Result validateBlock(Block block) {
-        byte[] parenthash=block.hashPrevBlock;
-        List<byte[]> pubhashlist=block.getFromhashList(block);
-        Map<String,AccountState> map=stateDB.getAccounts(parenthash,pubhashlist);
-        List<Transaction> transactionList=new ArrayList<>();
+        byte[] parenthash = block.hashPrevBlock;
+        List<byte[]> pubhashlist = block.getFromhashList(block);
+        Map<String, AccountState> map = stateDB.getAccounts(parenthash, pubhashlist);
+        if (map == null){
+            return Result.Error("get accounts from database failed");
+        }
+        List<Transaction> transactionList = new ArrayList<>();
         if (block.nHeight > 0) {
             for (Transaction tx : block.body) {
-                if(whitelistTransaction.IsUnchecked(tx.getHashHexString())){
+                if (whitelistTransaction.IsUnchecked(tx.getHashHexString())) {
                     continue;
                 }
                 if (!validateIncubator) {
@@ -98,40 +101,40 @@ public class AccountRule implements BlockRule {
                 }
                 // 校验事务
                 if (tx.type != Transaction.Type.COINBASE.ordinal()) {
-                    byte[] pubkeyhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
-                    String publichash=Hex.encodeHexString(pubkeyhash);
+                    byte[] pubkeyhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+                    String publichash = Hex.encodeHexString(pubkeyhash);
                     //校验格式
-                    APIResult apiResult=transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
-                    if(apiResult.getCode()==5000){
-                        peningTransPool.removeOne(publichash,tx.nonce);
+                    APIResult apiResult = transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
+                    if (apiResult.getCode() == 5000) {
+                        peningTransPool.removeOne(publichash, tx.nonce);
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     AccountState accountState;
-                    if(map.containsKey(publichash)){
-                        accountState=map.get(publichash);
-                    }else{
-                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from " );
+                    if (map.containsKey(publichash)) {
+                        accountState = map.get(publichash);
+                    } else {
+                        return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from ");
                     }
-                    Account account=accountState.getAccount();
-                    Map<String,Incubator> interestMap=null;
-                    if(tx.type==0x0a || tx.type==0x0c){
-                        interestMap=accountState.getInterestMap();
-                    }else if(tx.type==0x0b){
-                        interestMap=accountState.getShareMap();
+                    Account account = accountState.getAccount();
+                    Map<String, Incubator> interestMap = null;
+                    if (tx.type == 0x0a || tx.type == 0x0c) {
+                        interestMap = accountState.getInterestMap();
+                    } else if (tx.type == 0x0b) {
+                        interestMap = accountState.getShareMap();
                     }
-                    Incubator forkincubator=null;
-                    if(interestMap!=null){
-                        forkincubator=interestMap.get(Hex.encodeHexString(tx.payload));
+                    Incubator forkincubator = null;
+                    if (interestMap != null) {
+                        forkincubator = interestMap.get(Hex.encodeHexString(tx.payload));
                     }
                     //数据校验
-                    apiResult=transactionCheck.TransactionVerify(tx,account, forkincubator);
-                    if(apiResult.getCode()==5000){
-                        peningTransPool.removeOne(publichash,tx.nonce);
+                    apiResult = transactionCheck.TransactionVerify(tx, account, forkincubator);
+                    if (apiResult.getCode() == 5000) {
+                        peningTransPool.removeOne(publichash, tx.nonce);
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
                     }
                     //更新Account账户
-                    if(tx.type==Transaction.Type.TRANSFER.ordinal()
-                            || tx.type==Transaction.Type.VOTE.ordinal()) {//转账、投票
+                    if (tx.type == Transaction.Type.TRANSFER.ordinal()
+                            || tx.type == Transaction.Type.VOTE.ordinal()) {//转账、投票
                         AccountState toaccountState = null;
                         Account toaccount;
                         String tohash = Hex.encodeHexString(tx.to);
@@ -157,57 +160,57 @@ public class AccountRule implements BlockRule {
                             toaccountState.setAccount(mapaccount.get("toaccount"));
                             map.put(tohash, accountState);
                         }
-                    }else if(tx.type==Transaction.Type.EXIT_VOTE.ordinal()){//撤回投票
+                    } else if (tx.type == Transaction.Type.EXIT_VOTE.ordinal()) {//撤回投票
                         Account votetoaccount;
                         AccountState tovoteaccountState;
-                        if(map.containsKey(Hex.encodeHexString(tx.to))){
+                        if (map.containsKey(Hex.encodeHexString(tx.to))) {
                             tovoteaccountState = map.get(Hex.encodeHexString(tx.to));
-                            votetoaccount=tovoteaccountState.getAccount();
-                        }else{
-                            tovoteaccountState=stateDB.getAccountUnsafe(parenthash,tx.to);
-                            votetoaccount=tovoteaccountState.getAccount();
+                            votetoaccount = tovoteaccountState.getAccount();
+                        } else {
+                            tovoteaccountState = stateDB.getAccount(parenthash, tx.to);
+                            votetoaccount = tovoteaccountState.getAccount();
                         }
-                        Map<String,Account> cancelaccountList=packageMiner.UpdateCancelVote(account,votetoaccount,tx);
-                        if(cancelaccountList==null){
+                        Map<String, Account> cancelaccountList = packageMiner.UpdateCancelVote(account, votetoaccount, tx);
+                        if (cancelaccountList == null) {
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
-                        if(cancelaccountList.containsKey("fromaccount")){
+                        if (cancelaccountList.containsKey("fromaccount")) {
                             accountState.setAccount(cancelaccountList.get("fromaccount"));
-                            map.put(publichash,accountState);
-                        }else if(cancelaccountList.containsKey("toaccount")){
+                            map.put(publichash, accountState);
+                        } else if (cancelaccountList.containsKey("toaccount")) {
                             tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
-                            map.put(Hex.encodeHexString(tx.to),accountState);
+                            map.put(Hex.encodeHexString(tx.to), accountState);
                         }
-                    }else {//其他事务
-                        Account otheraccount=packageMiner.UpdateOtherAccount(account,tx);
-                        if(otheraccount==null){
-                            return Result.Error("Transaction validation failed ,"+Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null" );
+                    } else {//其他事务
+                        Account otheraccount = packageMiner.UpdateOtherAccount(account, tx);
+                        if (otheraccount == null) {
+                            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
                         accountState.setAccount(otheraccount);
 
-                        Map<String,Incubator> maps=null;
-                        if(tx.type==10){
-                            maps=accountState.getInterestMap();
-                            Incubator incubator=packageMiner.UpdateIncubtor(maps,tx,block.nHeight);
-                            maps.put(Hex.encodeHexString(tx.payload),incubator);
+                        Map<String, Incubator> maps = null;
+                        if (tx.type == 10) {
+                            maps = accountState.getInterestMap();
+                            Incubator incubator = packageMiner.UpdateIncubtor(maps, tx, block.nHeight);
+                            maps.put(Hex.encodeHexString(tx.payload), incubator);
                             accountState.setInterestMap(maps);
-                        }else if(tx.type==11){
-                            maps=accountState.getShareMap();
-                            Incubator incubator=packageMiner.UpdateIncubtor(maps,tx,block.nHeight);
-                            maps.put(Hex.encodeHexString(tx.payload),incubator);
+                        } else if (tx.type == 11) {
+                            maps = accountState.getShareMap();
+                            Incubator incubator = packageMiner.UpdateIncubtor(maps, tx, block.nHeight);
+                            maps.put(Hex.encodeHexString(tx.payload), incubator);
                             accountState.setShareMap(maps);
-                        }else if(tx.type==12){
-                            maps=accountState.getInterestMap();
-                            Incubator incubator=packageMiner.UpdateIncubtor(maps,tx,block.nHeight);
-                            maps.put(Hex.encodeHexString(tx.payload),incubator);
+                        } else if (tx.type == 12) {
+                            maps = accountState.getInterestMap();
+                            Incubator incubator = packageMiner.UpdateIncubtor(maps, tx, block.nHeight);
+                            maps.put(Hex.encodeHexString(tx.payload), incubator);
                             accountState.setInterestMap(maps);
                         }
-                        map.put(publichash,accountState);
+                        map.put(publichash, accountState);
                     }
                 }
                 transactionList.add(tx);
             }
-            peningTransPool.updatePool(transactionList,1,block.nHeight);
+            peningTransPool.updatePool(transactionList, 1, block.nHeight);
         }
         return Result.SUCCESS;
     }

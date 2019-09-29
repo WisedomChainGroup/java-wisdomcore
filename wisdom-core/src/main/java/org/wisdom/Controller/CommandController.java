@@ -202,7 +202,7 @@ public class CommandController {
     @RequestMapping(method = RequestMethod.GET, value = "/height")
     public Object getCurrentHeight() {
         Block current = bc.currentHeader();
-        return APIResult.newFailResult(2000, "success", current.nHeight);
+        return APIResult.newFailResult(APIResult.SUCCESS, "success", current.nHeight);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/transactionConfirmed")
