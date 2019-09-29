@@ -36,6 +36,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -43,6 +44,7 @@ import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import javax.annotation.PostConstruct;
+import java.math.BigInteger;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -241,7 +243,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     public Block getBestBlock() {
         return blocksCache.getLeaves().stream()
-                .max(Comparator.comparing(Block::getnHeight))
+                .max((a, b) -> {
+                    if (a.nHeight != b.nHeight) {
+                        return (int) (a.nHeight - b.nHeight);
+                    }
+                    // pow 更小的占优势
+                    return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
+                            .compareTo(
+                                    BigEndian.decodeUint256(Block.calculatePOWHash(b))
+                            );
+                })
                 .orElse(this.latestConfirmed);
     }
 
@@ -388,7 +399,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 if (confirms.get(b.getHashHexString()).size() < leastConfirms.get(b.getHashHexString())) {
                     continue;
                 }
-//                if (block.nHeight - b.nHeight < 3){
+//                if (block.nHeight - b.nHeight < 3) {
 //                    continue;
 //                }
                 // 发现有可以确认的区块
@@ -457,11 +468,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    public AccountState getAccount(byte[] blockHash, byte[] publicKeyHash){
+    public AccountState getAccount(byte[] blockHash, byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return getAccountUnsafe(blockHash, publicKeyHash);
-        }finally {
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -515,7 +526,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         Block block = blocksCache.getBlock(blockHash);
         // 把这个区块的事务应用到上一个区块获取的 account，生成新的 account
-        for(Transaction tx: block.body){
+        for (Transaction tx : block.body) {
             tx.height = block.nHeight;
         }
         AccountState res = applyTransactions(block.body, account.copy());
@@ -539,16 +550,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return accountState1;
         }).orElse(new AccountState(publicKeyHash));
 
-        List<Incubator> incubatorList=incubatorDB.selectList(publicKeyHash);
-        Map<String,Incubator> inester=new HashMap<>();
-        if(incubatorList.size()>0){
-            inester=incubatorList.stream().collect(toMap(i->Hex.encodeHexString(i.getTxid_issue()),i->i));
+        List<Incubator> incubatorList = incubatorDB.selectList(publicKeyHash);
+        Map<String, Incubator> inester = new HashMap<>();
+        if (incubatorList.size() > 0) {
+            inester = incubatorList.stream().collect(toMap(i -> Hex.encodeHexString(i.getTxid_issue()), i -> i));
         }
         accountState.setInterestMap(inester);
-        List<Incubator> shareList=incubatorDB.selectShareList(publicKeyHash);
-        Map<String,Incubator> share=new HashMap<>();
-        if(shareList.size()>0){
-            share=shareList.stream().collect(toMap(i->Hex.encodeHexString(i.getTxid_issue()),i->i));
+        List<Incubator> shareList = incubatorDB.selectShareList(publicKeyHash);
+        Map<String, Incubator> share = new HashMap<>();
+        if (shareList.size() > 0) {
+            share = shareList.stream().collect(toMap(i -> Hex.encodeHexString(i.getTxid_issue()), i -> i));
         }
         accountState.setShareMap(share);
         return accountState;
@@ -616,18 +627,18 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             account.setIncubatecost(incub);
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
-            Incubator incubator=new Incubator(tx.to,tx.getHash(),tx.height,tx.amount,tx.getInterest(tx.height,rateTable,days),tx.height,days);
-            Map<String,Incubator> maps=accountState.getInterestMap();
-            maps.put(Hex.encodeHexString(tx.getHash()),incubator);
+            Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, tx.getInterest(tx.height, rateTable, days), tx.height, days);
+            Map<String, Incubator> maps = accountState.getInterestMap();
+            maps.put(Hex.encodeHexString(tx.getHash()), incubator);
             accountState.setInterestMap(maps);
             accountState.setAccount(account);
         }
-        if(sharpub != null && sharpub != ""){
-            byte[] sharepublic=Hex.decodeHex(sharpub.toCharArray());
-            if(Arrays.equals(sharepublic,account.getPubkeyHash())){
-                Incubator share=new Incubator(sharepublic,tx.getHash(),tx.height,tx.amount,days,tx.getShare(tx.height,rateTable,days),tx.height);
-                Map<String,Incubator> sharemaps=accountState.getShareMap();
-                sharemaps.put(Hex.encodeHexString(tx.getHash()),share);
+        if (sharpub != null && sharpub != "") {
+            byte[] sharepublic = Hex.decodeHex(sharpub.toCharArray());
+            if (Arrays.equals(sharepublic, account.getPubkeyHash())) {
+                Incubator share = new Incubator(sharepublic, tx.getHash(), tx.height, tx.amount, days, tx.getShare(tx.height, rateTable, days), tx.height);
+                Map<String, Incubator> sharemaps = accountState.getShareMap();
+                sharemaps.put(Hex.encodeHexString(tx.getHash()), share);
                 accountState.setShareMap(sharemaps);
             }
         }
@@ -658,14 +669,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String,Incubator> map=accountState.getInterestMap();
-        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
-        if(incubator==null){
-            logger.info("Interest payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+        Map<String, Incubator> map = accountState.getInterestMap();
+        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        if (incubator == null) {
+            logger.info("Interest payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
-        incubator=merkleRule.UpdateExtIncuator(tx,tx.height,incubator);
-        map.put(Hex.encodeHexString(tx.payload),incubator);
+        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
+        map.put(Hex.encodeHexString(tx.payload), incubator);
         accountState.setInterestMap(map);
         return accountState;
     }
@@ -683,14 +694,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String,Incubator> map=accountState.getShareMap();
-        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
-        if(incubator==null){
-            logger.info("Share payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+        Map<String, Incubator> map = accountState.getShareMap();
+        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        if (incubator == null) {
+            logger.info("Share payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
-        incubator=merkleRule.UpdateExtIncuator(tx,tx.height,incubator);
-        map.put(Hex.encodeHexString(tx.payload),incubator);
+        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
+        map.put(Hex.encodeHexString(tx.payload), incubator);
         accountState.setShareMap(map);
         return accountState;
     }
@@ -742,15 +753,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String,Incubator> map=accountState.getInterestMap();
-        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
-        if(incubator==null){
-            logger.info("Cost payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+        Map<String, Incubator> map = accountState.getInterestMap();
+        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        if (incubator == null) {
+            logger.info("Cost payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
         incubator.setCost(0);
         incubator.setHeight(tx.height);
-        map.put(Hex.encodeHexString(tx.payload),incubator);
+        map.put(Hex.encodeHexString(tx.payload), incubator);
         accountState.setInterestMap(map);
         return accountState;
     }

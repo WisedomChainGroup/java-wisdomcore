@@ -8,7 +8,6 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class PoolTask {
@@ -19,9 +18,11 @@ public class PoolTask {
     @Autowired
     PeningTransPool peningTransPool;
 
+    @Autowired
+    private Leveldb leveldb;
+
     @Scheduled(cron = "0 0/10 * * * ?")
     public void updatedbPool() {
-        Leveldb leveldb = new Leveldb();
         List<TransPool> list = adoptTransPool.getAllFull();
         List<Transaction> queuedlist = new ArrayList<>();
         for (TransPool transPool : list) {
