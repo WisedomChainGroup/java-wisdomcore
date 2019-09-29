@@ -54,7 +54,7 @@ async function main() {
     await pool.query(`delete from "header" as h where h.height >= $1 and h.height <= $2`, [HEIGHT, h])
     // 删掉 incubator
     await pool.query("delete from incubator_state where height >= $1", [HEIGHT])
-    await pool.query("delete from account where blockheight >= $1", [HEIGHT])
+    return await pool.query("delete from account where blockheight >= $1", [HEIGHT])
 }
 
 main().then(() => {
