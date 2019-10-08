@@ -191,7 +191,8 @@ public class TransactionCheck {
             }
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
-            apiResult.setData(Transaction.transformByte(transfer));
+            Transaction transaction = Transaction.transformByte(transfer);
+            apiResult.setData(transaction);
             return apiResult;
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -210,7 +211,7 @@ public class TransactionCheck {
 //            if (account == null) {
 //                nownonce = accountDB.getNonce(frompubhash);
 //            } else {
-                nownonce = account.getNonce();
+            nownonce = account.getNonce();
 //            }
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
@@ -302,7 +303,7 @@ public class TransactionCheck {
      */
     private APIResult CheckMortgage(byte[] payload) {
         APIResult apiResult = new APIResult();
-        if (JSONObject.parseObject(new String(payload)).get("type") != "miner") {
+        if (!JSONObject.parseObject(new String(payload)).get("type").equals("miner")) {
             apiResult.setCode(5000);
             apiResult.setMessage("mortgage payload type must be miner");
             return apiResult;
@@ -598,7 +599,7 @@ public class TransactionCheck {
 
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
-        if (JSONObject.parseObject(new String(payload)).get("type") != "miner") {
+        if (!JSONObject.parseObject(new String(payload)).get("type").equals("miner")) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage payload type must be miner");
             return apiResult;
