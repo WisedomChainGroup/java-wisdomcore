@@ -18,13 +18,18 @@
 
 package org.wisdom.service.Impl;
 
+import org.apache.commons.codec.binary.Hex;
+import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 
+import org.wisdom.consensus.pow.ProposersFactory;
+import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.db.StateDB;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.AdoptTransPool;
@@ -58,6 +63,10 @@ public class CommandServiceImpl implements CommandService {
     @Autowired
     Configuration configuration;
 
+    @Autowired
+    StateDB stateDB;
+
+
     @Override
     public APIResult verifyTransfer(byte[] transfer) {
         APIResult apiResult = new APIResult();
@@ -67,24 +76,33 @@ public class CommandServiceImpl implements CommandService {
             if (apiResult.getCode() == 5000) {
                 return apiResult;
             }
-            tran= (Transaction) apiResult.getData();
-            Account account=accountDB.selectaccount(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from)));
-            if(account==null){
+            tran = (Transaction) apiResult.getData();
+            Account account = accountDB.selectaccount(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from)));
+            if (account == null) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The from account does not exist");
                 return apiResult;
             }
-            Incubator incubator=null;
-            if(tran.type==0x0a || tran.type==0x0b || tran.type==0x0c){
-                incubator=incubatorDB.selectIncubator(tran.payload);
+            if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
+                Block block = stateDB.getBestBlock();
+                List<String> list = stateDB.getProposersFactory().getProposers(block);
+                if (list.size() > 0 && list.contains(Hex.encodeHexString(tran.from))) {
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The miner cannot withdraw the mortgage");
+                    return apiResult;
+                }
             }
-            apiResult=transactionCheck.TransactionVerify(tran,account,incubator);
-            if(apiResult.getCode() == 5000){
+            Incubator incubator = null;
+            if (tran.type == 0x0a || tran.type == 0x0b || tran.type == 0x0c) {
+                incubator = incubatorDB.selectIncubator(tran.payload);
+            }
+            apiResult = transactionCheck.TransactionVerify(tran, account, incubator);
+            if (apiResult.getCode() == 5000) {
                 return apiResult;
             }
             //超过queued上限
-            int index=adoptTransPool.size();
-            if((index++)>configuration.getMaxqueued()){
+            int index = adoptTransPool.size();
+            if ((index++) > configuration.getMaxqueued()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The node memory is full, please try again later");
                 return apiResult;
