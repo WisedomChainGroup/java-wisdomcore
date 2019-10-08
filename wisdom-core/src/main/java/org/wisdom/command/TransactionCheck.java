@@ -167,7 +167,7 @@ public class TransactionCheck {
             //bytelength
             byte[] date = ByteUtil.bytearraycopy(tranlast, 0, 4);
             int length = ByteUtil.byteArrayToInt(date);
-            if (type[0] != 0x01 && type[0] != 0x02 && type[0] != 0x0e) {//转账、投票、抵押,没有payload
+            if (type[0] != 0x01 && type[0] != 0x02) {//转账、投票,没有payload
                 if (length == 0) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Payload cannot be empty");
