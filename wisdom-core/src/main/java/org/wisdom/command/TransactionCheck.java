@@ -18,11 +18,19 @@
 
 package org.wisdom.command;
 
+import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
+import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
@@ -31,12 +39,6 @@ import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
-import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.core.incubator.RateTable;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -119,7 +121,7 @@ public class TransactionCheck {
                 apiResult.setMessage("The amount cannot be negative");
                 return apiResult;
             }
-            if (amount == 0 && (type[0] == 0x02 || type[0] == 0x0e)) {
+            if (amount == 0 && (type[0] == Transaction.Type.VOTE.ordinal() || type[0] == Transaction.Type.PLEDGE.ordinal())) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The amount cannot be zero");
                 return apiResult;
@@ -190,6 +192,7 @@ public class TransactionCheck {
             apiResult.setData(Transaction.transformByte(transfer));
             return apiResult;
         } catch (Exception e) {
+            e.printStackTrace();
             apiResult.setCode(5000);
             apiResult.setMessage("Exception error");
             return apiResult;
@@ -241,7 +244,7 @@ public class TransactionCheck {
                     long remainder = (long) (tranbalance % 100000000);
                     if (remainder != 0) {
                         apiResult.setCode(5000);
-                        apiResult.setMessage("TThe amount must be an integer");
+                        apiResult.setMessage("The amount must be an integer");
                         return apiResult;
                     }
                 }
@@ -280,12 +283,34 @@ public class TransactionCheck {
             case 0x0d://撤回投票
                 apiResult = CheckRecallVote(amount, payload, frompubhash, topubkeyhash);
                 break;
+            case 0x0e: // 抵押
+                apiResult = CheckMortgage(payload);
+                break;
             case 0x0f://撤回抵押
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
                 break;
         }
         return apiResult;
     }
+
+    /**
+     * check mortgage payload
+     *
+     * @param payload payload
+     * @return APIResult
+     */
+    private APIResult CheckMortgage(byte[] payload) {
+        APIResult apiResult = new APIResult();
+        if (JSONObject.parseObject(new String(payload)).get("type") != "miner") {
+            apiResult.setCode(5000);
+            apiResult.setMessage("mortgage payload type must be miner");
+            return apiResult;
+        }
+        apiResult.setCode(2000);
+        apiResult.setMessage("SUCCESS");
+        return apiResult;
+    }
+
 
     private APIResult CheckHatch(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
@@ -572,18 +597,38 @@ public class TransactionCheck {
 
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
-        if (payload.length != 32) {//抵押事务哈希
+        if (JSONObject.parseObject(new String(payload)).get("type") != "miner") {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The mortgage payload type must be miner");
+            return apiResult;
+        }
+        if (JSONObject.parseObject(new String(payload)).get("txid") == null) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The mortgage payload txid cannot null");
+            return apiResult;
+        }
+        String txid = (String) JSONObject.parseObject(new String(payload)).get("txid");
+        System.out.println("---------------------------------txid------" + txid);
+        byte[] txHash;
+        try {
+            txHash = Hex.decodeHex(txid.toCharArray());
+        } catch (DecoderException e) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The txid error");
+            return apiResult;
+        }
+        if (txHash.length != 32) {//抵押事务哈希
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage transaction payload was incorrectly formatted");
             return apiResult;
         }
-        boolean hasmortgage = accountDB.hasExitMortgage(payload);
+        boolean hasmortgage = accountDB.hasExitMortgage(txHash);
         if (!hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
         }
-        Transaction transaction = wisdomBlockChain.getTransaction(payload);
+        Transaction transaction = wisdomBlockChain.getTransaction(txHash);
         if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
