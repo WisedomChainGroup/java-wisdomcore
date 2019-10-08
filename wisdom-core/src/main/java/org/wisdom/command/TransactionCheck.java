@@ -123,7 +123,7 @@ public class TransactionCheck {
                 apiResult.setMessage("The amount cannot be negative");
                 return apiResult;
             }
-            if (amount == 0 && (type[0] == Transaction.Type.VOTE.ordinal() || type[0] == Transaction.Type.PLEDGE.ordinal())) {
+            if (amount == 0 && (type[0] == Transaction.Type.VOTE.ordinal() || type[0] == Transaction.Type.MORTGAGE.ordinal())) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The amount cannot be zero");
                 return apiResult;
@@ -610,7 +610,6 @@ public class TransactionCheck {
             return apiResult;
         }
         String txid = (String) JSONObject.parseObject(new String(payload)).get("txid");
-        System.out.println("---------------------------------txid------" + txid);
         byte[] txHash;
         try {
             txHash = Hex.decodeHex(txid.toCharArray());

@@ -87,7 +87,7 @@ public class AccountRule implements BlockRule {
         byte[] parenthash = block.hashPrevBlock;
         List<byte[]> pubhashlist = block.getFromsPublicKeyHash();
         Map<String, AccountState> map = stateDB.getAccounts(parenthash, pubhashlist);
-        if (map == null){
+        if (map == null) {
             return Result.Error("get accounts from database failed");
         }
         List<Transaction> transactionList = new ArrayList<>();
@@ -134,7 +134,7 @@ public class AccountRule implements BlockRule {
                     }
                     //更新Account账户
                     if (tx.type == Transaction.Type.TRANSFER.ordinal()
-                            || tx.type == Transaction.Type.VOTE.ordinal()) {//转账、投票
+                            || tx.type == Transaction.Type.VOTE.ordinal() || tx.type == Transaction.Type.MORTGAGE.ordinal()) {//转账、投票
                         AccountState toaccountState = null;
                         Account toaccount;
                         String tohash = Hex.encodeHexString(tx.to);
@@ -149,6 +149,8 @@ public class AccountRule implements BlockRule {
                             mapaccount = packageMiner.updateTransfer(account, toaccount, tx);
                         } else if (tx.type == 2) {
                             mapaccount = packageMiner.updateVote(account, toaccount, tx);
+                        } else if (tx.type == Transaction.Type.MORTGAGE.ordinal()) {
+                            mapaccount = packageMiner.updateMortgage(account, tx);
                         }
                         if (mapaccount == null) {
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
@@ -180,6 +182,16 @@ public class AccountRule implements BlockRule {
                         } else if (cancelaccountList.containsKey("toaccount")) {
                             tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
                             map.put(Hex.encodeHexString(tx.to), accountState);
+                        }
+
+                    } else if (tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {//撤回抵押
+                        Map<String, Account> cancelAccountList = packageMiner.UpdateCancelMortgage(account, tx);
+                        if (cancelAccountList == null) {
+                            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
+                        }
+                        if (cancelAccountList.containsKey("fromaccount")) {
+                            accountState.setAccount(cancelAccountList.get("fromaccount"));
+                            map.put(publichash, accountState);
                         }
                     } else {//其他事务
                         Account otheraccount = packageMiner.UpdateOtherAccount(account, tx);
