@@ -194,7 +194,6 @@ public class TransactionCheck {
             apiResult.setData(Transaction.transformByte(transfer));
             return apiResult;
         } catch (Exception e) {
-            e.printStackTrace();
             apiResult.setCode(5000);
             apiResult.setMessage("Exception error");
             return apiResult;
