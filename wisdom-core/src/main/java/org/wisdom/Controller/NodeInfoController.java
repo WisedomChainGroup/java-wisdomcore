@@ -129,7 +129,7 @@ public class NodeInfoController {
                 state.getAccount().getIncubatecost(),
                 state.getAccount().getMortgage(),
                 state.getAccount().getVote()
-                ));
+        ));
     }
 
     private static class Account {
@@ -153,9 +153,9 @@ public class NodeInfoController {
             this.nonce = nonce;
             this.balance = balance * 1.0 / EconomicModel.WDC + " WDC";
             this.incubateCost = incubateCost * 1.0 / EconomicModel.WDC + " WDC";
-            this.mortgage = mortgage + " WDC";
-            this.votes = votes + " WDC";
-            this.address = Address.publicKeyHashToAddress(publicKeyHash) ;
+            this.mortgage = mortgage * 1.0 / EconomicModel.WDC + " WDC";
+            this.votes = votes * 1.0 / EconomicModel.WDC + " WDC";
+            this.address = Address.publicKeyHashToAddress(publicKeyHash);
         }
     }
 }
