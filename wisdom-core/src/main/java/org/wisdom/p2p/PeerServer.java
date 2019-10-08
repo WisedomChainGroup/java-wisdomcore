@@ -252,6 +252,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 return buildMessage(1, ctx.response);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error("fail to parse message");
         }
         return buildMessage(1, NOTHING);
@@ -277,6 +278,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
+                t.printStackTrace();
                 ch.shutdown();
             }
 
@@ -305,6 +307,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
+                t.printStackTrace();
                 int k = self.subTree(peer);
                 Peer p = peers.get(k);
                 if (p != null && p.equals(peer)) {
