@@ -42,7 +42,7 @@ public class BlockMapper implements RowMapper<Block> {
         header.blockNotice = rs.getBytes("block_notice");
         header.totalWeight = rs.getLong("total_weight");
         // TODO: remove assertion codes
-        assert Arrays.equals(header.getHash(), rs.getBytes("block_hash"));
+//        assert Arrays.equals(header.getHash(), rs.getBytes("block_hash"));
         return header;
     }
 }

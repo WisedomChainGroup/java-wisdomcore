@@ -22,7 +22,6 @@ import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
-import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -36,6 +35,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -88,6 +88,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 最新确认的区块
     private Block latestConfirmed;
+
+    // 事务缓存
+    private Map<String, Set<String>> transactionIndex;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
     private static final int CACHE_SIZE = 512;
@@ -153,11 +156,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         cache.remove(b.getHashHexString());
         confirms.remove(b.getHashHexString());
         leastConfirms.remove(b.getHashHexString());
+        transactionIndex.remove(b.getHashHexString());
     }
-
-    @Autowired
-    public OrphanBlocksManager orphanBlocksManager;
-
 
     public StateDB(
             ValidatorState validatorState,
@@ -173,6 +173,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
+        this.transactionIndex = new HashMap<>();
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
@@ -221,13 +222,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
             // TODO: remove assertion codes
-            if (
-                    !Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
-                            || blocks.size() != blocksPerUpdate
-                            || !isChain(blocks)
-            ) {
-                logger.error("=================================== warning ======================");
-            }
+//            if (
+//                    !Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
+//                            || blocks.size() != blocksPerUpdate
+//                            || !isChain(blocks)
+//            ) {
+//                logger.error("=================================== warning ======================");
+//            }
             while (blocks.size() > 0) {
                 validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 targetStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
@@ -240,12 +241,26 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     public Block getBestBlock() {
-        return blocksCache.getLeaves().stream()
-                .max(Comparator.comparing(Block::getnHeight))
-                .orElse(this.latestConfirmed);
+        this.readWriteLock.readLock().lock();
+        try {
+            return blocksCache.getLeaves().stream()
+                    .max((a, b) -> {
+                        if (a.nHeight != b.nHeight) {
+                            return (int) (a.nHeight - b.nHeight);
+                        }
+                        // pow 更小的占优势
+                        return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
+                                .compareTo(
+                                        BigEndian.decodeUint256(Block.calculatePOWHash(b))
+                                );
+                    })
+                    .orElse(this.latestConfirmed);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
-    public Block getHeader(byte[] hash) {
+    private Block getHeaderUnsafe(byte[] hash) {
         if (Arrays.equals(latestConfirmed.getHash(), hash)) {
             return this.latestConfirmed;
         }
@@ -253,40 +268,59 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .orElseGet(() -> bc.getHeader(hash));
     }
 
+    public Block getHeader(byte[] hash) {
+        this.readWriteLock.readLock().lock();
+        try {
+            return getHeaderUnsafe(hash);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
+    }
+
     public Block findAncestorHeader(byte[] hash, long height) {
-        Block bHeader = getHeader(hash);
-        if (bHeader.nHeight < height) {
-            return null;
+        this.readWriteLock.readLock().lock();
+        try {
+            Block bHeader = getHeaderUnsafe(hash);
+            if (bHeader.nHeight < height) {
+                return null;
+            }
+            while (bHeader != null && bHeader.nHeight != height) {
+                bHeader = getHeaderUnsafe(bHeader.hashPrevBlock);
+            }
+            return bHeader;
+        } finally {
+            this.readWriteLock.readLock().unlock();
         }
-        while (bHeader != null && bHeader.nHeight != height) {
-            bHeader = getHeader(bHeader.hashPrevBlock);
-        }
-        return bHeader;
+
     }
 
     public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
-        Block b = blocksCache.getBlock(bhash);
-        if (Arrays.equals(bhash, this.latestConfirmed.getHash())) {
-            b = this.latestConfirmed;
-        }
-        if (b == null) {
-            return bc.getAncestorBlocks(bhash, anum);
-        }
-        BlocksCache res = new BlocksCache();
-        List<Block> blocks = blocksCache.getAncestors(b)
-                .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
-        res.addBlocks(Collections.singletonList(b));
-        res.addBlocks(blocks);
-        res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
-        List<Block> all = res.getAll();
+        this.readWriteLock.readLock().lock();
+        try {
+            Block b = blocksCache.getBlock(bhash);
+            if (Arrays.equals(bhash, this.latestConfirmed.getHash())) {
+                b = this.latestConfirmed;
+            }
+            if (b == null) {
+                return bc.getAncestorBlocks(bhash, anum);
+            }
+            BlocksCache res = new BlocksCache();
+            List<Block> blocks = blocksCache.getAncestors(b)
+                    .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
+            res.addBlocks(blocks);
+            res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
+            List<Block> all = res.getAll();
 
-        // TODO: remove code assertion
-        if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
-            logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        } else {
-            logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            // TODO: remove code assertion
+//            if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
+//                logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            } else {
+//                logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            }
+            return all;
+        } finally {
+            this.readWriteLock.readLock().unlock();
         }
-        return all;
     }
 
     public static boolean isChain(List<Block> blocks) {
@@ -300,22 +334,38 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return true;
     }
 
-    public BlocksCache getBlocksCache() {
-        return blocksCache;
+    public boolean hasBlockInCache(byte[] hash) {
+        this.readWriteLock.readLock().lock();
+        try {
+            return blocksCache.hasBlock(hash);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
     public Block getBlock(byte[] hash) {
-        if (Arrays.equals(latestConfirmed.getHash(), hash)) {
-            return this.latestConfirmed;
+        this.readWriteLock.readLock().lock();
+        try {
+            if (Arrays.equals(latestConfirmed.getHash(), hash)) {
+                return this.latestConfirmed;
+            }
+            return Optional.ofNullable(blocksCache.getBlock(hash))
+                    .orElseGet(() -> bc.getBlock(hash));
+        } finally {
+            this.readWriteLock.readLock().unlock();
         }
-        return Optional.ofNullable(blocksCache.getBlock(hash))
-                .orElseGet(() -> bc.getBlock(hash));
+
     }
 
     public boolean hasBlock(byte[] hash) {
-        return blocksCache.hasBlock(hash) ||
-                Arrays.equals(latestConfirmed.getHash(), hash) ||
-                bc.hasBlock(hash);
+        readWriteLock.readLock().lock();
+        try {
+            return blocksCache.hasBlock(hash) ||
+                    Arrays.equals(latestConfirmed.getHash(), hash) ||
+                    bc.hasBlock(hash);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
     }
 
     public boolean hasTransaction(byte[] blockHash, byte[] transactionHash) {
@@ -331,11 +381,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
             return bc.hasTransaction(transactionHash);
         }
+        String key = Hex.encodeHexString(blockHash);
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
             return true;
         }
-        if (b.body.stream().anyMatch(tx -> Arrays.equals(tx.getHash(), transactionHash))) {
+        if (transactionIndex.containsKey(key) && transactionIndex.get(key).contains(Hex.encodeHexString(transactionHash))) {
             return true;
         }
         return hasTransactionUnsafe(b.hashPrevBlock, transactionHash);
@@ -361,7 +412,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (blocksCache.hasBlock(block.getHash())) {
                 return;
             }
-            blocksCache.addBlocks(Collections.singletonList(block));
+            blocksCache.addBlock(block);
+
+            // 写入事务索引
+            if (!transactionIndex.containsKey(block.getHashHexString())) {
+                transactionIndex.put(block.getHashHexString(), new HashSet<>());
+            }
+            block.body.forEach(t -> transactionIndex.get(block.getHashHexString()).add(t.getHashHexString()));
+
             leastConfirms.put(block.getHashHexString(),
                     (int) Math.ceil(
                             proposersFactory.getProposers(getBlock(block.hashPrevBlock)).size()
@@ -370,12 +428,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             );
             List<Block> ancestors = blocksCache.getAncestors(block);
             for (Block b : ancestors) {
+                if (!confirms.containsKey(b.getHashHexString())) {
+                    confirms.put(b.getHashHexString(), new HashSet<>());
+                }
                 // 区块不能确认自己
                 if (Arrays.equals(b.getHash(), block.getHash())) {
                     continue;
-                }
-                if (!confirms.containsKey(b.getHashHexString())) {
-                    confirms.put(b.getHashHexString(), new HashSet<>());
                 }
                 confirms.get(b.getHashHexString()).add(Hex.encodeHexString(block.body.get(0).to));
             }
@@ -388,9 +446,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 if (confirms.get(b.getHashHexString()).size() < leastConfirms.get(b.getHashHexString())) {
                     continue;
                 }
-//                if (block.nHeight - b.nHeight < 3){
-//                    continue;
-//                }
+                if (block.nHeight - b.nHeight < 3) {
+                    continue;
+                }
                 // 发现有可以确认的区块
                 confirmedAncestors = ancestors.subList(i, ancestors.size());
                 Collections.reverse(confirmedAncestors);
@@ -406,12 +464,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 Block b = confirmedAncestors.get(i);
                 // CAS 锁，等待上一个区块状态更新成功
                 while (pendingBlock != null) {
-                    logger.info("wait for account updated...");
+                    logger.info("wait for account at" + new String(codec.encodeBlock(pendingBlock)) + " updated...");
                 }
                 boolean writeResult = bc.writeBlock(b);
                 if (!writeResult) {
                     // 数据库 写入失败 重试写入
-                    logger.error("write block to database failed, retrying...");
+                    logger.error("write block " + new String(codec.encodeBlock(b)) + " to database failed, retrying...");
                     continue;
                 }
                 logger.info("write block at height " + b.nHeight + " to db success");
@@ -421,7 +479,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 i++;
             }
             while (pendingBlock != null) {
-                logger.info("wait for account updated...");
+                logger.info("wait for account at" + new String(codec.encodeBlock(pendingBlock)) + " updated...");
             }
         } finally {
             this.readWriteLock.writeLock().unlock();
@@ -430,55 +488,59 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     // 获取包含未确认的区块
     public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        if (sizeLimit == 0 || startHeight > stopHeight) {
+            return new ArrayList<>();
+        }
         this.readWriteLock.readLock().lock();
         try {
             BlocksCache c = new BlocksCache();
-            List<Block> res = bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
-            if (res == null || res.size() >= sizeLimit) {
-                return res;
+            // 从数据库获取一部分
+            if (startHeight < latestConfirmed.nHeight) {
+                c.addBlocks(bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial));
             }
-            c.addBlocks(res);
-            blocksCache.getAll().stream()
-                    .filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
-                    .forEach((b) -> {
-                        if (c.size() == sizeLimit) {
-                            return;
-                        }
-                        c.addBlocks(Collections.singletonList(b));
-                    });
+            List<Block> blocks = blocksCache.getAll();
+            blocks.add(latestConfirmed);
+
+            // 从 forkdb 获取一部分
+            blocks.stream().filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
+                    .forEach(c::addBlock);
+
+            // 按需进行裁剪
             List<Block> all = c.getAll();
-            // TODO: remove assertion code
-            if (all.size() > sizeLimit) {
-                logger.error("getBlocks assertion failed");
+            if (sizeLimit > all.size() || sizeLimit < 0) {
+                sizeLimit = all.size();
             }
-            return all;
+            if (clipInitial) {
+                return all.subList(all.size() - sizeLimit, all.size());
+            }
+            return all.subList(0, sizeLimit);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
     }
 
-    public AccountState getAccount(byte[] blockHash, byte[] publicKeyHash){
+    public AccountState getAccount(byte[] blockHash, byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return getAccountUnsafe(blockHash, publicKeyHash);
-        }finally {
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
-    public Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, List<byte[]> publicKeyHashes) {
+    private Map<String, AccountState> getAccountsUnsafe(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
         Map<String, AccountState> res = new HashMap<>();
         for (byte[] h : publicKeyHashes) {
             AccountState account = getAccountUnsafe(blockHash, h);
             if (account == null) {
-                continue;
+                return null;
             }
             res.put(Hex.encodeHexString(h), account);
         }
         return res;
     }
 
-    public Map<String, AccountState> getAccounts(byte[] blockHash, List<byte[]> publicKeyHashes) {
+    public Map<String, AccountState> getAccounts(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
         readWriteLock.writeLock().lock();
         try {
             return getAccountsUnsafe(blockHash, publicKeyHashes);
@@ -488,7 +550,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     // 获取到某一区块（包含该区块)的某个账户的状态，用于对后续区块的事务进行验证
-    public AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
+    private AccountState getAccountUnsafe(byte[] blockHash, byte[] publicKeyHash) {
 
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
             return getAccount(publicKeyHash);
@@ -515,7 +577,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         Block block = blocksCache.getBlock(blockHash);
         // 把这个区块的事务应用到上一个区块获取的 account，生成新的 account
-        for(Transaction tx: block.body){
+        for (Transaction tx : block.body) {
             tx.height = block.nHeight;
         }
         AccountState res = applyTransactions(block.body, account.copy());
@@ -529,26 +591,22 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     // 获取已经持久化的账户
     private AccountState getAccount(byte[] publicKeyHash) {
         Optional<Account> account = accountDB.hasAccount(publicKeyHash);
-        if (account == null) {
-            return null;
-        }
-
         AccountState accountState = account.map(x -> {
             AccountState accountState1 = new AccountState();
             accountState1.setAccount(x);
             return accountState1;
         }).orElse(new AccountState(publicKeyHash));
 
-        List<Incubator> incubatorList=incubatorDB.selectList(publicKeyHash);
-        Map<String,Incubator> inester=new HashMap<>();
-        if(incubatorList.size()>0){
-            inester=incubatorList.stream().collect(toMap(i->Hex.encodeHexString(i.getTxid_issue()),i->i));
+        List<Incubator> incubatorList = incubatorDB.selectList(publicKeyHash);
+        Map<String, Incubator> inester = new HashMap<>();
+        if (incubatorList.size() > 0) {
+            inester = incubatorList.stream().collect(toMap(i -> Hex.encodeHexString(i.getTxid_issue()), i -> i));
         }
         accountState.setInterestMap(inester);
-        List<Incubator> shareList=incubatorDB.selectShareList(publicKeyHash);
-        Map<String,Incubator> share=new HashMap<>();
-        if(shareList.size()>0){
-            share=shareList.stream().collect(toMap(i->Hex.encodeHexString(i.getTxid_issue()),i->i));
+        List<Incubator> shareList = incubatorDB.selectShareList(publicKeyHash);
+        Map<String, Incubator> share = new HashMap<>();
+        if (shareList.size() > 0) {
+            share = shareList.stream().collect(toMap(i -> Hex.encodeHexString(i.getTxid_issue()), i -> i));
         }
         accountState.setShareMap(share);
         return accountState;
@@ -616,18 +674,18 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             account.setIncubatecost(incub);
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
-            Incubator incubator=new Incubator(tx.to,tx.getHash(),tx.height,tx.amount,tx.getInterest(tx.height,rateTable,days),tx.height,days);
-            Map<String,Incubator> maps=accountState.getInterestMap();
-            maps.put(Hex.encodeHexString(tx.getHash()),incubator);
+            Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, tx.getInterest(tx.height, rateTable, days), tx.height, days);
+            Map<String, Incubator> maps = accountState.getInterestMap();
+            maps.put(Hex.encodeHexString(tx.getHash()), incubator);
             accountState.setInterestMap(maps);
             accountState.setAccount(account);
         }
-        if(sharpub != null && sharpub != ""){
-            byte[] sharepublic=Hex.decodeHex(sharpub.toCharArray());
-            if(Arrays.equals(sharepublic,account.getPubkeyHash())){
-                Incubator share=new Incubator(sharepublic,tx.getHash(),tx.height,tx.amount,days,tx.getShare(tx.height,rateTable,days),tx.height);
-                Map<String,Incubator> sharemaps=accountState.getShareMap();
-                sharemaps.put(Hex.encodeHexString(tx.getHash()),share);
+        if (sharpub != null && !sharpub.equals("")) {
+            byte[] sharepublic = Hex.decodeHex(sharpub.toCharArray());
+            if (Arrays.equals(sharepublic, account.getPubkeyHash())) {
+                Incubator share = new Incubator(sharepublic, tx.getHash(), tx.height, tx.amount, days, tx.getShare(tx.height, rateTable, days), tx.height);
+                Map<String, Incubator> sharemaps = accountState.getShareMap();
+                sharemaps.put(Hex.encodeHexString(tx.getHash()), share);
                 accountState.setShareMap(sharemaps);
             }
         }
@@ -658,14 +716,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String,Incubator> map=accountState.getInterestMap();
-        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
-        if(incubator==null){
-            logger.info("Interest payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+        Map<String, Incubator> map = accountState.getInterestMap();
+        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        if (incubator == null) {
+            logger.info("Interest payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
-        incubator=merkleRule.UpdateExtIncuator(tx,tx.height,incubator);
-        map.put(Hex.encodeHexString(tx.payload),incubator);
+        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
+        map.put(Hex.encodeHexString(tx.payload), incubator);
         accountState.setInterestMap(map);
         return accountState;
     }
@@ -683,14 +741,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String,Incubator> map=accountState.getShareMap();
-        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
-        if(incubator==null){
-            logger.info("Share payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+        Map<String, Incubator> map = accountState.getShareMap();
+        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        if (incubator == null) {
+            logger.info("Share payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
-        incubator=merkleRule.UpdateExtIncuator(tx,tx.height,incubator);
-        map.put(Hex.encodeHexString(tx.payload),incubator);
+        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
+        map.put(Hex.encodeHexString(tx.payload), incubator);
         accountState.setShareMap(map);
         return accountState;
     }
@@ -742,15 +800,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String,Incubator> map=accountState.getInterestMap();
-        Incubator incubator=map.get(Hex.encodeHexString(tx.payload));
-        if(incubator==null){
-            logger.info("Cost payload:"+Hex.encodeHexString(tx.payload)+"--->tx:"+tx.getHashHexString());
+        Map<String, Incubator> map = accountState.getInterestMap();
+        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        if (incubator == null) {
+            logger.info("Cost payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
         incubator.setCost(0);
         incubator.setHeight(tx.height);
-        map.put(Hex.encodeHexString(tx.payload),incubator);
+        map.put(Hex.encodeHexString(tx.payload), incubator);
         accountState.setInterestMap(map);
         return accountState;
     }

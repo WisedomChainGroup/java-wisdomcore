@@ -93,7 +93,7 @@ public class BlocksCacheTest {
 
     @Test
     public void testGetLeavesHash() {
-        assert ctx.getBean(BlocksCache.class).getLeavesHash().size() == 2;
+        assert ctx.getBean(BlocksCache.class).getLeaves().size() == 2;
     }
 
     @Test

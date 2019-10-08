@@ -19,6 +19,8 @@
 package org.wisdom.ApiResult;
 
 public class APIResult<T> extends ResultSupport {
+    public static int FAIL = 5000;
+    public static int SUCCESS = 2000;
     protected T data;
 
     public T getData() {
@@ -59,9 +61,17 @@ public class APIResult<T> extends ResultSupport {
         return apiResult;
     }
 
-    public static <U> APIResult<U> newSuccessResult(U data){
+    public static <U> APIResult<U> newFailed(String message) {
+        APIResult<U> apiResult = new APIResult<U>();
+        apiResult.setCode(FAIL);
+        apiResult.setMessage(message);
+        return apiResult;
+    }
+
+    public static <U> APIResult<U> newSuccess(U data){
         APIResult<U> apiResult = new APIResult<U>();
         apiResult.setData(data);
+        apiResult.setCode(SUCCESS);
         return apiResult;
     }
 }

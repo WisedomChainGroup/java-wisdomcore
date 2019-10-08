@@ -19,24 +19,20 @@
 package org.wisdom.core;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.logging.log4j.util.PropertySource;
 
 import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 
 /**
  * @author sal 1564319846@qq.com
- * concurrently safe in-memory blocks cache for fast indexing/searching
  */
 public class BlocksCache {
     private Map<String, Block> blocks;
     private Map<String, Set<String>> childrenHashes;
     private Map<Long, Set<String>> heightIndex;
-    private Map<String, String> parentIndex;
-    private ReadWriteLock readWriteLock;
     private int sizeLimit;
 
+    // lru
     public BlocksCache(int sizeLimit) {
         this();
         this.sizeLimit = sizeLimit;
@@ -46,22 +42,20 @@ public class BlocksCache {
         this.blocks = new HashMap<>();
         this.childrenHashes = new HashMap<>();
         this.heightIndex = new TreeMap<>();
-        this.parentIndex = new HashMap<>();
-        this.readWriteLock = new ReentrantReadWriteLock();
     }
 
-    public BlocksCache(List<Block> blocks) {
+    public BlocksCache(Block b) {
+        this();
+        addBlock(b);
+    }
+
+    public BlocksCache(Collection<Block> blocks) {
         this();
         addBlocks(blocks);
     }
 
     public Block getBlock(byte[] hash) {
-        readWriteLock.readLock().lock();
-        try {
-            return blocks.get(Hex.encodeHexString(hash));
-        } finally {
-            readWriteLock.readLock().unlock();
-        }
+        return blocks.get(Hex.encodeHexString(hash));
     }
 
     private List<Block> getBlocks(Set<String> hashes) {
@@ -82,7 +76,6 @@ public class BlocksCache {
      * @return
      */
     public BlocksCache copy() {
-        this.readWriteLock.readLock().lock();
         BlocksCache copied = new BlocksCache();
         copied.blocks = new HashMap<>(blocks);
         copied.childrenHashes = new HashMap<>();
@@ -93,17 +86,16 @@ public class BlocksCache {
         for (Long key : heightIndex.keySet()) {
             copied.heightIndex.put(key, new HashSet<>(heightIndex.get(key)));
         }
-        this.readWriteLock.readLock().unlock();
         return copied;
     }
 
     /**
-     * return b's descendant blocks, exclusive b
+     * return b's descendant blocks, inclusive b
      *
      * @param b
      * @return
      */
-    private List<Block> getDescendantBlocksUnsafe(Block b) {
+    public List<Block> getDescendantBlocks(Block b) {
         Set<String> descendantBlocksHash = new HashSet<>();
         String key = b.getHashHexString();
         descendantBlocksHash.add(key);
@@ -121,7 +113,6 @@ public class BlocksCache {
                 break;
             }
         }
-        descendantBlocksHash.remove(key);
         List<Block> res = getBlocks(descendantBlocksHash);
         if (res.size() <= 1) {
             return res;
@@ -130,18 +121,11 @@ public class BlocksCache {
         return res;
     }
 
-    public List<Block> getDescendantBlocks(Block b) {
-        this.readWriteLock.readLock().lock();
-        List<Block> blocks = getDescendantBlocksUnsafe(b);
-        this.readWriteLock.readLock().unlock();
-        return blocks;
-    }
-
     // sort by length descending
-    private List<List<Block>> getAllForksUnsafe() {
+    public List<List<Block>> getAllForks() {
         List<List<Block>> res = new ArrayList<>();
         for (String k : getLeavesHash()) {
-            List<Block> chain = getAncestorsUnsafe(k);
+            List<Block> chain = getAncestors(k);
             chain.add(blocks.get(k));
             res.add(chain);
         }
@@ -152,20 +136,9 @@ public class BlocksCache {
         return res;
     }
 
-    /**
-     * return all forks in the cache
-     *
-     * @return
-     */
-    public List<List<Block>> getAllForks() {
-        this.readWriteLock.readLock().lock();
-        List<List<Block>> res = getAllForksUnsafe();
-        this.readWriteLock.readLock().unlock();
-        return res;
-    }
 
     // delete a block
-    private void deleteBlockUnsafe(Block b) {
+    public void deleteBlock(Block b) {
         String bHash = b.getHashHexString();
         String prevHash = Hex.encodeHexString(b.hashPrevBlock);
         blocks.remove(bHash);
@@ -181,25 +154,16 @@ public class BlocksCache {
         if (heightIndex.containsKey(b.nHeight) && heightIndex.get(b.nHeight).size() == 0) {
             heightIndex.remove(b.nHeight);
         }
-        parentIndex.remove(bHash);
-    }
-
-    public void deleteBlock(Block b) {
-        this.readWriteLock.writeLock().lock();
-        deleteBlockUnsafe(b);
-        this.readWriteLock.writeLock().unlock();
     }
 
     public void deleteBlocks(List<Block> bs) {
-        this.readWriteLock.writeLock().lock();
         for (Block b : bs) {
-            deleteBlockUnsafe(b);
+            deleteBlock(b);
         }
-        this.readWriteLock.writeLock().unlock();
     }
 
     // leaves not has children
-    private Set<String> getLeavesHashUnSafe() {
+    private Set<String> getLeavesHash() {
         Set<String> res = new HashSet<>();
         for (String key : blocks.keySet()) {
             if (!childrenHashes.containsKey(key) || childrenHashes.get(key).isEmpty()) {
@@ -209,205 +173,132 @@ public class BlocksCache {
         return res;
     }
 
-    public Set<String> getLeavesHash() {
-        this.readWriteLock.readLock().lock();
-        Set<String> res = getLeavesHashUnSafe();
-        this.readWriteLock.readLock().unlock();
-        return res;
-    }
 
     public List<Block> getLeaves() {
-        this.readWriteLock.readLock().lock();
-        List<Block> res = getBlocks(getLeavesHashUnSafe());
-        this.readWriteLock.readLock().unlock();
-        return res;
+        return getBlocks(getLeavesHash());
     }
 
     public List<Block> getInitials() {
-        this.readWriteLock.readLock().lock();
-        List<Block> blocks = getBlocks(getInitialsHashUnsafe());
-        this.readWriteLock.readLock().unlock();
-        return blocks;
+        return getBlocks(getInitialsHash());
     }
 
     // initials not has parent
-    private Set<String> getInitialsHashUnsafe() {
+    private Set<String> getInitialsHash() {
         Set<String> res = new HashSet<>();
         for (String key : blocks.keySet()) {
+            Block b = blocks.get(key);
             if (blocks.get(key).nHeight == 0) {
                 res.add(key);
                 continue;
             }
-            if (!blocks.containsKey(parentIndex.get(key))) {
+            if (!blocks.containsKey(Hex.encodeHexString(b.hashPrevBlock))) {
                 res.add(key);
             }
         }
         return res;
     }
 
-    public void addBlocks(List<Block> blocks) {
+    public void addBlock(Block block) {
+        if (block == null) {
+            return;
+        }
+        while (sizeLimit != 0 && this.blocks.size() > sizeLimit) {
+            this.blocks.values()
+                    .stream()
+                    .min(Comparator.comparingLong(Block::getnHeight))
+                    .ifPresent(this::deleteBlock);
+        }
+        String key = block.getHashHexString();
+        if (this.blocks.containsKey(key)) {
+            return;
+        }
+        blocks.put(key, block);
+        String prevHash = Hex.encodeHexString(block.hashPrevBlock);
+        if (!childrenHashes.containsKey(prevHash)) {
+            childrenHashes.put(prevHash, new HashSet<>());
+        }
+        childrenHashes.get(prevHash).add(key);
+        if (!heightIndex.containsKey(block.nHeight)) {
+            heightIndex.put(block.nHeight, new HashSet<>());
+        }
+        heightIndex.get(block.nHeight).add(key);
+    }
+
+    public void addBlocks(Collection<Block> blocks) {
         if (blocks == null || blocks.size() == 0) {
             return;
         }
-        this.readWriteLock.writeLock().lock();
         for (Block b : blocks) {
-            if (b == null) {
-                continue;
-            }
-            while (sizeLimit != 0 && this.blocks.size() > sizeLimit) {
-                this.blocks.values()
-                        .stream()
-                        .min(Comparator.comparingLong(Block::getnHeight))
-                        .ifPresent(this::deleteBlockUnsafe);
-            }
-            String key = b.getHashHexString();
-            if (this.blocks.containsKey(key)) {
-                continue;
-            }
-            this.blocks.put(key, b);
-            String prevHash = Hex.encodeHexString(b.hashPrevBlock);
-            if (!childrenHashes.containsKey(prevHash)) {
-                childrenHashes.put(prevHash, new HashSet<>());
-            }
-            childrenHashes.get(prevHash).add(key);
-            if (!heightIndex.containsKey(b.nHeight)) {
-                heightIndex.put(b.nHeight, new HashSet<>());
-            }
-            heightIndex.get(b.nHeight).add(key);
-            parentIndex.put(key, prevHash);
+            addBlock(b);
         }
-        this.readWriteLock.writeLock().unlock();
     }
 
     public List<Block> getAll() {
-        this.readWriteLock.readLock().lock();
-        List<Block> res = Arrays.asList(blocks.values().toArray(new Block[]{}));
-        this.readWriteLock.readLock().unlock();
-        if (res.size() > 1) {
-            res.sort(Comparator.comparingLong(Block::getnHeight));
-        }
-        return res;
+        return getBlocks(blocks.keySet());
     }
 
-    private List<Block> popLongestChainUnsafe() {
-        List<List<Block>> res = getAllForksUnsafe();
+    public List<Block> popLongestChain() {
+        List<List<Block>> res = getAllForks();
         if (res.size() == 0) {
             return new ArrayList<>();
         }
         List<Block> longest = res.get(res.size() - 1);
         for (Block b : longest) {
-            deleteBlockUnsafe(b);
+            deleteBlock(b);
         }
         return longest;
     }
 
-    /**
-     * @return null if the cache is emtpy
-     */
-    public List<Block> popLongestChain() {
-        this.readWriteLock.writeLock().lock();
-        List<Block> longest = popLongestChainUnsafe();
-        this.readWriteLock.writeLock().unlock();
-        return longest;
-    }
 
     public List<List<Block>> popLongestChains() {
-        this.readWriteLock.writeLock().lock();
         List<List<Block>> res = new ArrayList<>();
         while (true) {
-            List<Block> longest = popLongestChainUnsafe();
+            List<Block> longest = popLongestChain();
             if (longest == null || longest.size() == 0) {
                 break;
             }
             res.add(longest);
         }
-        this.readWriteLock.writeLock().unlock();
         return res;
     }
 
     public int size() {
-        this.readWriteLock.readLock().lock();
-        int size = blocks.size();
-        this.readWriteLock.readLock().unlock();
-        return size;
+        return blocks.size();
     }
 
     public boolean isEmpty() {
-        this.readWriteLock.readLock().lock();
-        boolean isEmpty = blocks.isEmpty();
-        this.readWriteLock.readLock().unlock();
-        return isEmpty;
+        return blocks.isEmpty();
     }
 
     public boolean hasBlock(byte[] hash) {
-        this.readWriteLock.readLock().lock();
-        boolean res = blocks.containsKey(Hex.encodeHexString(hash));
-        this.readWriteLock.readLock().unlock();
-        return res;
+        return blocks.containsKey(Hex.encodeHexString(hash));
     }
 
-    public boolean hasChildrenOf(byte[] hash) {
-        String key = Hex.encodeHexString(hash);
-        this.readWriteLock.readLock().lock();
-        boolean res = new HashSet<>(parentIndex.values()).contains(key);
-        this.readWriteLock.readLock().unlock();
-        return res;
+
+    private List<Block> getAncestors(String key) {
+        Block b = blocks.get(key);
+        return getAncestors(b);
     }
 
-    private List<Block> getAncestorsUnsafe(String bkey) {
-        Set<String> keys = new HashSet<>();
-        for (String key = bkey; key != null; key = parentIndex.get(key)) {
-            keys.add(key);
+
+    public Block getAncestor(Block b, long height) {
+        String parentKey = Hex.encodeHexString(b.hashPrevBlock);
+        while (b != null && b.nHeight > height) {
+            b = blocks.get(parentKey);
         }
-        keys.remove(bkey);
-        return getBlocks(keys);
-    }
-
-    private Block getAncestorUnsafe(String bkey, long height) {
-        for (String key = bkey; key != null; key = parentIndex.get(key)) {
-            Block b = blocks.get(key);
-            if (b.nHeight == height) {
-                return b;
-            }
+        if (b != null && b.nHeight == height) {
+            return b;
         }
         return null;
     }
 
-    public Block getAncestor(Block b, long height) {
-        String bkey = b.getHashHexString();
-        String bparentKey = Hex.encodeHexString(b.hashPrevBlock);
-        this.readWriteLock.readLock().lock();
-        try {
-            if (blocks.containsKey(bkey)) {
-                return getAncestorUnsafe(bkey, height);
-            }
-            if (blocks.containsKey(bparentKey)) {
-                return getAncestorUnsafe(bparentKey, height);
-            }
-            return null;
-        } finally {
-            this.readWriteLock.readLock().unlock();
-        }
-    }
-
     public List<Block> getAncestors(Block b) {
-        String bkey = b.getHashHexString();
-        String bparentKey = Hex.encodeHexString(b.hashPrevBlock);
         List<Block> res = new ArrayList<>();
-        this.readWriteLock.readLock().lock();
-        try {
-            if (blocks.containsKey(bkey)) {
-                res = getAncestorsUnsafe(bkey);
-                return res;
-            }
-            if (blocks.containsKey(bparentKey)) {
-                res = getAncestorsUnsafe(bparentKey);
-                res.add(blocks.get(bparentKey));
-                return res;
-            }
-        } finally {
-            this.readWriteLock.readLock().unlock();
+        while (b != null) {
+            res.add(b);
+            b = blocks.get(Hex.encodeHexString(b.hashPrevBlock));
         }
+        Collections.reverse(res);
         return res;
     }
 }
