@@ -236,7 +236,14 @@ public class MerkleRule implements BlockRule {
                     celvotelist.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
                 case 0x0e://mortgage
-
+                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                    } else {
+                        fromaccount = accountDB.selectaccount(frompubhash);
+                    }
+                    List<Account> mortgageList = UpdateMortgageAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
+                    mortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
             }
         }
@@ -423,6 +430,30 @@ public class MerkleRule implements BlockRule {
             long vote = fromaccount.getVote();
             vote += tran.amount;
             fromaccount.setVote(vote);
+            list.add(fromaccount);
+        }
+        return list;
+    }
+
+    private List<Account> UpdateMortgageAccount(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
+        List<Account> list=new ArrayList<>();
+        long balance = fromaccount.getBalance();
+        balance -= tran.amount;
+        balance -= tran.getFee();
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(tran.nonce);
+        fromaccount.setBlockHeight(nowheight);
+        if (!Arrays.equals(frompubhash, tran.to)) {
+            long mortgage = toaccount.getMortgage();
+            mortgage += tran.amount;
+            toaccount.setMortgage(mortgage);
+            toaccount.setBlockHeight(nowheight);
+            list.add(fromaccount);
+            list.add(toaccount);
+        } else {//投票自己投给自己
+            long mortgage = fromaccount.getMortgage();
+            mortgage += tran.amount;
+            fromaccount.setMortgage(mortgage);
             list.add(fromaccount);
         }
         return list;
