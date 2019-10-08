@@ -208,11 +208,11 @@ public class TransactionCheck {
             //nonce
             long trannonce = transaction.nonce;
             long nownonce;
-            if (account == null) {
-                nownonce = accountDB.getNonce(frompubhash);
-            } else {
+//            if (account == null) {
+//                nownonce = accountDB.getNonce(frompubhash);
+//            } else {
                 nownonce = account.getNonce();
-            }
+//            }
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small");
