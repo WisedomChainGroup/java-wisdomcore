@@ -55,15 +55,11 @@ public class PackageMiner {
                 boolean state=false;
                 TransPool transPool = entry1.getValue();
                 Transaction transaction = transPool.getTransaction();
-                if (size > block.MAX_BLOCK_SIZE) {
+                if (size > Block.MAX_BLOCK_SIZE) {
                     exit = true;
                     break;
                 }
-                // DB中防止写入重复的事务
-                if (bc.hasTransaction(transaction.getHash())) {
-                    continue;
-                }
-                //forkdb中防止写入重复事务
+                // 防止写入重复事务
                 if (stateDB.hasTransaction(parenthash, transaction.getHash())) {
                     continue;
                 }
@@ -87,6 +83,7 @@ public class PackageMiner {
                             toaccount = new Account(0, transaction.to, 0, 0, 0, 0, 0);
                         }
                         Map<String,Account> accountList=null;
+                        // TODO: ???????????????????????
                         if(transaction.type==1){
                             accountList=updateTransfer(fromaccount,toaccount,transaction);
                         }else if(transaction.type==2){
