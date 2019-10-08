@@ -222,13 +222,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
 
             // TODO: remove assertion codes
-            if (
-                    !Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
-                            || blocks.size() != blocksPerUpdate
-                            || !isChain(blocks)
-            ) {
-                logger.error("=================================== warning ======================");
-            }
+//            if (
+//                    !Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
+//                            || blocks.size() != blocksPerUpdate
+//                            || !isChain(blocks)
+//            ) {
+//                logger.error("=================================== warning ======================");
+//            }
             while (blocks.size() > 0) {
                 validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 targetStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
@@ -312,11 +312,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             List<Block> all = res.getAll();
 
             // TODO: remove code assertion
-            if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
-                logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            } else {
-                logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            }
+//            if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
+//                logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            } else {
+//                logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            }
             return all;
         } finally {
             this.readWriteLock.readLock().unlock();
