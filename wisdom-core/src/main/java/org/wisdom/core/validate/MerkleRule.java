@@ -157,7 +157,8 @@ public class MerkleRule implements BlockRule {
                     isdisplay = true;
                     totalbalance -= (hatchincubator.getShare_amount() + hatchincubator.getInterest_amount());
                     break;
-                case 0x0a:case 0x0b://extract
+                case 0x0a:
+                case 0x0b://extract
                     Account extractaccount = UpdateExtAccount(tran, toaccount, nowheight);
                     accmap.put(Hex.encodeHexString(tran.to), extractaccount);
                     //孵化状态
@@ -232,11 +233,28 @@ public class MerkleRule implements BlockRule {
                     } else {
                         fromaccount = accountDB.selectaccount(frompubhash);
                     }
-                    List<Account> celvotelist = UpdateCancelVote(tran,fromaccount, toaccount, nowheight, frompubhash);
+                    List<Account> celvotelist = UpdateCancelVote(tran, fromaccount, toaccount, nowheight, frompubhash);
                     celvotelist.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
                 case 0x0e://mortgage
-
+                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                    } else {
+                        fromaccount = accountDB.selectaccount(frompubhash);
+                    }
+                    List<Account> mortgageList = UpdateMortgageAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
+                    mortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                    break;
+                case 0x0f:
+                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
+                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
+                    } else {
+                        fromaccount = accountDB.selectaccount(frompubhash);
+                    }
+                    List<Account> celMortgageList = UpdateCancelMortgage(tran, fromaccount, toaccount, nowheight, frompubhash);
+                    celMortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
             }
         }
@@ -262,7 +280,7 @@ public class MerkleRule implements BlockRule {
         return result;
     }
 
-    private Account UpdateCoinBase(Transaction tran,Account toaccount,long nowheight){
+    private Account UpdateCoinBase(Transaction tran, Account toaccount, long nowheight) {
         long balance = toaccount.getBalance();
         balance += tran.amount;
         toaccount.setBalance(balance);
@@ -270,7 +288,7 @@ public class MerkleRule implements BlockRule {
         return toaccount;
     }
 
-    private Account UpdateHatAccount(Transaction tran,Account toaccount,long nowheight) {
+    private Account UpdateHatAccount(Transaction tran, Account toaccount, long nowheight) {
         long balance = toaccount.getBalance();
         balance -= tran.amount;
         balance -= tran.getFee();
@@ -283,7 +301,7 @@ public class MerkleRule implements BlockRule {
         return toaccount;
     }
 
-    private Incubator UpdateHatIncuator(Transaction tran,long nowheight) throws InvalidProtocolBufferException, DecoderException {
+    private Incubator UpdateHatIncuator(Transaction tran, long nowheight) throws InvalidProtocolBufferException, DecoderException {
         byte[] playload = tran.payload;
         HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
         int days = payloadproto.getType();
@@ -299,7 +317,7 @@ public class MerkleRule implements BlockRule {
         return incubator;
     }
 
-    private Account UpdateExtAccount(Transaction tran,Account toaccount,long nowheight){
+    private Account UpdateExtAccount(Transaction tran, Account toaccount, long nowheight) {
         long balance = toaccount.getBalance();
         balance += tran.amount;
         balance -= tran.getFee();
@@ -309,7 +327,7 @@ public class MerkleRule implements BlockRule {
         return toaccount;
     }
 
-    public Incubator UpdateExtIncuator(Transaction tran,long nowheight,Incubator incubator){
+    public Incubator UpdateExtIncuator(Transaction tran, long nowheight, Incubator incubator) {
         Transaction transaction = wisdomBlockChain.getTransaction(tran.payload);
         int days = transaction.getdays();
         String rate = rateTable.selectrate(transaction.height, days);//利率
@@ -353,8 +371,8 @@ public class MerkleRule implements BlockRule {
         return incubator;
     }
 
-    private List<Account> UpdateTransfer(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
-        List<Account> list=new ArrayList<>();
+    private List<Account> UpdateTransfer(Transaction tran, Account fromaccount, Account toaccount, long nowheight, byte[] frompubhash) {
+        List<Account> list = new ArrayList<>();
         long frombalance = fromaccount.getBalance();
         frombalance -= tran.amount;
         frombalance -= tran.getFee();
@@ -376,7 +394,7 @@ public class MerkleRule implements BlockRule {
         return list;
     }
 
-    private Account UpdateCostAccount(Transaction tran,Account toaccount,long nowheight){
+    private Account UpdateCostAccount(Transaction tran, Account toaccount, long nowheight) {
         long balance = toaccount.getBalance();
         balance += tran.amount;
         balance -= tran.getFee();
@@ -389,13 +407,13 @@ public class MerkleRule implements BlockRule {
         return toaccount;
     }
 
-    public Incubator UpdateCostIncubator(Incubator incubator,long nowheight){
+    public Incubator UpdateCostIncubator(Incubator incubator, long nowheight) {
         incubator.setCost(0);
         incubator.setHeight(nowheight);
         return incubator;
     }
 
-    private Account UpdateDepAccount(Transaction tran,Account fromaccount,long nowheight){
+    private Account UpdateDepAccount(Transaction tran, Account fromaccount, long nowheight) {
         long balance = fromaccount.getBalance();
         balance -= tran.getFee();
         fromaccount.setBalance(balance);
@@ -404,8 +422,8 @@ public class MerkleRule implements BlockRule {
         return fromaccount;
     }
 
-    private List<Account> UpdateVoteAccount(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
-        List<Account> list=new ArrayList<>();
+    private List<Account> UpdateVoteAccount(Transaction tran, Account fromaccount, Account toaccount, long nowheight, byte[] frompubhash) {
+        List<Account> list = new ArrayList<>();
         long balance = fromaccount.getBalance();
         balance -= tran.amount;
         balance -= tran.getFee();
@@ -428,20 +446,44 @@ public class MerkleRule implements BlockRule {
         return list;
     }
 
-    private List<Account> UpdateCancelVote(Transaction tran,Account fromaccount,Account toaccount,long nowheight,byte[] frompubhash){
-        List<Account> list=new ArrayList<>();
+    private List<Account> UpdateMortgageAccount(Transaction tran, Account fromaccount, Account toaccount, long nowheight, byte[] frompubhash) {
+        List<Account> list = new ArrayList<>();
+        long balance = fromaccount.getBalance();
+        balance -= tran.amount;
+        balance -= tran.getFee();
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(tran.nonce);
+        fromaccount.setBlockHeight(nowheight);
+        if (!Arrays.equals(frompubhash, tran.to)) {
+            long mortgage = toaccount.getMortgage();
+            mortgage += tran.amount;
+            toaccount.setMortgage(mortgage);
+            toaccount.setBlockHeight(nowheight);
+            list.add(fromaccount);
+            list.add(toaccount);
+        } else {//投票自己投给自己
+            long mortgage = fromaccount.getMortgage();
+            mortgage += tran.amount;
+            fromaccount.setMortgage(mortgage);
+            list.add(fromaccount);
+        }
+        return list;
+    }
+
+    private List<Account> UpdateCancelVote(Transaction tran, Account fromaccount, Account toaccount, long nowheight, byte[] frompubhash) {
+        List<Account> list = new ArrayList<>();
         long balance = fromaccount.getBalance();
         balance -= tran.getFee();
         balance += tran.amount;
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tran.nonce);
         fromaccount.setBlockHeight(nowheight);
-        if(Arrays.equals(frompubhash, tran.to)){//撤回自己投给自己的投票
+        if (Arrays.equals(frompubhash, tran.to)) {//撤回自己投给自己的投票
             long vote = fromaccount.getVote();
-            vote-=tran.amount;
+            vote -= tran.amount;
             fromaccount.setVote(vote);
             list.add(fromaccount);
-        }else{
+        } else {
             long vote = toaccount.getVote();
             vote -= tran.amount;
             toaccount.setVote(vote);
@@ -451,4 +493,29 @@ public class MerkleRule implements BlockRule {
         }
         return list;
     }
+
+    private List<Account> UpdateCancelMortgage(Transaction tran, Account fromaccount, Account toaccount, long nowheight, byte[] frompubhash) {
+        List<Account> list = new ArrayList<>();
+        long balance = fromaccount.getBalance();
+        balance -= tran.getFee();
+        balance += tran.amount;
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(tran.nonce);
+        fromaccount.setBlockHeight(nowheight);
+        if (Arrays.equals(frompubhash, tran.to)) {
+            long mortgage = fromaccount.getMortgage();
+            mortgage -= tran.amount;
+            fromaccount.setMortgage(mortgage);
+            list.add(fromaccount);
+        } else {
+            long mortgage = toaccount.getMortgage();
+            mortgage -= tran.amount;
+            toaccount.setMortgage(mortgage);
+            toaccount.setBlockHeight(nowheight);
+            list.add(fromaccount);
+            list.add(toaccount);
+        }
+        return list;
+    }
+
 }
