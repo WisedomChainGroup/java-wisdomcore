@@ -117,7 +117,15 @@ public class Miner implements ApplicationListener {
 
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
+        Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
+            boolean isExitVote = tx.type == Transaction.Type.EXIT_VOTE.ordinal();
+            if(isExitVote && payloads.contains(Hex.encodeHexString(tx.payload))){
+                continue;
+            }
+            if(isExitVote){
+                payloads.add(Hex.encodeHexString(tx.payload));
+            }
             block.body.get(0).amount += tx.getFee();
             block.body.add(tx);
         }

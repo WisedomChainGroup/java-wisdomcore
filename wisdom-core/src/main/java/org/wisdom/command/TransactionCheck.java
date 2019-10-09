@@ -167,7 +167,7 @@ public class TransactionCheck {
             //bytelength
             byte[] date = ByteUtil.bytearraycopy(tranlast, 0, 4);
             int length = ByteUtil.byteArrayToInt(date);
-            if (type[0] != 0x01 && type[0] != 0x02) {//转账、投票,没有payload
+            if (type[0] != 0x01 && type[0] != 0x02 && type[0] != Transaction.Type.MORTGAGE.ordinal()) {//转账、投票,抵押, 没有payload
                 if (length == 0) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Payload cannot be empty");
@@ -285,31 +285,10 @@ public class TransactionCheck {
             case 0x0d://撤回投票
                 apiResult = CheckRecallVote(amount, payload, frompubhash, topubkeyhash);
                 break;
-            case 0x0e: // 抵押
-                apiResult = CheckMortgage(payload);
-                break;
             case 0x0f://撤回抵押
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
                 break;
         }
-        return apiResult;
-    }
-
-    /**
-     * check mortgage payload
-     *
-     * @param payload payload
-     * @return APIResult
-     */
-    private APIResult CheckMortgage(byte[] payload) {
-        APIResult apiResult = new APIResult();
-        if (!JSONObject.parseObject(new String(payload)).get("type").equals("miner")) {
-            apiResult.setCode(5000);
-            apiResult.setMessage("mortgage payload type must be miner");
-            return apiResult;
-        }
-        apiResult.setCode(2000);
-        apiResult.setMessage("SUCCESS");
         return apiResult;
     }
 
@@ -599,37 +578,21 @@ public class TransactionCheck {
 
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
-        if (!JSONObject.parseObject(new String(payload)).get("type").equals("miner")) {
-            apiResult.setCode(5000);
-            apiResult.setMessage("The mortgage payload type must be miner");
-            return apiResult;
+        if (payload.length == 0){
+            return APIResult.newFailResult(5000,"recall mortgage payload cannot null");
         }
-        if (JSONObject.parseObject(new String(payload)).get("txid") == null) {
-            apiResult.setCode(5000);
-            apiResult.setMessage("The mortgage payload txid cannot null");
-            return apiResult;
-        }
-        String txid = (String) JSONObject.parseObject(new String(payload)).get("txid");
-        byte[] txHash;
-        try {
-            txHash = Hex.decodeHex(txid.toCharArray());
-        } catch (DecoderException e) {
-            apiResult.setCode(5000);
-            apiResult.setMessage("The txid error");
-            return apiResult;
-        }
-        if (txHash.length != 32) {//抵押事务哈希
+        if (payload.length != 32) {//抵押事务哈希
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage transaction payload was incorrectly formatted");
             return apiResult;
         }
-        boolean hasmortgage = accountDB.hasExitMortgage(txHash);
+        boolean hasmortgage = accountDB.hasExitMortgage(payload);
         if (!hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
         }
-        Transaction transaction = wisdomBlockChain.getTransaction(txHash);
+        Transaction transaction = wisdomBlockChain.getTransaction(payload);
         if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
