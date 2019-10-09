@@ -256,7 +256,7 @@ public class PackageMiner {
         long mortgage;
         mortgage = fromaccount.getMortgage();
         mortgage -= transaction.amount;
-        fromaccount.setVote(mortgage);
+        fromaccount.setMortgage(mortgage);
         if (mortgage < 0) {
             return null;
         }
