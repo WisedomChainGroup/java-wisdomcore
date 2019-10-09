@@ -194,6 +194,9 @@ public class AccountRule implements BlockRule {
                         if (t == null || t.type != Transaction.Type.VOTE.ordinal()){
                             return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " is not vote or not exists");
                         }
+                        if (t.amount != tx.amount){
+                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + "  not equals to vote account");
+                        }
                         if (map.containsKey(Hex.encodeHexString(tx.to))) {
                             tovoteaccountState = map.get(Hex.encodeHexString(tx.to));
                             votetoaccount = tovoteaccountState.getAccount();
