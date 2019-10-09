@@ -489,4 +489,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             writeBlock(b);
         }
     }
+
+    public boolean hasPayload(byte[] payload){
+        return tmpl.queryForObject("select count(*) from transaction as tx where tx.payload = ?  limit 1", new Object[]{payload}, Integer.class) > 0;
+    }
+
 }

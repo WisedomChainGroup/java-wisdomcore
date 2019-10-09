@@ -32,6 +32,7 @@ import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.core.orm.TransactionMapper;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.core.validate.MerkleRule;
@@ -390,6 +391,56 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return true;
         }
         return hasTransactionUnsafe(b.hashPrevBlock, transactionHash);
+    }
+
+    public Transaction getTransaction(byte[] blockHash, byte[] txHash) {
+        readWriteLock.readLock().lock();
+        try {
+            return getTransactionUnsafe(blockHash, txHash);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private Transaction getTransactionUnsafe(byte[] blockHash, byte[] txHash) {
+        if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
+            return bc.getTransaction(txHash);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null || b.body == null) {
+            return null;
+        }
+        for(Transaction t: b.body){
+            if (Arrays.equals(t.getHash(), txHash)){
+                return t;
+            }
+        }
+        return getTransactionUnsafe(b.hashPrevBlock, txHash);
+    }
+
+    public boolean hasPayload(byte[] hash, byte[] payload) {
+        readWriteLock.readLock().lock();
+        try {
+            return hasPayloadUnsafe(hash, payload);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private boolean hasPayloadUnsafe(byte[] blockHash, byte[] payload) {
+        if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
+            return bc.hasPayload(payload);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return true;
+        }
+        for(Transaction t: b.body){
+            if(t.payload != null && Arrays.equals(t.payload, payload)){
+                return true;
+            }
+        }
+        return hasPayloadUnsafe(b.hashPrevBlock, payload);
     }
 
     public Block getLastConfirmed() {

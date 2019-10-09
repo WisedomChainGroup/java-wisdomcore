@@ -90,6 +90,26 @@ public class AccountRule implements BlockRule {
         if (map == null) {
             return Result.Error("get accounts from database failed");
         }
+        Map<String, Integer> payloadsCounter = new HashMap<>();
+
+        // 一个区块每个 from 只能有一个撤回事务，避免多次撤回同一个投票
+        for (Transaction t : block.body) {
+            if (t.type != Transaction.Type.EXIT_VOTE.ordinal()) {
+                continue;
+            }
+            String k = Hex.encodeHexString(t.payload);
+            if (!payloadsCounter.containsKey(k)) {
+                payloadsCounter.put(k, 0);
+            }
+            payloadsCounter.put(k, payloadsCounter.get(k) + 1);
+        }
+
+        for (String k : payloadsCounter.keySet()) {
+            if (payloadsCounter.get(k) > 1) {
+                return Result.Error(k + " exit vote more than once");
+            }
+        }
+
         List<Transaction> transactionList = new ArrayList<>();
         if (block.nHeight > 0) {
             for (Transaction tx : block.body) {
@@ -165,6 +185,15 @@ public class AccountRule implements BlockRule {
                     } else if (tx.type == Transaction.Type.EXIT_VOTE.ordinal()) {//撤回投票
                         Account votetoaccount;
                         AccountState tovoteaccountState;
+                        // 投票没有撤回过
+                        if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)){
+                            return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
+                        }
+                        // 撤回的必须是投票
+                        Transaction t = stateDB.getTransaction(block.hashPrevBlock, tx.payload);
+                        if (t == null || t.type != Transaction.Type.VOTE.ordinal()){
+                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " is not vote or not exists");
+                        }
                         if (map.containsKey(Hex.encodeHexString(tx.to))) {
                             tovoteaccountState = map.get(Hex.encodeHexString(tx.to));
                             votetoaccount = tovoteaccountState.getAccount();
