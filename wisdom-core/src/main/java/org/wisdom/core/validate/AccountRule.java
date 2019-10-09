@@ -196,7 +196,7 @@ public class AccountRule implements BlockRule {
                         }
                         // 投票多少撤回多少
                         if (t.amount != tx.amount){
-                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " should exit vote " + tx.amount + " while " + t.amount + " received");
+                            return Result.Error("the transaction " + tx.getHashHexString() + " should exit vote " + t.amount + " while " + tx.amount + " received");
                         }
                         if (map.containsKey(Hex.encodeHexString(tx.to))) {
                             tovoteaccountState = map.get(Hex.encodeHexString(tx.to));
@@ -229,7 +229,7 @@ public class AccountRule implements BlockRule {
                         }
                         // 抵押多少撤回多少
                         if (t.amount != tx.amount){
-                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " should exit mortgage " + tx.amount + " while " + t.amount + " received");
+                            return Result.Error("the transaction " + tx.getHashHexString() + " should exit mortgage " + t.amount + " while " + tx.amount + " received");
                         }
                         Map<String, Account> cancelAccountList = packageMiner.UpdateCancelMortgage(account, tx);
                         if (cancelAccountList == null) {
