@@ -86,7 +86,8 @@ public class CommandServiceImpl implements CommandService {
             if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
                 Block block = stateDB.getBestBlock();
                 List<String> list = stateDB.getProposersFactory().getProposers(block);
-                if (list.size() > 0 && list.contains(Hex.encodeHexString(tran.from))) {
+                byte[] fromPublicHash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+                if (list.size() > 0 && list.contains(Hex.encodeHexString(fromPublicHash))) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("The miner cannot withdraw the mortgage");
                     return apiResult;
