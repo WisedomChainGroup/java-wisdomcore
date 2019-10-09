@@ -579,7 +579,7 @@ public class TransactionCheck {
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
         if (payload.length == 0){
-            return APIResult.newFailResult(5000,"recall payload cannot null");
+            return APIResult.newFailResult(5000,"recall mortgage payload cannot null");
         }
         if (payload.length != 32) {//抵押事务哈希
             apiResult.setCode(5000);
