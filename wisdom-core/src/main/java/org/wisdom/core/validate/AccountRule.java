@@ -194,6 +194,10 @@ public class AccountRule implements BlockRule {
                         if (t == null || t.type != Transaction.Type.VOTE.ordinal()){
                             return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " is not vote or not exists");
                         }
+                        // 投票多少撤回多少
+                        if (t.amount != tx.amount){
+                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " should exit vote " + tx.amount + " while " + t.amount + " received");
+                        }
                         if (map.containsKey(Hex.encodeHexString(tx.to))) {
                             tovoteaccountState = map.get(Hex.encodeHexString(tx.to));
                             votetoaccount = tovoteaccountState.getAccount();
@@ -214,6 +218,19 @@ public class AccountRule implements BlockRule {
                         }
 
                     } else if (tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {//撤回抵押
+                        // 抵押没有撤回过
+                        if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)){
+                            return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
+                        }
+                        // 撤回的必须是抵押
+                        Transaction t = stateDB.getTransaction(block.hashPrevBlock, tx.payload);
+                        if (t == null || t.type != Transaction.Type.MORTGAGE.ordinal()){
+                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " is not mortgage or not exists");
+                        }
+                        // 抵押多少撤回多少
+                        if (t.amount != tx.amount){
+                            return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " should exit mortgage " + tx.amount + " while " + t.amount + " received");
+                        }
                         Map<String, Account> cancelAccountList = packageMiner.UpdateCancelMortgage(account, tx);
                         if (cancelAccountList == null) {
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
