@@ -85,7 +85,6 @@ public class NodeInfoController {
     public Object getProposers() {
         Block best = stateDB.getBestBlock();
         Map<String, Object> res = new HashMap<>();
-        res.put("proposers", stateDB.getProposersFactory().getProposers(best));
         res.put("height", best.nHeight);
         if (allowMinersJoinEra > 0) {
             res.put("enableMinerJoins", true);
@@ -94,6 +93,7 @@ public class NodeInfoController {
             res.put("enableMinerJoins", false);
         }
         ProposersState proposersState = (ProposersState) stateDB.getProposersFactory().getInstance(best);
+        res.put("proposers", proposersState.getProposers());
         res.put("blockList", proposersState.getBlockList());
         res.put("votes", proposersState.getCandidates());
         return res;
@@ -102,7 +102,6 @@ public class NodeInfoController {
     @GetMapping(value = "/account/{account}", produces = "application/json")
     public Object getVotes(@PathVariable("account") String account) {
         Block best = stateDB.getBestBlock();
-        Map<String, Object> res = new HashMap<>();
         byte[] publicKeyHash = null;
         try {
             publicKeyHash = Hex.decodeHex(account);

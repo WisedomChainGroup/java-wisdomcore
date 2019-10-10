@@ -144,7 +144,7 @@ public class ProposersState implements State {
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 // 过滤掉抵押数量不足的节点
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
-                // 按照 投票，抵押，字典从小到大排序
+                // 按照 投票，抵押，字典从大到小排序
                 .sorted((x, y) -> -compareProposer(x, y))
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
