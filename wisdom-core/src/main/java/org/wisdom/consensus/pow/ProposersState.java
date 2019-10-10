@@ -101,12 +101,12 @@ public class ProposersState implements State {
 
     public static int compareProposer(Proposer x, Proposer y) {
         if (x.votes != y.votes) {
-            return (int) (y.votes - x.votes);
+            return (int) (x.votes - y.votes);
         }
-        if (x.mortgage != y.votes) {
-            return (int) (y.mortgage - x.mortgage);
+        if (x.mortgage != y.mortgage) {
+            return (int) (x.mortgage - y.mortgage);
         }
-        return y.publicKeyHash.compareTo(x.publicKeyHash);
+        return x.publicKeyHash.compareTo(y.publicKeyHash);
     }
 
     @Override
