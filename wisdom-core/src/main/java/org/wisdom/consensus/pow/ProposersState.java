@@ -153,15 +153,15 @@ public class ProposersState implements State {
             p = new Proposer();
             p.publicKeyHash = Hex.encodeHexString(transaction.to);
         }
-        switch (transaction.type) {
+        switch (Transaction.TYPES_TABLE[transaction.type]) {
             // 投票
-            case 0x02: {
+            case VOTE: {
                 p.votes += transaction.amount;
                 all.put(p.publicKeyHash, p);
                 return this;
             }
             // 撤回投票
-            case 0x0d: {
+            case EXIT_VOTE: {
                 p.votes -= transaction.amount;
                 if (p.votes < 0) {
                     logger.error("votes < 0");
@@ -170,13 +170,13 @@ public class ProposersState implements State {
                 return this;
             }
             // 抵押
-            case 0x0e: {
+            case MORTGAGE: {
                 p.mortgage += transaction.amount;
                 all.put(p.publicKeyHash, p);
                 return this;
             }
             // 抵押撤回
-            case 0x0f: {
+            case EXIT_MORTGAGE: {
                 p.mortgage -= transaction.amount;
                 if (p.mortgage < 0) {
                     logger.error("mortgage < 0");
