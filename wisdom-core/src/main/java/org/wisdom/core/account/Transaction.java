@@ -50,7 +50,7 @@ public class Transaction {
 
     public static final int SIGNATURE_SIZE = 64;
 
-    public static final int ADDRESS_SIZE = 20;
+    public static final int PUBLIC_KEY_HASH_SIZE = 20;
 
     public static final long[] GAS_TABLE = new long[]{
             0, 50000, 20000,
@@ -82,7 +82,7 @@ public class Transaction {
         Transaction tx = new Transaction();
         tx.version = Transaction.DEFAULT_TRANSACTION_VERSION;
         tx.from = new byte[Transaction.PUBLIC_KEY_SIZE];
-        tx.to = new byte[Transaction.ADDRESS_SIZE];
+        tx.to = new byte[Transaction.PUBLIC_KEY_HASH_SIZE];
         tx.signature = new byte[Transaction.SIGNATURE_SIZE];
         return tx;
     }
@@ -180,7 +180,7 @@ public class Transaction {
     public byte[] payload;
 
     @NotNull
-    @Size(min = ADDRESS_SIZE, max = ADDRESS_SIZE)
+    @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE)
     public byte[] to;
 
     @NotNull
@@ -334,11 +334,11 @@ public class Transaction {
         transaction.type = reader.read();
         //nonce
         transaction.nonce = BigEndian.decodeUint64(reader.read(8));
-        transaction.from = reader.read(32);
+        transaction.from = reader.read(PUBLIC_KEY_SIZE);
         transaction.gasPrice = BigEndian.decodeUint64(reader.read(8));
         transaction.amount = BigEndian.decodeUint64(reader.read(8));
-        transaction.signature = reader.read(64);
-        transaction.to = reader.read(20);
+        transaction.signature = reader.read(SIGNATURE_SIZE);
+        transaction.to = reader.read(PUBLIC_KEY_HASH_SIZE);
         // payload
         int type = transaction.type;
         byte[] payloadLength = reader.read(4);
