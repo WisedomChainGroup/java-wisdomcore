@@ -182,11 +182,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.confirms = new HashMap<>();
         this.leastConfirms = new HashMap<>();
 
-        Resource resource;
-        try {
+        Resource  resource = new FileSystemResource(validatorsFile);
+        if(!resource.exists()){
             resource = new ClassPathResource(validatorsFile);
-        } catch (Exception e) {
-            resource = new FileSystemResource(validatorsFile);
         }
 
         this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
