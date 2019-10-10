@@ -69,6 +69,14 @@ public class Transaction {
         EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
     }
 
+    public static final Type[] TYPES_TABLE = new Type[]{
+            Type.COINBASE, Type.TRANSFER, Type.VOTE,
+            Type.DEPOSIT, Type.TRANSFER_MULTISIG_MULTISIG, Type.TRANSFER_MULTISIG_NORMAL,
+            Type.TRANSFER_NORMAL_MULTISIG, Type.ASSET_DEFINE, Type.ATOMIC_EXCHANGE,
+            Type.INCUBATE, Type.EXTRACT_INTEREST, Type.EXTRACT_SHARING_PROFIT,
+            Type.EXTRACT_COST, Type.EXIT_VOTE, Type.MORTGAGE, Type.EXIT_MORTGAGE
+    };
+
     public static Transaction createEmpty() {
         Transaction tx = new Transaction();
         tx.version = Transaction.DEFAULT_TRANSACTION_VERSION;
