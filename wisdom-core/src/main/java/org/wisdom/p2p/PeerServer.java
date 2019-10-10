@@ -278,7 +278,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
-                t.printStackTrace();
+//                t.printStackTrace();
                 ch.shutdown();
             }
 
@@ -307,7 +307,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
             @Override
             public void onError(Throwable t) {
-                t.printStackTrace();
+//                t.printStackTrace();
                 int k = self.subTree(peer);
                 Peer p = peers.get(k);
                 if (p != null && p.equals(peer)) {
