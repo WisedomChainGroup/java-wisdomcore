@@ -93,7 +93,7 @@ public class NodeInfoController {
             res.put("enableMinerJoins", false);
         }
         ProposersState proposersState = (ProposersState) stateDB.getProposersFactory().getInstance(best);
-        res.put("proposers", proposersState.getProposers());
+        res.put("proposers", proposersState.getProposers().stream().map(p -> p.publicKeyHash).toArray());
         res.put("blockList", proposersState.getBlockList());
         res.put("votes", proposersState.getCandidates());
         return res;
