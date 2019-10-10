@@ -191,7 +191,7 @@ public class TransactionCheck {
             }
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
-            Transaction transaction = Transaction.transformByte(transfer);
+            Transaction transaction = Transaction.fromRPCBytes(transfer);
             apiResult.setData(transaction);
             return apiResult;
         } catch (Exception e) {

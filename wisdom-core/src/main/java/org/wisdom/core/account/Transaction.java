@@ -34,6 +34,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.util.BytesReader;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -323,6 +324,31 @@ public class Transaction {
         return Arrays.concatenate(new byte[]{(byte) version}, getHash(), Arrays.copyOfRange(raw, 1, raw.length));
     }
 
+    public static Transaction fromRPCBytes(byte[] msg) {
+        Transaction transaction = new Transaction();
+        BytesReader reader = new BytesReader(msg);
+        //version
+        transaction.version = reader.read();
+        // skip hash
+        reader.read(32);
+        transaction.type = reader.read();
+        //nonce
+        transaction.nonce = BigEndian.decodeUint64(reader.read(8));
+        transaction.from = reader.read(32);
+        transaction.gasPrice = BigEndian.decodeUint64(reader.read(8));
+        transaction.amount = BigEndian.decodeUint64(reader.read(8));
+        transaction.signature = reader.read(64);
+        transaction.to = reader.read(20);
+        // payload
+        int type = transaction.type;
+        byte[] payloadLength = reader.read(4);
+        if (type == 0x09 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x03 || type == 0x0d || type == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
+            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
+        }
+        return transaction;
+    }
+
+    // TODO: use fromRPCBytes
     public static Transaction transformByte(byte[] msg) {
         Transaction transaction = new Transaction();
         //version
