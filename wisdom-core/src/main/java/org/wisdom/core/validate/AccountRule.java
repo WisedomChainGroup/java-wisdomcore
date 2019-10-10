@@ -91,24 +91,21 @@ public class AccountRule implements BlockRule {
         if (map == null) {
             return Result.Error("get accounts from database failed");
         }
-        Map<String, Integer> payloadsCounter = new HashMap<>();
+        Set<String> payloads = new HashSet<>();
 
-        // 一个区块每个 from 只能有一个撤回事务，避免多次撤回同一个投票
+        // 一个区块内同一个投票或者抵押只能被撤回一次
         for (Transaction t : block.body) {
-            if (t.type != Transaction.Type.EXIT_VOTE.ordinal()) {
+            if (
+                    t.type != Transaction.Type.EXIT_VOTE.ordinal() ||
+                    t.type != Transaction.Type.EXIT_MORTGAGE.ordinal()
+            ) {
                 continue;
             }
             String k = Hex.encodeHexString(t.payload);
-            if (!payloadsCounter.containsKey(k)) {
-                payloadsCounter.put(k, 0);
-            }
-            payloadsCounter.put(k, payloadsCounter.get(k) + 1);
-        }
-
-        for (String k : payloadsCounter.keySet()) {
-            if (payloadsCounter.get(k) > 1) {
+            if(payloads.contains(k)){
                 return Result.Error(k + " exit vote more than once");
             }
+            payloads.add(k);
         }
 
         List<Transaction> transactionList = new ArrayList<>();

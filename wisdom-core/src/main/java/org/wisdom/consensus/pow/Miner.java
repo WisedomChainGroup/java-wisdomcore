@@ -119,11 +119,11 @@ public class Miner implements ApplicationListener {
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
         Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
-            boolean isExitVote = tx.type == Transaction.Type.EXIT_VOTE.ordinal();
-            if(isExitVote && payloads.contains(Hex.encodeHexString(tx.payload))){
+            boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
+            if(isExit && payloads.contains(Hex.encodeHexString(tx.payload))){
                 continue;
             }
-            if(isExitVote){
+            if(isExit){
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
             block.body.get(0).amount += tx.getFee();
