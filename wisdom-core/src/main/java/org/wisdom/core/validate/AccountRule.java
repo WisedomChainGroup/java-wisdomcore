@@ -103,7 +103,7 @@ public class AccountRule implements BlockRule {
             }
             String k = Hex.encodeHexString(t.payload);
             if(payloads.contains(k)){
-                return Result.Error(k + " exit vote more than once");
+                return Result.Error(k + " exit vote or mortgage more than once");
             }
             payloads.add(k);
         }
