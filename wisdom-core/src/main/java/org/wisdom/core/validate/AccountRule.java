@@ -97,7 +97,7 @@ public class AccountRule implements BlockRule {
         for (Transaction t : block.body) {
             if (
                     t.type != Transaction.Type.EXIT_VOTE.ordinal() ||
-                    t.type != Transaction.Type.EXIT_MORTGAGE.ordinal()
+                    t.type != Transaction.Type.EXIT_MORTGAGE.ordinal() || t.payload == null
             ) {
                 continue;
             }
