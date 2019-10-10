@@ -86,7 +86,7 @@ public class ProposersState implements State {
                 .stream()
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
-                .sorted(ProposersState::compareProposer)
+                .sorted((x, y) -> -compareProposer(x, y))
                 .collect(Collectors.toList());
         return candidates;
     }
@@ -144,7 +144,7 @@ public class ProposersState implements State {
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
 
-        for(int i = 0; i < proposers.size() - 1; i++){
+        for (int i = 0; i < proposers.size() - 1; i++) {
             Proposer x = all.get(proposers.get(i));
             Proposer y = all.get(proposers.get(i + 1));
             assert compareProposer(x, y) >= 0;
