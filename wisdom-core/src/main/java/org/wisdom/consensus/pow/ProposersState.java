@@ -101,10 +101,10 @@ public class ProposersState implements State {
 
     public static int compareProposer(Proposer x, Proposer y) {
         if (x.votes != y.votes) {
-            return (int) (x.votes - y.votes);
+            return Long.compare(x.votes, y.votes);
         }
         if (x.mortgage != y.mortgage) {
-            return (int) (x.mortgage - y.mortgage);
+            return Long.compare(x.mortgage, y.votes);
         }
         return x.publicKeyHash.compareTo(y.publicKeyHash);
     }
@@ -139,10 +139,16 @@ public class ProposersState implements State {
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 // 过滤掉抵押数量不足的节点
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
-                // 按照 投票，抵押，字典依次排序
-                .sorted(ProposersState::compareProposer)
+                // 按照 投票，抵押，字典从小到大排序
+                .sorted((x, y) -> -compareProposer(x, y))
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
+
+        for(int i = 0; i < proposers.size() - 1; i++){
+            Proposer x = all.get(proposers.get(i));
+            Proposer y = all.get(proposers.get(i + 1));
+            assert compareProposer(x, y) >= 0;
+        }
         return this;
     }
 
