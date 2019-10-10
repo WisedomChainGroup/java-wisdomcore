@@ -88,11 +88,11 @@ public class ProposersState implements State {
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
                 .sorted((x, y) -> -compareProposer(x, y))
                 .collect(Collectors.toList());
-        for (int i = 0; i < candidates.size() - 1; i++) {
-            Proposer x = candidates.get(i);
-            Proposer y = candidates.get(i + 1);
-            assert compareProposer(x, y) >= 0;
-        }
+//        for (int i = 0; i < candidates.size() - 1; i++) {
+//            Proposer x = candidates.get(i);
+//            Proposer y = candidates.get(i + 1);
+//            assert compareProposer(x, y) >= 0;
+//        }
         return candidates;
     }
 
@@ -149,11 +149,11 @@ public class ProposersState implements State {
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
 
-        for (int i = 0; i < proposers.size() - 1; i++) {
-            Proposer x = all.get(proposers.get(i));
-            Proposer y = all.get(proposers.get(i + 1));
-            assert compareProposer(x, y) >= 0;
-        }
+//        for (int i = 0; i < proposers.size() - 1; i++) {
+//            Proposer x = all.get(proposers.get(i));
+//            Proposer y = all.get(proposers.get(i + 1));
+//            assert compareProposer(x, y) >= 0;
+//        }
         return this;
     }
 
