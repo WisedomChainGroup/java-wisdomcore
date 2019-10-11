@@ -25,6 +25,8 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -45,13 +47,19 @@ public class RPCTest {
         public long data;
     }
 
-    public int getType(){
+    private static class GetPoolAddressResponse {
+        public int code;
+        public String message;
+        public List<Map<String, Object>> data;
+    }
+
+    public int getType() {
         String type = System.getenv("TYPE");
-        if(type == null || type.equals("")){
+        if (type == null || type.equals("")) {
             return Transaction.Type.TRANSFER.ordinal();
         }
-        for(Transaction.Type t: Transaction.TYPES_TABLE){
-            if (t.toString().equals(type.toUpperCase())){
+        for (Transaction.Type t : Transaction.TYPES_TABLE) {
+            if (t.toString().equals(type.toUpperCase())) {
                 return t.ordinal();
             }
         }
@@ -59,25 +67,49 @@ public class RPCTest {
     }
 
 
-    public int getTimes(){
+    public int getTimes() {
         String times = System.getenv("TIMES");
-        if(times == null || times.equals("")){
+        if (times == null || times.equals("")) {
             return 1;
         }
         return Integer.parseInt(times);
     }
 
-    public byte[] getPayload() throws Exception{
+    public byte[] getPayload() throws Exception {
         String payload = System.getenv("PAYLOAD");
-        if(payload == null || payload.equals("")){
+        if (payload == null || payload.equals("")) {
             return new byte[]{};
         }
         return Hex.decodeHex(payload);
     }
 
     @Test
-    public void error(){
+    public void error() {
         logger.error("=====================");
+    }
+
+    @Test
+    public void getTransactionsInMemoryPool() throws Exception {
+        Ed25519PrivateKey privateKey = new Ed25519PrivateKey(Hex.decodeHex(System.getenv("PRIVATE_KEY")));
+        try {
+            String address = Address.publicKeyToAddress(privateKey.generatePublicKey().getEncoded());
+            URI uri = new URI(
+                    "http",
+                    null,
+                    System.getenv("HOST"),
+                    Integer.parseInt(System.getenv("PORT")),
+                    "/getPoolAddress",
+                    null, null
+            );
+            Map<String, String> query = new HashMap<>();
+            query.put("address", address);
+            GetPoolAddressResponse response = get(uri.toString(), query).thenApplyAsync(x -> codec.decode(x, GetPoolAddressResponse.class)).get();
+            for (Map<String, Object> json : response.data) {
+                Transaction tx = Transaction.fromRPCBytes(Hex.decodeHex((String) json.get("traninfo")));;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
     //
@@ -97,22 +129,19 @@ public class RPCTest {
         int times = getTimes();
         long nonce = getNonce(Hex.encodeHexString(Address.publicKeyToHash(tx.from)))
                 .get() + 1;
-        for(int i = 0; i < times; i++){
+        for (int i = 0; i < times; i++) {
             // clear cache
             tx.setHashCache(null);
             tx.nonce = nonce + i;
             tx.signature = privateKey.sign(tx.getRawForSign());
             postTransaction(tx).thenAcceptAsync(r -> {
-                if(r.code == APIResult.FAIL){
-                    System.out.println("post transaction failed");
+                if (r.code == APIResult.FAIL) {
+                    System.out.println("post transaction failed" + r.message);
                 }
                 System.out.println(new String(codec.encode(tx)));
             }).join();
         }
     }
-
-
-
 
 
     private CompletableFuture<byte[]> post(String url, byte[] body) {
@@ -131,9 +160,9 @@ public class RPCTest {
                 resp = httpclient.execute(httppost);
                 return getBody(resp);
             } catch (Exception e) {
-                try{
+                try {
                     resp.close();
-                }catch (Exception ignored){
+                } catch (Exception ignored) {
                 }
                 throw new RuntimeException("post " + url + " fail");
             }
@@ -143,14 +172,16 @@ public class RPCTest {
 
     @Test
     public void testGetNonce() throws Exception {
-        getNonce(Hex.encodeHexString(Address.addressToPublicKeyHash(System.getenv("ADDRESS"))))
-        .thenAccept(System.out::println)
-        .join()
+        Ed25519PrivateKey privateKey = new Ed25519PrivateKey(Hex.decodeHex(System.getenv("PRIVATE_KEY")));
+        String publicKeyHash = Hex.encodeHexString(Address.publicKeyToHash(privateKey.generatePublicKey().getEncoded()));
+        getNonce(publicKeyHash)
+                .thenAccept(System.out::println)
+                .join()
         ;
     }
 
     private CompletableFuture<Response> postTransaction(Transaction tx) {
-        try{
+        try {
             URI uri = new URI(
                     "http",
                     null,
@@ -160,7 +191,7 @@ public class RPCTest {
                     "traninfo=" + Hex.encodeHexString(tx.toRPCBytes()), null
             );
             return post(uri.toString(), new byte[]{}).thenApplyAsync(x -> codec.decode(x, Response.class));
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -205,9 +236,9 @@ public class RPCTest {
                 resp = httpclient.execute(httpget);
                 return getBody(resp);
             } catch (Exception e) {
-                try{
+                try {
                     resp.close();
-                }catch (Exception ignored){
+                } catch (Exception ignored) {
 
                 }
                 throw new RuntimeException("get " + url + " fail");
