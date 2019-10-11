@@ -1,0 +1,13 @@
+{
+  "host": "192.168.0.1",
+  "port": 19585, //
+  "privateKey": "",
+  "transaction": {
+    "type": "", // 0-15 vote
+    "amount": ""
+  },
+  "payload": {
+
+  },
+  "times": 10
+}
