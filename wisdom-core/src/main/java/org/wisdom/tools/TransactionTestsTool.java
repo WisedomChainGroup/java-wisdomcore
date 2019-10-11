@@ -1,6 +1,7 @@
 package org.wisdom.tools;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -14,16 +15,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
-
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -34,8 +32,17 @@ public class TransactionTestsTool {
     private static final int HTTP_TIMEOUT = 5000;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
 
+    private static class TestConfig{
+        public String host;
+        public int port;
+        public String privateKey;
+    }
+
+
     public static void main(String[] args) throws Exception{
-        assert new ClassPathResource(System.getenv("CONFIG_FILE")).exists();
+        byte[] data = IOUtils.toByteArray(new FileSystemResource(System.getenv("CONFIG_FILE")).getInputStream());
+        TestConfig config = codec.decode(data, TestConfig.class);
+
     }
 
     private static class Response {

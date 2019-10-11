@@ -97,8 +97,10 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
             SimpleModule module = new SimpleModule();
             module.addDeserializer(byte[].class, new BytesDeserializer());
             mapper.registerModule(module);
+            mapper.enable(JsonParser.Feature.ALLOW_COMMENTS);
             return mapper.readValue(encoded, valueType);
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
