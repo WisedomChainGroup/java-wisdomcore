@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
  * 抵押事务
  * 撤回投票事务
  * 撤回抵押事务
+ * 2019-10-11 增加投票衰减功能
  */
 @Component
 public class ProposersState implements State {
