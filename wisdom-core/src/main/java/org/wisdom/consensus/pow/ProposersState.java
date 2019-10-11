@@ -13,7 +13,6 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.State;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,13 +25,13 @@ import java.util.stream.Collectors;
 @Component
 public class ProposersState implements State {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
-    public static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    public static final int MAXIMUM_PROPOSERS = 15;
+    private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
+    private static final int MAXIMUM_PROPOSERS = 15;
 
     // 投票数每次衰减 10%
-    public static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
+    private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
     // TODO: 改成每 2160 个纪元进行衰减
-    public static final long ATTENUATION_ERAS = 2;
+    private static final long ATTENUATION_ERAS = 2;
 
     public static class Proposer {
         public long mortgage;
@@ -47,31 +46,31 @@ public class ProposersState implements State {
 
         public String publicKeyHash;
 
-        public Proposer() {
+        Proposer() {
             receivedVotes = new HashMap<>();
+            erasCounter = new HashMap<>();
         }
 
-        public Proposer(long mortgage, String publicKeyHash, Map<String, Long> receivedVotes) {
+        Proposer(long mortgage, String publicKeyHash, Map<String, Long> receivedVotes, Map<String, Long> erasCounter) {
             this.mortgage = mortgage;
             this.publicKeyHash = publicKeyHash;
             this.receivedVotes = receivedVotes;
+            this.erasCounter = erasCounter;
         }
 
         public Proposer copy() {
-            return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes));
+            return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
-        public long getVotes() {
+        long getVotes() {
             return receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
         }
 
-        public void increaseEraCounters(){
-            for(String k: erasCounter.keySet()){
-                erasCounter.put(k, erasCounter.get(k) + 1);
-            }
+        void increaseEraCounters(){
+            erasCounter.replaceAll((k, v) -> v + 1);
         }
 
-        public void attenuation(){
+        void attenuation(){
             for(String k: erasCounter.keySet()){
                 if(erasCounter.get(k) < ATTENUATION_ERAS){
                     continue;
@@ -85,24 +84,24 @@ public class ProposersState implements State {
             }
         }
 
-        public Proposer updateTransaction(Transaction tx){
+        void updateTransaction(Transaction tx){
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
                     receivedVotes.put(tx.getHashHexString(), tx.amount);
                     erasCounter.put(tx.getHashHexString(), 0L);
-                    return this;
+                    return;
                 }
                 // 撤回投票
                 case EXIT_VOTE: {
                     receivedVotes.remove(tx.getHashHexString());
                     erasCounter.remove(tx.getHashHexString());
-                    return this;
+                    return;
                 }
                 // 抵押
                 case MORTGAGE: {
                     mortgage += tx.amount;
-                    return this;
+                    return;
                 }
                 // 抵押撤回
                 case EXIT_MORTGAGE: {
@@ -110,10 +109,8 @@ public class ProposersState implements State {
                     if (mortgage < 0) {
                         logger.error("mortgage < 0");
                     }
-                    return this;
                 }
             }
-            return this;
         }
     }
 
@@ -176,7 +173,7 @@ public class ProposersState implements State {
         return this;
     }
 
-    public static int compareProposer(Proposer x, Proposer y) {
+    private static int compareProposer(Proposer x, Proposer y) {
         if (x.getVotes() != y.getVotes()) {
             return Long.compare(x.getVotes(), y.getVotes());
         }
