@@ -245,7 +245,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return blocksCache.getLeaves().stream()
                     .max((a, b) -> {
                         if (a.nHeight != b.nHeight) {
-                            return (int) (a.nHeight - b.nHeight);
+                            return Long.compare(a.nHeight, b.nHeight);
                         }
                         // pow 更小的占优势
                         return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
