@@ -24,6 +24,7 @@ public class AdoptTransPool {
     @Autowired
     private Leveldb leveldb;
 
+    // publicKeyHash -> Strings.concat(publicKeyHash, nonce) -> transaction
     private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
 
     public AdoptTransPool() {

@@ -39,7 +39,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.pool.PeningTransPool;
+import org.wisdom.util.Address;
 
 import java.util.*;
 
@@ -82,6 +84,8 @@ public class Miner implements ApplicationListener {
     @Autowired
     PackageMiner packageMiner;
 
+    @Autowired
+    AdoptTransPool adoptTransPool;
 
     public Miner() {
     }
@@ -121,6 +125,9 @@ public class Miner implements ApplicationListener {
         for (Transaction tx : newTranList) {
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
             if(isExit && payloads.contains(Hex.encodeHexString(tx.payload))){
+                String from = Hex.encodeHexString(Address.publicKeyToHash(tx.from));
+                peningTransPool.removeOne(from, tx.nonce);
+                adoptTransPool.removeOne(from, adoptTransPool.getKeyTrans(tx));
                 continue;
             }
             if(isExit){

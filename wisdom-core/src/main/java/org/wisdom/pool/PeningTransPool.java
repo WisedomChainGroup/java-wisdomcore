@@ -31,6 +31,7 @@ public class PeningTransPool {
     @Autowired
     private Leveldb leveldb;
 
+    // publicKeyHash -> nonce -> transaction
     private Map<String, TreeMap<Long, TransPool>> ptpool;
 
     private Map<String, PendingNonce> ptnonce;
