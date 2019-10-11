@@ -47,6 +47,8 @@ public class ProposersState implements State {
 
         public String publicKeyHash;
 
+        public long votes;
+
         Proposer() {
             receivedVotes = new HashMap<>();
             erasCounter = new HashMap<>();
@@ -64,7 +66,11 @@ public class ProposersState implements State {
         }
 
         long getVotes() {
-            return receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            if(votes != 0){
+                return votes;
+            }
+            votes = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            return votes;
         }
 
         void increaseEraCounters(){
