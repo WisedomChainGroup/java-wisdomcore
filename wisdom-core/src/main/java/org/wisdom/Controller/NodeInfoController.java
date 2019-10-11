@@ -86,7 +86,7 @@ public class NodeInfoController {
         Block best = stateDB.getBestBlock();
         Map<String, Object> res = new HashMap<>();
         res.put("height", best.nHeight);
-        if (allowMinersJoinEra > 0) {
+        if (allowMinersJoinEra >= 0) {
             res.put("enableMinerJoins", true);
             res.put("minerJoinsHeight", allowMinersJoinEra * blocksPerEra + 1);
         } else {
