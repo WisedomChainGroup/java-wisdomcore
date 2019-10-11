@@ -9,7 +9,7 @@
   "transaction": {
     "amount": 10, // WDC
     "type": "vote", // vote, exit_vote ...
-    "to": "",
+    "to": "", // publicKeyHash or address
     "payload": {
     } // payload is transaction hex or incubator info
   }

@@ -38,6 +38,26 @@ public class TransactionTestsTool {
         public String privateKey;
     }
 
+    private static class PublicKeyHash{
+
+    }
+
+    private static class TransactionType{
+
+    }
+
+
+    private static class TransactionInfo{
+        public long amount;
+        public TransactionType type;
+        public PublicKeyHash to;
+        public Payload payload;
+    }
+
+
+    private static class Payload{
+
+    }
 
     public static void main(String[] args) throws Exception{
         byte[] data = IOUtils.toByteArray(new FileSystemResource(System.getenv("CONFIG_FILE")).getInputStream());
