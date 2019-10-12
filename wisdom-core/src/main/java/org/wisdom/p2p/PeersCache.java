@@ -8,7 +8,7 @@ import java.util.*;
 
 public class PeersCache {
     private static final Logger logger = LoggerFactory.getLogger(PeersCache.class);
-    private static final int MAX_PEERS = 16;
+    static final int MAX_PEERS = 16;
     private static final int PEER_SCORE = 32;
     private static final int EVIL_SCORE = -(1 << 10);
 
