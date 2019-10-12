@@ -38,6 +38,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * 事务发送工具
+ * 使用方法 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
+ */
 public class TransactionTestTool {
     private static final int HTTP_TIMEOUT = 5000;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
