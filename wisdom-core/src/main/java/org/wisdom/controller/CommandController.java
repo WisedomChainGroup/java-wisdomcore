@@ -16,7 +16,7 @@
  * along with the java-wisdomcore. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;

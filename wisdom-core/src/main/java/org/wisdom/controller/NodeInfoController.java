@@ -1,4 +1,4 @@
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
