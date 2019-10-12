@@ -15,6 +15,7 @@ import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
+import org.wisdom.p2p.PeerServer;
 import org.wisdom.p2p.PeersManager;
 import org.wisdom.util.Address;
 
@@ -24,7 +25,7 @@ import java.util.Map;
 @RestController
 public class NodeInfoController {
     @Autowired
-    private PeersManager peersManager;
+    private PeerServer peerServer;
 
     @Value("${wisdom.version}")
     private String version;
@@ -64,11 +65,20 @@ public class NodeInfoController {
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 
+    public static Map<String, Object> getPeerInfo(Peer peer){
+        Map<String, Object> res = new HashMap<>();
+        res.put(peer.toString(), peer.score);
+        return res;
+    }
+
     @GetMapping(value = "/peers/status", produces = "application/json")
     public Object getP2P() {
         Map<String, Object> info = new HashMap<>();
-        info.put("peers", peersManager.getPeers().stream().map(Peer::toString).toArray());
-        info.put("self", peersManager.getSelfAddress());
+        info.put("peers", peerServer.getPeers().stream().map(NodeInfoController::getPeerInfo));
+        info.put("bootstraps", peerServer.getBootstraps().stream().map(Peer::toString));
+        info.put("blockList", peerServer.getPeersCache().getBlocked().stream().map(NodeInfoController::getPeerInfo));
+        info.put("trusted", peerServer.getPeersCache().getTrusted().stream().map(Peer::toString));
+        info.put("self", peerServer.getSelf().toString());
         info.put("p2pMode", p2pMode);
         info.put("enableDiscovery", enableDiscovery);
         info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);

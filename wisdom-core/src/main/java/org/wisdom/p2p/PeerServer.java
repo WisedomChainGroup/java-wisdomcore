@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.wisdom.core.BlocksCache;
 import org.wisdom.sync.SyncManager;
 import org.wisdom.sync.TransactionHandler;
 
@@ -153,6 +154,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     public Set<Peer> getBootstraps(){
         return peersCache.getBootstraps();
+    }
+
+    public PeersCache getPeersCache(){
+        return peersCache;
     }
 
     public Peer getSelf() {
