@@ -1,4 +1,4 @@
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

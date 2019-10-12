@@ -47,8 +47,6 @@ public class ProposersState implements State {
 
         public String publicKeyHash;
 
-        public long votes;
-
         Proposer() {
             receivedVotes = new HashMap<>();
             erasCounter = new HashMap<>();
@@ -65,12 +63,8 @@ public class ProposersState implements State {
             return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
-        long getVotes() {
-            if(votes != 0){
-                return votes;
-            }
-            votes = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
-            return votes;
+        public long getVotes() {
+            return receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
         }
 
         void increaseEraCounters(){
@@ -155,10 +149,8 @@ public class ProposersState implements State {
     }
 
     public List<Proposer> getCandidates() {
-        if (candidates != null) {
-            return candidates;
-        }
-        candidates = getAll().values()
+
+        return getAll().values()
                 .stream()
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
@@ -169,7 +161,6 @@ public class ProposersState implements State {
 //            Proposer y = candidates.get(i + 1);
 //            assert compareProposer(x, y) >= 0;
 //        }
-        return candidates;
     }
 
     @Override

@@ -16,7 +16,7 @@ import org.springframework.context.ApplicationListener;
 
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.Controller.RPCClient;
+import org.wisdom.controller.RPCClient;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;

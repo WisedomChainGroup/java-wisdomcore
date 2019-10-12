@@ -1,4 +1,4 @@
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;

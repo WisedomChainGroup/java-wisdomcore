@@ -1,4 +1,4 @@
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,7 +95,13 @@ public class NodeInfoController {
         ProposersState proposersState = (ProposersState) stateDB.getProposersFactory().getInstance(best);
         res.put("proposers", proposersState.getProposers().stream().map(p -> p.publicKeyHash).toArray());
         res.put("blockList", proposersState.getBlockList());
-        res.put("votes", proposersState.getCandidates());
+        res.put("votes", proposersState.getCandidates().stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("publicKeyHash", c.publicKeyHash);
+            m.put("votes", c.getVotes());
+            m.put("mortgage", c.mortgage);
+            return m;
+        }).toArray());
         return res;
     }
 

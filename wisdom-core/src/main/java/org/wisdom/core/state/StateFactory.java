@@ -20,6 +20,7 @@ package org.wisdom.core.state;
 
 import org.wisdom.core.Block;
 import org.wisdom.db.StateDB;
+import org.wisdom.encoding.JSONEncodeDecoder;
 
 /**
  * @author sal 1564319846@qq.com
@@ -40,7 +41,15 @@ public class StateFactory extends AbstractStateFactory {
             return cache.get(key);
         }
         Block parent = stateDB.getBlock(block.hashPrevBlock);
-        State parentState = getFromCache(parent);
+        State parentState = null;
+        try{
+            parentState = getFromCache(parent);
+        }catch (Exception e){
+            e.printStackTrace();
+            System.out.println("=============");
+            System.out.println("=============");
+            System.out.println(new String(new JSONEncodeDecoder().encodeBlock(block)));
+        }
         State newState = parentState.copy().updateBlock(block);
         cache.put(key, newState);
         return newState.copy();
