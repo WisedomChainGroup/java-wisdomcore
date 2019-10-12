@@ -124,13 +124,13 @@ public class Miner implements ApplicationListener {
         Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
-            if(isExit && payloads.contains(Hex.encodeHexString(tx.payload))){
+            if(isExit && tx.payload !=null && payloads.contains(Hex.encodeHexString(tx.payload))){
                 String from = Hex.encodeHexString(Address.publicKeyToHash(tx.from));
                 peningTransPool.removeOne(from, tx.nonce);
                 adoptTransPool.removeOne(from, adoptTransPool.getKeyTrans(tx));
                 continue;
             }
-            if(isExit){
+            if(isExit && tx.payload !=null){
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
             block.body.get(0).amount += tx.getFee();

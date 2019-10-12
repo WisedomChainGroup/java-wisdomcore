@@ -343,13 +343,14 @@ public class Transaction {
         transaction.to = reader.read(PUBLIC_KEY_HASH_SIZE);
         // payload
 //        int type = transaction.type;
-        byte[] payloadLength = reader.read(4);
-        if (BigEndian.decodeUint32(payloadLength) == 0){
+        long payloadLength = BigEndian.decodeUint32(reader.read(4));
+        if (payloadLength == 0){
             return transaction;
         }
 //        if (type == 0x09 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x03 || type == 0x0d || type == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
 //            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
 //        }
+        transaction.payload = reader.read((int)payloadLength);
         return transaction;
     }
 

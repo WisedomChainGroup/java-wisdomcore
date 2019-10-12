@@ -207,7 +207,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     @PostConstruct
-    public void init() {
+    public void init(){
+        readWriteLock.writeLock().lock();
+        try{
+            initUnsafe();
+        }finally {
+            readWriteLock.writeLock().unlock();
+        }
+    }
+
+    private void initUnsafe() {
         this.latestConfirmed = bc.getLastConfirmedBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
