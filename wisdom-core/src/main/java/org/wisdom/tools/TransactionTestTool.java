@@ -40,7 +40,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 事务发送工具
- * 使用方法 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
+ * 使用方法 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc -k 你的私钥"
  */
 public class TransactionTestTool {
     private static final int HTTP_TIMEOUT = 5000;
