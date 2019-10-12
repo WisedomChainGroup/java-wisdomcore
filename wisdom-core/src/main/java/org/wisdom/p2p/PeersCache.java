@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PeersCache {
     private static final Logger logger = LoggerFactory.getLogger(PeersCache.class);
@@ -238,7 +239,7 @@ public class PeersCache {
         if(res.size() > 0){
             return res;
         }
-        return new ArrayList<>(bootstraps);
+        return bootstraps.stream().filter(p -> !blocked.contains(p)).collect(Collectors.toList());
     }
 
     public void blockPeer(Peer peer){
