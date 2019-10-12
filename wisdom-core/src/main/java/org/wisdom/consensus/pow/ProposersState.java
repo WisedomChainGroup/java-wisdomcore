@@ -63,7 +63,7 @@ public class ProposersState implements State {
             return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
-        long getVotes() {
+        public long getVotes() {
             return receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
         }
 
