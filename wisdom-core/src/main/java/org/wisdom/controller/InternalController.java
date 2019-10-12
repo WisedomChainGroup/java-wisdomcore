@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -24,6 +25,9 @@ public class InternalController {
     private StateDB stateDB;
 
     @Autowired
+    private WisdomBlockChain bc;
+
+    @Autowired
     private JSONEncodeDecoder codec;
 
     // 获取 forkdb 里面的事务
@@ -33,6 +37,21 @@ public class InternalController {
             Block best = stateDB.getBestBlock();
             byte[] h = Hex.decodeHex(hash.toCharArray());
             Transaction tx = stateDB.getTransaction(best.getHash(), h);
+            if (tx != null) {
+                return codec.encodeTransaction(tx);
+            }
+        } catch (Exception e) {
+            return "invalid transaction hash hex string " + hash;
+        }
+        return "the transaction " + hash + " not exists";
+    }
+
+    // 获取 主账本 里面的事务
+    @GetMapping(value = "/internal/confirmed/transaction/{transactionHash}", produces = "application/json")
+    public Object getTransactionConfirmed(@PathVariable("transactionHash") String hash){
+        try {
+            byte[] h = Hex.decodeHex(hash.toCharArray());
+            Transaction tx = bc.getTransaction(h);
             if (tx != null) {
                 return codec.encodeTransaction(tx);
             }

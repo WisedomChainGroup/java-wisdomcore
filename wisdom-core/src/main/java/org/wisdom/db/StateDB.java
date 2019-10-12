@@ -91,6 +91,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private Block latestConfirmed;
 
     // 事务缓存
+    // block hash -> transaction hashes
     private Map<String, Set<String>> transactionIndex;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
@@ -419,6 +420,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         for(Transaction t: b.body){
             if (Arrays.equals(t.getHash(), txHash)){
+                t.height = b.nHeight;
                 return t;
             }
         }
