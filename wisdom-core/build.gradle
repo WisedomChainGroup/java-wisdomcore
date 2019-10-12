@@ -15,7 +15,7 @@ buildscript {
 
 plugins {
     id 'application'
-    id 'jacoco'
+//    id 'jacoco'
     id 'com.github.kt3k.coveralls' version '2.6.3'
     id 'com.jfrog.bintray' version '1.0'
     id 'org.ajoberstar.grgit' version '2.2.0' apply false
@@ -50,6 +50,14 @@ sourceSets.main.java.srcDirs += generatedSrcDir
 
 tasks.withType(JavaCompile) {
     options.warnings = false
+}
+
+task runTransactionTestTool(type: JavaExec){
+    main = "org.wisdom.tools.TransactionTestTool"
+    classpath = sourceSets.main.runtimeClasspath
+    if (project.hasProperty("appArgs")) {
+        args appArgs.split(" ")
+    }
 }
 
 task runRopsten(type: JavaExec) {
@@ -89,7 +97,6 @@ task tckRun(type: JavaExec) {
 task runCoreUser(type: JavaExec) {
     main = mainClassName
     classpath = sourceSets.main.runtimeClasspath
-    println "++++++++++++++ " + System.getProperty('ethereumj.conf.file')
     if (System.getProperty('ethereumj.conf.file') != null) {
         def confPathProperty = "-Dethereumj.conf.file=" + System.getProperty('ethereumj.conf.file')
         jvmArgs = applicationDefaultJvmArgs + confPathProperty
@@ -102,7 +109,6 @@ task runCoreUser(type: JavaExec) {
         def dbusername = "-Dspring.datasource.username=" + System.getProperty('spring.datasource.username')
         jvmArgs = jvmArgs + dbusername
     }
-    println jvmArgs
 }
 
 task buildDockerJdk(type: Docker) {
@@ -304,6 +310,7 @@ dependencies {
     compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.7'
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
 }
 
 
@@ -360,12 +367,12 @@ artifacts {
     archives javadocJar
 }
 
-jacocoTestReport {
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-}
+//jacocoTestReport {
+//    reports {
+//        xml.enabled = true
+//        html.enabled = true
+//    }
+//}
 
 def bintrayUsername = project.hasProperty('bintrayUser') ? project.bintrayUser : ''
 def bintrayPassword = project.hasProperty('bintrayKey') ? project.bintrayKey : ''

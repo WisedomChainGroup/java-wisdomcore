@@ -67,6 +67,9 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
         public byte[] deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
             JsonNode node = p.getCodec().readTree(p);
             String encoded = node.asText();
+            if(encoded == null || encoded.equals("")){
+                return new byte[]{};
+            }
             try {
                 return Hex.decodeHex(encoded.toCharArray());
             } catch (Exception e) {

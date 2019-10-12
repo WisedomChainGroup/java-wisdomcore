@@ -1,0 +1,38 @@
+{
+  "host": "192.168.1.52", // 可以通过命令行 -h 参数 覆盖
+  "port": "19585", // 可以通过命令行 -p 参数 覆盖
+  "privateKey": "", // 通过命令行 -k 参数覆盖 传递私钥
+  "nonce": 0, // 起始 nonce 可选，如果为 0 自动获取，通过命令行 -n 参数 传递
+
+  // transaction info
+  "transactions": [
+    {
+      "amount": 10, // 单位是 WDC，不可省略
+      "type": "transfer", // 可选， 默认是转账， 可以是以下值，不区分大小写
+      /*
+              TRANSFER, VOTE,
+              DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
+              TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
+              INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
+              EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
+      */
+      "payload": "", // 可选，
+      "to": "6db6eef88329fdfed125fef83b529e5f4d396b44fb1ed8d096700d72a6424720", // 接收者的 公钥，公钥哈希或者地址
+      "times": 3, // 发送次数
+    },
+    {
+      "amount": 10, // 单位是 WDC，不可省略
+      "type": "vote", // 可选， 默认是转账， 可以是以下值，不区分大小写
+      /*
+              TRANSFER, VOTE,
+              DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
+              TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
+              INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
+              EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
+      */
+      "payload": "", // 可选，
+      "to": "6db6eef88329fdfed125fef83b529e5f4d396b44fb1ed8d096700d72a6424720", // 接收者的 公钥，公钥哈希或者地址
+      "times": 4, // 发送次数
+    }
+  ]
+}
