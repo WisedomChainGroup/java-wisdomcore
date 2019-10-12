@@ -231,11 +231,13 @@ public class Transaction {
     }
 
     @JsonIgnore
+    // 计算哈希时包含了签名
     public byte[] getRawForHash() {
         return getRaw(false);
     }
 
     @JsonIgnore
+    // 计算签名时对哈希作签名，但是此时计算哈希把签名当做64个0字节处理
     public byte[] getRawForSign() {
         return getRaw(true);
     }
@@ -340,11 +342,15 @@ public class Transaction {
         transaction.signature = reader.read(SIGNATURE_SIZE);
         transaction.to = reader.read(PUBLIC_KEY_HASH_SIZE);
         // payload
-        int type = transaction.type;
-        byte[] payloadLength = reader.read(4);
-        if (type == 0x09 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x03 || type == 0x0d || type == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
-            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
+//        int type = transaction.type;
+        long payloadLength = BigEndian.decodeUint32(reader.read(4));
+        if (payloadLength == 0){
+            return transaction;
         }
+//        if (type == 0x09 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x03 || type == 0x0d || type == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
+//            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
+//        }
+        transaction.payload = reader.read((int)payloadLength);
         return transaction;
     }
 
