@@ -45,6 +45,9 @@ public class ProposersState implements State {
         // transaction hash -> count
         private Map<String, Long> erasCounter;
 
+        @JsonIgnore
+        private long votesCache;
+
         public String publicKeyHash;
 
         Proposer() {
@@ -64,7 +67,11 @@ public class ProposersState implements State {
         }
 
         public long getVotes() {
-            return receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            if(votesCache != 0){
+                return votesCache;
+            }
+            this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            return this.votesCache;
         }
 
         void increaseEraCounters(){
@@ -128,7 +135,7 @@ public class ProposersState implements State {
     private Set<String> blockList;
     private int allowMinersJoinEra;
     private int blockInterval;
-    private List<Proposer> candidates;
+    private List<Proposer> candidatesCache;
 
     @Autowired
     public ProposersState(
@@ -149,13 +156,16 @@ public class ProposersState implements State {
     }
 
     public List<Proposer> getCandidates() {
-
-        return getAll().values()
+        if(this.candidatesCache != null){
+            return candidatesCache;
+        }
+        this.candidatesCache = getAll().values()
                 .stream()
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
                 .sorted((x, y) -> -compareProposer(x, y))
                 .collect(Collectors.toList());
+        return this.candidatesCache;
 //        for (int i = 0; i < candidates.size() - 1; i++) {
 //            Proposer x = candidates.get(i);
 //            Proposer y = candidates.get(i + 1);
