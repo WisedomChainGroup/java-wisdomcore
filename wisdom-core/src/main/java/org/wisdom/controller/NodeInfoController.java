@@ -101,7 +101,7 @@ public class NodeInfoController {
             m.put("votes", c.getVotes());
             m.put("mortgage", c.mortgage);
             return m;
-        }));
+        }).toArray());
         return res;
     }
 
