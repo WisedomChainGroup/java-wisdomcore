@@ -51,6 +51,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private Map<String, Peer> trusted;
     private Map<String, Peer> blocked;
     private Map<Integer, Peer> peers;
+
+    // 待解析的 bootstraps
     private Map<String, Peer> pended;
     private Map<String, ManagedChannel> chanBuffer;
 
@@ -313,7 +315,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 if (p != null && p.equals(peer)) {
                     p.score /= 2;
                     if (p.score == 0) {
-                        logger.error("cannot connect to peer " + peer.toString() + " remote it");
+                        logger.error("cannot connect to peer " + peer.toString() + " remove it");
                         removePeer(p);
                     }
                 }
@@ -384,42 +386,72 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void keepPeer(Peer peer) {
+        // 解析 bootstrap 放到 bootstraps 里面
+        HostPort hp = new HostPort(peer.host, peer.port);
         String k = peer.key();
+
+        // 如果没有开启节点发现，而且收到的节点信息不是种子节点，退出
+        if (!enableDiscovery && !bootstraps.contains(hp)) {
+            return;
+        }
+
+        // 收到了种子节点的信息，
+        if(bootstraps.contains(hp) && !trusted.containsKey(k)){
+            bootstrapPeers.put(k, peer);
+        }
+        bootstraps.remove(hp);
+
+        // 如果没有开启节点发现不需要新增邻居节点
+        if(!enableDiscovery){
+            return;
+        }
+
+        // 信任和拉黑的节点不需要更新分数
         if (trusted.containsKey(k) || blocked.containsKey(k)) {
             return;
         }
+
         peer.score = PEER_SCORE;
-        HostPort hp = new HostPort(peer.host, peer.port);
-        if (bootstraps.contains(hp)) {
-            this.bootstrapPeers.put(peer.key(), peer);
-            bootstraps.remove(hp);
-        }
         int idx = self.subTree(peer);
         Peer p = peers.get(idx);
+
+        // 发现新的邻居节点
         if (p == null && peers.size() + trusted.size() < MAX_PEERS) {
             peers.put(idx, peer);
             return;
         }
+
+        // 邻居节点数量已经满了
         if (p == null) {
             return;
         }
+
+        // 给活跃的邻居节点加分
         if (p.equals(peer)) {
             p.score += 2 * PEER_SCORE;
             return;
         }
+
+        // 替换调不活跃的老节点
         if (p.score < PEER_SCORE) {
             peers.put(idx, peer);
         }
     }
 
-
+    // 拉黑节点
     private void blockPeer(Peer peer) {
+        if(!enableDiscovery){
+            return;
+        }
         peer.score = EVIL_SCORE;
         removePeer(peer);
         blocked.put(peer.key(), peer);
     }
 
     private void removePeer(Peer peer) {
+        if(!enableDiscovery){
+            return;
+        }
         int idx = self.subTree(peer);
         Peer p = peers.get(idx);
         if (p == null) {

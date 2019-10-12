@@ -60,4 +60,10 @@ public class InternalController {
         }
         return "the transaction " + hash + " not exists";
     }
+
+    // 获取 forkdb 区块高度
+    @GetMapping(value = "/internal/height", produces = "application/json")
+    public Object getHeight(){
+        return stateDB.getBestBlock().nHeight;
+    }
 }
