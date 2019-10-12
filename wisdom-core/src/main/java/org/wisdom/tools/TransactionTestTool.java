@@ -40,7 +40,13 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 事务发送工具
- * 使用方法 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc -k 你的私钥"
+ * 使用方法 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
+ * 命令行参数会覆盖配置文件里的参数配置
+ * -c 配置文件路径，尽量用绝对路径
+ * -k 十六进制编码的私钥
+ * -h --host 主机名或者 ip
+ * -p --port 端口
+ * -n --nonce 指定起始 nonce
  */
 public class TransactionTestTool {
     private static final int HTTP_TIMEOUT = 5000;
