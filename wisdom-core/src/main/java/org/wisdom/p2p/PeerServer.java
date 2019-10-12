@@ -8,6 +8,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.codec.binary.Hex;
+import org.omg.CORBA.TIMEOUT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -36,6 +38,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private static final int HALF_RATE = 60;
 
     private static final int MAX_PEERS_PER_PING = 6;
+
+    private static final int RPC_TIMEOUT = 5;
 
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Lookup LOOKUP = WisdomOuterClass.Lookup.newBuilder().build();
@@ -201,6 +205,14 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private void grpcCall(String host, int port, WisdomOuterClass.Message msg) {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
+
+        try {
+            ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
+        }catch (Exception e){
+            logger.error("http2 timeout");
+            return;
+        }
+
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch);
         stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
@@ -223,9 +235,15 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        String key = peer.key();
         ManagedChannel ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
             ).usePlaintext().build(); // without setting up any ssl
+
+        try {
+            ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
+        }catch (Exception e){
+            logger.error("http2 timeout");
+            return;
+        }
 
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch);
@@ -238,11 +256,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             @Override
             public void onError(Throwable t) {
 //                t.printStackTrace();
+                ch.shutdown();
                 peersCache.half(peer);
             }
 
             @Override
             public void onCompleted() {
+                ch.shutdown();
 //                logger.info("send message " + msg.getCode().name() + " success content = " + msg.toString());
             }
         });
@@ -281,13 +301,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     public List<Peer> getPeers() {
         return peersCache.getPeers();
     }
-
-
-
-
-
-
-
 
     public boolean hasPeer(Peer peer) {
         return peersCache.hasPeer(peer);
@@ -392,4 +405,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return getSelf().port;
     }
 
+    void pend(Peer peer){
+        this.peersCache.pend(peer);
+    }
 }
