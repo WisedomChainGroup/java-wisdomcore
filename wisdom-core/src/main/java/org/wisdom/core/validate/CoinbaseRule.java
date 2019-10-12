@@ -39,7 +39,9 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
 
     @Override
     public Result validateBlock(Block block) {
-
+        if(block.body == null || block.body.size() == 0){
+            return Result.Error("missing block body");
+        }
         // the first transaction of block must be coin base
         Transaction coinbase = block.body.get(0);
         if (coinbase == null) {
