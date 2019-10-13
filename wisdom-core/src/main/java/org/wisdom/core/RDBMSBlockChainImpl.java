@@ -475,9 +475,18 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         // 3. 最后删除 header 里面的孤快
         tmpl.update("delete from header where is_canonical = false");
 
+        // 增加列
         tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS block_hash bytea DEFAULT null");
         tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS height bigint NOT NULL DEFAULT 0");
-        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS \"tx_index\" bigint NOT NULL DEFAULT 0");
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS tx_index bigint NOT NULL DEFAULT 0");
+
+        // 增加索引
+        tmpl.batchUpdate(
+                "create index if not exists transaction_height_index on \"transaction\" (height desc)",
+                "create index if not exists transaction_block_hash_index on \"transaction\" (block_hash)",
+                "create index if not exists transaction_block_hash_index on \"transaction\" (tx_index)"
+                );
+
         tmpl.update("update \"transaction\" as t set t.block_hash = (select block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash)");
         tmpl.update("update \"transaction\" as t set t.tx_index = (select tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash)");
         tmpl.update("update \"transaction\" as t set t.height = (select height from header as h where h.block_hash = t.block_hash)");
