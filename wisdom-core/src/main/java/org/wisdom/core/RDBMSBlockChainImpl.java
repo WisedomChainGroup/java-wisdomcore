@@ -103,8 +103,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (header == null) {
             return new ArrayList<>();
         }
-        return tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
-                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{header.getHash()}, new TransactionMapper());
+        return tmpl.query("select * from \"transaction\" as t where t.block_hash = ? order by t.tx_index", new Object[]{header.getHash()}, new TransactionMapper());
     }
 
     private Block getBlockFromHeader(Block block) {
@@ -123,67 +122,40 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return res;
     }
 
-    private long getTotalWeight(byte[] hash) {
-        try {
-            tmpl.queryForObject("select total_weight from header where block_hash = ?", new Object[]{
-                    hash
-            }, Long.class);
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
-        return 0;
-    }
-
     // write header with total weight
     private void writeHeader(Block header) {
         tmpl.update("insert into header " +
                         "(block_hash, version, hash_prev_block, " +
                         "hash_merkle_root, hash_merkle_state, hash_merkle_incubate," +
                         "height, created_at, nonce, nBits," +
-                        "block_notice, is_canonical) values (?,?,?,?,?,?,?,?,?,?,?,?)",
+                        "block_notice, is_canonical, total_weight) values (?,?,?,?,?,?,?,?,?,?,?,?)",
                 header.getHash(), header.nVersion, header.hashPrevBlock,
                 header.hashMerkleRoot, header.hashMerkleState, header.hashMerkleIncubate, header.nHeight,
                 header.nTime, header.nNonce, header.nBits,
-                header.blockNotice, false);
+                header.blockNotice, true, header.nHeight);
     }
 
-    private void writeTotalWeight(byte[] blockHash, long totalWeight) {
-        tmpl.update("update header set total_weight = ? where block_hash = ?", totalWeight, blockHash);
-    }
-
-    private void writeTransactions(List<Transaction> txs) {
-        if (txs == null || txs.size() == 0) {
+    private void writeTransactions(Block block) {
+        if (block.body == null || block.size() == 0) {
             return;
         }
         List<Object[]> args0 = new ArrayList<>();
-        for (Transaction tx : txs) {
+        for (int i = 0; i < block.body.size(); i++) {
+            Transaction tx = block.body.get(i);
             args0.add(new Object[]{
                     tx.version,
                     tx.getHash(), tx.type, tx.nonce,
                     tx.from, tx.gasPrice, tx.amount,
-                    tx.payload, tx.signature, tx.to
+                    tx.payload, tx.signature, tx.to,
+                    block.getHash(), block.nHeight, i
             });
         }
         tmpl.batchUpdate("insert into transaction (" +
                 "version, tx_hash, type, nonce, " +
                 "\"from\", gas_price, amount, " +
-                "payload, signature, \"to\") VALUES (?, ?,?,?,?,?,?,?,?,?) on conflict(tx_hash) do nothing", args0);
+                "payload, signature, \"to\", block_hash, height, tx_index) VALUES (?, ?,?,?,?,?,?,?,?,?,?,?,?) on conflict(tx_hash) do nothing", args0);
     }
 
-    private void writeBody(Block block) {
-        if (block.body == null || block.body.size() == 0) {
-            return;
-        }
-        List<Object[]> args = new ArrayList<>();
-        for (int i = 0; i < block.body.size(); i++) {
-            Transaction tx = block.body.get(i);
-            args.add(new Object[]{
-                    block.getHash(), tx.getHash(), i
-            });
-        }
-        tmpl.batchUpdate("insert into transaction_index (block_hash, tx_hash, tx_index) values (?,?,?)", args);
-        writeTransactions(block.body);
-    }
 
     private void deleteCanonical(long height) {
         tmpl.update("update header set is_canonical = false where height = ?", height);
@@ -193,9 +165,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         tmpl.update("update header set is_canonical = false where height >= ? and height <= ?", start, end);
     }
 
-    private void setCanonical(byte[] hash) {
-        tmpl.update("update header set is_canonical = true where block_hash = ?", new Object[]{hash});
-    }
 
     private void setCanonicals(List<byte[]> hashes) {
         List<Object[]> args = new ArrayList<>();
@@ -291,8 +260,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (!Arrays.areEqual(dbGenesis.getHash(), genesis.getHash())) {
             throw new Exception("the genesis in db and genesis in config is not equal");
         }
-        // 清除历史遗留的孤快
-        clearOrphans();
+        // 清除历史遗留的孤快，重构表
+        refactorTables();
     }
 
     @Override
@@ -399,9 +368,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
-                writeTotalWeight(block.getHash(), block.totalWeight);
-                writeBody(block);
-                setCanonical(block.getHash());
+                writeTransactions(block);
             } catch (Exception e) {
                 status.setRollbackOnly();
                 e.printStackTrace();
@@ -459,23 +426,17 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public Transaction getTransaction(byte[] txHash) {
         return getOne(tmpl.query(
-                "select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
-                        "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                        "inner join header as h on ti.block_hash = h.block_hash" +
-                        " where tx.tx_hash = ? and h.is_canonical = true", new Object[]{txHash}, new TransactionMapper()));
+                "select * from \"transaction\" where tx_hash = ?", new Object[]{txHash}, new TransactionMapper()));
     }
 
     public Transaction getTransactionByTo(byte[] pubKeyHash) {
-        return getOne(tmpl.query("select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
-                "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                "inner join header as h on ti.block_hash = h.block_hash" +
-                " where tx.to = ? and h.is_canonical = true", new Object[]{pubKeyHash}, new TransactionMapper()));
+        return getOne(tmpl.query("select * from \"transaction\" where \"to\" = ?", new Object[]{pubKeyHash}, new TransactionMapper()));
     }
 
     @Override
     public Block getLastConfirmedBlock() {
         try {
-            Long height = tmpl.queryForObject("select a.blockheight from account a order by a.blockheight desc LIMIT 1", Long.class);
+            Long height = tmpl.queryForObject("select max(height) from header", Long.class);
             if (height == null) {
                 return null;
             }
@@ -496,28 +457,30 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return tmpl.queryForObject("select count(*) from transaction as tx where tx.payload = ?  limit 1", new Object[]{payload}, Integer.class) > 0;
     }
 
-    public void clearOrphans() {
-        // 1. 先删除 transaction_index 中的孤快
-        // 2. 在删除 transaction 中不存在于 transaction_index 中的事务
-        // 3. 最后删除 header 里面的孤快
-        // 4. 在 transaction 中冗余三个字段 block_hash, height, index 分别表示事务所在的区块，事务所在的区块高度，事务所在区块体的位置
-        List<byte[]> orphans = tmpl.queryForList("select block_hash from header where is_canonical = false", byte[].class);
-        for (byte[] blockHash : orphans) {
-
-            List<byte[]> transactions = tmpl.queryForList("select tx_hash from transaction_index where block_hash = ?", new Object[]{blockHash}, byte[].class);
-
-            // 清理 transaction index
-            tmpl.update("delete from transaction_index where block_hash = ?", new Object[]{blockHash});
-
-            // 如果这个孤快的中事务没有被其他不是孤快的区块引用到，则删除这个事务
-            for (byte[] tx : transactions) {
-                String sql = "select count(*) from header as h inner join transaction_index as ti on h.block_hash = ti.block_hash where h.is_canonical = true and ti.tx_hash = ?";
-                if (tmpl.queryForObject(sql, new Object[]{tx}, Integer.class) > 0) {
-                    continue;
-                }
-                tmpl.update("delete from \"transaction\" where tx_hash = ?", new Object[]{tx});
-            }
+    // 重构关系表，删除孤快，冗余 transaction_index 中字段到 transaction 表
+    public void refactorTables() {
+        // 判断是否已经重构过了
+        if (tmpl.queryForObject("SELECT count(*) " +
+                "FROM information_schema.columns " +
+                "WHERE table_name = 'transaction' and column_name = 'block_hash'", Integer.class) > 0){
+            return;
         }
+
+        // 1. 删除 transaction_index 中的孤快
+        tmpl.update("delete from transaction_index as ti where ti.block_hash in (select h.block_hash from header as h where h.is_canonical = true)");
+
+        // 2. 删除 transaction 中不存在于 transaction_index 中的事务
+        tmpl.update("delete from \"transaction\" as t  where t.tx_hash not in (select ti.tx_hash from transaction_index as ti)");
+
+        // 3. 最后删除 header 里面的孤快
+        tmpl.update("delete from header where is_canonical = false");
+
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS block_hash bytea DEFAULT null");
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS height bigint NOT NULL DEFAULT 0");
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS \"tx_index\" bigint NOT NULL DEFAULT 0");
+        tmpl.update("update \"transaction\" as t set t.block_hash = (select block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash)");
+        tmpl.update("update \"transaction\" as t set t.tx_index = (select tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash)");
+        tmpl.update("update \"transaction\" as t set t.height = (select height from header as h where h.block_hash = t.block_hash)");
     }
 
 }
