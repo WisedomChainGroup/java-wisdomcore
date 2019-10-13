@@ -497,6 +497,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     public void clearOrphans() {
+        // 1. 先删除 transaction_index 中的孤快
+        // 2. 在删除 transaction 中不存在于 transaction_index 中的事务
+        // 3. 最后删除 header 里面的孤快
+        // 4. 在 transaction 中冗余三个字段 block_hash, height, index 分别表示事务所在的区块，事务所在的区块高度，事务所在区块体的位置
         List<byte[]> orphans = tmpl.queryForList("select block_hash from header where is_canonical = false", byte[].class);
         for (byte[] blockHash : orphans) {
 
