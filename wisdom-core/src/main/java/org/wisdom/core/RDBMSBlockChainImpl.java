@@ -72,7 +72,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         assert resource.exists();
 
         String sql = new String(IOUtils.toByteArray(resource.getInputStream()));
-        for(String s: sql.split(";")){
+        for (String s : sql.split(";")) {
             tmpl.update(s.trim());
         }
         tmpl.batchUpdate(
@@ -263,7 +263,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             @Value("${clear-data}") boolean clearData,
             BlockChainOptional blockChainOptional,
             @Value("${wisdom.consensus.allow-fork}") boolean allowFork
-    ) throws Exception{
+    ) throws Exception {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
@@ -286,11 +286,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             writeGenesis(genesis);
             return;
         }
+        // 发现数据库的创世区块和配置文件的创世区块不一样
         Block dbGenesis = getCanonicalHeader(0);
         if (!Arrays.areEqual(dbGenesis.getHash(), genesis.getHash())) {
-            clearData();
-            writeGenesis(genesis);
+            throw new Exception("the genesis in db and genesis in config is not equal");
         }
+        // 清除历史遗留的孤快
+        clearOrphans();
     }
 
     @Override
@@ -490,8 +492,28 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
     }
 
-    public boolean hasPayload(byte[] payload){
+    public boolean hasPayload(byte[] payload) {
         return tmpl.queryForObject("select count(*) from transaction as tx where tx.payload = ?  limit 1", new Object[]{payload}, Integer.class) > 0;
+    }
+
+    public void clearOrphans() {
+        List<byte[]> orphans = tmpl.queryForList("select block_hash from header where is_canonical = false", byte[].class);
+        for (byte[] blockHash : orphans) {
+
+            List<byte[]> transactions = tmpl.queryForList("select tx_hash from transaction_index where block_hash = ?", new Object[]{blockHash}, byte[].class);
+
+            // 清理 transaction index
+            tmpl.update("delete from transaction_index where block_hash = ?", new Object[]{blockHash});
+
+            // 如果这个孤快的中事务没有被其他不是孤快的区块引用到，则删除这个事务
+            for (byte[] tx : transactions) {
+                String sql = "select count(*) from header as h inner join transaction_index as ti on h.block_hash = ti.block_hash where h.is_canonical = true and ti.tx_hash = ?";
+                if (tmpl.queryForObject(sql, new Object[]{tx}, Integer.class) > 0) {
+                    continue;
+                }
+                tmpl.update("delete from \"transaction\" where tx_hash = ?", new Object[]{tx});
+            }
+        }
     }
 
 }
