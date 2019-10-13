@@ -167,6 +167,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private WisdomOuterClass.Message onMessage(WisdomOuterClass.Message message) {
         try {
             Payload payload = new Payload(message);
+            if(peersCache.getBlocked().contains(payload.getRemote())){
+                logger.error("the remote had been blocked");
+                return buildMessage(1, NOTHING);
+            }
             Context ctx = new Context();
             ctx.payload = payload;
             for (Plugin p : pluginList) {

@@ -264,6 +264,9 @@ public class PeersCache {
                 half(peer);
             }
         }
+        for(Peer p: blocked){
+            half(p);
+        }
     }
 
     public boolean isFull(){
