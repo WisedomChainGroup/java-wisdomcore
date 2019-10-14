@@ -122,6 +122,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     // reduce ios
     private List<Block> getBlocksFromHeaders(List<Block> headers) {
+        if(headers.size() == 0){
+            return new ArrayList<>();
+        }
         Map<String, Block> cache =  new HashMap<>();
         for(Block b: headers){
             cache.put(b.getHashHexString(), b);
@@ -129,9 +132,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
         NamedParameterJdbcTemplate namedParameterJdbcTemplate =
                 new NamedParameterJdbcTemplate(tmpl);
-        MapSqlParameterSource parameters = new MapSqlParameterSource();
-        parameters.addValue("blocks_hash", headers.stream().map(Block::getHash).collect(Collectors.toList()));
-        List<Transaction> transactions = namedParameterJdbcTemplate.query("select * from transaction where block_hash in (:blocks_hash) order by height", parameters, new TransactionMapper());
+        Map<String,Object> paramMap = new HashMap<>();
+        paramMap.put("blocksHash", headers.stream().map(Block::getHash).collect(Collectors.toList()));
+        List<Transaction> transactions = namedParameterJdbcTemplate.query("select * from transaction where block_hash in(:blocksHash) order by height", paramMap, new TransactionMapper());
         for(Transaction tx: transactions){
             cache.get(Hex.encodeHexString(tx.blockHash)).body.add(tx);
         }
