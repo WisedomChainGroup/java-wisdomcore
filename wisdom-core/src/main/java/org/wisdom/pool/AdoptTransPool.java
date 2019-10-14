@@ -138,7 +138,7 @@ public class AdoptTransPool {
                 if (index < configuration.getMaxqpcount()) {
                     TransPool t = entry1.getValue();
                     Transaction transaction = t.getTransaction();
-                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 13 ) {
+                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
@@ -188,7 +188,8 @@ public class AdoptTransPool {
     }
 
     public Map<String, TransPool> compare(Map<String, TransPool> maps) {
-        List<Map.Entry<String, TransPool>> list = new ArrayList<>(maps.entrySet());
+        //value is not null
+        List<Map.Entry<String, TransPool>> list = new ArrayList<>(cleanvaluenull(maps).entrySet());
         Collections.sort(list, new Comparator<Map.Entry<String, TransPool>>() {
             @Override
             public int compare(Map.Entry<String, TransPool> o1, Map.Entry<String, TransPool> o2) {
@@ -202,6 +203,29 @@ public class AdoptTransPool {
             map.put(entry.getKey(), entry.getValue());
         }
         return map;
+    }
+
+    public Map<String, TransPool> cleanvaluenull(Map<String, TransPool> maps){
+        String pubhash="";
+        int index=0;
+        boolean type=false;
+        for(Map.Entry<String, TransPool> entry:maps.entrySet()){
+            if(entry.getValue()==null){
+                type=true;
+                maps.remove(entry.getKey());
+            }
+            if(index==0){
+                TransPool transPool=entry.getValue();
+                Transaction transaction=transPool.getTransaction();
+                byte[] from=transaction.from;
+                pubhash=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
+                index++;
+            }
+        }
+        if(!pubhash.equals("") && pubhash!="" && type){
+            atpool.put(pubhash, (ConcurrentHashMap<String, TransPool>) maps);
+        }
+        return maps;
     }
 
 
