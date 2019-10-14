@@ -33,9 +33,6 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
     PeningTransPool peningTransPool;
 
     @Autowired
-    WisdomBlockChain wisdomBlockChain;
-
-    @Autowired
     Configuration configuration;
 
     @Autowired
@@ -80,7 +77,7 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                                 index++;
                             }
                         }
-                        maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
+                        maps.put(entry.getKey(), adoptTransPool.getKey(transaction));
                     }
                     if (state) {
                         break;

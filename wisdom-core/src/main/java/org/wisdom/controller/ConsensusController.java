@@ -16,15 +16,13 @@
  * along with the java-wisdomcore. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
 import org.springframework.context.ApplicationContext;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.ipc.IpcConfig;
-import org.wisdom.p2p.Peer;
-import org.wisdom.p2p.PeersManager;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -39,15 +37,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.wisdom.service.Impl.CommandServiceImpl;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static org.wisdom.Controller.ConsensusResult.ERROR;
-import static org.wisdom.Controller.ConsensusResult.SUCCESS;
+import static org.wisdom.controller.ConsensusResult.ERROR;
+import static org.wisdom.controller.ConsensusResult.SUCCESS;
 
 @RestController
 public class ConsensusController {

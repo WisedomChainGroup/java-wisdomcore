@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.apache.commons.codec.binary.Hex;
-import org.wisdom.Controller.Packet;
+import org.wisdom.controller.Packet;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
@@ -67,6 +67,9 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
         public byte[] deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
             JsonNode node = p.getCodec().readTree(p);
             String encoded = node.asText();
+            if(encoded == null || encoded.equals("")){
+                return new byte[]{};
+            }
             try {
                 return Hex.decodeHex(encoded.toCharArray());
             } catch (Exception e) {
@@ -97,8 +100,10 @@ public class JSONEncodeDecoder implements CoreTypesEncoder, CoreTypesDecoder {
             SimpleModule module = new SimpleModule();
             module.addDeserializer(byte[].class, new BytesDeserializer());
             mapper.registerModule(module);
+            mapper.enable(JsonParser.Feature.ALLOW_COMMENTS);
             return mapper.readValue(encoded, valueType);
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }

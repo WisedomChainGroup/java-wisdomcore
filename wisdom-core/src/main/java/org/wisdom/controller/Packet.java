@@ -1,4 +1,4 @@
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 public class Packet {
     public byte[] data;

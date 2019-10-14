@@ -1,6 +1,8 @@
 package org.wisdom.consensus.pow;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.math3.fraction.BigFraction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,29 +21,104 @@ import java.util.stream.Collectors;
  * 抵押事务
  * 撤回投票事务
  * 撤回抵押事务
+ * 2019-10-11 增加投票衰减功能
  */
 @Component
 public class ProposersState implements State {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
-    public static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    public static final int MAXIMUM_PROPOSERS = 15;
+    private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
+    private static final int MAXIMUM_PROPOSERS = 15;
+
+    // 投票数每次衰减 10%
+    private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
+    // TODO: 改成每 2160 个纪元进行衰减
+    private static final long ATTENUATION_ERAS = 2160;
 
     public static class Proposer {
         public long mortgage;
-        public long votes;
+
+        // transaction hash -> votes
+        @JsonIgnore
+        private Map<String, Long> receivedVotes;
+
+        @JsonIgnore
+        // transaction hash -> count
+        private Map<String, Long> erasCounter;
+
+        @JsonIgnore
+        private long votesCache;
+
         public String publicKeyHash;
 
-        public Proposer() {
+        Proposer() {
+            receivedVotes = new HashMap<>();
+            erasCounter = new HashMap<>();
         }
 
-        public Proposer(long mortgage, long votes, String publicKeyHash) {
+        Proposer(long mortgage, String publicKeyHash, Map<String, Long> receivedVotes, Map<String, Long> erasCounter) {
             this.mortgage = mortgage;
-            this.votes = votes;
             this.publicKeyHash = publicKeyHash;
+            this.receivedVotes = receivedVotes;
+            this.erasCounter = erasCounter;
         }
 
         public Proposer copy() {
-            return new Proposer(mortgage, votes, publicKeyHash);
+            return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
+        }
+
+        public long getVotes() {
+            if(votesCache != 0){
+                return votesCache;
+            }
+            this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            return this.votesCache;
+        }
+
+        void increaseEraCounters(){
+            erasCounter.replaceAll((k, v) -> v + 1);
+        }
+
+        void attenuation(){
+            for(String k: erasCounter.keySet()){
+                if(erasCounter.get(k) < ATTENUATION_ERAS){
+                    continue;
+                }
+                erasCounter.put(k, 0L);
+                receivedVotes.put(k,
+                        new BigFraction(receivedVotes.get(k), 1L)
+                        .multiply(ATTENUATION_COEFFICIENT)
+                        .longValue()
+                );
+            }
+        }
+
+        void updateTransaction(Transaction tx){
+            switch (Transaction.TYPES_TABLE[tx.type]) {
+                // 投票
+                case VOTE: {
+                    receivedVotes.put(tx.getHashHexString(), tx.amount);
+                    erasCounter.put(tx.getHashHexString(), 0L);
+                    return;
+                }
+                // 撤回投票
+                case EXIT_VOTE: {
+                    receivedVotes.remove(tx.getHashHexString());
+                    erasCounter.remove(tx.getHashHexString());
+                    return;
+                }
+                // 抵押
+                case MORTGAGE: {
+                    mortgage += tx.amount;
+                    return;
+                }
+                // 抵押撤回
+                case EXIT_MORTGAGE: {
+                    mortgage -= tx.amount;
+                    if (mortgage < 0) {
+                        logger.error("mortgage < 0");
+                    }
+                }
+            }
         }
     }
 
@@ -58,7 +135,7 @@ public class ProposersState implements State {
     private Set<String> blockList;
     private int allowMinersJoinEra;
     private int blockInterval;
-    private List<Proposer> candidates;
+    private List<Proposer> candidatesCache;
 
     @Autowired
     public ProposersState(
@@ -79,16 +156,21 @@ public class ProposersState implements State {
     }
 
     public List<Proposer> getCandidates() {
-        if (candidates != null) {
-            return candidates;
+        if(this.candidatesCache != null){
+            return candidatesCache;
         }
-        candidates = getAll().values()
+        this.candidatesCache = getAll().values()
                 .stream()
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
-                .sorted(ProposersState::compareProposer)
+                .sorted((x, y) -> -compareProposer(x, y))
                 .collect(Collectors.toList());
-        return candidates;
+        return this.candidatesCache;
+//        for (int i = 0; i < candidates.size() - 1; i++) {
+//            Proposer x = candidates.get(i);
+//            Proposer y = candidates.get(i + 1);
+//            assert compareProposer(x, y) >= 0;
+//        }
     }
 
     @Override
@@ -99,18 +181,22 @@ public class ProposersState implements State {
         return this;
     }
 
-    public static int compareProposer(Proposer x, Proposer y) {
-        if (x.votes != y.votes) {
-            return (int) (y.votes - x.votes);
+    private static int compareProposer(Proposer x, Proposer y) {
+        if (x.getVotes() != y.getVotes()) {
+            return Long.compare(x.getVotes(), y.getVotes());
         }
-        if (x.mortgage != y.votes) {
-            return (int) (y.mortgage - x.mortgage);
+        if (x.mortgage != y.mortgage) {
+            return Long.compare(x.mortgage, y.mortgage);
         }
-        return y.publicKeyHash.compareTo(x.publicKeyHash);
+        return x.publicKeyHash.compareTo(y.publicKeyHash);
     }
 
     @Override
     public State updateBlocks(List<Block> blocks) {
+        for(Proposer p: all.values()){
+            p.increaseEraCounters();
+            p.attenuation();
+        }
         boolean enableMultiMiners = allowMinersJoinEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(
                 blocks.get(0).nHeight, blockInterval
         ) >= allowMinersJoinEra;
@@ -139,10 +225,16 @@ public class ProposersState implements State {
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 // 过滤掉抵押数量不足的节点
                 .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
-                // 按照 投票，抵押，字典依次排序
-                .sorted(ProposersState::compareProposer)
+                // 按照 投票，抵押，字典从大到小排序
+                .sorted((x, y) -> -compareProposer(x, y))
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
+
+//        for (int i = 0; i < proposers.size() - 1; i++) {
+//            Proposer x = all.get(proposers.get(i));
+//            Proposer y = all.get(proposers.get(i + 1));
+//            assert compareProposer(x, y) >= 0;
+//        }
         return this;
     }
 
@@ -153,37 +245,8 @@ public class ProposersState implements State {
             p = new Proposer();
             p.publicKeyHash = Hex.encodeHexString(transaction.to);
         }
-        switch (transaction.type) {
-            // 投票
-            case 0x02: {
-                p.votes += transaction.amount;
-                all.put(p.publicKeyHash, p);
-                return this;
-            }
-            // 撤回投票
-            case 0x0d: {
-                p.votes -= transaction.amount;
-                if (p.votes < 0) {
-                    logger.error("votes < 0");
-                }
-                all.put(p.publicKeyHash, p);
-                return this;
-            }
-            // 抵押
-            case 0x0e: {
-                p.mortgage += transaction.amount;
-                all.put(p.publicKeyHash, p);
-                return this;
-            }
-            // 抵押撤回
-            case 0x0f: {
-                p.mortgage -= transaction.amount;
-                if (p.mortgage < 0) {
-                    logger.error("mortgage < 0");
-                }
-                return this;
-            }
-        }
+        p.updateTransaction(transaction);
+        all.put(p.publicKeyHash, p);
         return this;
     }
 

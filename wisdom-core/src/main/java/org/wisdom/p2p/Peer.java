@@ -18,6 +18,7 @@
 
 package org.wisdom.p2p;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.crypto.KeyPair;
 import org.wisdom.crypto.PrivateKey;
@@ -70,7 +71,9 @@ public class Peer {
 
     @Max(65535)
     @Min(0)
+    @JsonIgnore
     public int port;
+
     public int score;
 
     public PrivateKey privateKey;

@@ -16,25 +16,17 @@
  * along with the java-wisdomcore. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
-import org.wisdom.encoding.JSONEncodeDecoder;
+public class ConsensuEntity {
 
-public class ConsensusResult {
-    private static JSONEncodeDecoder encodeDecoder = new JSONEncodeDecoder();
-    public int code;
-    public String message;
+    public static class Status {
+        public long version;
 
-    public ConsensusResult(int code, String message) {
-        this.code = code;
-        this.message = message;
-    }
+        public long currentHeight;
 
-    public static byte[] SUCCESS(String msg){
-        return encodeDecoder.encode(new ConsensusResult(200, msg));
-    }
+        public byte[] bestBlockHash;
 
-    public static byte[] ERROR(String error){
-        return encodeDecoder.encode(new ConsensusResult(400, error));
+        public byte[] genesisHash;
     }
 }

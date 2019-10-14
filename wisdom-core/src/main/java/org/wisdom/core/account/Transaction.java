@@ -34,6 +34,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.util.BytesReader;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -49,7 +50,7 @@ public class Transaction {
 
     public static final int SIGNATURE_SIZE = 64;
 
-    public static final int ADDRESS_SIZE = 20;
+    public static final int PUBLIC_KEY_HASH_SIZE = 20;
 
     public static final long[] GAS_TABLE = new long[]{
             0, 50000, 20000,
@@ -66,14 +67,22 @@ public class Transaction {
         DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
         TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
         INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-        EXTRACT_COST, EXIT_VOTE, PLEDGE, EXIT_PLEDGE
+        EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
     }
+
+    public static final Type[] TYPES_TABLE = new Type[]{
+            Type.COINBASE, Type.TRANSFER, Type.VOTE,
+            Type.DEPOSIT, Type.TRANSFER_MULTISIG_MULTISIG, Type.TRANSFER_MULTISIG_NORMAL,
+            Type.TRANSFER_NORMAL_MULTISIG, Type.ASSET_DEFINE, Type.ATOMIC_EXCHANGE,
+            Type.INCUBATE, Type.EXTRACT_INTEREST, Type.EXTRACT_SHARING_PROFIT,
+            Type.EXTRACT_COST, Type.EXIT_VOTE, Type.MORTGAGE, Type.EXIT_MORTGAGE
+    };
 
     public static Transaction createEmpty() {
         Transaction tx = new Transaction();
         tx.version = Transaction.DEFAULT_TRANSACTION_VERSION;
         tx.from = new byte[Transaction.PUBLIC_KEY_SIZE];
-        tx.to = new byte[Transaction.ADDRESS_SIZE];
+        tx.to = new byte[Transaction.PUBLIC_KEY_HASH_SIZE];
         tx.signature = new byte[Transaction.SIGNATURE_SIZE];
         return tx;
     }
@@ -171,7 +180,7 @@ public class Transaction {
     public byte[] payload;
 
     @NotNull
-    @Size(min = ADDRESS_SIZE, max = ADDRESS_SIZE)
+    @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE)
     public byte[] to;
 
     @NotNull
@@ -222,11 +231,13 @@ public class Transaction {
     }
 
     @JsonIgnore
+    // 计算哈希时包含了签名
     public byte[] getRawForHash() {
         return getRaw(false);
     }
 
     @JsonIgnore
+    // 计算签名时对哈希作签名，但是此时计算哈希把签名当做64个0字节处理
     public byte[] getRawForSign() {
         return getRaw(true);
     }
@@ -315,6 +326,35 @@ public class Transaction {
         return Arrays.concatenate(new byte[]{(byte) version}, getHash(), Arrays.copyOfRange(raw, 1, raw.length));
     }
 
+    public static Transaction fromRPCBytes(byte[] msg) {
+        Transaction transaction = new Transaction();
+        BytesReader reader = new BytesReader(msg);
+        //version
+        transaction.version = reader.read();
+        // skip hash
+        reader.read(32);
+        transaction.type = reader.read();
+        //nonce
+        transaction.nonce = BigEndian.decodeUint64(reader.read(8));
+        transaction.from = reader.read(PUBLIC_KEY_SIZE);
+        transaction.gasPrice = BigEndian.decodeUint64(reader.read(8));
+        transaction.amount = BigEndian.decodeUint64(reader.read(8));
+        transaction.signature = reader.read(SIGNATURE_SIZE);
+        transaction.to = reader.read(PUBLIC_KEY_HASH_SIZE);
+        // payload
+//        int type = transaction.type;
+        long payloadLength = BigEndian.decodeUint32(reader.read(4));
+        if (payloadLength == 0){
+            return transaction;
+        }
+//        if (type == 0x09 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x03 || type == 0x0d || type == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
+//            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
+//        }
+        transaction.payload = reader.read((int)payloadLength);
+        return transaction;
+    }
+
+    // TODO: use fromRPCBytes
     public static Transaction transformByte(byte[] msg) {
         Transaction transaction = new Transaction();
         //version
@@ -354,7 +394,7 @@ public class Transaction {
         msg = ByteUtil.bytearraycopy(msg, 20, msg.length - 20);
         //payloadlen
         byte[] payloadlen = ByteUtil.bytearraycopy(msg, 0, 4);
-        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x03 || type[0] == 0x0d) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
+        if (type[0] == 0x09 || type[0] == 0x0a || type[0] == 0x0b || type[0] == 0x0c || type[0] == 0x03 || type[0] == 0x0d || type[0] == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
             msg = ByteUtil.bytearraycopy(msg, 4, msg.length - 4);
             byte[] payload = ByteUtil.bytearraycopy(msg, 0, ByteUtil.byteArrayToInt(payloadlen));
             transaction.payload = payload;

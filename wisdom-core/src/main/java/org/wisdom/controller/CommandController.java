@@ -16,7 +16,7 @@
  * along with the java-wisdomcore. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.wisdom.Controller;
+package org.wisdom.controller;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -202,7 +202,7 @@ public class CommandController {
     @RequestMapping(method = RequestMethod.GET, value = "/height")
     public Object getCurrentHeight() {
         Block current = bc.currentHeader();
-        return APIResult.newFailResult(2000, "success", current.nHeight);
+        return APIResult.newFailResult(APIResult.SUCCESS, "success", current.nHeight);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/transactionConfirmed")

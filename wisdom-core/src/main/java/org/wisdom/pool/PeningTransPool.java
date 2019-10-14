@@ -28,12 +28,15 @@ public class PeningTransPool {
     @Autowired
     WisdomBlockChain wisdomBlockChain;
 
+    @Autowired
+    private Leveldb leveldb;
+
+    // publicKeyHash -> nonce -> transaction
     private Map<String, TreeMap<Long, TransPool>> ptpool;
 
     private Map<String, PendingNonce> ptnonce;
 
     public PeningTransPool() {
-        Leveldb leveldb = new Leveldb();
         ptpool = new ConcurrentHashMap<>();
         ptnonce = new ConcurrentHashMap<>();
         try {

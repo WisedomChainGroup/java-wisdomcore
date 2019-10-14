@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 public class MessageFilter implements Plugin {
 
     private ConcurrentMap<String, Boolean> msgs;
-    private static final int CACHE_SIZE = 64;
+    private static final int CACHE_SIZE = PeersCache.MAX_PEERS * 32;
 
     public MessageFilter() {
         this.msgs = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();

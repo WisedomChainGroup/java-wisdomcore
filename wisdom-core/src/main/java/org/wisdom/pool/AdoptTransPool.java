@@ -21,10 +21,13 @@ public class AdoptTransPool {
     @Autowired
     Configuration configuration;
 
+    @Autowired
+    private Leveldb leveldb;
+
+    // publicKeyHash -> Strings.concat(publicKeyHash, nonce) -> transaction
     private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
 
     public AdoptTransPool() {
-        Leveldb leveldb = new Leveldb();
         atpool = new ConcurrentHashMap<>();
         try {
             String dbdata = leveldb.readPoolDb("QueuedPool");

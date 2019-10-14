@@ -8,9 +8,6 @@ create table if not exists transaction_index
 );
 
 
-create index if not exists transaction_index_block_hash
-    on transaction_index (block_hash);
-
 create table if not exists transaction
 (
     version smallint,
@@ -26,9 +23,6 @@ create table if not exists transaction
     signature bytea,
     "to" bytea
 );
-
-create unique index if not exists transaction_tx_hash_uindex
-    on transaction (tx_hash);
 
 create table if not exists header
 (

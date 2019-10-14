@@ -82,11 +82,9 @@ public class ConsensusConfig {
                            @Value("${miner.validators}") String validatorsFile,
                            @Value("${wisdom.consensus.enable-mining}") boolean enableMining
     ) throws Exception {
-        Resource resource;
-        try {
+        Resource  resource = new FileSystemResource(validatorsFile);
+        if(!resource.exists()){
             resource = new ClassPathResource(validatorsFile);
-        } catch (Exception e) {
-            resource = new FileSystemResource(validatorsFile);
         }
         if (enableMining) {
             minerPubKeyHash = Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(coinbase));

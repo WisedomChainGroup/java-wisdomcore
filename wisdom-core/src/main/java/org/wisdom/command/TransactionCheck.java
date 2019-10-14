@@ -18,13 +18,22 @@
 
 package org.wisdom.command;
 
+import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
+import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
@@ -32,13 +41,8 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
-import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.core.incubator.RateTable;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -122,6 +126,11 @@ public class TransactionCheck {
                 apiResult.setMessage("The amount cannot be negative");
                 return apiResult;
             }
+            if (amount == 0 && (type[0] == Transaction.Type.VOTE.ordinal() || type[0] == Transaction.Type.MORTGAGE.ordinal())) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("The amount cannot be zero");
+                return apiResult;
+            }
             tranlast = ByteUtil.bytearraycopy(tranlast, 8, tranlast.length - 8);
             //sig
             byte[] sigdate = ByteUtil.bytearraycopy(tranlast, 0, 64);
@@ -161,7 +170,7 @@ public class TransactionCheck {
             //bytelength
             byte[] date = ByteUtil.bytearraycopy(tranlast, 0, 4);
             int length = ByteUtil.byteArrayToInt(date);
-            if (type[0] != 0x01 && type[0] != 0x02 && type[0] != 0x0e) {//转账、投票、抵押,没有payload
+            if (type[0] != 0x01 && type[0] != 0x02 && type[0] != Transaction.Type.MORTGAGE.ordinal()) {//转账、投票,抵押, 没有payload
                 if (length == 0) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("Payload cannot be empty");
@@ -185,7 +194,8 @@ public class TransactionCheck {
             }
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
-            apiResult.setData(Transaction.transformByte(transfer));
+            Transaction transaction = Transaction.fromRPCBytes(transfer);
+            apiResult.setData(transaction);
             return apiResult;
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -197,15 +207,15 @@ public class TransactionCheck {
     public APIResult TransactionVerify(Transaction transaction, Account account, Incubator incubator) {
         APIResult apiResult = new APIResult();
         try {
-            byte[] frompubhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
+            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
             //nonce
             long trannonce = transaction.nonce;
             long nownonce;
-            if(account==null){
-                nownonce=accountDB.getNonce(frompubhash);
-            }else{
-                nownonce=account.getNonce();
-            }
+//            if (account == null) {
+//                nownonce = accountDB.getNonce(frompubhash);
+//            } else {
+            nownonce = account.getNonce();
+//            }
             if (nownonce >= trannonce) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Nonce is too small");
@@ -236,10 +246,10 @@ public class TransactionCheck {
                         return apiResult;
                     }
                     //求余
-                    long remainder = (long) (tranbalance % 100000000);
+                    long remainder = tranbalance % EconomicModel.WDC;
                     if (remainder != 0) {
                         apiResult.setCode(5000);
-                        apiResult.setMessage("TThe amount must be an integer");
+                        apiResult.setMessage("The amount must be an integer");
                         return apiResult;
                     }
                 }
@@ -247,7 +257,7 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                return PayloadCheck(payload, type, transaction.amount,frompubhash, transaction.to, incubator);
+                return PayloadCheck(payload, type, transaction.amount, frompubhash, transaction.to, incubator);
             }
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -276,7 +286,7 @@ public class TransactionCheck {
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
                 break;
             case 0x0d://撤回投票
-                apiResult = CheckRecallVote(amount, payload,frompubhash, topubkeyhash);
+                apiResult = CheckRecallVote(amount, payload, frompubhash, topubkeyhash);
                 break;
             case 0x0f://撤回抵押
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
@@ -284,6 +294,7 @@ public class TransactionCheck {
         }
         return apiResult;
     }
+
 
     private APIResult CheckHatch(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
@@ -541,7 +552,7 @@ public class TransactionCheck {
             return apiResult;
         }
         byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
-        if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to,topubkeyhash)) {
+        if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to, topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("You have to withdraw your vote");
             return apiResult;
@@ -570,6 +581,9 @@ public class TransactionCheck {
 
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
+        if (payload.length == 0){
+            return APIResult.newFailResult(5000,"recall mortgage payload cannot null");
+        }
         if (payload.length != 32) {//抵押事务哈希
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage transaction payload was incorrectly formatted");
@@ -614,7 +628,11 @@ public class TransactionCheck {
     }
 
     public boolean checkoutPool(Transaction t, Incubator incubator) {
-        APIResult apiResult = TransactionVerify(t, null, incubator);
+        Account account = accountDB.selectaccount(Address.publicKeyToHash(t.from));
+        if (account == null) {
+            return false;
+        }
+        APIResult apiResult = TransactionVerify(t, account, incubator);
         if (apiResult.getCode() == 5000) {
             logger.info("Queued to Pending, memory pool check error, tx:"+t.getHashHexString()+", "+apiResult.getMessage());
             return false;

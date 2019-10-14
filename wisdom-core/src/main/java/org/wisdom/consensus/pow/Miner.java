@@ -39,7 +39,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.pool.PeningTransPool;
+import org.wisdom.util.Address;
 
 import java.util.*;
 
@@ -82,6 +84,8 @@ public class Miner implements ApplicationListener {
     @Autowired
     PackageMiner packageMiner;
 
+    @Autowired
+    AdoptTransPool adoptTransPool;
 
     public Miner() {
     }
@@ -117,7 +121,18 @@ public class Miner implements ApplicationListener {
 
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
+        Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
+            boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
+            if(isExit && tx.payload !=null && payloads.contains(Hex.encodeHexString(tx.payload))){
+                String from = Hex.encodeHexString(Address.publicKeyToHash(tx.from));
+                peningTransPool.removeOne(from, tx.nonce);
+                adoptTransPool.removeOne(from, adoptTransPool.getKeyTrans(tx));
+                continue;
+            }
+            if(isExit && tx.payload !=null){
+                payloads.add(Hex.encodeHexString(tx.payload));
+            }
             block.body.get(0).amount += tx.getFee();
             block.body.add(tx);
         }
@@ -168,7 +183,7 @@ public class Miner implements ApplicationListener {
         if (event instanceof NewBlockMinedEvent) {
             Block o = ((NewBlockMinedEvent) event).getBlock();
             logger.info("new block mined event triggered");
-            pendingBlocksManager.addPendingBlocks(new BlocksCache(Collections.singletonList(o)));
+            pendingBlocksManager.addPendingBlocks(new BlocksCache(o));
         }
         if (event instanceof NewBestBlockEvent && thread != null) {
             thread.terminate();
