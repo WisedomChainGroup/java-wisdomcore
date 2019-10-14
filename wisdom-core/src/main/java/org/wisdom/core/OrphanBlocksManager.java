@@ -80,7 +80,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 continue;
             }
             for (Block b : descendantBlocks) {
-                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange) {
+                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange && !orphans.hasBlock(b.getHash())) {
                     logger.info("add block at height = " + b.nHeight + " to orphans pool");
                     addBlock(b);
                 }
