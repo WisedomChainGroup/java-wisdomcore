@@ -72,10 +72,13 @@ public class InternalController {
     }
 
     // 获取孤块池/forkdb 中的区块
-    @GetMapping(value = "internal/block/{blockInfo}", produces = "application/json")
+    @GetMapping(value = "/internal/block/{blockInfo}", produces = "application/json")
     public Object getBlocks(@PathVariable("blockInfo") String blockInfo){
         if (blockInfo.equals("orphan")){
             return codec.encodeBlocks(manager.getOrphans());
+        }
+        if (blockInfo.equals("unconfirmed")){
+            return codec.encodeBlocks(stateDB.getAll());
         }
         try{
             byte[] hash = Hex.decodeHex(blockInfo);
