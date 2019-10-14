@@ -227,7 +227,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
 
         // 清除历史遗留的孤快，重构表
-//        refactorTables();
+        refactorTables();
 
         // 发现数据库的创世区块和配置文件的创世区块不一样
         Block dbGenesis = getCanonicalHeader(0);
