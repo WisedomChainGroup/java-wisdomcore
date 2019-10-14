@@ -24,7 +24,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
@@ -109,8 +108,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (header == null) {
             return new ArrayList<>();
         }
-        return tmpl.query("select * from \"transaction\" as t where t.block_hash = ? order by t.tx_index", new Object[]{header.getHash()}, new TransactionMapper());
-    }
+        return tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash = ? order by ti.tx_index", new Object[]{header.getHash()}, new TransactionMapper());
+        }
 
     private Block getBlockFromHeader(Block block) {
         if (block == null) {
@@ -134,7 +134,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 new NamedParameterJdbcTemplate(tmpl);
         Map<String,Object> paramMap = new HashMap<>();
         paramMap.put("blocksHash", headers.stream().map(Block::getHash).collect(Collectors.toList()));
-        List<Transaction> transactions = namedParameterJdbcTemplate.query("select * from transaction where block_hash in(:blocksHash) order by height", paramMap, new TransactionMapper());
+        List<Transaction> transactions = namedParameterJdbcTemplate.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash in (:blocksHash) order by ti.tx_index", paramMap, new TransactionMapper());
         for(Transaction tx: transactions){
             cache.get(Hex.encodeHexString(tx.blockHash)).body.add(tx);
         }
@@ -154,7 +154,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 header.blockNotice, true, header.nHeight);
     }
 
-    private void writeTransactions(Block block) {
+    private void writeBody(Block block) {
         if (block.body == null || block.size() == 0) {
             return;
         }
@@ -165,14 +165,26 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                     tx.version,
                     tx.getHash(), tx.type, tx.nonce,
                     tx.from, tx.gasPrice, tx.amount,
-                    tx.payload, tx.signature, tx.to,
-                    block.getHash(), block.nHeight, i
+                    tx.payload, tx.signature, tx.to
             });
         }
+
+        // 写入 transaction 表
         tmpl.batchUpdate("insert into transaction (" +
                 "version, tx_hash, type, nonce, " +
                 "\"from\", gas_price, amount, " +
-                "payload, signature, \"to\", block_hash, height, tx_index) VALUES (?, ?,?,?,?,?,?,?,?,?,?,?,?) on conflict(tx_hash) do nothing", args0);
+                "payload, signature, \"to\") VALUES (?, ?,?,?,?,?,?,?,?,?) on conflict(tx_hash) do nothing", args0);
+
+        List<Object[]> args = new ArrayList<>();
+        for (int i = 0; i < block.body.size(); i++) {
+            Transaction tx = block.body.get(i);
+            args.add(new Object[]{
+                    block.getHash(), tx.getHash(), i
+            });
+        }
+
+        // 写入 transaction_index 表
+        tmpl.batchUpdate("insert into transaction_index (block_hash, tx_hash, tx_index) values (?,?,?)", args);
     }
 
 
@@ -185,7 +197,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         // null pointer execption
         txTmpl.execute((TransactionStatus status) -> {
             writeHeader(genesis);
-            writeTransactions(genesis);
+            writeBody(genesis);
             return null;
         });
     }
@@ -223,8 +235,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             clearData();
         }
 
-        // 清除历史遗留的孤快，重构表
-        refactorTables();
+        // 重构表
+        // refactorTables();
 
 
         if (!dbHasGenesis()) {
@@ -342,7 +354,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
-                writeTransactions(block);
+                writeBody(block);
             } catch (Exception e) {
                 status.setRollbackOnly();
                 e.printStackTrace();
@@ -387,19 +399,19 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public boolean hasTransaction(byte[] txHash) {
         return tmpl.queryForObject("select count(*) from transaction as tx " +
-                "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                "inner join header as h on ti.block_hash = h.block_hash " +
-                "where tx.tx_hash = ? and h.is_canonical = true limit 1", new Object[]{txHash}, Integer.class) > 0;
+                "where tx.tx_hash = ? limit 1", new Object[]{txHash}, Integer.class) > 0;
     }
 
     @Override
     public Transaction getTransaction(byte[] txHash) {
         return getOne(tmpl.query(
-                "select * from \"transaction\" where tx_hash = ?", new Object[]{txHash}, new TransactionMapper()));
+                "select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+                        "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.tx_hash = ?", new Object[]{txHash}, new TransactionMapper()));
     }
 
     public Transaction getTransactionByTo(byte[] publicKeyHash) {
-        return getOne(tmpl.query("select * from \"transaction\" where \"to\" = ?", new Object[]{publicKeyHash}, new TransactionMapper()));
+        return getOne(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.to = ?", new Object[]{publicKeyHash}, new TransactionMapper()));
     }
 
     @Override
@@ -426,6 +438,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return tmpl.queryForObject("select count(*) from transaction as tx where tx.payload = ?  limit 1", new Object[]{payload}, Integer.class) > 0;
     }
 
+    // 删除孤块
+
+
     // 重构关系表，删除孤快，冗余 transaction_index 中字段到 transaction 表
     private void refactorTables() {
         // 判断是否已经重构过了
@@ -435,14 +450,6 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             return;
         }
 
-        // 1. 删除 transaction_index 中的孤快
-        tmpl.update("delete from transaction_index as ti where ti.block_hash in (select h.block_hash from header as h where h.is_canonical = false)");
-
-        // 2. 删除 transaction 中不存在于 transaction_index 中的事务
-        tmpl.update("delete from \"transaction\" as t  where t.tx_hash not in (select ti.tx_hash from transaction_index as ti)");
-
-        // 3. 最后删除 header 里面的孤快
-        tmpl.update("delete from header where is_canonical = false");
 
         // 增加列
         tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS block_hash bytea DEFAULT null");
