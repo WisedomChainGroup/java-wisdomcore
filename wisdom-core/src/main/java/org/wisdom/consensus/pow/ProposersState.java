@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.EraLinkedStateFactory;
@@ -203,6 +205,9 @@ public class ProposersState implements State {
         // 统计出块数量
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
+            if (Start.enableAssertion){
+                Assert.isTrue(b.body.size() > 0, "empty block body");
+            }
             updateBlock(b);
             int idx = proposers.indexOf(Hex.encodeHexString(b.body.get(0).to));
             if (idx < 0 || idx >= proposals.length) {
