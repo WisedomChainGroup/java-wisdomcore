@@ -65,7 +65,7 @@ public class PeersCacheWrapper extends PeersCache{
     }
 
     @Override
-    public Set<HostPort> getUnresolved() {
+    public List<HostPort> getUnresolved() {
         readWriteLock.readLock().lock();
         try{
             return super.getUnresolved();
@@ -75,7 +75,7 @@ public class PeersCacheWrapper extends PeersCache{
     }
 
     @Override
-    public Set<Peer> getBootstraps() {
+    public List<Peer> getBootstraps() {
         readWriteLock.readLock().lock();
         try{
             return super.getBootstraps();
@@ -85,7 +85,7 @@ public class PeersCacheWrapper extends PeersCache{
     }
 
     @Override
-    public Set<Peer> getBlocked() {
+    public List<Peer> getBlocked() {
         readWriteLock.readLock().lock();
         try{
             return super.getBlocked();
@@ -95,7 +95,7 @@ public class PeersCacheWrapper extends PeersCache{
     }
 
     @Override
-    public Set<Peer> getPended() {
+    public List<Peer> getPended() {
         readWriteLock.readLock().lock();
         try{
             return super.getPended();

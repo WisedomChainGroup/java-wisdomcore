@@ -96,11 +96,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     public void clearData() {
-        tmpl.batchUpdate("delete  from header where 1 = 1",
-                "delete from transaction where 1 = 1",
-                "delete from transaction_index where 1 = 1",
-                "delete from account where 1 = 1",
-                "delete from incubator_state where 1 = 1");
+        tmpl.batchUpdate("drop table if exists header",
+                "drop table if exists transaction",
+                "drop table if exists transaction_index",
+                "drop table if exists account",
+                "drop table if exists incubator_state");
     }
 
     // get block body
@@ -222,6 +222,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
+
+        if (clearData) {
+            clearData();
+        }
+
         createTableAndIndices();
         //增加account vote字段
         if (databaseUserName != null && !databaseUserName.equals("")) {
@@ -231,16 +236,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
         tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
 
-        if (clearData) {
-            clearData();
-        }
-
         // 重构表
         // refactorTables();
 
 
         if (!dbHasGenesis()) {
-            clearData();
             writeGenesis(genesis);
             return;
         }
@@ -413,12 +413,12 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public Transaction getTransaction(byte[] txHash) {
         return getOne(tmpl.query(
-                "select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+                "select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
                         "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.tx_hash = ?", new Object[]{txHash}, new TransactionMapper()));
     }
 
     public Transaction getTransactionByTo(byte[] publicKeyHash) {
-        return getOne(tmpl.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti " +
+        return getOne(tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
                 "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.to = ?", new Object[]{publicKeyHash}, new TransactionMapper()));
     }
 

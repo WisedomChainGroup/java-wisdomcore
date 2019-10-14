@@ -152,7 +152,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }
     }
 
-    public Set<Peer> getBootstraps(){
+    public List<Peer> getBootstraps(){
         return peersCache.getBootstraps();
     }
 

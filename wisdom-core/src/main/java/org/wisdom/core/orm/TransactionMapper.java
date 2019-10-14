@@ -43,6 +43,7 @@ public class TransactionMapper implements RowMapper<Transaction> {
         tx.blockHash = rs.getBytes("block_hash");
         // TODO: remove assertion codes
         assert Arrays.equals(tx.getHash(), rs.getBytes("tx_hash"));
+        assert tx.blockHash != null && tx.blockHash.length == 32;
         return tx;
     }
 }

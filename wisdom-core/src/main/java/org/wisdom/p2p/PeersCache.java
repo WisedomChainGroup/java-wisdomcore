@@ -178,24 +178,24 @@ public class PeersCache {
         peers.get(idx).remove(peer.key());
     }
 
-    public Set<Peer> getTrusted() {
-        return trusted;
+    public List<Peer> getTrusted() {
+        return new ArrayList<>(trusted);
     }
 
-    public Set<HostPort> getUnresolved() {
-        return unresolved;
+    public List<HostPort> getUnresolved() {
+        return new ArrayList<>(unresolved);
     }
 
-    public Set<Peer> getBootstraps() {
-        return bootstraps;
+    public List<Peer> getBootstraps() {
+        return new ArrayList<>(bootstraps);
     }
 
-    public Set<Peer> getBlocked() {
-        return blocked;
+    public List<Peer> getBlocked() {
+        return new ArrayList<>(blocked);
     }
 
-    public Set<Peer> getPended() {
-        return pended;
+    public List<Peer> getPended() {
+        return new ArrayList<>(pended);
     }
 
     public List<Peer> popPended(){
