@@ -31,7 +31,6 @@ public class ProposersState implements State {
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
-    // TODO: 改成每 2160 个纪元进行衰减
     private static final long ATTENUATION_ERAS = 2160;
 
     public static class Proposer {
