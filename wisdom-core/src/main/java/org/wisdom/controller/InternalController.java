@@ -14,7 +14,7 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 
 /**
  * /internal/transaction/{} 包含未确认的事务
- * /internal/block/{} 包含未确认的区块
+ * /internal/block/{} 包含未确认的区块 {} = ["unconfirmed", "orphan", 13232, "5ee54e5809601afa48f04d1aacd33d47fd358e4c9f4b0115502a2e08a09ac2ec"]
  * /internal/account/{} 未确认的 account
  * /internal/confirmed/transaction/{} 只有确认过的事务
  * /internal/confirmed/block/{} 只有确认过的区块
