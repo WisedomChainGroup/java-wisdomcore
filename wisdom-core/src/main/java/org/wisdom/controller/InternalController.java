@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.core.Block;
+import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.StateDB;
@@ -29,6 +30,9 @@ public class InternalController {
 
     @Autowired
     private JSONEncodeDecoder codec;
+
+    @Autowired
+    private OrphanBlocksManager manager;
 
     // 获取 forkdb 里面的事务
     @GetMapping(value = "/internal/transaction/{transactionHash}", produces = "application/json")
@@ -65,5 +69,28 @@ public class InternalController {
     @GetMapping(value = "/internal/height", produces = "application/json")
     public Object getHeight(){
         return stateDB.getBestBlock().nHeight;
+    }
+
+    // 获取孤块池/forkdb 中的区块
+    @GetMapping(value = "internal/block/{blockInfo}", produces = "application/json")
+    public Object getBlocks(@PathVariable("blockInfo") String blockInfo){
+        if (blockInfo.equals("orphan")){
+            return codec.encodeBlocks(manager.getOrphans());
+        }
+        try{
+            byte[] hash = Hex.decodeHex(blockInfo);
+            return stateDB.getBlock(hash);
+        }catch (Exception e){
+            return getBlocksByHeight(blockInfo);
+        }
+    }
+
+    public Object getBlocksByHeight(String height){
+        try{
+            long h = Long.parseLong(height);
+            return codec.encodeBlocks(stateDB.getBlocks(h, h, Integer.MAX_VALUE, false));
+        }catch (Exception e){
+            return "invalid block path variable " + height;
+        }
     }
 }

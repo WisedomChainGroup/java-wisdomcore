@@ -118,4 +118,8 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 .filter(b -> b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlock(b.getHash()))
                 .forEach(b -> orphans.deleteBlock(b));
     }
+
+    public List<Block> getOrphans(){
+        return orphans.getAll();
+    }
 }
