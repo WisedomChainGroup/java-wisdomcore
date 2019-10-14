@@ -454,9 +454,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 );
 
         // 对字段进行冗余
-        tmpl.update("update \"transaction\" as t set t.block_hash = (select ti.block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
-        tmpl.update("update \"transaction\" as t set t.tx_index = (select ti.tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
-        tmpl.update("update \"transaction\" as t set t.height = (select h.height from header as h where h.block_hash = t.block_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set block_hash = (select ti.block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set tx_index = (select ti.tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set height = (select h.height from header as h where h.block_hash = t.block_hash limit 1)");
     }
 
 }
