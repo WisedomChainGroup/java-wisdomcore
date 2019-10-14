@@ -122,6 +122,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     // reduce ios
     private List<Block> getBlocksFromHeaders(List<Block> headers) {
+        if(headers.size() == 0){
+            return new ArrayList<>();
+        }
         Map<String, Block> cache =  new HashMap<>();
         for(Block b: headers){
             cache.put(b.getHashHexString(), b);
@@ -129,9 +132,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
         NamedParameterJdbcTemplate namedParameterJdbcTemplate =
                 new NamedParameterJdbcTemplate(tmpl);
-        MapSqlParameterSource parameters = new MapSqlParameterSource();
-        parameters.addValue("blocks_hash", headers.stream().map(Block::getHash).collect(Collectors.toList()));
-        List<Transaction> transactions = namedParameterJdbcTemplate.query("select * from transaction where block_hash in (:blocks_hash) order by height", parameters, new TransactionMapper());
+        Map<String,Object> paramMap = new HashMap<>();
+        paramMap.put("blocksHash", headers.stream().map(Block::getHash).collect(Collectors.toList()));
+        List<Transaction> transactions = namedParameterJdbcTemplate.query("select * from transaction where block_hash in(:blocksHash) order by height", paramMap, new TransactionMapper());
         for(Transaction tx: transactions){
             cache.get(Hex.encodeHexString(tx.blockHash)).body.add(tx);
         }
@@ -454,9 +457,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 );
 
         // 对字段进行冗余
-        tmpl.update("update \"transaction\" as t set t.block_hash = (select ti.block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
-        tmpl.update("update \"transaction\" as t set t.tx_index = (select ti.tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
-        tmpl.update("update \"transaction\" as t set t.height = (select h.height from header as h where h.block_hash = t.block_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set block_hash = (select ti.block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set tx_index = (select ti.tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set height = (select h.height from header as h where h.block_hash = t.block_hash limit 1)");
     }
 
 }
