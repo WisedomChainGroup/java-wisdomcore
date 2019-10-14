@@ -206,7 +206,7 @@ public class ProposersState implements State {
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
             if (Start.enableAssertion){
-                Assert.isTrue(b.body.size() > 0, "empty block body");
+                Assert.isTrue(b.body != null && b.body.size() > 0, "empty block body");
             }
             updateBlock(b);
             int idx = proposers.indexOf(Hex.encodeHexString(b.body.get(0).to));
