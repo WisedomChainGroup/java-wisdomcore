@@ -19,6 +19,8 @@
 package org.wisdom.core.orm;
 
 
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.core.account.Transaction;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -41,9 +43,10 @@ public class TransactionMapper implements RowMapper<Transaction> {
         tx.to = rs.getBytes("to");
         tx.height = rs.getLong("height");
         tx.blockHash = rs.getBytes("block_hash");
-        // TODO: remove assertion codes
-        assert Arrays.equals(tx.getHash(), rs.getBytes("tx_hash"));
-        assert tx.blockHash != null && tx.blockHash.length == 32;
+        if(Start.enableAssertion){
+            Assert.isTrue(Arrays.equals(tx.getHash(), rs.getBytes("tx_hash")), "transaction in database had been modified");
+            Assert.isTrue(tx.blockHash != null && tx.blockHash.length == 32, "block hash not found");
+        }
         return tx;
     }
 }

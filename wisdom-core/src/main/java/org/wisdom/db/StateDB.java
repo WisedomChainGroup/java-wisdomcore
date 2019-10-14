@@ -15,6 +15,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
@@ -230,13 +232,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 break;
             }
 
-            // TODO: remove assertion codes
-            if (
-                    !Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
-                            || blocks.size() != blocksPerUpdate
-                            || !isChain(blocks)
-            ) {
-                logger.error("=================================== warning ======================");
+            if(Start.enableAssertion){
+                Assert.isTrue(Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) &&
+                                blocks.size() == blocksPerUpdate &&
+                        isChain(blocks), "get blocks from database failed"
+                        );
             }
             while (blocks.size() > 0) {
                 validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
@@ -320,11 +320,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
             List<Block> all = res.getAll();
 
-            // TODO: remove code assertion
-            if (all.size() != (b.nHeight - anum + 1) || all.get(0).nHeight != anum || !isChain(all)) {
-                logger.error("fail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            } else {
-                logger.info("success!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            if(Start.enableAssertion){
+                Assert.isTrue(all.size() == (b.nHeight - anum + 1) &&
+                                all.get(0).nHeight == anum &&
+                                isChain(all), "get ancestors failed"
+                        );
             }
             return all;
         } finally {

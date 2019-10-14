@@ -20,6 +20,8 @@ package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.math3.fraction.BigFraction;
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
 import org.wisdom.core.state.State;
@@ -84,10 +86,11 @@ public class TargetState implements State {
         if (rate.compareTo(new BigFraction(1, MAX_ADJUST_RATE)) < 0) {
             rate = new BigFraction(1, MAX_ADJUST_RATE);
         }
+        if (Start.enableAssertion){
+            Assert.isTrue(Arrays.equals(BigEndian.encodeUint256(target), blocks.get(0).nBits), "target unmatched");
+        }
         target = safeTyMul(target, rate);
-        logger.info("update blocks start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight + " target = " + Hex.encodeHexString(BigEndian.encodeUint256(target)));
-        // TODO: remove assertion codes
-        assert Arrays.equals(BigEndian.encodeUint256(target), blocks.get(0).nBits);
+        // logger.info("update blocks start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight + " target = " + Hex.encodeHexString(BigEndian.encodeUint256(target)));
         return this;
     }
 

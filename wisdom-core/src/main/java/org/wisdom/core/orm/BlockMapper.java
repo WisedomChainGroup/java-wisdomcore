@@ -19,6 +19,8 @@
 package org.wisdom.core.orm;
 
 
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.core.Block;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -41,8 +43,9 @@ public class BlockMapper implements RowMapper<Block> {
         header.nBits = rs.getBytes("nbits");
         header.blockNotice = rs.getBytes("block_notice");
         header.totalWeight = rs.getLong("total_weight");
-        // TODO: remove assertion codes
-        assert Arrays.equals(header.getHash(), rs.getBytes("block_hash"));
+        if (Start.enableAssertion){
+            Assert.isTrue(Arrays.equals(header.getHash(), rs.getBytes("block_hash")), "block in db had been modified");
+        }
         return header;
     }
 }

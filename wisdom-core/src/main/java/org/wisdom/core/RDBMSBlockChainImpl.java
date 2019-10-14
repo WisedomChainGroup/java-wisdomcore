@@ -25,6 +25,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
@@ -369,8 +371,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public Block findAncestorHeader(byte[] blockHash, long ancestorHeight) {
         Block b = getAncestorHeaders(blockHash, ancestorHeight).get(0);
-        // TODO: remove code assertions
-        assert b.nHeight == ancestorHeight;
+        if(Start.enableAssertion){
+            Assert.isTrue(b.nHeight == ancestorHeight, "wrong ancestor height");
+        }
         return b;
     }
 
@@ -387,9 +390,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
         List<Block> blocks = new BlocksCache(getHeaders(minimumAncestorHeight, block.nHeight)).getAncestors(block);
 
-        // TODO: remove code assertions
-        assert blocks.size() == block.nHeight - minimumAncestorHeight + 1;
-        assert blocks.get(0).nHeight == minimumAncestorHeight;
+        if(Start.enableAssertion){
+            Assert.isTrue(blocks.size() == block.nHeight - minimumAncestorHeight + 1, "ancestors height invalid");
+            Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
+        }
         return blocks;
     }
 
