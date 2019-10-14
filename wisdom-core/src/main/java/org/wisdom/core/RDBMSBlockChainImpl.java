@@ -368,7 +368,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public Block findAncestorHeader(byte[] blockHash, long ancestorHeight) {
-        return getAncestorHeaders(blockHash, ancestorHeight).get(0);
+        Block b = getAncestorHeaders(blockHash, ancestorHeight).get(0);
+        assert b.nHeight == ancestorHeight;
+        return b;
     }
 
     @Override
@@ -382,7 +384,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (block == null){
             return new ArrayList<>();
         }
-        return new BlocksCache(getHeaders(minimumAncestorHeight, block.nHeight)).getAncestors(block);
+        List<Block> blocks = new BlocksCache(getHeaders(minimumAncestorHeight, block.nHeight)).getAncestors(block);
+        assert blocks.size() == block.nHeight - minimumAncestorHeight + 1;
+        assert blocks.get(0).nHeight == minimumAncestorHeight;
+        return blocks;
     }
 
     @Override
