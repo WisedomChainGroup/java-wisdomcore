@@ -180,7 +180,7 @@ public class TransactionTestTool {
         }
 
         if (line.getOptionValue("port") != null && !line.getOptionValue("port").equals("")) {
-            testConfig.port = Integer.parseInt(line.getOptionValue("host"));
+            testConfig.port = Integer.parseInt(line.getOptionValue("port"));
         }
 
         if (line.getOptionValue("key") != null && !line.getOptionValue("key").equals("")) {
