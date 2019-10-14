@@ -28,8 +28,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import org.wisdom.db.StateDB;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,7 +38,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    private BlocksCacheThreadSafetyWrapper orphans;
+    private BlocksCacheWrapper orphans;
 
     @Autowired
     private StateDB stateDB;
@@ -55,7 +53,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
 
     public OrphanBlocksManager() {
-        this.orphans = new BlocksCacheThreadSafetyWrapper();
+        this.orphans = new BlocksCacheWrapper();
     }
 
     private boolean isOrphan(Block block) {
@@ -117,7 +115,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     public void clearOrphans() {
         Block lastConfirmed = stateDB.getLastConfirmed();
         orphans.getAll().stream()
-                .filter(b -> b.nHeight <= lastConfirmed.nHeight)
+                .filter(b -> b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlock(b.getHash()))
                 .forEach(b -> orphans.deleteBlock(b));
     }
 }

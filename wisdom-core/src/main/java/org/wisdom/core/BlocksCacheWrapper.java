@@ -5,15 +5,15 @@ import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class BlocksCacheThreadSafetyWrapper extends BlocksCache {
+public class BlocksCacheWrapper extends BlocksCache {
     private ReadWriteLock readWriteLock;
 
-    public BlocksCacheThreadSafetyWrapper() {
+    public BlocksCacheWrapper() {
         super();
         this.readWriteLock = new ReentrantReadWriteLock();
     }
 
-    public BlocksCacheThreadSafetyWrapper(int sizeLimit) {
+    public BlocksCacheWrapper(int sizeLimit) {
         super(sizeLimit);
         this.readWriteLock = new ReentrantReadWriteLock();
     }

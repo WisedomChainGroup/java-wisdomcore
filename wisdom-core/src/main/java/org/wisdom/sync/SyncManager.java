@@ -59,6 +59,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
 
+    @Value("${wisdom.consensus.blocks-per-era}")
+    private int blocksPerEra;
+
     public SyncManager() {
         this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
     }
@@ -101,7 +104,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         server.dial(ps.get(index), WisdomOuterClass.GetStatus.newBuilder().build());
         for (Block b : orphanBlocksManager.getInitials()) {
-            long startHeight = b.nHeight - maxBlocksPerTransfer + 1;
+            long startHeight = b.nHeight - blocksPerEra * 2 + 1;
             if (startHeight <= 0) {
                 startHeight = 1;
             }
