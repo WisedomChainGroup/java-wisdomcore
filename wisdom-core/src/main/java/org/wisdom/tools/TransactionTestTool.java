@@ -31,6 +31,7 @@ import org.apache.http.util.EntityUtils;
 import org.springframework.core.io.FileSystemResource;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.controller.Callback;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519KeyPair;
@@ -281,15 +282,16 @@ public class TransactionTestTool {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[]{})).join();
     }
 
-    private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) {
+    private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception{
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
         grpcCall(
-                testConfig, buildMessage(self, builder.build()))
-                .thenRun(() -> transactions.forEach(
-                        tx -> System.out.println(new String(codec.encodeTransaction(tx)))
-                        )
-                ).join();
+                testConfig, buildMessage(self, builder.build()), (completed) -> {
+                    transactions.forEach(
+                            tx -> System.out.println(new String(codec.encodeTransaction(tx)))
+                    );
+                    return true;
+                }).awaitTermination(5, TimeUnit.SECONDS);
     }
 
     private static class Response {
@@ -420,6 +422,8 @@ public class TransactionTestTool {
         WisdomOuterClass.Message.Builder builder = WisdomOuterClass.Message.newBuilder();
         builder.setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
         builder.setTtl(8);
+        builder.setRemotePeer(self.toString());
+        builder.setCode(WisdomOuterClass.Code.TRANSACTIONS);
         return sign(self, builder.setBody(transactions.toByteString())).build();
     }
 
@@ -431,12 +435,32 @@ public class TransactionTestTool {
         );
     }
 
-    private static CompletableFuture<WisdomOuterClass.Message> grpcCall(TestConfig testConfig, WisdomOuterClass.Message msg) {
-        return CompletableFuture.supplyAsync(() -> {
+    private static ManagedChannel grpcCall(TestConfig testConfig, WisdomOuterClass.Message msg, Callback onCompleted) {
+        {
             ManagedChannel ch = ManagedChannelBuilder.forAddress(testConfig.host, testConfig.grpcPort
             ).usePlaintext().build(); // without setting up any ssl
-            WisdomGrpc.WisdomBlockingStub stub = WisdomGrpc.newBlockingStub(ch);
-            return stub.entry(msg);
-        }, executor);
+            WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(ch);
+            stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
+                @Override
+                public void onNext(WisdomOuterClass.Message value) {
+
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    t.printStackTrace();
+                    ch.shutdown();
+                }
+
+                @Override
+                public void onCompleted() {
+                    ch.shutdown();
+                    onCompleted.call(true);
+                }
+            });
+            return ch;
+        }
     }
+
+
 }
