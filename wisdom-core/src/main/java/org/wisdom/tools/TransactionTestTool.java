@@ -235,7 +235,7 @@ public class TransactionTestTool {
                 newTx.signature = privateKey.sign(newTx.getRawForSign());
                 futures.add(postTransaction(newTx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
                     if (r.code == APIResult.FAIL) {
-                        System.out.println("post transaction failed" + r.message);
+                        System.err.println("post transaction failed: " + r.message);
                     } else {
                         System.out.println(new String(codec.encode(newTx)));
                     }
