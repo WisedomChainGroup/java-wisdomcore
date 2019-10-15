@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
+import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.db.StateDB;
 import org.wisdom.p2p.*;
@@ -62,6 +63,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
+    @Autowired
+    private CheckPointRule checkPointRule;
+
     public SyncManager() {
         this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
     }
@@ -94,6 +98,12 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Scheduled(fixedRate = 30 * 1000)
     public void getStatus() {
         if (server == null) {
+            return;
+        }
+        // check checkpoint in db
+        Result result = checkPointRule.validateDBCheckPoint();
+        if (!result.isSuccess()) {
+            logger.info("cannot try to fetch block, reason: " + result.getMessage());
             return;
         }
         List<Peer> ps = server.getPeers();
@@ -198,6 +208,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             }
             Result res = rule.validateBlock(b);
             if (!res.isSuccess()) {
+                logger.error("invalid block received reason = " + res.getMessage());
+                continue;
+            }
+            Result resCheckPointRule = checkPointRule.validateBlock(b);
+            if (!resCheckPointRule.isSuccess()) {
                 logger.error("invalid block received reason = " + res.getMessage());
                 continue;
             }
