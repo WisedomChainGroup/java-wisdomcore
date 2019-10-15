@@ -198,7 +198,7 @@ python2 ./ipc_client.py
 ### Install python dotenv
 
 ```shell script
-pip install -U "python-dotenv[cli]"
+pip install -U "python-dotenv[cli]" --user
 ```
 
 ### Provide your genesis file and initial validators file
