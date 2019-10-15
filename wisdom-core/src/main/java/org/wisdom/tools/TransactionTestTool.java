@@ -210,7 +210,7 @@ public class TransactionTestTool {
             Transaction tx = new Transaction();
             tx.version = Transaction.DEFAULT_TRANSACTION_VERSION;
             tx.type = info.type.type;
-            
+
             tx.amount = info.amount.multiply(new BigDecimal(EconomicModel.WDC)).longValue();
 
             tx.to = info.to.publicKeyHash;
