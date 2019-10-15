@@ -272,10 +272,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        return dial(peer.host, peer.port, msg).exceptionally(e -> {
-            logger.error("cannot connect to to peer " + peer.toString() + " half its score");
-            peersCache.half(peer);
-            return null;
+        return dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
+            if (e != null){
+                logger.error("cannot connect to to peer " + peer.toString() + " half its score");
+                peersCache.half(peer);
+                return m;
+            }
+            return m;
         }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
 
