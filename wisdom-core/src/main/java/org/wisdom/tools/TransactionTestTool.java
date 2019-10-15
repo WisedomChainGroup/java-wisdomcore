@@ -32,6 +32,7 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -122,6 +123,12 @@ public class TransactionTestTool {
         public TransactionType deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
             JsonNode node = p.getCodec().readTree(p);
             String encoded = node.asText();
+
+            // 默认是转账
+            if (encoded == null || encoded.equals("")){
+                return new TransactionType(Transaction.Type.TRANSFER.ordinal());
+            }
+
             for (Transaction.Type t : Transaction.TYPES_TABLE) {
                 if (t.toString().equals(encoded.toUpperCase())) {
                     return new TransactionType(t.ordinal());
@@ -137,7 +144,7 @@ public class TransactionTestTool {
     }
 
     private static class TransactionInfo {
-        public long amount;
+        public BigDecimal amount;
         public TransactionType type;
         public PublicKeyHash to;
         public byte[] payload;
@@ -203,7 +210,9 @@ public class TransactionTestTool {
             Transaction tx = new Transaction();
             tx.version = Transaction.DEFAULT_TRANSACTION_VERSION;
             tx.type = info.type.type;
-            tx.amount = info.amount * EconomicModel.WDC;
+            
+            tx.amount = info.amount.multiply(new BigDecimal(EconomicModel.WDC)).longValue();
+
             tx.to = info.to.publicKeyHash;
             tx.from = privateKey.generatePublicKey().getEncoded();
             tx.gasPrice = (long) Math.ceil(
