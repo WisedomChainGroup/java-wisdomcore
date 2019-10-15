@@ -1,5 +1,6 @@
 package org.wisdom.tools;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -7,6 +8,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -29,8 +32,15 @@ import org.springframework.core.io.FileSystemResource;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.crypto.ed25519.Ed25519;
+import org.wisdom.crypto.ed25519.Ed25519KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.p2p.Peer;
+import org.wisdom.p2p.Util;
+import org.wisdom.p2p.WisdomGrpc;
+import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.sync.Utils;
 import org.wisdom.util.Address;
 
 import java.io.IOException;
@@ -41,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 事务发送工具
@@ -55,15 +66,21 @@ import java.util.concurrent.Executor;
 public class TransactionTestTool {
     private static final int RPC_TIMEOUT = 5000;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
+    private static final Ed25519KeyPair nodeKey = Ed25519.GenerateKeyPair();
+
     public static final Executor executor = command -> new Thread(command).start();
 
 
     private static class TestConfig {
         public String host;
         public int port;
+        @JsonProperty("grpc.port")
+        public int grpcPort;
+
         public byte[] privateKey;
         public long nonce;
         public List<TransactionInfo> transactions;
+        public String protocol;
     }
 
     private static class PublicKeyHash {
@@ -130,7 +147,7 @@ public class TransactionTestTool {
             String encoded = node.asText();
 
             // 默认是转账
-            if (encoded == null || encoded.equals("")){
+            if (encoded == null || encoded.equals("")) {
                 return new TransactionType(Transaction.Type.TRANSFER.ordinal());
             }
 
@@ -210,7 +227,8 @@ public class TransactionTestTool {
             testConfig.nonce = getNonce(publicKeyHashHex, testConfig.host, testConfig.port).get() + 1;
         }
 
-        List<CompletableFuture> futures = new ArrayList<>();
+        List<Transaction> transactions = new ArrayList<>();
+
         // 发送事务
         for (TransactionInfo info : testConfig.transactions) {
             Transaction tx = new Transaction();
@@ -219,7 +237,7 @@ public class TransactionTestTool {
 
             BigDecimal amount = info.amount.multiply(new BigDecimal(EconomicModel.WDC));
 
-            if (amount.compareTo(new BigDecimal(Long.MAX_VALUE)) > 0 || amount.compareTo(BigDecimal.ZERO) < 0){
+            if (amount.compareTo(new BigDecimal(Long.MAX_VALUE)) > 0 || amount.compareTo(BigDecimal.ZERO) < 0) {
                 throw new ArithmeticException("amount is negative or amount overflow maximum signed 64 bit integer");
             }
 
@@ -236,19 +254,43 @@ public class TransactionTestTool {
                 Transaction newTx = tx.copy();
                 newTx.nonce = testConfig.nonce;
                 newTx.signature = privateKey.sign(newTx.getRawForSign());
-                futures.add(postTransaction(newTx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
-                    if (r.code == APIResult.FAIL) {
-                        System.err.println("post transaction failed: " + r.message);
-                    } else {
-                        System.out.println(new String(codec.encode(newTx)));
-                    }
-                }));
+                transactions.add(newTx);
                 testConfig.nonce++;
             }
+        }
+
+        if(testConfig.protocol != null && testConfig.protocol.equals("grpc")){
+            final Peer self = Peer.newPeer("wisdom://localhost:9585");
+            sendTransactionsByGRPC(transactions, self, testConfig);
+        }else {
+            sendTransactionsByRPC(transactions, testConfig);
+        }
+    }
+
+    private static void sendTransactionsByRPC(List<Transaction> transactions, TestConfig testConfig) {
+        List<CompletableFuture> futures = new ArrayList<>();
+        for (Transaction tx : transactions) {
+            futures.add(postTransaction(tx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
+                if (r.code == APIResult.FAIL) {
+                    System.err.println("post transaction failed: " + r.message);
+                } else {
+                    System.out.println(new String(codec.encode(tx)));
+                }
+            }));
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[]{})).join();
     }
 
+    private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) {
+        WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
+        transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
+        grpcCall(
+                testConfig, buildMessage(self, builder.build()))
+                .thenRun(() -> transactions.forEach(
+                        tx -> System.out.println(new String(codec.encodeTransaction(tx)))
+                        )
+                ).join();
+    }
 
     private static class Response {
         public int code;
@@ -372,5 +414,29 @@ public class TransactionTestTool {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static WisdomOuterClass.Message buildMessage(Peer self, WisdomOuterClass.Transactions transactions) {
+        WisdomOuterClass.Message.Builder builder = WisdomOuterClass.Message.newBuilder();
+        builder.setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
+        builder.setTtl(8);
+        return sign(self, builder.setBody(transactions.toByteString())).build();
+    }
+
+    private static WisdomOuterClass.Message.Builder sign(Peer self, WisdomOuterClass.Message.Builder builder) {
+        return builder.setSignature(
+                ByteString.copyFrom(
+                        self.privateKey.sign(Util.getRawForSign(builder.build()))
+                )
+        );
+    }
+
+    private static CompletableFuture<WisdomOuterClass.Message> grpcCall(TestConfig testConfig, WisdomOuterClass.Message msg) {
+        return CompletableFuture.supplyAsync(() -> {
+            ManagedChannel ch = ManagedChannelBuilder.forAddress(testConfig.host, testConfig.grpcPort
+            ).usePlaintext().build(); // without setting up any ssl
+            WisdomGrpc.WisdomBlockingStub stub = WisdomGrpc.newBlockingStub(ch);
+            return stub.entry(msg);
+        }, executor);
     }
 }

@@ -5,8 +5,8 @@ import org.wisdom.util.Arrays;
 
 import java.nio.charset.StandardCharsets;
 
-class Util {
-    static byte[] getRawForSign(WisdomOuterClass.Message msg) {
+public class Util {
+    public static byte[] getRawForSign(WisdomOuterClass.Message msg) {
         return Arrays.concatenate(new byte[][]{
                         BigEndian.encodeUint32(msg.getCode().getNumber()),
                         BigEndian.encodeUint64(msg.getCreatedAt().getSeconds()),
