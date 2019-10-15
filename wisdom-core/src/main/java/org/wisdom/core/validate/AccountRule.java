@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
+import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.PackageMiner;
 import org.wisdom.core.Block;
 import org.wisdom.core.WhitelistTransaction;
@@ -97,12 +98,12 @@ public class AccountRule implements BlockRule {
         for (Transaction t : block.body) {
             if (
                     t.type != Transaction.Type.EXIT_VOTE.ordinal() ||
-                    t.type != Transaction.Type.EXIT_MORTGAGE.ordinal() || t.payload == null
+                            t.type != Transaction.Type.EXIT_MORTGAGE.ordinal() || t.payload == null
             ) {
                 continue;
             }
             String k = Hex.encodeHexString(t.payload);
-            if(payloads.contains(k)){
+            if (payloads.contains(k)) {
                 return Result.Error(k + " exit vote or mortgage more than once");
             }
             payloads.add(k);
@@ -117,8 +118,15 @@ public class AccountRule implements BlockRule {
                 if (!validateIncubator) {
                     continue;
                 }
-                switch (Transaction.TYPES_TABLE[tx.type]){
-                    case EXIT_VOTE:{
+                switch (Transaction.Type.values()[tx.type]) {
+                    case VOTE: {
+                        // 投票必须投整数
+                        if (tx.amount % EconomicModel.WDC != 0) {
+                            return Result.Error("the amount of vote must be integral WDC");
+                        }
+                        break;
+                    }
+                    case EXIT_VOTE: {
                         // 投票没有撤回过
                         if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
                             return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
@@ -142,15 +150,19 @@ public class AccountRule implements BlockRule {
                         }
                         break;
                     }
-                    case MORTGAGE:{
+                    case MORTGAGE: {
                         // from 和 to 相等
                         // 抵押撤回都只能抵押撤回给自己
+                        // 抵押必须抵押整数
+                        if (tx.amount % EconomicModel.WDC != 0) {
+                            return Result.Error("the amount of mortgage must be integral WDC");
+                        }
                         if (!Arrays.equals(Address.publicKeyToHash(tx.from), tx.to)) {
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit mortgage address " + Address.publicKeyToAddress(tx.from) + " while " + Address.publicKeyHashToAddress(tx.to) + " received");
                         }
                         break;
                     }
-                    case EXIT_MORTGAGE:{
+                    case EXIT_MORTGAGE: {
                         // 抵押没有撤回过
                         if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
                             return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
@@ -260,8 +272,7 @@ public class AccountRule implements BlockRule {
                             tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
                             map.put(Hex.encodeHexString(tx.to), accountState);
                         }
-                    }
-                    else if (tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {//撤回抵押
+                    } else if (tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {//撤回抵押
                         Map<String, Account> cancelAccountList = packageMiner.UpdateCancelMortgage(account, tx);
                         if (cancelAccountList == null) {
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
