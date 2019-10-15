@@ -61,6 +61,9 @@ public class CheckPointRule implements BlockRule {
 
     // validateDBBlock 校验数据库中的检查点
     public Result validateDBCheckPoint() {
+        if (!openCheckPoint) {
+            return Result.SUCCESS;
+        }
         long height = accountDB.getBestHeight();
         List<Long> heights = confirms.keySet().stream().filter(h -> h <= height).collect(Collectors.toList());
         for (long h : heights) {
