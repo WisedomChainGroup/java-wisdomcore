@@ -240,7 +240,7 @@ ALLOW_MINER_JOINS_ERA=1 # enable miner joins at era 1
 
 MAX_BLOCKS_PER_TRANSFER=256 # maximum blocks in a response
 
-CACHE_DIR=C:\Users\Sal\Desktop\configs\yaoping\leveldb # directory for transaction pool persistence
+CACHE_DIR=C:\Users\Sal\Desktop\configs\leveldb # directory for transaction pool persistence
 
 ENABLE_CODE_ASSERTION=true # enable code assertion for easy debug
 ```
