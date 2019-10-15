@@ -60,6 +60,25 @@ public class Transaction {
             100000, 20000, 20000, 20000
     };
 
+    public Transaction() {
+    }
+
+    public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature) {
+        this.version = version;
+        this.type = type;
+        this.nonce = nonce;
+        this.from = from;
+        this.gasPrice = gasPrice;
+        this.amount = amount;
+        this.payload = payload;
+        this.to = to;
+        this.signature = signature;
+    }
+
+    public Transaction copy(){
+        return new Transaction(version, type, nonce, from, gasPrice, amount, payload, to, signature);
+    }
+
     public static final int TYPE_MAX = 16;
 
     public enum Type {

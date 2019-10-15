@@ -230,10 +230,10 @@ public class TransactionTestTool {
             tx.payload = info.payload;
             for (int i = 0; i < info.times; i++) {
                 // clear cache
-                tx.setHashCache(null);
-                tx.nonce = testConfig.nonce;
-                tx.signature = privateKey.sign(tx.getRawForSign());
-                futures.add(postTransaction(tx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
+                Transaction newTx = tx.copy();
+                newTx.nonce = testConfig.nonce;
+                newTx.signature = privateKey.sign(tx.getRawForSign());
+                futures.add(postTransaction(newTx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
                     if (r.code == APIResult.FAIL) {
                         System.out.println("post transaction failed" + r.message);
                     } else {
