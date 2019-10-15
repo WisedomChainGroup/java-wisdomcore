@@ -37,10 +37,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private static final Executor executor = Executors.newCachedThreadPool();
 
-    private static class SimpleObserver implements StreamObserver<WisdomOuterClass.Message>{
+    private static class SimpleObserver implements StreamObserver<WisdomOuterClass.Message> {
         private WisdomOuterClass.Message response;
 
         private ManagedChannel channel;
+
+        private Throwable exception;
 
         public SimpleObserver(ManagedChannel channel) {
             this.channel = channel;
@@ -50,6 +52,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             return response;
         }
 
+        public Throwable getException() {
+            return exception;
+        }
 
         @Override
         public void onNext(WisdomOuterClass.Message value) {
@@ -58,7 +63,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
         @Override
         public void onError(Throwable t) {
-            throw new RuntimeException(t.getMessage());
+            this.exception = t;
         }
 
         @Override
@@ -165,11 +170,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
         peersCache.half();
 
-        for(Peer p: peersCache.getPeers(MAX_PEERS_PER_PING)){
+        for (Peer p : peersCache.getPeers(MAX_PEERS_PER_PING)) {
             dial(p, PING); // keep alive
         }
 
-        if(peersCache.isFull()){
+        if (peersCache.isFull()) {
             return;
         }
 
@@ -183,11 +188,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }
     }
 
-    public List<Peer> getBootstraps(){
+    public List<Peer> getBootstraps() {
         return peersCache.getBootstraps();
     }
 
-    public PeersCache getPeersCache(){
+    public PeersCache getPeersCache() {
         return peersCache;
     }
 
@@ -198,7 +203,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private WisdomOuterClass.Message onMessage(WisdomOuterClass.Message message) {
         try {
             Payload payload = new Payload(message);
-            if(peersCache.getBlocked().contains(payload.getRemote())){
+            if (peersCache.getBlocked().contains(payload.getRemote())) {
                 logger.error("the remote had been blocked");
                 return buildMessage(1, NOTHING);
             }
@@ -242,7 +247,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         responseObserver.onCompleted();
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> grpcCall(String host, int port, WisdomOuterClass.Message msg) {
+    private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
 
@@ -253,22 +258,29 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 .supplyAsync(() -> {
                     SimpleObserver observer = new SimpleObserver(ch);
                     stub.entry(msg, observer);
-                    try{
+                    try {
                         ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         throw new RuntimeException("grpc timeout");
                     }
-                    return observer.getResponse();
-                }, executor)
-                .thenApplyAsync(this::onMessage, executor);
+                    if (observer.getException() != null){
+                        throw new RuntimeException(observer.getException().getMessage());
+                    }else{
+                        return observer.getResponse();
+                    }
+                }, executor);
     }
 
     private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        return grpcCall(peer.host, peer.port, msg);
+        return dial(peer.host, peer.port, msg).exceptionally(e -> {
+            logger.error("cannot connect to to peer " + peer.toString() + " half its score");
+            peersCache.half(peer);
+            return null;
+        }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
 
     public void dial(String host, int port, Object msg) {
-        grpcCall(host, port, buildMessage(MAX_TTL, msg));
+        dial(host, port, buildMessage(MAX_TTL, msg)).thenApplyAsync(this::onMessage);
     }
 
     public void dial(Peer p, Object msg) {
@@ -404,7 +416,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return getSelf().port;
     }
 
-    void pend(Peer peer){
+    void pend(Peer peer) {
         this.peersCache.pend(peer);
     }
 }
