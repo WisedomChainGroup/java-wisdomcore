@@ -215,13 +215,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
 
-        try {
-            ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
-        }catch (Exception e){
-            logger.error("http2 timeout");
-            return;
-        }
-
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch);
         stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
@@ -246,13 +239,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
             ).usePlaintext().build(); // without setting up any ssl
-
-        try {
-            ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
-        }catch (Exception e){
-            logger.error("http2 timeout");
-            return;
-        }
 
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch);
