@@ -213,8 +213,8 @@ public class TransactionTestTool {
 
             BigDecimal amount = info.amount.multiply(new BigDecimal(EconomicModel.WDC));
 
-            if (amount.compareTo(new BigDecimal(Long.MAX_VALUE)) > 0){
-                throw new ArithmeticException("amount overflow maximum signed 64 bit integer");
+            if (amount.compareTo(new BigDecimal(Long.MAX_VALUE)) > 0 || amount.compareTo(BigDecimal.ZERO) < 0){
+                throw new ArithmeticException("amount is negative or amount overflow maximum signed 64 bit integer");
             }
 
             tx.amount = amount.longValue();
