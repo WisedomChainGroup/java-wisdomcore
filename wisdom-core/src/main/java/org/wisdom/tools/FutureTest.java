@@ -1,7 +1,5 @@
 package org.wisdom.tools;
 
-import org.springframework.core.task.support.ExecutorServiceAdapter;
-
 import java.util.concurrent.*;
 
 public class FutureTest {
@@ -21,7 +19,7 @@ public class FutureTest {
     }
 
     public static void main(String[] args){
-        CompletableFuture[] futures = new CompletableFuture[100];
+        CompletableFuture[] futures = new CompletableFuture[1000];
         for(int i = 0; i < futures.length; i++){
             futures[i] = newFuture();
         }
