@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +55,8 @@ import java.util.stream.Collectors;
 public class TransactionTestTool {
     private static final int HTTP_TIMEOUT = 5000;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
+    public static final Executor executor = command -> new Thread(command).start();
+
 
     private static class TestConfig {
         public String host;
@@ -288,7 +291,7 @@ public class TransactionTestTool {
                 }
                 throw new RuntimeException("post " + url + " fail");
             }
-        });
+        }, executor);
     }
 
 
@@ -355,7 +358,7 @@ public class TransactionTestTool {
                 }
                 throw new RuntimeException("get " + url + " fail");
             }
-        });
+        }, executor);
     }
 
     private static byte[] getBody(final HttpResponse response) {
