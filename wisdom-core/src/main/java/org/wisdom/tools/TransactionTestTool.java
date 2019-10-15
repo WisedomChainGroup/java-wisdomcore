@@ -34,10 +34,12 @@ import org.wisdom.util.Address;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * 事务发送工具
@@ -205,6 +207,7 @@ public class TransactionTestTool {
             testConfig.nonce = getNonce(publicKeyHashHex, testConfig.host, testConfig.port).get() + 1;
         }
 
+        List<CompletableFuture> futures = new ArrayList<>();
         // 发送事务
         for (TransactionInfo info : testConfig.transactions) {
             Transaction tx = new Transaction();
@@ -230,17 +233,19 @@ public class TransactionTestTool {
                 tx.setHashCache(null);
                 tx.nonce = testConfig.nonce;
                 tx.signature = privateKey.sign(tx.getRawForSign());
-                postTransaction(tx, testConfig.host, testConfig.port).thenAcceptAsync(r -> {
+                futures.add(postTransaction(tx, testConfig.host, testConfig.port).thenAcceptAsync(r -> {
                     if (r.code == APIResult.FAIL) {
                         System.out.println("post transaction failed" + r.message);
                     } else {
                         System.out.println(new String(codec.encode(tx)));
                     }
-                }).join();
+                }));
                 testConfig.nonce++;
             }
         }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[]{})).join();
     }
+
 
     private static class Response {
         public int code;
