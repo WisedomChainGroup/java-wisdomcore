@@ -233,7 +233,7 @@ public class TransactionTestTool {
                 tx.setHashCache(null);
                 tx.nonce = testConfig.nonce;
                 tx.signature = privateKey.sign(tx.getRawForSign());
-                futures.add(postTransaction(tx, testConfig.host, testConfig.port).thenAcceptAsync(r -> {
+                futures.add(postTransaction(tx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
                     if (r.code == APIResult.FAIL) {
                         System.out.println("post transaction failed" + r.message);
                     } else {
@@ -292,7 +292,7 @@ public class TransactionTestTool {
     }
 
 
-    private static CompletableFuture<Response> postTransaction(Transaction tx, String host, int port) {
+    private static CompletableFuture<Response> postTransaction(byte[] body, String host, int port) {
         try {
             URI uri = new URI(
                     "http",
@@ -300,7 +300,7 @@ public class TransactionTestTool {
                     host,
                     port,
                     "/sendTransaction",
-                    "traninfo=" + Hex.encodeHexString(tx.toRPCBytes()), null
+                    "traninfo=" + Hex.encodeHexString(body), null
             );
             return post(uri.toString(), new byte[]{}).thenApplyAsync(x -> codec.decode(x, Response.class));
         } catch (Exception e) {
