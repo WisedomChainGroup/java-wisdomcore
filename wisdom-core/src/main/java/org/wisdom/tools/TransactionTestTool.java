@@ -232,7 +232,7 @@ public class TransactionTestTool {
                 // clear cache
                 Transaction newTx = tx.copy();
                 newTx.nonce = testConfig.nonce;
-                newTx.signature = privateKey.sign(tx.getRawForSign());
+                newTx.signature = privateKey.sign(newTx.getRawForSign());
                 futures.add(postTransaction(newTx.toRPCBytes(), testConfig.host, testConfig.port).thenAcceptAsync(r -> {
                     if (r.code == APIResult.FAIL) {
                         System.out.println("post transaction failed" + r.message);
