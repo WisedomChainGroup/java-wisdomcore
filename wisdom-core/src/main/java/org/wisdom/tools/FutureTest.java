@@ -18,11 +18,12 @@ public class FutureTest {
         }, executor);
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws Exception{
         CompletableFuture[] futures = new CompletableFuture[1000];
         for(int i = 0; i < futures.length; i++){
             futures[i] = newFuture();
         }
-        CompletableFuture.allOf(futures).join();
+        CompletableFuture.allOf(futures);
+        TimeUnit.SECONDS.sleep(5);
     }
 }

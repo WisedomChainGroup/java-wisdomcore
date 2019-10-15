@@ -8,7 +8,6 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.codec.binary.Hex;
-import org.omg.CORBA.TIMEOUT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,16 +15,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.core.BlocksCache;
 import org.wisdom.sync.SyncManager;
 import org.wisdom.sync.TransactionHandler;
 
 import javax.annotation.PostConstruct;
 import java.net.InetAddress;
-import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,6 +35,38 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "grpc")
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
+    private static final Executor executor = Executors.newCachedThreadPool();
+
+    private static class SimpleObserver implements StreamObserver<WisdomOuterClass.Message>{
+        private WisdomOuterClass.Message response;
+
+        private ManagedChannel channel;
+
+        public SimpleObserver(ManagedChannel channel) {
+            this.channel = channel;
+        }
+
+        public WisdomOuterClass.Message getResponse() {
+            return response;
+        }
+
+
+        @Override
+        public void onNext(WisdomOuterClass.Message value) {
+            response = value;
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            throw new RuntimeException(t.getMessage());
+        }
+
+        @Override
+        public void onCompleted() {
+            channel.shutdown();
+        }
+    }
+
     private static final int HALF_RATE = 60;
 
     private static final int MAX_PEERS_PER_PING = 6;
@@ -211,56 +242,29 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         responseObserver.onCompleted();
     }
 
-    private void grpcCall(String host, int port, WisdomOuterClass.Message msg) {
+    private CompletableFuture<WisdomOuterClass.Message> grpcCall(String host, int port, WisdomOuterClass.Message msg) {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
 
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch);
-        stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
-            @Override
-            public void onNext(WisdomOuterClass.Message value) {
-                onMessage(value);
-            }
 
-            @Override
-            public void onError(Throwable t) {
-//                t.printStackTrace();
-                ch.shutdown();
-            }
-
-            @Override
-            public void onCompleted() {
-                ch.shutdown();
-            }
-        });
+        return CompletableFuture
+                .supplyAsync(() -> {
+                    SimpleObserver observer = new SimpleObserver(ch);
+                    stub.entry(msg, observer);
+                    try{
+                        ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
+                    }catch (Exception e){
+                        throw new RuntimeException("grpc timeout");
+                    }
+                    return observer.getResponse();
+                }, executor)
+                .thenApplyAsync(this::onMessage, executor);
     }
 
-    private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
-            ).usePlaintext().build(); // without setting up any ssl
-
-        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch);
-        stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
-            @Override
-            public void onNext(WisdomOuterClass.Message value) {
-                onMessage(value);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-//                t.printStackTrace();
-                ch.shutdown();
-                peersCache.half(peer);
-            }
-
-            @Override
-            public void onCompleted() {
-                ch.shutdown();
-//                logger.info("send message " + msg.getCode().name() + " success content = " + msg.toString());
-            }
-        });
+    private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
+        return grpcCall(peer.host, peer.port, msg);
     }
 
     public void dial(String host, int port, Object msg) {
