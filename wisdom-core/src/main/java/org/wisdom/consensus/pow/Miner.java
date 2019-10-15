@@ -20,6 +20,8 @@ package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.event.NewBestBlockEvent;
+import org.wisdom.core.validate.CheckPointRule;
+import org.wisdom.core.validate.Result;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
@@ -86,6 +88,9 @@ public class Miner implements ApplicationListener {
 
     @Autowired
     AdoptTransPool adoptTransPool;
+
+    @Autowired
+    private CheckPointRule checkPointRule;
 
     public Miner() {
     }
@@ -159,6 +164,11 @@ public class Miner implements ApplicationListener {
             return;
         }
         if (!consensusConfig.isEnableMining()) {
+            return;
+        }
+        // check checkpoint in db
+        Result result = checkPointRule.validateDBCheckPoint();
+        if (!result.isSuccess()) {
             return;
         }
         Block bestBlock = stateDB.getBestBlock();

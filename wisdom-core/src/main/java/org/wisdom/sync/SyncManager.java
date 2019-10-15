@@ -17,7 +17,6 @@ import org.wisdom.core.validate.Result;
 import org.wisdom.db.StateDB;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
-import org.wisdom.service.Impl.CommandServiceImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
