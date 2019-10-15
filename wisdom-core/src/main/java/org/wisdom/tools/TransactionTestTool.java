@@ -31,8 +31,6 @@ import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.p2p.WisdomGrpc;
-import org.wisdom.p2p.WisdomOuterClass;
 import org.wisdom.util.Address;
 
 import java.io.IOException;
@@ -43,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 事务发送工具
