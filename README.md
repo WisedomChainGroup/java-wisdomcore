@@ -248,5 +248,5 @@ ENABLE_CODE_ASSERTION=true # enable code assertion for easy debug
 ### Run start script
 
 ```shell script
-python start.py
+python start.py --env=local.env
 ```
