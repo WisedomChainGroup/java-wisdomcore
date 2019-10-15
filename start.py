@@ -14,7 +14,11 @@ parser.add_argument('-e', '--env', default="local.env", type=str, help="env file
 args = vars(parser.parse_args())
 load_dotenv(dotenv_path=args['env'])
 
-os.system("gradlew run")
+if os.name == 'nt':
+    os.system(".\gradlew.bat run")
+else:
+    os.system("./gradlew run")
+
 
 
 
