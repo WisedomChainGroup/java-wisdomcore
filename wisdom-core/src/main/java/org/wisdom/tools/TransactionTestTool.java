@@ -7,6 +7,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
 import org.apache.commons.cli.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.http.HttpEntity;
@@ -28,6 +31,8 @@ import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.p2p.WisdomGrpc;
+import org.wisdom.p2p.WisdomOuterClass;
 import org.wisdom.util.Address;
 
 import java.io.IOException;
@@ -38,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 事务发送工具
@@ -50,7 +56,7 @@ import java.util.concurrent.Executor;
  * -n --nonce 指定起始 nonce
  */
 public class TransactionTestTool {
-    private static final int HTTP_TIMEOUT = 5000;
+    private static final int RPC_TIMEOUT = 5000;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     public static final Executor executor = command -> new Thread(command).start();
 
@@ -225,7 +231,7 @@ public class TransactionTestTool {
             tx.to = info.to.publicKeyHash;
             tx.from = privateKey.generatePublicKey().getEncoded();
             tx.gasPrice = (long) Math.ceil(
-                    0.02 * EconomicModel.WDC / Transaction.GAS_TABLE[tx.type]
+                    0.002 * EconomicModel.WDC / Transaction.GAS_TABLE[tx.type]
             );
             tx.payload = info.payload;
             for (int i = 0; i < info.times; i++) {
@@ -276,7 +282,7 @@ public class TransactionTestTool {
             try {
                 URI uriObject = new URI(url);
                 HttpPost httppost = new HttpPost(uriObject);
-                httppost.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
+                httppost.setConfig(RequestConfig.custom().setConnectTimeout(RPC_TIMEOUT).build());
                 httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
                 // Create a custom response handler
                 resp = httpclient.execute(httppost);
@@ -343,7 +349,7 @@ public class TransactionTestTool {
                 }
                 uriObject = builder.build();
                 HttpGet httpget = new HttpGet(uriObject);
-                httpget.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
+                httpget.setConfig(RequestConfig.custom().setConnectTimeout(RPC_TIMEOUT).build());
                 // Create a custom response handler
                 resp = httpclient.execute(httpget);
                 return getBody(resp);
