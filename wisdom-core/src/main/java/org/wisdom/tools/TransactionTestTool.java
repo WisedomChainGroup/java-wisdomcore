@@ -211,7 +211,13 @@ public class TransactionTestTool {
             tx.version = Transaction.DEFAULT_TRANSACTION_VERSION;
             tx.type = info.type.type;
 
-            tx.amount = info.amount.multiply(new BigDecimal(EconomicModel.WDC)).longValue();
+            BigDecimal amount = info.amount.multiply(new BigDecimal(EconomicModel.WDC));
+
+            if (amount.compareTo(new BigDecimal(Long.MAX_VALUE)) > 0){
+                throw new ArithmeticException("amount overflow maximum signed 64 bit integer");
+            }
+
+            tx.amount = amount.longValue();
 
             tx.to = info.to.publicKeyHash;
             tx.from = privateKey.generatePublicKey().getEncoded();
