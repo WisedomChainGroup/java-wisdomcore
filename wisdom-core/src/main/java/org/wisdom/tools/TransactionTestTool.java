@@ -237,7 +237,7 @@ public class TransactionTestTool {
                     if (r.code == APIResult.FAIL) {
                         System.out.println("post transaction failed" + r.message);
                     } else {
-                        System.out.println(new String(codec.encode(tx)));
+                        System.out.println(new String(codec.encode(newTx)));
                     }
                 }));
                 testConfig.nonce++;
