@@ -1,4 +1,6 @@
 {
+   // windows脚本 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
+   // unix 脚本 ./gradlew runTransactionTestTool -PappArgs="-c ../java-wisdomcore/transaction-test-example.jsonc"
   "host": "192.168.1.118", // 可以通过命令行 -h 参数 覆盖
   "port": "19585", // 可以通过命令行 -p 参数 覆盖
   "privateKey": "9972e47b6f733a834bc6485085e5d39685401a515fd37932d17a8c0bcfac3e41", // 通过命令行 -k 参数覆盖 传递私钥
