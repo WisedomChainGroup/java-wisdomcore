@@ -57,16 +57,6 @@ public class Start {
     // wisdom chain configuration
     @Bean
     public JdbcTemplate getJDBCTemplate(BasicDataSource dataSource) {
-        String ddl = "ddl.sql";
-        Resource resource;
-        try {
-            resource = new ClassPathResource(ddl);
-        } catch (Exception e) {
-            resource = new FileSystemResource(ddl);
-        }
-        assert resource.exists();
-        ScriptUtils.executeSqlScript();
-
         JdbcTemplate jdbcTemplate = new JdbcTemplate();
         jdbcTemplate.setDataSource(dataSource);
         return jdbcTemplate;
