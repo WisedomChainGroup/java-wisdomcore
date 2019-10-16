@@ -22,6 +22,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -56,6 +57,16 @@ public class Start {
     // wisdom chain configuration
     @Bean
     public JdbcTemplate getJDBCTemplate(BasicDataSource dataSource) {
+        String ddl = "ddl.sql";
+        Resource resource;
+        try {
+            resource = new ClassPathResource(ddl);
+        } catch (Exception e) {
+            resource = new FileSystemResource(ddl);
+        }
+        assert resource.exists();
+        ScriptUtils.executeSqlScript();
+
         JdbcTemplate jdbcTemplate = new JdbcTemplate();
         jdbcTemplate.setDataSource(dataSource);
         return jdbcTemplate;

@@ -19,12 +19,14 @@
 package org.wisdom.core;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.util.Arrays;
@@ -63,7 +65,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return res.get(0);
     }
 
-    private void createTableAndIndices() throws Exception {
+    private void createTableAndIndices(BasicDataSource basicDataSource) throws Exception {
         String ddl = "ddl.sql";
         Resource resource;
         try {
@@ -72,29 +74,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             resource = new FileSystemResource(ddl);
         }
         assert resource.exists();
-
-        String sql = new String(IOUtils.toByteArray(resource.getInputStream()));
-        for (String s : sql.split(";")) {
-            tmpl.update(s.trim());
-        }
-        tmpl.batchUpdate(
-                "create index if not exists transaction_index_block_hash " +
-                        "    on transaction_index (block_hash)",
-                "create unique index if not exists transaction_tx_hash_uindex " +
-                        "    on transaction (tx_hash)",
-                "create index if not exists header_height_index on header (height desc)",
-                "create index if not exists header_total_weight_index on header (total_weight desc)",
-                "create index if not exists account_blockheight_index on account (blockheight desc)",
-                "create index if not exists  account_pubkeyhash_index on account (pubkeyhash)",
-                "create index if not exists incubator_state_height_index on incubator_state (height desc)",
-                "create index if not exists incubator_state_txid_issue_index on incubator_state (txid_issue)",
-                "create index if not exists  account_heightpub_index on account (blockheight,pubkeyhash)",
-                "create index if not exists incubator_state_txidheight_index on incubator_state (txid_issue,height)",
-                "create index if not exists transaction_index_tx_hash_index on transaction_index (tx_hash)",
-                "create index if not exists transaction_type_index on transaction(type)",
-                "create index if not exists transaction_payload_index on transaction(payload)",
-                "create index if not exists transaction_to_index on transaction(\"to\")"
-        );
+        ScriptUtils.executeSqlScript(basicDataSource.getConnection(), resource);
     }
 
     public void clearData() {
@@ -219,7 +199,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             Block genesis,
             ApplicationContext ctx,
             @Value("${spring.datasource.username}") String databaseUserName,
-            @Value("${clear-data}") boolean clearData
+            @Value("${clear-data}") boolean clearData,
+            BasicDataSource basicDataSource
     ) throws Exception {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
@@ -229,7 +210,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             clearData();
         }
 
-        createTableAndIndices();
+        createTableAndIndices(basicDataSource);
         //增加account vote字段
         if (databaseUserName != null && !databaseUserName.equals("")) {
             String sql = "ALTER TABLE account OWNER TO " + databaseUserName;
