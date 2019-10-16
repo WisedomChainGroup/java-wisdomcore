@@ -271,7 +271,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 }, executor);
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
+    private CompletableFuture<WisdomOuterClass.Message> gRPCCall(Peer peer, WisdomOuterClass.Message msg) {
         return dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
             if (e != null){
                 logger.error("cannot connect to to peer " + peer.toString() + " half its score");
@@ -287,12 +287,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void dial(Peer p, Object msg) {
-        grpcCall(p, buildMessage(1, msg));
+        gRPCCall(p, buildMessage(1, msg));
     }
 
     public void broadcast(Object msg) {
         for (Peer p : getPeers()) {
-            grpcCall(p, buildMessage(MAX_TTL, msg));
+            gRPCCall(p, buildMessage(MAX_TTL, msg));
         }
     }
 
@@ -305,7 +305,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                grpcCall(p, buildMessage(payload.getTtl() - 1, payload.getBody()));
+                gRPCCall(p, buildMessage(payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
