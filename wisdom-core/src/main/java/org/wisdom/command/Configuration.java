@@ -49,6 +49,9 @@ public class Configuration {
     @Value("${pool.queuedtopending.maxcount}")
     private long maxqpcount;
 
+    @Value("${wisdom.block-interval-switch-era}")
+    private int era;
+
     public long getPoolcleardays() {
         return poolcleardays;
     }
@@ -57,7 +60,13 @@ public class Configuration {
         return min_procedurefee;
     }
 
-    public int getDay_count() {
+    public int getDay_count(long height) {
+        if(era>=0){
+            long updateheight=era*120;
+            if(height>updateheight){
+                return day_count*3;
+            }
+        }
         return day_count;
     }
 

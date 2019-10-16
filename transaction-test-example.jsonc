@@ -1,9 +1,12 @@
 {
+   // windows脚本 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
+   // unix 脚本 ./gradlew runTransactionTestTool -PappArgs="-c ../java-wisdomcore/transaction-test-example.jsonc"
   "host": "192.168.1.118", // 可以通过命令行 -h 参数 覆盖
   "port": "19585", // 可以通过命令行 -p 参数 覆盖
   "privateKey": "9972e47b6f733a834bc6485085e5d39685401a515fd37932d17a8c0bcfac3e41", // 通过命令行 -k 参数覆盖 传递私钥
   "nonce": 0, // 起始 nonce 可选，如果为 0 自动获取，通过命令行 -n 参数 传递
-
+  "protocol": "http", // 从 http 发事务是批量 http 请求，从 grpc 发是单次 http2 请求速度更快
+  "grpc.port": "9585", // 接收者节点的 grpc 监听端口, 如果节点的p2p地址是 wisdom://192.168.1.118:9585， 就填 9585
   // transaction info
   "transactions": [
     {
@@ -36,3 +39,9 @@
     }
   ]
 }
+
+/*
+存证事务的 payload 可以填文本了
+如果文本内容是合法的十六进制字符串则会被解析为字节数组 例如 "payload": "ff", 提交的是一个字节
+如果要强制提交文本用 `` 包含 例如 "payload": "`ff`", 提交的是两个字节，表示 f 这个字符的 utf8 编码
+*/

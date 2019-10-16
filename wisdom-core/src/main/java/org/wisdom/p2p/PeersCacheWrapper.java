@@ -1,13 +1,12 @@
 package org.wisdom.p2p;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class PeersCacheWrapper extends PeersCache{
 
-    private ReadWriteLock readWriteLock;
+    protected ReadWriteLock readWriteLock;
 
     public PeersCacheWrapper(String self, String bootstraps, String trusted, boolean enableDiscovery) throws Exception {
         super(self, bootstraps, trusted, enableDiscovery);

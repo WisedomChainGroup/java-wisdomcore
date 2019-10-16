@@ -47,6 +47,7 @@ import org.wisdom.util.Address;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -166,11 +167,54 @@ public class TransactionTestTool {
         }
     }
 
+    private static class Payload {
+        public byte[] payload;
+
+        public Payload(byte[] payload) {
+            this.payload = payload;
+        }
+    }
+
+    private static class PayloadDeserializer extends StdDeserializer<Payload> {
+        public static class PayloadDeserializeException extends JsonProcessingException {
+            PayloadDeserializeException(String msg) {
+                super(msg);
+            }
+        }
+
+        public PayloadDeserializer() {
+            super(TransactionType.class);
+        }
+
+        @Override
+        public Payload deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+            JsonNode node = p.getCodec().readTree(p);
+            String encoded = node.asText();
+            if (encoded.startsWith("`") && encoded.endsWith("`")) {
+                encoded = encoded.substring(1);
+                encoded = encoded.substring(0, encoded.length() - 1);
+                return new Payload(encoded.getBytes(StandardCharsets.UTF_8));
+            }
+            if (encoded.startsWith("0x")) {
+                try {
+                    return new Payload(Hex.decodeHex(encoded.substring(2)));
+                } catch (Exception e) {
+                    throw new PayloadDeserializeException(e.getMessage());
+                }
+            }
+            try {
+                return new Payload(Hex.decodeHex(encoded));
+            } catch (Exception e) {
+                return new Payload(encoded.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+    }
+
     private static class TransactionInfo {
         public BigDecimal amount;
         public TransactionType type;
         public PublicKeyHash to;
-        public byte[] payload;
+        public Payload payload;
         public int times;
     }
 
@@ -197,6 +241,8 @@ public class TransactionTestTool {
 
         // 处理枚举 type
         module.addDeserializer(TransactionType.class, new TransactionTypeDeserializer());
+
+        module.addDeserializer(Payload.class, new PayloadDeserializer());
 
         mapper.registerModule(module);
         mapper.enable(JsonParser.Feature.ALLOW_COMMENTS);
@@ -249,7 +295,7 @@ public class TransactionTestTool {
             tx.gasPrice = (long) Math.ceil(
                     0.002 * EconomicModel.WDC / Transaction.GAS_TABLE[tx.type]
             );
-            tx.payload = info.payload;
+            tx.payload = info.payload.payload;
             for (int i = 0; i < info.times; i++) {
                 // clear cache
                 Transaction newTx = tx.copy();
@@ -260,10 +306,10 @@ public class TransactionTestTool {
             }
         }
 
-        if(testConfig.protocol != null && testConfig.protocol.equals("grpc")){
+        if (testConfig.protocol != null && testConfig.protocol.equals("grpc")) {
             final Peer self = Peer.newPeer("wisdom://localhost:9585");
             sendTransactionsByGRPC(transactions, self, testConfig);
-        }else {
+        } else {
             sendTransactionsByRPC(transactions, testConfig);
         }
     }
@@ -282,7 +328,7 @@ public class TransactionTestTool {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[]{})).join();
     }
 
-    private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception{
+    private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
         grpcCall(

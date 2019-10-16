@@ -185,8 +185,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.confirms = new HashMap<>();
         this.leastConfirms = new HashMap<>();
 
-        Resource  resource = new FileSystemResource(validatorsFile);
-        if(!resource.exists()){
+        Resource resource = new FileSystemResource(validatorsFile);
+        if (!resource.exists()) {
             resource = new ClassPathResource(validatorsFile);
         }
 
@@ -210,11 +210,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         readWriteLock.writeLock().lock();
-        try{
+        try {
             initUnsafe();
-        }finally {
+        } finally {
             readWriteLock.writeLock().unlock();
         }
     }
@@ -232,11 +232,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 break;
             }
 
-            if(Start.enableAssertion){
+            if (Start.enableAssertion) {
                 Assert.isTrue(Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) &&
-                                blocks.size() == blocksPerUpdate &&
+                        blocks.size() == blocksPerUpdate &&
                         isChain(blocks), "get blocks from database failed"
-                        );
+                );
             }
             while (blocks.size() > 0) {
                 validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
@@ -252,21 +252,25 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     public Block getBestBlock() {
         this.readWriteLock.readLock().lock();
         try {
-            return blocksCache.getLeaves().stream()
-                    .max((a, b) -> {
-                        if (a.nHeight != b.nHeight) {
-                            return Long.compare(a.nHeight, b.nHeight);
-                        }
-                        // pow 更小的占优势
-                        return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
-                                .compareTo(
-                                        BigEndian.decodeUint256(Block.calculatePOWHash(b))
-                                );
-                    })
-                    .orElse(this.latestConfirmed);
+            return getBestBlockUnsafe();
         } finally {
             this.readWriteLock.readLock().unlock();
         }
+    }
+
+    private Block getBestBlockUnsafe() {
+        return blocksCache.getLeaves().stream()
+                .max((a, b) -> {
+                    if (a.nHeight != b.nHeight) {
+                        return Long.compare(a.nHeight, b.nHeight);
+                    }
+                    // pow 更小的占优势
+                    return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
+                            .compareTo(
+                                    BigEndian.decodeUint256(Block.calculatePOWHash(b))
+                            );
+                })
+                .orElse(this.latestConfirmed);
     }
 
     private Block getHeaderUnsafe(byte[] hash) {
@@ -320,11 +324,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
             List<Block> all = res.getAll();
 
-            if(Start.enableAssertion){
+            if (Start.enableAssertion) {
                 Assert.isTrue(all.size() == (b.nHeight - anum + 1) &&
-                                all.get(0).nHeight == anum &&
-                                isChain(all), "get ancestors failed"
-                        );
+                        all.get(0).nHeight == anum &&
+                        isChain(all), "get ancestors failed"
+                );
             }
             return all;
         } finally {
@@ -418,8 +422,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b == null || b.body == null) {
             return null;
         }
-        for(Transaction t: b.body){
-            if (Arrays.equals(t.getHash(), txHash)){
+        for (Transaction t : b.body) {
+            if (Arrays.equals(t.getHash(), txHash)) {
                 t.height = b.nHeight;
                 return t;
             }
@@ -444,8 +448,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b == null) {
             return true;
         }
-        for(Transaction t: b.body){
-            if(t.payload != null && Arrays.equals(t.payload, payload)){
+        for (Transaction t : b.body) {
+            if (t.payload != null && Arrays.equals(t.payload, payload)) {
                 return true;
             }
         }
@@ -478,7 +482,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (!transactionIndex.containsKey(block.getHashHexString())) {
                 transactionIndex.put(block.getHashHexString(), new HashSet<>());
             }
-            block.body.forEach(t -> transactionIndex.get(block.getHashHexString()).add(t.getHashHexString()));
+            block.body.forEach(t -> {
+                t.height = block.nHeight;
+                t.blockHash = block.getHash();
+                transactionIndex.get(block.getHashHexString()).add(t.getHashHexString());
+            });
 
             leastConfirms.put(block.getHashHexString(),
                     (int) Math.ceil(
@@ -979,5 +987,167 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
         }
         return account;
+    }
+
+    public List<Transaction> getTransactionsByTo(byte[] publicKeyHash, int offset, int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            Block best = getBestBlockUnsafe();
+            return getTransactionsByTo(best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(Collectors.toList());
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    public List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            Block best = getBestBlockUnsafe();
+            return getTransactionsByFrom(best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(Collectors.toList());
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    public List<Transaction> getTransactionsByFromAndTo(byte[] from, byte[] to, int offset, int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            Block best = getBestBlockUnsafe();
+            return getTransactionsByFromAndTo(best.getHash(), from, to, offset, limit).stream().limit(limit).collect(Collectors.toList());
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    public List<Transaction> getTransactionsByToAndType(int type, byte[] publicKeyHash, int offset, int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            Block best = getBestBlockUnsafe();
+            return getTransactionsByToAndType(type, best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(Collectors.toList());
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    public List<Transaction> getTransactionsByFromAndType(int type, byte[] publicKey, int offset, int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            Block best = getBestBlockUnsafe();
+            return getTransactionsByFromAndType(type, best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(Collectors.toList());
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    public List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            Block best = getBestBlockUnsafe();
+            return getTransactionsByFromToAndType(type, best.getHash(), from, to, offset, limit).stream().limit(limit).collect(Collectors.toList());
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private List<Transaction> getTransactionsByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByTo(publicKeyHash, offset, limit);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return new ArrayList<>();
+        }
+        if (b.body == null) {
+            return getTransactionsByTo(b.hashPrevBlock, publicKeyHash, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.to, publicKeyHash)).collect(Collectors.toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsByTo(b.hashPrevBlock, publicKeyHash, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    private List<Transaction> getTransactionsByFrom(byte[] blockHash, byte[] publicKey, int offset, int limit) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByFrom(publicKey, offset, limit);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return new ArrayList<>();
+        }
+        if (b.body == null) {
+            return getTransactionsByFrom(b.hashPrevBlock, publicKey, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.from, publicKey)).collect(Collectors.toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsByFrom(b.hashPrevBlock, publicKey, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    private List<Transaction> getTransactionsByFromAndTo(byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByFromAndTo(from, to, offset, limit);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return new ArrayList<>();
+        }
+        if (b.body == null) {
+            return getTransactionsByFromAndTo(b.hashPrevBlock, from, to, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.from, from) && Arrays.equals(tx.to, to)).collect(Collectors.toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsByFromAndTo(b.hashPrevBlock, from, to, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    private List<Transaction> getTransactionsByToAndType(int type, byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByToAndType(type, publicKeyHash, offset, limit);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return new ArrayList<>();
+        }
+        if (b.body == null) {
+            return getTransactionsByToAndType(type, b.hashPrevBlock, publicKeyHash, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.to, publicKeyHash)).collect(Collectors.toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsByToAndType(type, b.hashPrevBlock, publicKeyHash, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    private List<Transaction> getTransactionsByFromAndType(int type, byte[] blockHash, byte[] publicKey, int offset, int limit) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByFromAndType(type, publicKey, offset, limit);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return new ArrayList<>();
+        }
+        if (b.body == null) {
+            return getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey) ).collect(Collectors.toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    private List<Transaction> getTransactionsByFromToAndType(int type, byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
+        if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByFromToAndType(type, from, to, offset, limit);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return new ArrayList<>();
+        }
+        if (b.body == null) {
+            return getTransactionsByFromToAndType(type, b.hashPrevBlock, from, to, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, from) && Arrays.equals(tx.to, to)).collect(Collectors.toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsByFromToAndType(type, b.hashPrevBlock, from, to, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
     }
 }

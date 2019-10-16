@@ -464,8 +464,8 @@ public class TransactionCheck {
                     apiResult.setMessage("Cannot extract, still less than a day");
                     return apiResult;
                 }
-                int blockcount = mul * configuration.getDay_count();
                 long nowheight = stateDB.getBestBlock().nHeight;
+                int blockcount = mul * configuration.getDay_count(nowheight);
                 if ((inheight + blockcount) > nowheight) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("In excess of the amount available");

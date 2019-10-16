@@ -54,7 +54,11 @@ public class PendingBlocksManager {
     // 区块的写入全部走这里
     @Async
     public void addPendingBlocks(BlocksCache cache) {
-        for (List<Block> chain : cache.popLongestChains()) {
+        while (true) {
+            List<Block> chain = cache.popLongestChain();
+            if (chain == null || chain.size() == 0){
+                break;
+            }
             if (chainHasWritten(chain)) {
                 continue;
             }

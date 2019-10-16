@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import org.apache.commons.io.FileUtils;
 import org.iq80.leveldb.*;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,8 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 public class Leveldb {
@@ -19,13 +18,20 @@ public class Leveldb {
     private File file;
     private Options options;
 
-    public Leveldb(@Value("${wisdom.cache-dir}") String cacheDir) {
+    public Leveldb(@Value("${wisdom.cache-dir}") String cacheDir, @Value("${clear-cache}") boolean clearCache) throws Exception {
         this.CHARSET = StandardCharsets.UTF_8;
         if (cacheDir == null || cacheDir.equals("")) {
             cacheDir = System.getProperty("user.dir") + File.separator + "leveldb";
         }
+        if (clearCache) {
+            FileUtils.deleteDirectory(new File(cacheDir));
+        }
         this.file = new File(cacheDir);
+        if (!this.file.exists()) {
+            this.file.mkdirs();
+        }
         this.options = new Options();
+
     }
 
     public void addPoolDb(String key, String noncepoolval) {
