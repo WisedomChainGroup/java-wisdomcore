@@ -225,7 +225,7 @@ public class HatchServiceImpl implements HatchService {
             //当前最高高度
             long maxhieght = wisdomBlockChain.getCurrentTotalWeight();
             long differheight = maxhieght - incubator.getLast_blockheight_interest();
-            int differdays = (int) (differheight / configuration.getDay_count());
+            int differdays = (int) (differheight / configuration.getDay_count(maxhieght));
             if (differdays == 0) {
                 return APIResult.newFailResult(5000, "Interest less than one day");
             }
@@ -289,7 +289,7 @@ public class HatchServiceImpl implements HatchService {
             //当前最高高度
             long maxhieght = wisdomBlockChain.getCurrentTotalWeight();
             long differheight = maxhieght - incubator.getLast_blockheight_share();
-            int differdays = (int) (differheight / configuration.getDay_count());
+            int differdays = (int) (differheight / configuration.getDay_count(maxhieght));
             if (differdays == 0) {
                 return APIResult.newFailResult(5000, "Interest less than one day");
             }

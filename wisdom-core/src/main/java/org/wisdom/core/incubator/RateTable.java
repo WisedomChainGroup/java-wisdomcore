@@ -21,16 +21,20 @@ package org.wisdom.core.incubator;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 @Component
 public class RateTable {
 
     public List<Rate> ratemap=new ArrayList<>();
+    public List<Rate> newratemap=new ArrayList<>();
+
+    @Value("${wisdom.block-interval-switch-era}")
+    private int era;
 
     public class Rate{
         private int beginblock;
@@ -95,11 +99,39 @@ public class RateTable {
         ratemap.add(new Rate(2210000,2380000,"0.0000102","0.0000170"));
         ratemap.add(new Rate(2380000,2550000,"0.0000077","0.0000128"));
         ratemap.add(new Rate(2550000,2720000,"0.0000058","0.0000096"));
+
+        newratemap.add(new Rate(0,510000,"0.0004271","0.0007119"));
+        newratemap.add(new Rate(510000,1020000,"0.0003203","0.0005339"));
+        newratemap.add(new Rate(1020000,1530000,"0.0002402","0.0004004"));
+        newratemap.add(new Rate(1530000,2040000,"0.0001802","0.0003003"));
+        newratemap.add(new Rate(2040000,2550000,"0.0001352","0.0002252"));
+        newratemap.add(new Rate(2550000,3060000,"0.0001014","0.0001689"));
+        newratemap.add(new Rate(3060000,3570000,"0.0000761","0.0001267"));
+        newratemap.add(new Rate(3570000,4080000,"0.0000571","0.0000950"));
+        newratemap.add(new Rate(4080000,4590000,"0.0000428","0.0000712"));
+        newratemap.add(new Rate(4590000,5100000,"0.0000321","0.0000534"));
+        newratemap.add(new Rate(5100000,5610000,"0.0000241","0.0000401"));
+        newratemap.add(new Rate(5610000,6120000,"0.0000181","0.0000301"));
+        newratemap.add(new Rate(6120000,6630000,"0.0000136","0.0000226"));
+        newratemap.add(new Rate(6630000,7140000,"0.0000102","0.0000170"));
+        newratemap.add(new Rate(7140000,7650000,"0.0000077","0.0000128"));
+        newratemap.add(new Rate(7650000,8160000,"0.0000058","0.0000096"));
     }
 
     public String selectrate(long height,int days){
         String rates="";
-        for(Rate rate:ratemap){
+        List<Rate> rateList=new ArrayList<>();
+        if(era>=0){
+            long updateheight=era*120;
+            if(height>updateheight){
+                rateList.addAll(newratemap);
+            }else{
+                rateList.addAll(ratemap);
+            }
+        }else{
+            rateList.addAll(ratemap);
+        }
+        for(Rate rate:rateList){
             if(rate.getBeginblock()<=height && rate.getEndblock()>height){
                 if(days==120){
                     return rate.getRate120();
