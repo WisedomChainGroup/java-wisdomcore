@@ -3,7 +3,8 @@
   "port": "19585", // 可以通过命令行 -p 参数 覆盖
   "privateKey": "9972e47b6f733a834bc6485085e5d39685401a515fd37932d17a8c0bcfac3e41", // 通过命令行 -k 参数覆盖 传递私钥
   "nonce": 0, // 起始 nonce 可选，如果为 0 自动获取，通过命令行 -n 参数 传递
-
+  "protocol": "http", // 从 http 发事务是批量 http 请求，从 grpc 发是单次 http2 请求速度更快
+  "grpc.port": "9585", // 接收者节点的 grpc 监听端口, 如果节点的p2p地址是 wisdom://192.168.1.118:9585， 就填 9585
   // transaction info
   "transactions": [
     {
