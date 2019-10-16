@@ -87,7 +87,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private static final int MAX_TTL = 8;
     private AtomicLong nonce;
     private List<Plugin> pluginList;
-    private PeersCacheWrapper peersCache;
+
+    @Autowired
+    private PeersStorage peersCache;
 
     @Autowired
     private MessageFilter filter;
@@ -111,14 +113,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private boolean enableDiscovery;
 
     public PeerServer(
-            @Value("${p2p.address}") String self,
-            @Value("${p2p.bootstraps}") String bootstraps,
-            @Value("${p2p.trustedpeers}") String trusted,
-            @Value("${p2p.enable-discovery}") boolean enableDiscovery
     ) throws Exception {
         nonce = new AtomicLong();
         pluginList = new ArrayList<>();
-        this.peersCache = new PeersCacheWrapper(self, bootstraps, trusted, enableDiscovery);
     }
 
     public PeerServer use(Plugin plugin) {
@@ -263,9 +260,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                     } catch (Exception e) {
                         throw new RuntimeException("grpc timeout");
                     }
-                    if (observer.getException() != null){
+                    if (observer.getException() != null) {
                         throw new RuntimeException(observer.getException().getMessage());
-                    }else{
+                    } else {
                         return observer.getResponse();
                     }
                 }, executor);
@@ -273,7 +270,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
         return dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
-            if (e != null){
+            if (e != null) {
                 logger.error("cannot connect to to peer " + peer.toString() + " half its score");
                 peersCache.half(peer);
                 return m;
