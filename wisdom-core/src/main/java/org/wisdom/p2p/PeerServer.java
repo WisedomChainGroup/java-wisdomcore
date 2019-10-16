@@ -171,7 +171,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             dial(p, PING); // keep alive
         }
 
-        if (peersCache.isFull()) {
+        if (peersCache.isFull() || !enableDiscovery) {
             return;
         }
 
@@ -270,11 +270,15 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
         return dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
-            if (e != null) {
-                logger.error("cannot connect to to peer " + peer.toString() + " half its score");
-                peersCache.half(peer);
+            if (e == null) {
                 return m;
             }
+            logger.error("cannot connect to to peer " + peer.toString());
+            if (!enableDiscovery){
+                return m;
+            }
+            peersCache.half(peer);
+            logger.error("half " + peer.toString() + " score");
             return m;
         }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
