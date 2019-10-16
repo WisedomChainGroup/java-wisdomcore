@@ -1,5 +1,7 @@
 package org.wisdom.util;
 
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.util.Base58Utility;
@@ -45,5 +47,19 @@ public class Address {
         byte[] _b4 = ByteUtil.bytearraycopy(r5, r5.length - 4, 4);
         //正确
         return Arrays.equals(b4, _b4);
+    }
+
+    // 从用户输入的地址、公钥或者公钥哈希转化成公钥哈希
+    public static byte[] getPublicKeyHash(String input){
+        byte[] publicKeyHash;
+        try {
+            publicKeyHash = Hex.decodeHex(input);
+            if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
+                publicKeyHash = Address.publicKeyToHash(publicKeyHash);
+            }
+        } catch (Exception e) {
+            publicKeyHash = Address.addressToPublicKeyHash(input);
+        }
+        return publicKeyHash;
     }
 }

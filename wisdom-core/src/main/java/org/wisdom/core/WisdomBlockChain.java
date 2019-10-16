@@ -89,5 +89,17 @@ public interface WisdomBlockChain {
 
     Transaction getTransactionByTo(byte[] pubKeyHash);
 
+    List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit);
+
+    List<Transaction> getTransactionsByFromAndType(int type, byte[] publicKey, int offset, int limit);
+
+    List<Transaction> getTransactionsByTo(byte[] publicKeyHash, int offset, int limit);
+
+    List<Transaction> getTransactionsByToAndType(int type, byte[] publicKeyHash, int offset, int limit);
+
+    List<Transaction> getTransactionsByFromAndTo(byte[] from, byte[] to, int offset, int limit);
+
+    List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit);
+
     Block getLastConfirmedBlock();
 }
