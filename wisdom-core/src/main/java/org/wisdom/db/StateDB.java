@@ -995,7 +995,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             Block best = getBestBlockUnsafe();
             return getTransactionsByTo(best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(Collectors.toList());
         } finally {
-            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
@@ -1005,7 +1005,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             Block best = getBestBlockUnsafe();
             return getTransactionsByFrom(best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(Collectors.toList());
         } finally {
-            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
@@ -1015,7 +1015,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             Block best = getBestBlockUnsafe();
             return getTransactionsByFromAndTo(best.getHash(), from, to, offset, limit).stream().limit(limit).collect(Collectors.toList());
         } finally {
-            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
@@ -1025,7 +1025,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             Block best = getBestBlockUnsafe();
             return getTransactionsByToAndType(type, best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(Collectors.toList());
         } finally {
-            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
@@ -1035,7 +1035,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             Block best = getBestBlockUnsafe();
             return getTransactionsByFromAndType(type, best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(Collectors.toList());
         } finally {
-            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
@@ -1045,7 +1045,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             Block best = getBestBlockUnsafe();
             return getTransactionsByFromToAndType(type, best.getHash(), from, to, offset, limit).stream().limit(limit).collect(Collectors.toList());
         } finally {
-            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
