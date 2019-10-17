@@ -110,7 +110,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void resolve() {
         peersCache.getUnresolved().forEach(h -> {
-            dialWithMessage(h.getHost(), h.getPort(), gRPCClient.buildMessage(1, PING));
+            dialWithTTL(h.getHost(), h.getPort(), 1, PING);
         });
     }
 
@@ -199,8 +199,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         responseObserver.onCompleted();
     }
 
-    private void dialWithMessage(Peer peer, WisdomOuterClass.Message msg) {
-        gRPCClient.dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
+    private void dialWithTTL(Peer peer, long ttl, Object msg) {
+        gRPCClient.dialWithTTL(peer.host, peer.port, ttl, msg).handleAsync((m, e) -> {
             if (e == null) {
                 return m;
             }
@@ -214,17 +214,17 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> dialWithMessage(String host, int port, WisdomOuterClass.Message msg) {
-        return gRPCClient.dial(host, port, msg).thenApplyAsync(this::onMessage);
+    private CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, Object msg) {
+        return gRPCClient.dialWithTTL(host, port, ttl, msg).thenApplyAsync(this::onMessage);
     }
 
     public void dial(Peer p, Object msg) {
-        dialWithMessage(p, gRPCClient.buildMessage(1, msg));
+        dialWithTTL(p, 1, msg);
     }
 
     public void broadcast(Object msg) {
         for (Peer p : getPeers()) {
-            dial(p, gRPCClient.buildMessage(MAX_TTL, msg));
+            dialWithTTL(p, MAX_TTL, msg);
         }
     }
 
@@ -237,7 +237,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                dialWithMessage(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
+                dialWithTTL(p, payload.getTtl() - 1, payload.getBody());
             } catch (Exception e) {
                 logger.error("parse body fail");
             }

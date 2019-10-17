@@ -123,9 +123,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     @Value("${wisdom.consensus.blocks-per-era}")
     int blocksPerEra;
 
-    @Value("${wisdom.consensus.block-confirms}")
-    private int blockConfirms;
-
     private ReadWriteLock readWriteLock;
 
     // 写入但未确认的区块

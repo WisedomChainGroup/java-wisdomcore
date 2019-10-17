@@ -90,13 +90,10 @@ public class ConsensusConfig {
             URI uri = new URI(v);
             String pubKeyHashes = Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
             validatorPubKeyHashes.add(pubKeyHashes);
-            logger.info("validator found address = " + uri.toASCIIString());
+            logger.info("initial validator found address = " + uri.getRawUserInfo());
             if (!pubKeyHashes.equals(minerPubKeyHash)) {
                 peers.add(uri.getHost() + ":" + uri.getPort());
             }
-        }
-        for (String p : peers) {
-            logger.info("peer loaded from " + validatorsFile + " " + p);
         }
     }
 

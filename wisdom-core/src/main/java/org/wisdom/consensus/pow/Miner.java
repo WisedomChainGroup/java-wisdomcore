@@ -87,12 +87,15 @@ public class Miner implements ApplicationListener {
     @Autowired
     AdoptTransPool adoptTransPool;
 
+    @Autowired
+    private EconomicModel economicModel;
+
     public Miner() {
     }
 
     private Transaction createCoinBase(long height) throws Exception {
         Transaction tx = Transaction.createEmpty();
-        tx.amount = EconomicModel.getConsensusRewardAtHeight(height);
+        tx.amount = economicModel.getConsensusRewardAtHeight(height);
         tx.to = Hex.decodeHex(consensusConfig.getMinerPubKeyHash().toCharArray());
         return tx;
     }

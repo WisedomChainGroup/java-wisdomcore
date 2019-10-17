@@ -86,7 +86,11 @@ public class GRPCClient {
         }
     }
 
-    public CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
+    public  CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, Object msg){
+        return dial(host, port, buildMessage(ttl, msg));
+    }
+
+    private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
 
