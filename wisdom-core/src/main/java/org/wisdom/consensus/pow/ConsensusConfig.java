@@ -50,13 +50,6 @@ public class ConsensusConfig {
     @Value("${wisdom.consensus.enable-mining}")
     private volatile boolean enableMining;
 
-    @Value("${wisdom.consensus.pow-wait}")
-    private int powWait;
-
-    public void setPowWait(int powWait) {
-        this.powWait = powWait;
-    }
-
     public boolean isEnableMining() {
         return enableMining;
     }

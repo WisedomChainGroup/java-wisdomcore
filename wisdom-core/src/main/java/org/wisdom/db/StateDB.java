@@ -168,10 +168,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             TargetState targetState,
             ProposersState proposersState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
-            @Value("${wisdom.consensus.pow-wait}")
-                    int powWait,
             @Value("${miner.validators}") String validatorsFile,
-            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
+            @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo
     ) throws Exception {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
@@ -181,7 +182,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
-        this.proposersFactory.setPowWait(powWait);
         this.confirms = new HashMap<>();
         this.leastConfirms = new HashMap<>();
 
@@ -202,6 +202,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 }).collect(Collectors.toList()));
 
         this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
+        this.proposersFactory.setInitialBlockInterval(blockInterval);
+        this.proposersFactory.setBlockIntervalSwitchTo(blockIntervalSwitchTo);
+        this.proposersFactory.setBlockIntervalSwitchEra(blockIntervalSwitchEra);
+
         if (allowMinersJoinEra < 0) {
             logger.info("miners join is disabled");
         } else {

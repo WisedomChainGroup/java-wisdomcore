@@ -18,16 +18,14 @@
 
 package org.wisdom.consensus.pow;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
+import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
 import org.wisdom.core.state.State;
 import org.wisdom.core.account.Transaction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -42,8 +40,12 @@ import java.util.List;
  */
 @Component
 public class TargetState implements State {
-    private int blockInterval;
-    private static final Logger logger = LoggerFactory.getLogger(TargetState.class);
+
+    private int initialBlockInterval;
+    private long blockIntervalSwitchEra;
+    private int blockIntervalSwitchTo;
+    private int blocksPerEra;
+
     private static final long MAX_ADJUST_RATE = 16;
 
     private BigInteger target;
@@ -52,9 +54,18 @@ public class TargetState implements State {
     }
 
     @Autowired
-    public TargetState(Block genesis, @Value("${wisdom.consensus.block-interval}") int blockInterval) {
+    public TargetState(
+            Block genesis,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
+            @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
+            @Value("{wisdom.consensus.blocks-per-era}") int blocksPerEra
+    ) {
         this.target = BigEndian.decodeUint256(genesis.nBits);
-        this.blockInterval = blockInterval;
+        this.initialBlockInterval = blockInterval;
+        this.blockIntervalSwitchEra = blockIntervalSwitchEra;
+        this.blockIntervalSwitchTo = blockIntervalSwitchTo;
+        this.blocksPerEra = blocksPerEra;
     }
 
     @Override
@@ -74,19 +85,25 @@ public class TargetState implements State {
      */
     @Override
     public State updateBlocks(List<Block> blocks) {
+        long blockInterval = this.initialBlockInterval;
+
+        if (EraLinkedStateFactory.getEraAtBlockNumber(blocks.get(0).nHeight, blocksPerEra) >= blockIntervalSwitchEra) {
+            blockInterval = blockIntervalSwitchTo;
+        }
+
         long actualTimeSpent = blocks.get(blocks.size() - 1).nTime - blocks.get(0).nTime;
         if (actualTimeSpent <= 0) {
             target = target.divide(BigInteger.valueOf(MAX_ADJUST_RATE));
             return this;
         }
-        BigFraction rate = new BigFraction(actualTimeSpent, (long) blockInterval * (blocks.size() - 1));
+        BigFraction rate = new BigFraction(actualTimeSpent, blockInterval * (blocks.size() - 1));
         if (rate.compareTo(new BigFraction(MAX_ADJUST_RATE)) > 0) {
             rate = new BigFraction(MAX_ADJUST_RATE);
         }
         if (rate.compareTo(new BigFraction(1, MAX_ADJUST_RATE)) < 0) {
             rate = new BigFraction(1, MAX_ADJUST_RATE);
         }
-        if (Start.enableAssertion){
+        if (Start.enableAssertion) {
             Assert.isTrue(Arrays.equals(BigEndian.encodeUint256(target), blocks.get(0).nBits), "target unmatched");
         }
         target = safeTyMul(target, rate);
@@ -94,9 +111,9 @@ public class TargetState implements State {
         return this;
     }
 
-    private BigInteger safeTyMul(BigInteger target, BigFraction f){
+    private BigInteger safeTyMul(BigInteger target, BigFraction f) {
         target = target.multiply(f.getNumerator());
-        if (target.compareTo(BigEndian.MAX_UINT_256) > 0){
+        if (target.compareTo(BigEndian.MAX_UINT_256) > 0) {
             target = BigEndian.MAX_UINT_256;
         }
         return target.divide(f.getDenominator());
@@ -111,7 +128,10 @@ public class TargetState implements State {
     public State copy() {
         TargetState d = new TargetState();
         d.target = target;
-        d.blockInterval = blockInterval;
+        d.initialBlockInterval = initialBlockInterval;
+        d.blockIntervalSwitchEra = blockIntervalSwitchEra;
+        d.blockIntervalSwitchTo = blockIntervalSwitchTo;
+        d.blocksPerEra = blocksPerEra;
         return d;
     }
 
