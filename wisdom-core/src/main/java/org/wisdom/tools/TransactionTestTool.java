@@ -305,7 +305,7 @@ public class TransactionTestTool {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
         GRPCClient client = new GRPCClient(self).withExecutor(executor);
-        client.dialWithTTL(testConfig.host, testConfig.grpcPort, 1, builder.build() ).join();
+        client.dialWithTTL(testConfig.host, testConfig.grpcPort, 8, builder.build() ).join();
     }
 
     private static class Response {
