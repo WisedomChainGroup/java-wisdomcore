@@ -1,5 +1,8 @@
 package org.wisdom.tools;
 
+import org.apache.commons.codec.binary.Hex;
+
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
 
 public class FutureTest {

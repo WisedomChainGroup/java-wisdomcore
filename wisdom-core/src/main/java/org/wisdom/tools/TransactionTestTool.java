@@ -8,41 +8,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.stub.StreamObserver;
 import org.apache.commons.cli.*;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.util.EntityUtils;
 import org.springframework.core.io.FileSystemResource;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
-import org.wisdom.controller.Callback;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.p2p.Peer;
-import org.wisdom.p2p.Util;
-import org.wisdom.p2p.WisdomGrpc;
-import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.p2p.*;
 import org.wisdom.sync.Utils;
 import org.wisdom.util.Address;
+import org.wisdom.util.AsynchronousHttpClient;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -53,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 事务发送工具
@@ -66,10 +44,7 @@ import java.util.concurrent.TimeUnit;
  * -n --nonce 指定起始 nonce
  */
 public class TransactionTestTool {
-    private static final int RPC_TIMEOUT = 5000;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
-    private static final Ed25519KeyPair nodeKey = Ed25519.GenerateKeyPair();
-
     public static final Executor executor = command -> new Thread(command).start();
 
 
@@ -331,13 +306,8 @@ public class TransactionTestTool {
     private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
-        grpcCall(
-                testConfig, buildMessage(self, builder.build()), (completed) -> {
-                    transactions.forEach(
-                            tx -> System.out.println(new String(codec.encodeTransaction(tx)))
-                    );
-                    return true;
-                }).awaitTermination(5, TimeUnit.SECONDS);
+        GRPCClient client = new GRPCClient(self);
+        client.dial(testConfig.host, testConfig.grpcPort, client.buildMessage(1, builder.build())).join();
     }
 
     private static class Response {
@@ -359,32 +329,6 @@ public class TransactionTestTool {
     }
 
 
-    private static CompletableFuture<byte[]> post(String url, byte[] body) {
-        CloseableHttpClient httpclient = HttpClients.custom()
-                .setConnectionManager(new PoolingHttpClientConnectionManager())
-                .setConnectionManagerShared(true)
-                .build();
-        return CompletableFuture.supplyAsync(() -> {
-            CloseableHttpResponse resp = null;
-            try {
-                URI uriObject = new URI(url);
-                HttpPost httppost = new HttpPost(uriObject);
-                httppost.setConfig(RequestConfig.custom().setConnectTimeout(RPC_TIMEOUT).build());
-                httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
-                // Create a custom response handler
-                resp = httpclient.execute(httppost);
-                return getBody(resp);
-            } catch (Exception e) {
-                try {
-                    resp.close();
-                } catch (Exception ignored) {
-                }
-                throw new RuntimeException("post " + url + " fail");
-            }
-        }, executor);
-    }
-
-
     private static CompletableFuture<Response> postTransaction(byte[] body, String host, int port) {
         try {
             URI uri = new URI(
@@ -395,7 +339,7 @@ public class TransactionTestTool {
                     "/sendTransaction",
                     "traninfo=" + Hex.encodeHexString(body), null
             );
-            return post(uri.toString(), new byte[]{}).thenApplyAsync(x -> codec.decode(x, Response.class));
+            return AsynchronousHttpClient.post(uri.toString(), new byte[]{}).thenApplyAsync(x -> codec.decode(x, Response.class));
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
@@ -410,103 +354,9 @@ public class TransactionTestTool {
                 "/sendNonce",
                 "pubkeyhash=" + publicKeyHash, ""
         );
-        return post(uri.toString(), new byte[]{}).thenApplyAsync((body) -> {
+        return AsynchronousHttpClient.post(uri.toString(), new byte[]{}).thenApplyAsync((body) -> {
             GetNonceResponse getNonceResponse = codec.decode(body, GetNonceResponse.class);
             return getNonceResponse.data;
         });
     }
-
-    private static CompletableFuture<byte[]> get(final String url, Map<String, String> query) {
-        CloseableHttpClient httpclient = HttpClients.custom()
-                .setConnectionManager(new PoolingHttpClientConnectionManager())
-                .setConnectionManagerShared(true)
-                .build();
-
-        return CompletableFuture.supplyAsync(() -> {
-            CloseableHttpResponse resp = null;
-            try {
-                URI uriObject = new URI(url);
-                URIBuilder builder = new URIBuilder()
-                        .setScheme(uriObject.getScheme())
-                        .setHost(uriObject.getHost())
-                        .setPort(uriObject.getPort())
-                        .setPath(uriObject.getPath());
-                for (String k : query.keySet()) {
-                    builder.setParameter(k, query.get(k));
-                }
-                uriObject = builder.build();
-                HttpGet httpget = new HttpGet(uriObject);
-                httpget.setConfig(RequestConfig.custom().setConnectTimeout(RPC_TIMEOUT).build());
-                // Create a custom response handler
-                resp = httpclient.execute(httpget);
-                return getBody(resp);
-            } catch (Exception e) {
-                try {
-                    resp.close();
-                } catch (Exception ignored) {
-
-                }
-                throw new RuntimeException("get " + url + " fail");
-            }
-        }, executor);
-    }
-
-    private static byte[] getBody(final HttpResponse response) {
-        int status = response.getStatusLine().getStatusCode();
-        if (status < 200 || status >= 300) {
-            return null;
-        }
-        try {
-            HttpEntity entity = response.getEntity();
-            return entity != null ? EntityUtils.toByteArray(entity) : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static WisdomOuterClass.Message buildMessage(Peer self, WisdomOuterClass.Transactions transactions) {
-        WisdomOuterClass.Message.Builder builder = WisdomOuterClass.Message.newBuilder();
-        builder.setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
-        builder.setTtl(8);
-        builder.setRemotePeer(self.toString());
-        builder.setCode(WisdomOuterClass.Code.TRANSACTIONS);
-        return sign(self, builder.setBody(transactions.toByteString())).build();
-    }
-
-    private static WisdomOuterClass.Message.Builder sign(Peer self, WisdomOuterClass.Message.Builder builder) {
-        return builder.setSignature(
-                ByteString.copyFrom(
-                        self.privateKey.sign(Util.getRawForSign(builder.build()))
-                )
-        );
-    }
-
-    private static ManagedChannel grpcCall(TestConfig testConfig, WisdomOuterClass.Message msg, Callback onCompleted) {
-        {
-            ManagedChannel ch = ManagedChannelBuilder.forAddress(testConfig.host, testConfig.grpcPort
-            ).usePlaintext().build(); // without setting up any ssl
-            WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(ch);
-            stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
-                @Override
-                public void onNext(WisdomOuterClass.Message value) {
-
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    t.printStackTrace();
-                    ch.shutdown();
-                }
-
-                @Override
-                public void onCompleted() {
-                    ch.shutdown();
-                    onCompleted.call(true);
-                }
-            });
-            return ch;
-        }
-    }
-
-
 }
