@@ -14,8 +14,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.crypto.ed25519.Ed25519;
-import org.wisdom.crypto.ed25519.Ed25519KeyPair;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.*;

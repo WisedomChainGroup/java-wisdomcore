@@ -199,12 +199,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         responseObserver.onCompleted();
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
-        return gRPCClient.dial(host, port, msg);
-    }
-
-    private CompletableFuture<WisdomOuterClass.Message> gRPCCall(Peer peer, WisdomOuterClass.Message msg) {
-        return dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
+    private void dial(Peer peer, WisdomOuterClass.Message msg) {
+        dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
             if (e == null) {
                 return m;
             }
@@ -218,17 +214,17 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
 
-    public void dial(String host, int port, Object msg) {
-        dial(host, port, gRPCClient.buildMessage(MAX_TTL, msg)).thenApplyAsync(this::onMessage);
+    private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, Object msg) {
+        return gRPCClient.dial(host, port, gRPCClient.buildMessage(MAX_TTL, msg)).thenApplyAsync(this::onMessage);
     }
 
     public void dial(Peer p, Object msg) {
-        gRPCCall(p, gRPCClient.buildMessage(1, msg));
+        dial(p, gRPCClient.buildMessage(1, msg));
     }
 
     public void broadcast(Object msg) {
         for (Peer p : getPeers()) {
-            gRPCCall(p, gRPCClient.buildMessage(MAX_TTL, msg));
+            dial(p, gRPCClient.buildMessage(MAX_TTL, msg));
         }
     }
 
@@ -241,7 +237,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                gRPCCall(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
+                dial(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
