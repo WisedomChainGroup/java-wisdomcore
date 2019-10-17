@@ -55,7 +55,7 @@ public class PackageMiner {
                 boolean state = false;
                 TransPool transPool = entry1.getValue();
                 Transaction transaction = transPool.getTransaction();
-                if (size > Block.MAX_BLOCK_SIZE) {
+                if (size > Block.MAX_BLOCK_SIZE || (size+transaction.size()) > Block.MAX_BLOCK_SIZE) {
                     exit = true;
                     break;
                 }
