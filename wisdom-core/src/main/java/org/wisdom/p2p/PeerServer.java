@@ -203,7 +203,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return gRPCClient.dial(host, port, msg);
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> grpcCall(Peer peer, WisdomOuterClass.Message msg) {
+    private CompletableFuture<WisdomOuterClass.Message> gRPCCall(Peer peer, WisdomOuterClass.Message msg) {
         return dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
             if (e == null) {
                 return m;
