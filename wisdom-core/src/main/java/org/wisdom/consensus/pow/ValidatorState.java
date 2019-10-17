@@ -22,8 +22,6 @@ import org.wisdom.crypto.HashUtil;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.State;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -34,40 +32,27 @@ import java.util.Map;
 
 @Component
 public class ValidatorState implements State {
-
     static final Base64.Encoder encoder = Base64.getEncoder();
-    private static final Logger logger = LoggerFactory.getLogger(ValidatorState.class);
 
     // public key hash base64 -> nonce
     private Map<String, Long> nonce;
 
 
-    private String getKeyFromPublicKeyHash(byte[] hash){
+    private String getKeyFromPublicKeyHash(byte[] hash) {
         return encoder.encodeToString(hash);
     }
 
-    private String getKeyFromPublicKey(byte[] pubKey){
+    private String getKeyFromPublicKey(byte[] pubKey) {
         return encoder.encodeToString(HashUtil.ripemd160(pubKey));
     }
 
-
-    private void expanseBalance(String key, long amount){
-    }
-
-    private void incNonce(String key){
+    private void incNonce(String key) {
         nonce.putIfAbsent(key, 0L);
         nonce.put(key, nonce.get(key) + 1);
     }
 
-    private void updateVotes(Transaction tx){
-        if(tx.type != Transaction.Type.VOTE.ordinal()){
-            return;
-        }
-
-    }
-
-    private void updateNonce(Transaction tx){
-        if(tx.type == Transaction.Type.COINBASE.ordinal()){
+    private void updateNonce(Transaction tx) {
+        if (tx.type == Transaction.Type.COINBASE.ordinal()) {
             incNonce(getKeyFromPublicKeyHash(tx.to));
             return;
         }
@@ -77,10 +62,10 @@ public class ValidatorState implements State {
 
     @Override
     public State updateBlock(Block block) {
-        if(block == null || block.body == null){
+        if (block == null || block.body == null) {
             return this;
         }
-        for(Transaction tx: block.body){
+        for (Transaction tx : block.body) {
             updateTransaction(tx);
         }
         return this;
@@ -88,10 +73,10 @@ public class ValidatorState implements State {
 
     @Override
     public State updateBlocks(List<Block> blocks) {
-        if(blocks == null || blocks.size() == 0){
+        if (blocks == null || blocks.size() == 0) {
             return this;
         }
-        for(Block b: blocks){
+        for (Block b : blocks) {
             updateBlock(b);
         }
         return this;
@@ -103,13 +88,8 @@ public class ValidatorState implements State {
         return this;
     }
 
-    public long getNonceFromPublicKey(byte[] publicKey){
-        String key = getKeyFromPublicKey(publicKey);
-        nonce.putIfAbsent(key, 0L);
-        return nonce.get(key);
-    }
 
-    public long getNonceFromPublicKeyHash(byte[] publicKeyHash){
+    public long getNonceFromPublicKeyHash(byte[] publicKeyHash) {
         String key = getKeyFromPublicKeyHash(publicKeyHash);
         nonce.putIfAbsent(key, 0L);
         return nonce.get(key);
