@@ -223,12 +223,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void dial(Peer p, Object msg) {
-        grpcCall(p, gRPCClient.buildMessage(1, msg));
+        gRPCCall(p, gRPCClient.buildMessage(1, msg));
     }
 
     public void broadcast(Object msg) {
         for (Peer p : getPeers()) {
-            grpcCall(p, gRPCClient.buildMessage(MAX_TTL, msg));
+            gRPCCall(p, gRPCClient.buildMessage(MAX_TTL, msg));
         }
     }
 
@@ -241,7 +241,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                grpcCall(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
+                gRPCCall(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
