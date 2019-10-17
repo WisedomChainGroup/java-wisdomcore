@@ -59,6 +59,7 @@ public class KeystoreAction {
         Gson gson = new Gson();
         return gson.toJson(keystore);
     }
+
     public static Keystore fromPassword(String password) throws Exception{
         if (password.length()>20 || password.length()<8){
             throw new Exception("请输入8-20位密码");

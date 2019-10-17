@@ -16,13 +16,13 @@ public class TransactionTest {
 
     @Test
     public void test1() {
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
         byte[] pubkey = publickey.getEncoded();
 
-        Ed25519KeyPair pripubkey1 = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey1 = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey1 = pripubkey1.getPrivateKey();
         Ed25519PublicKey publickey1 = pripubkey1.getPublicKey();
         byte[] privkey1 = privatekey1.getEncoded();

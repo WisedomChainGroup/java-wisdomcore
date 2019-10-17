@@ -140,7 +140,7 @@ public class Peer {
     public static Peer newPeer(String url) throws Exception {
         URI u = new URI(url);
         if (u.getRawUserInfo() == null || u.getRawUserInfo().equals("")) {
-            KeyPair kp = Ed25519.GenerateKeyPair();
+            KeyPair kp = Ed25519.generateKeyPair();
             url = String.format("%s://%s@%s:%d", PROTOCOL_NAME,
                     Hex.encodeHexString(kp.getPrivateKey().getEncoded()) + Hex.encodeHexString(kp.getPublicKey().getEncoded()),
                     u.getHost(), u.getPort()

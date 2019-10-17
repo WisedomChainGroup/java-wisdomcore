@@ -52,6 +52,15 @@ tasks.withType(JavaCompile) {
     options.warnings = false
 }
 
+task runKeyStoreTool(type: JavaExec){
+    main = "org.wisdom.tools.KeyStoreTool"
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    if (project.hasProperty("appArgs")) {
+        args appArgs.split(" ")
+    }
+}
+
 task runTransactionTestTool(type: JavaExec){
     main = "org.wisdom.tools.TransactionTestTool"
     classpath = sourceSets.main.runtimeClasspath
@@ -311,6 +320,7 @@ dependencies {
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile group: 'com.beust', name: 'jcommander', version: '1.72'
 }
 
 

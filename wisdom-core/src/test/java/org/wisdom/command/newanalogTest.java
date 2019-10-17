@@ -3,7 +3,6 @@ package org.wisdom.command;
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.bouncycastle.util.test.Test;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519KeyPair;
@@ -16,22 +15,19 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class newanalogTest {
 
     public static byte[] test1(){
-        Ed25519KeyPair pripubkey= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey=pripubkey.getPrivateKey();
         Ed25519PublicKey publickey=pripubkey.getPublicKey();
         byte[] privkey=privatekey.getEncoded();
         byte[] pubkey=publickey.getEncoded();
 
-        Ed25519KeyPair pripubkey1= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey1= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey1=pripubkey1.getPrivateKey();
         Ed25519PublicKey publickey1=pripubkey1.getPublicKey();
         byte[] privkey1=privatekey1.getEncoded();
@@ -71,14 +67,14 @@ public class newanalogTest {
 
 
     public static byte[] test2(){
-        Ed25519KeyPair pripubkey= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey=pripubkey.getPrivateKey();
         Ed25519PublicKey publickey=pripubkey.getPublicKey();
         byte[] privkey=privatekey.getEncoded();
         byte[] pubkey=publickey.getEncoded();
         byte[] topub160=RipemdUtility.ripemd160(SHA3Utility.sha3256(pubkey));
 
-        Ed25519KeyPair pripubkey1= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey1= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey1=pripubkey1.getPrivateKey();
         Ed25519PublicKey publickey1=pripubkey1.getPublicKey();
         byte[] privkey1=privatekey1.getEncoded();
@@ -127,14 +123,14 @@ public class newanalogTest {
 
 
     public static byte[] test3(){
-        Ed25519KeyPair pripubkey= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey=pripubkey.getPrivateKey();
         Ed25519PublicKey publickey=pripubkey.getPublicKey();
         byte[] privkey=privatekey.getEncoded();
         byte[] pubkey=publickey.getEncoded();
         byte[] topub160=RipemdUtility.ripemd160(SHA3Utility.sha3256(pubkey));
 
-        Ed25519KeyPair pripubkey1= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey1= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey1=pripubkey1.getPrivateKey();
         Ed25519PublicKey publickey1=pripubkey1.getPublicKey();
         byte[] privkey1=privatekey1.getEncoded();
@@ -177,14 +173,14 @@ public class newanalogTest {
     }
 
     public static byte[] test4(){
-        Ed25519KeyPair pripubkey= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey=pripubkey.getPrivateKey();
         Ed25519PublicKey publickey=pripubkey.getPublicKey();
         byte[] privkey=privatekey.getEncoded();
         byte[] pubkey=publickey.getEncoded();
         byte[] topub160=RipemdUtility.ripemd160(SHA3Utility.sha3256(pubkey));
 
-        Ed25519KeyPair pripubkey1= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey1= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey1=pripubkey1.getPrivateKey();
         Ed25519PublicKey publickey1=pripubkey1.getPublicKey();
         byte[] privkey1=privatekey1.getEncoded();
@@ -274,7 +270,7 @@ public class newanalogTest {
     }
 
     public static byte[] test6(){
-        Ed25519KeyPair pripubkey= Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey= Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey=pripubkey.getPrivateKey();
         Ed25519PublicKey publickey=pripubkey.getPublicKey();
         byte[] privkey=privatekey.getEncoded();

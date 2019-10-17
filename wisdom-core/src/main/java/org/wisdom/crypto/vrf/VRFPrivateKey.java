@@ -22,17 +22,13 @@ import org.wisdom.crypto.CryptoException;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.crypto.PrivateKey;
 import org.wisdom.crypto.ed25519.Ed25519;
-import org.wisdom.crypto.CryptoException;
-import org.wisdom.crypto.HashUtil;
-import org.wisdom.crypto.PrivateKey;
-import org.wisdom.crypto.ed25519.Ed25519;
 
 public class VRFPrivateKey {
     private PrivateKey signer;
 
     public VRFPrivateKey(String algorithm) throws CryptoException {
         if (algorithm.equals(Ed25519.getAlgorithm())){
-            this.signer = Ed25519.GenerateKeyPair().getPrivateKey();
+            this.signer = Ed25519.generateKeyPair().getPrivateKey();
             return;
         }
         throw new CryptoException("unsupported signature policy");
