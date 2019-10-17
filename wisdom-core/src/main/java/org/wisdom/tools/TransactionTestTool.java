@@ -304,7 +304,7 @@ public class TransactionTestTool {
     private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
-        GRPCClient client = new GRPCClient(self);
+        GRPCClient client = new GRPCClient(self).withExecutor(executor);
         client.dial(testConfig.host, testConfig.grpcPort, client.buildMessage(1, builder.build())).join();
     }
 

@@ -13,7 +13,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 public class GRPCClient {
-    private static final Executor executor = Executors.newCachedThreadPool();
+
+    public GRPCClient withExecutor(Executor executor) {
+        this.executor = executor;
+        return this;
+    }
+
+    private Executor executor;
+
     private static final int RPC_TIMEOUT = 5;
 
     private Peer self;
@@ -27,10 +34,11 @@ public class GRPCClient {
 
     public GRPCClient(){
         this.nonce = new AtomicLong();
+        this.executor = Executors.newCachedThreadPool();
     }
 
     public GRPCClient(Peer self){
-        this.nonce = new AtomicLong();
+        this();
         this.self = self;
     }
 

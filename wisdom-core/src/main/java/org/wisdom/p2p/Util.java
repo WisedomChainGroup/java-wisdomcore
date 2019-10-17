@@ -4,7 +4,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.util.Arrays;
 
