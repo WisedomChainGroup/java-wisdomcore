@@ -48,7 +48,7 @@ public class TransactionHandler implements Plugin {
                 logger.info("transaction Check failure,TxHash="+Hex.encodeHexString(t.getHash())+",message:"+apiResult.getMessage());
             }
         });
-//        context.relay();
+        context.relay();
     }
 
     @Override
