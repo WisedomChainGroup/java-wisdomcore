@@ -110,7 +110,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void resolve() {
         peersCache.getUnresolved().forEach(h -> {
-            dial(h.getHost(), h.getPort(), PING);
+            dialWithMessage(h.getHost(), h.getPort(), gRPCClient.buildMessage(1, PING));
         });
     }
 
@@ -199,8 +199,8 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         responseObserver.onCompleted();
     }
 
-    private void dial(Peer peer, WisdomOuterClass.Message msg) {
-        dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
+    private void dialWithMessage(Peer peer, WisdomOuterClass.Message msg) {
+        gRPCClient.dial(peer.host, peer.port, msg).handleAsync((m, e) -> {
             if (e == null) {
                 return m;
             }
@@ -214,12 +214,12 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, Object msg) {
-        return gRPCClient.dial(host, port, gRPCClient.buildMessage(MAX_TTL, msg)).thenApplyAsync(this::onMessage);
+    private CompletableFuture<WisdomOuterClass.Message> dialWithMessage(String host, int port, WisdomOuterClass.Message msg) {
+        return gRPCClient.dial(host, port, msg).thenApplyAsync(this::onMessage);
     }
 
     public void dial(Peer p, Object msg) {
-        dial(p, gRPCClient.buildMessage(1, msg));
+        dialWithMessage(p, gRPCClient.buildMessage(1, msg));
     }
 
     public void broadcast(Object msg) {
@@ -237,7 +237,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                dial(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
+                dialWithMessage(p, gRPCClient.buildMessage(payload.getTtl() - 1, payload.getBody()));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
