@@ -218,7 +218,7 @@ public class PeersCache {
         List<Peer> res = getPeers();
         Random rand = new Random();
         while(res.size() > 0 && res.size() > limit){
-            int idx = rand.nextInt() % res.size();
+            int idx = Math.abs(rand.nextInt()) % res.size();
             res.remove(idx);
         }
         return res;
