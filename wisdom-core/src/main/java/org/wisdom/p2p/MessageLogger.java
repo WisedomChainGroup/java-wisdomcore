@@ -17,6 +17,9 @@ public class MessageLogger implements Plugin {
         if (!enableMessageLog){
             return;
         }
+        if (context.getPayload().getCode().equals(WisdomOuterClass.Code.NOTHING)){
+            return;
+        }
         logger.info("receive " + context.getPayload().getCode().name() + " message from remote peer " + context.getPayload().getRemote().hostPort());
     }
 
