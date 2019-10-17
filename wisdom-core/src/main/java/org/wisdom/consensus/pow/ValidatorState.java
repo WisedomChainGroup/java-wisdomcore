@@ -38,14 +38,9 @@ public class ValidatorState implements State {
     static final Base64.Encoder encoder = Base64.getEncoder();
     private static final Logger logger = LoggerFactory.getLogger(ValidatorState.class);
 
-    // public key hash base64 -> balance
-    private Map<String, Long> balance;
-
     // public key hash base64 -> nonce
     private Map<String, Long> nonce;
 
-    // public key hash base64 -> votes
-    private Map<String,Long> votes;
 
     private String getKeyFromPublicKeyHash(byte[] hash){
         return encoder.encodeToString(hash);
@@ -55,10 +50,6 @@ public class ValidatorState implements State {
         return encoder.encodeToString(HashUtil.ripemd160(pubKey));
     }
 
-    private void putBalance(String key, long amount){
-        balance.putIfAbsent(key, 0L);
-        balance.put(key, balance.get(key) + amount);
-    }
 
     private void expanseBalance(String key, long amount){
     }
@@ -83,17 +74,6 @@ public class ValidatorState implements State {
         incNonce(getKeyFromPublicKey(tx.from));
     }
 
-    private void updateBalance(Transaction tx){
-        if(tx.type == Transaction.Type.COINBASE.ordinal()){
-            putBalance(getKeyFromPublicKeyHash(tx.to), tx.amount);
-            return;
-        }
-        if(tx.type == Transaction.Type.TRANSFER.ordinal()){
-            expanseBalance(getKeyFromPublicKey(tx.from), tx.amount + tx.getFee());
-            putBalance(getKeyFromPublicKeyHash(tx.to), tx.amount);
-            return;
-        }
-    }
 
     @Override
     public State updateBlock(Block block) {
@@ -120,7 +100,6 @@ public class ValidatorState implements State {
     @Override
     public State updateTransaction(Transaction transaction) {
         updateNonce(transaction);
-        updateBalance(transaction);
         return this;
     }
 
@@ -136,35 +115,22 @@ public class ValidatorState implements State {
         return nonce.get(key);
     }
 
-    public long getBalanceFromPublicKey(byte[] publicKey){
-        return balance.get(getKeyFromPublicKey(publicKey));
-    }
-
-    public long getBalanceFromPublickeyHash(byte[] publicKeyHash){
-        return balance.get(getKeyFromPublicKeyHash(publicKeyHash));
-    }
 
     @Override
     public State copy() {
         return new ValidatorState(
-                new HashMap<>(balance),
-                new HashMap<>(nonce),
-                new HashMap<>(votes)
+                new HashMap<>(nonce)
         );
     }
 
 
-    public ValidatorState(Map<String, Long> balance, Map<String, Long> nonce, Map<String, Long> votes) {
-        this.balance = balance;
+    public ValidatorState(Map<String, Long> nonce) {
         this.nonce = nonce;
-        this.votes = votes;
     }
 
     @Autowired
     public ValidatorState(Block genesis) {
-        balance = new HashMap<>();
         nonce = new HashMap<>();
-        votes = new HashMap<>();
         updateBlock(genesis);
     }
 
