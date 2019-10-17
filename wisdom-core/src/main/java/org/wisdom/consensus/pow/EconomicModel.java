@@ -18,6 +18,12 @@
 
 package org.wisdom.consensus.pow;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.wisdom.core.state.EraLinkedStateFactory;
+
+
+@Component
 public class EconomicModel {
     public static final long WDC = 100000000;
 
@@ -25,11 +31,27 @@ public class EconomicModel {
 
     public static final long HALF_PERIOD = 1051200 * 2;
 
-    public static long getConsensusRewardAtHeight(long height){
+    @Value("${wisdom.consensus.block-interval}")
+    private int blockInterval;
+
+    @Value("${wisdom.block-interval-switch-era}")
+    private long blockIntervalSwitchEra;
+
+    @Value("${wisdom.block-interval-switch-to}")
+    private int blockIntervalSwitchTo;
+
+    @Value("${wisdom.consensus.blocks-per-era}")
+    private int blocksPerEra;
+
+
+    public long getConsensusRewardAtHeight(long height){
         long era = height / HALF_PERIOD;
         long reward = INITIAL_SUPPLY;
         for(long i = 0; i < era; i++){
             reward = reward * 52218182 / 100000000;
+        }
+        if(blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(height, blocksPerEra) >= blockIntervalSwitchEra){
+            return reward * blockIntervalSwitchTo / blockInterval;
         }
         return reward;
     }
@@ -41,7 +63,7 @@ public class EconomicModel {
     }
 
     // 9140868887284800
-    public static long getTotalSupply(){
+    public long getTotalSupply(){
         long totalSupply = 0;
         for(long i = 0; ; i++){
             long reward = getConsensusRewardAtHeight(i);
@@ -50,9 +72,5 @@ public class EconomicModel {
             }
             totalSupply += reward;
         }
-    }
-
-    public static void main(String[] args){
-        System.out.println(getTotalSupply());
     }
 }

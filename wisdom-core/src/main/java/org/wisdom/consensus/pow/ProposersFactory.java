@@ -10,7 +10,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
 public class ProposersFactory extends EraLinkedStateFactory {
+    private static final int POW_WAIT_FACTOR = 3;
+
+    private int initialBlockInterval;
+    private long blockIntervalSwitchEra;
+    private int blockIntervalSwitchTo;
+
+    public void setInitialBlockInterval(int initialBlockInterval) {
+        this.initialBlockInterval = initialBlockInterval;
+    }
+
+    public void setBlockIntervalSwitchEra(long blockIntervalSwitchEra) {
+        this.blockIntervalSwitchEra = blockIntervalSwitchEra;
+    }
+
+    public void setBlockIntervalSwitchTo(int blockIntervalSwitchTo) {
+        this.blockIntervalSwitchTo = blockIntervalSwitchTo;
+    }
+
     public ProposersFactory(StateDB stateDB, int cacheSize, State genesisState, int blocksPerEra) {
         super(stateDB, cacheSize, genesisState, blocksPerEra);
     }
@@ -19,11 +38,12 @@ public class ProposersFactory extends EraLinkedStateFactory {
 
     private long allowMinersJoinEra;
 
-    public void setPowWait(int powWait) {
-        this.powWait = powWait;
+    private long getPowWait(Block parent) {
+        if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1, getBlocksPerEra()) >= blockIntervalSwitchEra) {
+            return blockIntervalSwitchTo * POW_WAIT_FACTOR;
+        }
+        return initialBlockInterval * POW_WAIT_FACTOR;
     }
-
-    private int powWait;
 
     public void setInitialProposers(List<String> initialProposers) {
         this.initialProposers = initialProposers;
@@ -72,7 +92,7 @@ public class ProposersFactory extends EraLinkedStateFactory {
         }
 
         long step = (timeStamp - parentBlock.nTime)
-                / powWait + 1;
+                / getPowWait(parentBlock) + 1;
         String lastValidator = Hex
                 .encodeHexString(
                         parentBlock.body.get(0).to
@@ -80,8 +100,8 @@ public class ProposersFactory extends EraLinkedStateFactory {
         int lastValidatorIndex = proposers
                 .indexOf(lastValidator);
         int currentValidatorIndex = (int) (lastValidatorIndex + step) % proposers.size();
-        long endTime = parentBlock.nTime + step * powWait;
-        long startTime = endTime - powWait;
+        long endTime = parentBlock.nTime + step * getPowWait(parentBlock);
+        long startTime = endTime - getPowWait(parentBlock);
         String validator = proposers.get(currentValidatorIndex);
         return Optional.of(new Proposer(
                 validator,

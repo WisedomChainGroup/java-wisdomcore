@@ -123,9 +123,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     @Value("${wisdom.consensus.blocks-per-era}")
     int blocksPerEra;
 
-    @Value("${wisdom.consensus.block-confirms}")
-    private int blockConfirms;
-
     private ReadWriteLock readWriteLock;
 
     // 写入但未确认的区块
@@ -168,10 +165,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             TargetState targetState,
             ProposersState proposersState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
-            @Value("${wisdom.consensus.pow-wait}")
-                    int powWait,
             @Value("${miner.validators}") String validatorsFile,
-            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
+            @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo
     ) throws Exception {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
@@ -181,7 +179,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
         this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
-        this.proposersFactory.setPowWait(powWait);
         this.confirms = new HashMap<>();
         this.leastConfirms = new HashMap<>();
 
@@ -202,10 +199,18 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 }).collect(Collectors.toList()));
 
         this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
+        this.proposersFactory.setInitialBlockInterval(blockInterval);
+        this.proposersFactory.setBlockIntervalSwitchTo(blockIntervalSwitchTo);
+        this.proposersFactory.setBlockIntervalSwitchEra(blockIntervalSwitchEra);
+
         if (allowMinersJoinEra < 0) {
             logger.info("miners join is disabled");
         } else {
             logger.info("miners join is enabled, allow miners join at height " + (allowMinersJoinEra * blocksPerEra + 1));
+        }
+        logger.info("initial block interval is " + blockInterval);
+        if (blockIntervalSwitchEra >= 0) {
+            logger.info("switch block interval to " + blockIntervalSwitchTo + " at height " + (blockIntervalSwitchEra * blocksPerEra + 1));
         }
     }
 
@@ -1128,7 +1133,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey) ).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey)).collect(Collectors.toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;

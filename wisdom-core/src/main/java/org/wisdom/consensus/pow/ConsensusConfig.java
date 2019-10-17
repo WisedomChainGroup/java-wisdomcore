@@ -50,13 +50,6 @@ public class ConsensusConfig {
     @Value("${wisdom.consensus.enable-mining}")
     private volatile boolean enableMining;
 
-    @Value("${wisdom.consensus.pow-wait}")
-    private int powWait;
-
-    public void setPowWait(int powWait) {
-        this.powWait = powWait;
-    }
-
     public boolean isEnableMining() {
         return enableMining;
     }
@@ -97,13 +90,10 @@ public class ConsensusConfig {
             URI uri = new URI(v);
             String pubKeyHashes = Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
             validatorPubKeyHashes.add(pubKeyHashes);
-            logger.info("validator found address = " + uri.toASCIIString());
+            logger.info("initial validator found address = " + uri.getRawUserInfo());
             if (!pubKeyHashes.equals(minerPubKeyHash)) {
                 peers.add(uri.getHost() + ":" + uri.getPort());
             }
-        }
-        for (String p : peers) {
-            logger.info("peer loaded from " + validatorsFile + " " + p);
         }
     }
 

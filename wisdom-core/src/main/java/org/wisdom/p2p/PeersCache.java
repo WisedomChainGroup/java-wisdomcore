@@ -39,44 +39,43 @@ public class PeersCache {
         this.pended = new HashSet<>();
         this.unresolved = new HashSet<>();
         this.enableDiscovery = enableDiscovery;
-        String[] ts = new String[]{};
-        if (trusted != null && !trusted.equals("")) {
-            ts = trusted.split(",");
+
+        initBootstraps(bootstraps);
+        initTrusted(trusted);
+    }
+
+    private void initBootstraps(String bootstraps){
+        if(bootstraps == null || bootstraps.equals("")){
+            return;
         }
-
-        Optional.ofNullable(bootstraps)
-                .map(x -> Arrays.asList(x.split(",")))
-                .map(ps -> {
-                    List<String> unparsed = new ArrayList<>();
-                    ps.forEach(p -> {
-                        try {
-                            Peer peer = Peer.parse(p);
-                            this.bootstraps.add(peer);
-                        } catch (Exception e) {
-                            unparsed.add(p);
-                        }
-                    });
-                    return unparsed;
-                })
-                .get()
-                .forEach(link -> {
-                    if (link == null || link.equals("")) {
-                        return;
-                    }
-                    try {
-                        URI u = new URI(link);
-                        this.unresolved.add(new HostPort(u.getHost(), u.getPort()));
-                    } catch (Exception e) {
-                        logger.error("invalid url");
-                    }
-                });
-
-
-        for (String b : ts) {
-            Peer p = Peer.parse(b);
-            if (p.equals(this.self)) {
-                throw new Exception("cannot treat yourself as trusted peer");
+        List<String> unparsed = new ArrayList<>();
+        for(String addr: bootstraps.split(",")){
+            try {
+                Peer peer = Peer.parse(addr);
+                this.bootstraps.add(peer);
+            } catch (Exception e) {
+                unparsed.add(addr);
             }
+        }
+        for(String link: unparsed){
+            try {
+                URI u = new URI(link);
+                this.unresolved.add(new HostPort(u.getHost(), u.getPort()));
+            } catch (Exception e) {
+                logger.error("invalid url");
+            }
+        }
+    }
+
+    private void initTrusted(String trusted) throws Exception{
+        if (trusted == null || trusted.equals("")) {
+            return;
+        }
+        for (String b : trusted.split(",")) {
+                Peer p = Peer.parse(b);
+                if (p.equals(this.self)) {
+                    throw new Exception("cannot treat yourself as trusted peer");
+                }
             this.trusted.add(p);
         }
     }
@@ -97,6 +96,9 @@ public class PeersCache {
         if (size() >= MAX_PEERS) {
             return;
         }
+        if(peer.equals(self)){
+            return;
+        }
         if (hasPeer(peer) || blocked.contains(peer) || bootstraps.contains(peer)) {
             return;
         }
@@ -105,6 +107,9 @@ public class PeersCache {
 
     public void keepPeer(Peer peer) {
         // 解析 bootstrap 放到 bootstraps 里面
+        if(peer.equals(self)){
+            return;
+        }
         HostPort hp = new HostPort(peer.host, peer.port);
 
         // 如果没有开启节点发现，而且收到的节点信息不是种子节点，退出
@@ -213,7 +218,7 @@ public class PeersCache {
         List<Peer> res = getPeers();
         Random rand = new Random();
         while(res.size() > 0 && res.size() > limit){
-            int idx = rand.nextInt() % res.size();
+            int idx = Math.abs(rand.nextInt()) % res.size();
             res.remove(idx);
         }
         return res;
@@ -259,14 +264,24 @@ public class PeersCache {
 
     // 衰减 peer 分数，如果发现某个 Peer 分数为 0，则删除
     public void half(){
+        List<Peer> toRemove = new ArrayList<>();
         for(Map<String, Peer> bucket: peers.values()){
             for(Peer peer: bucket.values()){
-                half(peer);
+                peer.score /= 2;
+                if (peer.score == 0){
+                    toRemove.add(peer);
+                }
             }
         }
+        List<Peer> toRestore = new ArrayList<>();
+        toRemove.forEach(this::removePeer);
         for(Peer p: blocked){
-            half(p);
+            p.score /= 2;
+            if (p.score == 0){
+                toRestore.add(p);
+            }
         }
+        toRestore.forEach(p -> blocked.remove(p));
     }
 
     public boolean isFull(){
