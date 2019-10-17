@@ -264,14 +264,24 @@ public class PeersCache {
 
     // 衰减 peer 分数，如果发现某个 Peer 分数为 0，则删除
     public void half(){
+        List<Peer> toRemove = new ArrayList<>();
         for(Map<String, Peer> bucket: peers.values()){
             for(Peer peer: bucket.values()){
-                half(peer);
+                peer.score /= 2;
+                if (peer.score == 0){
+                    toRemove.add(peer);
+                }
             }
         }
+        List<Peer> toRestore = new ArrayList<>();
+        toRemove.forEach(this::removePeer);
         for(Peer p: blocked){
-            half(p);
+            p.score /= 2;
+            if (p.score == 0){
+                toRestore.add(p);
+            }
         }
+        toRestore.forEach(p -> blocked.remove(p));
     }
 
     public boolean isFull(){
