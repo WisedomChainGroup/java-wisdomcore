@@ -39,10 +39,10 @@ public class ProposersFactory extends EraLinkedStateFactory {
     private long allowMinersJoinEra;
 
     private long getPowWait(Block parent) {
-        if (getEraAtBlockNumber(parent.nHeight + 1, getBlocksPerEra()) < blockIntervalSwitchEra) {
-            return initialBlockInterval * POW_WAIT_FACTOR;
+        if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1, getBlocksPerEra()) >= blockIntervalSwitchEra) {
+            return blockIntervalSwitchTo * POW_WAIT_FACTOR;
         }
-        return blockIntervalSwitchTo * POW_WAIT_FACTOR;
+        return initialBlockInterval * POW_WAIT_FACTOR;
     }
 
     public void setInitialProposers(List<String> initialProposers) {

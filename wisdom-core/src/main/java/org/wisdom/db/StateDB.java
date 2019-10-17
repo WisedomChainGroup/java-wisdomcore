@@ -211,6 +211,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         } else {
             logger.info("miners join is enabled, allow miners join at height " + (allowMinersJoinEra * blocksPerEra + 1));
         }
+        logger.info("initial block interval is " + blockInterval);
+        if (blockIntervalSwitchEra >= 0) {
+            logger.info("switch block interval to " + blockIntervalSwitchTo + " at height " + (blockIntervalSwitchEra * blocksPerEra + 1));
+        }
     }
 
     @PostConstruct
@@ -1132,7 +1136,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey) ).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey)).collect(Collectors.toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;

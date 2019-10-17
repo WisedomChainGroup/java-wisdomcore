@@ -59,7 +59,7 @@ public class TargetState implements State {
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
             @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
-            @Value("{wisdom.consensus.blocks-per-era}") int blocksPerEra
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) {
         this.target = BigEndian.decodeUint256(genesis.nBits);
         this.initialBlockInterval = blockInterval;
@@ -87,7 +87,7 @@ public class TargetState implements State {
     public State updateBlocks(List<Block> blocks) {
         long blockInterval = this.initialBlockInterval;
 
-        if (EraLinkedStateFactory.getEraAtBlockNumber(blocks.get(0).nHeight, blocksPerEra) >= blockIntervalSwitchEra) {
+        if (blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(blocks.get(0).nHeight, blocksPerEra) >= blockIntervalSwitchEra) {
             blockInterval = blockIntervalSwitchTo;
         }
 
