@@ -31,7 +31,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private static final int MAX_PEERS_PER_PING = 6;
 
-    private static final int MAX_MESSAGE_SIZE  = 1 << 30;
+    private static final int MAX_MESSAGE_SIZE = 8 * (1 << 20);
 
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Lookup LOOKUP = WisdomOuterClass.Lookup.newBuilder().build();
@@ -239,7 +239,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                dialWithTTL(p, payload.getTtl() - 1, payload.getBody());
+                Util.split(payload.getBody()).forEach(o -> dialWithTTL(p, payload.getTtl() - 1, o));
             } catch (Exception e) {
                 logger.error("parse body fail");
             }

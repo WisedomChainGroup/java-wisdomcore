@@ -8,10 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.p2p.Context;
-import org.wisdom.p2p.PeerServer;
-import org.wisdom.p2p.Plugin;
-import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.p2p.*;
 import org.wisdom.service.CommandService;
 
 import java.util.List;
@@ -74,7 +71,8 @@ public class TransactionHandler implements Plugin {
                     WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
                     txs.forEach(t -> transactionCache.put(t.getHashHexString(), true));
                     encoded.forEach(builder::addTransactions);
-                    s.broadcast(builder.build());
+                    txs.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
+                    Util.split(builder.build()).forEach(s::broadcast);
                 });
     }
 }

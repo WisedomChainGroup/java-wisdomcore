@@ -5,6 +5,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -14,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class GRPCClient {
 
-    public static final int MAX_MESSAGE_SIZE  = 1 << 30;
+    private static final int MAX_MESSAGE_SIZE  = 8 * (1 << 20);
 
     public GRPCClient withExecutor(Executor executor) {
         this.executor = executor;
