@@ -14,11 +14,12 @@ import org.wisdom.service.CommandService;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 @Component
 public class TransactionHandler implements Plugin {
     private PeerServer server;
-    private static final int CACHE_SIZE = 64;
+    private static final int CACHE_SIZE = 256;
     private ConcurrentMap<String, Boolean> transactionCache;
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionHandler.class);
@@ -35,10 +36,16 @@ public class TransactionHandler implements Plugin {
             return;
         }
         WisdomOuterClass.Transactions txs = (WisdomOuterClass.Transactions) context.getPayload().getBody();
+        String key = Hex.encodeHexString(Utils.getTransactionsHash(txs.getTransactionsList()));
+        if (transactionCache.containsKey(key)){
+            return;
+        }
+        transactionCache.put(key, true);
         txs.getTransactionsList()
                 .stream()
                 .map(Utils::parseTransaction)
                 .forEach(t -> {
+            transactionCache.put(t.getHashHexString(), true);
             byte[] traninfo = t.toRPCBytes();
             APIResult apiResult=commandService.verifyTransfer(traninfo);
             if(apiResult.getCode() == 5000){
@@ -54,9 +61,16 @@ public class TransactionHandler implements Plugin {
     }
 
     public void broadcastTransactions(List<Transaction> txs) {
+        List<WisdomOuterClass.Transaction> encoded = txs.stream().map(Utils::encodeTransaction).collect(Collectors.toList());
+
+        String key = Hex.encodeHexString(Utils.getTransactionsHash(encoded));
+        transactionCache.put(key, true);
+
         Optional.ofNullable(server)
                 .ifPresent(s -> {
                     WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
+                    txs.forEach(t -> transactionCache.put(t.getHashHexString(), true));
+                    encoded.forEach(builder::addTransactions);
                     txs.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
                     Util.split(builder.build()).forEach(s::broadcast);
                 });

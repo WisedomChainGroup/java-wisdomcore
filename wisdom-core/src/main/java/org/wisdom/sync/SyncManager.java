@@ -214,6 +214,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (server == null) {
             return;
         }
+        proposalCache.put(event.getBlock().getHashHexString(), true);
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }
