@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class GRPCClient {
 
+    public static final int MAX_MESSAGE_SIZE  = 1 << 30;
+
     public GRPCClient withExecutor(Executor executor) {
         this.executor = executor;
         return this;
@@ -95,7 +97,7 @@ public class GRPCClient {
         ).usePlaintext().build();
 
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch);
+                ch).withMaxInboundMessageSize(MAX_MESSAGE_SIZE).withMaxOutboundMessageSize(MAX_MESSAGE_SIZE);
 
         return CompletableFuture
                 .supplyAsync(() -> {
