@@ -321,6 +321,8 @@ dependencies {
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
     compile group: 'com.beust', name: 'jcommander', version: '1.72'
+
+    compile fileTree(dir:'libs',include:['*.jar'])
 }
 
 
