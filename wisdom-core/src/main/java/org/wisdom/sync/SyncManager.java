@@ -125,7 +125,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         List<Block> blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend != null && blocksToSend.size() > 0) {
             Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
-            context.response(resp);
+            Util.split(resp).forEach(o -> server.dial(context.getPayload().getRemote(), o));
         }
     }
 
