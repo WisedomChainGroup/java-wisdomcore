@@ -71,8 +71,8 @@ public class TransactionHandler implements Plugin {
                     WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
                     txs.forEach(t -> transactionCache.put(t.getHashHexString(), true));
                     encoded.forEach(builder::addTransactions);
-                    txs.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
                     Util.split(builder.build()).forEach(s::broadcast);
                 });
     }
 }
+
