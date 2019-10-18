@@ -37,7 +37,7 @@ public class TransactionHandler implements Plugin {
         }
         WisdomOuterClass.Transactions txs = (WisdomOuterClass.Transactions) context.getPayload().getBody();
         String key = Hex.encodeHexString(Utils.getTransactionsHash(txs.getTransactionsList()));
-        if (transactionCache.containsKey(key)){
+        if (transactionCache.containsKey(key)) {
             return;
         }
         transactionCache.put(key, true);
@@ -45,13 +45,13 @@ public class TransactionHandler implements Plugin {
                 .stream()
                 .map(Utils::parseTransaction)
                 .forEach(t -> {
-            transactionCache.put(t.getHashHexString(), true);
-            byte[] traninfo = t.toRPCBytes();
-            APIResult apiResult=commandService.verifyTransfer(traninfo);
-            if(apiResult.getCode() == 5000){
-                logger.info("transaction Check failure,TxHash="+Hex.encodeHexString(t.getHash())+",message:"+apiResult.getMessage());
-            }
-        });
+                    transactionCache.put(t.getHashHexString(), true);
+                    byte[] traninfo = t.toRPCBytes();
+                    APIResult apiResult = commandService.verifyTransfer(traninfo);
+                    if (apiResult.getCode() == 5000) {
+                        logger.info("transaction Check failure,TxHash=" + Hex.encodeHexString(t.getHash()) + ",message:" + apiResult.getMessage());
+                    }
+                });
         context.relay();
     }
 
@@ -61,18 +61,32 @@ public class TransactionHandler implements Plugin {
     }
 
     public void broadcastTransactions(List<Transaction> txs) {
-        List<WisdomOuterClass.Transaction> encoded = txs.stream().map(Utils::encodeTransaction).collect(Collectors.toList());
+        if (server == null) {
+            return;
+        }
 
-        String key = Hex.encodeHexString(Utils.getTransactionsHash(encoded));
-        transactionCache.put(key, true);
+        List<WisdomOuterClass.Transaction> encoded = txs.stream()
+                .map(Utils::encodeTransaction).collect(Collectors.toList());
 
-        Optional.ofNullable(server)
-                .ifPresent(s -> {
-                    WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
-                    txs.forEach(t -> transactionCache.put(t.getHashHexString(), true));
-                    encoded.forEach(builder::addTransactions);
-                    Util.split(builder.build()).forEach(s::broadcast);
-                });
+        Object msg = WisdomOuterClass.Transactions.newBuilder().addAllTransactions(encoded).build();
+
+        List<Object> divided = Util.split(msg);
+
+        divided.stream()
+                .map(o -> ((WisdomOuterClass.Transactions) o).getTransactionsList())
+                .filter(o -> {
+                    String k = Hex.encodeHexString(
+                            Utils.getTransactionsHash(o)
+                    );
+                    if (!transactionCache.containsKey(k)) {
+                        transactionCache.put(k, true);
+                        return true;
+                    }
+                    return false;
+                })
+                .forEach(o ->
+                        server.broadcast(o)
+                );
     }
 }
 
