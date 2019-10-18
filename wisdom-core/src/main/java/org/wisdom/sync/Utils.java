@@ -3,15 +3,26 @@ package org.wisdom.sync;
 import com.google.protobuf.ByteString;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.merkletree.MerkleTransaction;
 import org.wisdom.merkletree.TreeNode;
 import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.util.Arrays;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 // proto buf utils
 public class Utils {
+
+    public static byte[] getTransactionsHash(List<WisdomOuterClass.Transaction> transactions) {
+        return SHA3Utility.keccak256(Arrays.concatenate(transactions.stream()
+                .map(WisdomOuterClass.Transaction::toByteArray)
+                .collect(Collectors.toList())
+                .toArray(new byte[][]{})));
+    }
+
     public static Transaction parseTransaction(WisdomOuterClass.Transaction tx) {
         Transaction t = new Transaction();
         t.version = tx.getVersion();
