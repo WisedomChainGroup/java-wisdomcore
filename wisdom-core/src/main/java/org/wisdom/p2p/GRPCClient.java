@@ -17,6 +17,8 @@ public class GRPCClient {
 
     private static final int MAX_MESSAGE_SIZE  = 8 * (1 << 20);
 
+    private static final int RESERVED_FILED_SIZE = 1 << 10;
+
     public GRPCClient withExecutor(Executor executor) {
         this.executor = executor;
         return this;
@@ -98,7 +100,7 @@ public class GRPCClient {
         ).usePlaintext().build();
 
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch).withMaxInboundMessageSize(MAX_MESSAGE_SIZE).withMaxOutboundMessageSize(MAX_MESSAGE_SIZE);
+                ch).withMaxInboundMessageSize(MAX_MESSAGE_SIZE + RESERVED_FILED_SIZE).withMaxOutboundMessageSize(MAX_MESSAGE_SIZE +  RESERVED_FILED_SIZE);
 
         return CompletableFuture
                 .supplyAsync(() -> {
