@@ -128,11 +128,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
         List<WisdomOuterClass.Blocks> divided = Util.split(resp);
-        if (divided.size() == 1){
-            context.response(divided.get(0));
+        if (divided.size() == 0){
             return;
         }
-        divided.forEach(o -> server.dial(context.getPayload().getRemote(), o));
+        context.response(divided.get(0));
+        divided.subList(1, divided.size()).forEach(o -> server.dial(context.getPayload().getRemote(), o));
     }
 
     private void onBlocks(Context context, PeerServer server) {
