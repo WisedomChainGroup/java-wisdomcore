@@ -37,6 +37,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * @author Roman Mandeleil
  * @since 14.11.2014
@@ -51,6 +54,8 @@ public class Start {
     public static final boolean enableAssertion = System.getenv(CODE_ASSERTION_ENV) != null && System.getenv(CODE_ASSERTION_ENV).equals("true");
 
     public static void main(String[] args) {
+        // 关闭 grpc
+        Logger.getLogger("io.grpc").setLevel(Level.OFF);
         SpringApplication.run(Start.class, args);
     }
 

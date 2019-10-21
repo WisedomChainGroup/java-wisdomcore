@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.sync.SyncManager;
@@ -206,18 +207,23 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             if (e == null) {
                 return m;
             }
-            logger.error("cannot connect to to peer " + peer.toString());
+            logger.error("cannot connect to " + peer.toString());
             if (!enableDiscovery) {
                 return m;
             }
             peersCache.half(peer);
-            logger.error("half " + peer.toString() + " score");
             return m;
         }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
     }
 
     private CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, AbstractMessage msg) {
-        return gRPCClient.dialWithTTL(host, port, ttl, msg).thenApplyAsync(this::onMessage);
+        return gRPCClient.dialWithTTL(host, port, ttl, msg).handleAsync((m, e) -> {
+            if (e != null){
+                logger.error("cannot connect to " + host + ":" + port);
+                return null;
+            }
+            return onMessage(m);
+        });
     }
 
     public void dial(Peer p, AbstractMessage msg) {

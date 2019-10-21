@@ -6,7 +6,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -23,7 +22,7 @@ public class GRPCClient {
 
     private Executor executor;
 
-    private static final int RPC_TIMEOUT = 5;
+    private static final int RPC_TIMEOUT = 3;
 
     private Peer self;
 
@@ -96,22 +95,17 @@ public class GRPCClient {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
 
-        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch);
+        WisdomGrpc.WisdomBlockingStub stub = WisdomGrpc.newBlockingStub(
+                ch).withDeadlineAfter(RPC_TIMEOUT, TimeUnit.SECONDS);
 
         return CompletableFuture
                 .supplyAsync(() -> {
-                    SimpleObserver observer = new SimpleObserver(ch);
-                    stub.entry(msg, observer);
-                    try {
-                        ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-                        throw new RuntimeException("grpc timeout");
-                    }
-                    if (observer.getException() != null) {
-                        throw new RuntimeException(observer.getException().getMessage());
-                    } else {
-                        return observer.getResponse();
+                    try{
+                        return stub.entry(msg);
+                    }catch (Exception e){
+                        throw new RuntimeException(e.getMessage());
+                    } finally {
+                        ch.shutdown();
                     }
                 }, executor);
     }
