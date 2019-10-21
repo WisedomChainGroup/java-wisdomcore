@@ -34,7 +34,6 @@ import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
-import org.wisdom.core.orm.TransactionMapper;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.core.state.StateFactory;
 import org.wisdom.core.validate.MerkleRule;
@@ -237,7 +236,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 break;
             }
 
-            if (Start.enableAssertion) {
+            if (Start.ENABLE_ASSERTION) {
                 Assert.isTrue(Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) &&
                         blocks.size() == blocksPerUpdate &&
                         isChain(blocks), "get blocks from database failed"
@@ -329,7 +328,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
             List<Block> all = res.getAll();
 
-            if (Start.enableAssertion) {
+            if (Start.ENABLE_ASSERTION) {
                 Assert.isTrue(all.size() == (b.nHeight - anum + 1) &&
                         all.get(0).nHeight == anum &&
                         isChain(all), "get ancestors failed"

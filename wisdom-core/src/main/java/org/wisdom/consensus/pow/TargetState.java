@@ -103,7 +103,7 @@ public class TargetState implements State {
         if (rate.compareTo(new BigFraction(1, MAX_ADJUST_RATE)) < 0) {
             rate = new BigFraction(1, MAX_ADJUST_RATE);
         }
-        if (Start.enableAssertion) {
+        if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(Arrays.equals(BigEndian.encodeUint256(target), blocks.get(0).nBits), "target unmatched");
         }
         target = safeTyMul(target, rate);

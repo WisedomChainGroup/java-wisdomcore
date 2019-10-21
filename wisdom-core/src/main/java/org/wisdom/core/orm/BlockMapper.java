@@ -43,7 +43,7 @@ public class BlockMapper implements RowMapper<Block> {
         header.nBits = rs.getBytes("nbits");
         header.blockNotice = rs.getBytes("block_notice");
         header.totalWeight = rs.getLong("total_weight");
-        if (Start.enableAssertion){
+        if (Start.ENABLE_ASSERTION){
             Assert.isTrue(Arrays.equals(header.getHash(), rs.getBytes("block_hash")), "block in db had been modified");
         }
         return header;

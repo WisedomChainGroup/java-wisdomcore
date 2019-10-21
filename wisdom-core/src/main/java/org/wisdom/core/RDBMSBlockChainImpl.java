@@ -20,7 +20,6 @@ package org.wisdom.core;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
@@ -352,7 +351,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public Block findAncestorHeader(byte[] blockHash, long ancestorHeight) {
         Block b = getAncestorHeaders(blockHash, ancestorHeight).get(0);
-        if (Start.enableAssertion) {
+        if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(b.nHeight == ancestorHeight, "wrong ancestor height");
         }
         return b;
@@ -371,7 +370,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
         List<Block> blocks = new BlocksCache(getHeaders(minimumAncestorHeight, block.nHeight)).getAncestors(block);
 
-        if (Start.enableAssertion) {
+        if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(blocks.size() == block.nHeight - minimumAncestorHeight + 1, "ancestors height invalid");
             Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
         }

@@ -51,7 +51,7 @@ public class Start {
     private static final String CODE_ASSERTION_ENV = "ENABLE_CODE_ASSERTION";
 
     // 开启断言 用于调试
-    public static final boolean enableAssertion = System.getenv(CODE_ASSERTION_ENV) != null && System.getenv(CODE_ASSERTION_ENV).equals("true");
+    public static final boolean ENABLE_ASSERTION = System.getenv(CODE_ASSERTION_ENV) != null && System.getenv(CODE_ASSERTION_ENV).equals("true");
 
     public static void main(String[] args) {
         // 关闭 grpc 日志

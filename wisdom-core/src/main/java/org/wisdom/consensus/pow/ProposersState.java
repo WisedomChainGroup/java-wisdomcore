@@ -205,7 +205,7 @@ public class ProposersState implements State {
         // 统计出块数量
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
-            if (Start.enableAssertion){
+            if (Start.ENABLE_ASSERTION){
                 Assert.isTrue(b.body != null && b.body.size() > 0, "empty block body");
             }
             updateBlock(b);
