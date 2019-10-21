@@ -40,6 +40,12 @@ public class Util {
         return builder;
     }
 
+    private static <T> void addIfNotEmpty(List<List<T>> lists, List<T> list){
+        if (list != null && list.size() > 0){
+            lists.add(list);
+        }
+    }
+
     private static <T extends AbstractMessage> List<List<T>> split(Iterable<T> msgs) {
         List<T> tmp = new ArrayList<>();
         List<List<T>> divided = new ArrayList<>();
@@ -48,18 +54,16 @@ public class Util {
             if (tmp
                     .stream()
                     .map(AbstractMessage::getSerializedSize)
-                    .reduce(Integer::sum).orElse(0) + o.getSerializedSize() > (MAX_MESSAGE_SIZE / 2)
+                    .reduce(Integer::sum).orElse(0) + o.getSerializedSize() > MAX_MESSAGE_SIZE
             ) {
-                divided.add(tmp);
+                addIfNotEmpty(divided, tmp);
                 tmp = new ArrayList<>();
                 tmp.add(o);
             } else {
                 tmp.add(o);
             }
         }
-        if (tmp.size() > 0) {
-            divided.add(tmp);
-        }
+        addIfNotEmpty(divided, tmp);
         return divided;
     }
 
