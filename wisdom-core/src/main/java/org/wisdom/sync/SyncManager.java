@@ -123,10 +123,16 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
-        if (blocksToSend != null && blocksToSend.size() > 0) {
-            WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
-            Util.split(resp).forEach(o -> server.dial(context.getPayload().getRemote(), o));
+        if (blocksToSend == null || blocksToSend.size() == 0) {
+            return;
         }
+        WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
+        List<WisdomOuterClass.Blocks> divided = Util.split(resp);
+        if (divided.size() == 1){
+            context.response(divided.get(0));
+            return;
+        }
+        divided.forEach(o -> server.dial(context.getPayload().getRemote(), o));
     }
 
     private void onBlocks(Context context, PeerServer server) {
