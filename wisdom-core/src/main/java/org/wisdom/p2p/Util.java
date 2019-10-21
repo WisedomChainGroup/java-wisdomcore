@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Util {
-    private static final long MAX_MESSAGE_SIZE = 8 * (1 << 20);
+    private static final long MAX_MESSAGE_SIZE = 4 * (1 << 20) - 1024;
 
     private static final Logger logger = LoggerFactory.getLogger(Util.class);
 
