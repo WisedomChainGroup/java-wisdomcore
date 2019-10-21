@@ -32,10 +32,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private static final int MAX_PEERS_PER_PING = 6;
 
-    private static final int MAX_MESSAGE_SIZE = 8 * (1 << 20);
-
-    private static final int RESERVED_FILED_SIZE = 1 << 10;
-
 
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Lookup LOOKUP = WisdomOuterClass.Lookup.newBuilder().build();
@@ -110,7 +106,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
-        this.server = ServerBuilder.forPort(peersCache.getSelf().port).maxInboundMetadataSize(MAX_MESSAGE_SIZE + RESERVED_FILED_SIZE).addService(this).build().start();
+        this.server = ServerBuilder.forPort(peersCache.getSelf().port).addService(this).build().start();
     }
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
