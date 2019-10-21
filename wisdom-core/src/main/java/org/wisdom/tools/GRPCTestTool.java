@@ -20,7 +20,7 @@ public class GRPCTestTool {
 
     public static void main(String[] args){
         GRPCClient client = new GRPCClient(SELF).withExecutor(EXECUTOR);
-        client.dialWithTTL("192.168.1.52", 9235, 1,
+        client.dialWithTTL("192.168.1.11", 9585, 1,
                 WisdomOuterClass.GetBlocks.newBuilder()
                 .setStartHeight(1)
                 .setStopHeight(256)
