@@ -1,8 +1,14 @@
 package org.wisdom.sync;
 
 import com.google.protobuf.ByteString;
+import org.apache.commons.io.IOUtils;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.merkletree.MerkleTransaction;
 import org.wisdom.merkletree.TreeNode;
@@ -177,5 +183,16 @@ public class Utils {
         return mts;
     }
 
-
+    // before encode 14127.549 kb
+    // after encode 11639.101 kb
+    public static void main(String[] args)throws Exception{
+        Resource resource = new ClassPathResource("genesis/wisdom-genesis-generator.json");
+        Genesis g = new JSONEncodeDecoder().decode(IOUtils.toByteArray(resource.getInputStream()), Genesis.class);
+        Block b = new Block(g);
+        System.out.println(
+                (b.size() - Block.RESERVED_SPACE)
+                        * 1.0 / (1 << 10)
+        );
+        System.out.println(encodeBlock(b).getSerializedSize() * 1.0 / (1 << 10));
+    }
 }

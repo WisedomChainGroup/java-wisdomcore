@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * 事务发送工具
@@ -305,8 +306,10 @@ public class TransactionTestTool {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
         GRPCClient client = new GRPCClient(self).withExecutor(executor);
+        List<WisdomOuterClass.Transactions> transactionsList = Util.split(builder.build());
+        transactionsList.forEach(li -> System.out.println(li.getSerializedSize() * 1.0 / (1 << 20)));
         CompletableFuture.allOf(
-                Util.split(builder.build())
+                transactionsList
                 .stream()
                 .map(o -> client.dialWithTTL(testConfig.host, testConfig.grpcPort, 8, o))
                 .toArray(CompletableFuture[]::new)
