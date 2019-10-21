@@ -1,5 +1,6 @@
 package org.wisdom.sync;
 
+import com.google.protobuf.AbstractMessage;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -68,15 +69,14 @@ public class TransactionHandler implements Plugin {
         List<WisdomOuterClass.Transaction> encoded = txs.stream()
                 .map(Utils::encodeTransaction).collect(Collectors.toList());
 
-        Object msg = WisdomOuterClass.Transactions.newBuilder().addAllTransactions(encoded).build();
+        WisdomOuterClass.Transactions msg = WisdomOuterClass.Transactions.newBuilder().addAllTransactions(encoded).build();
 
-        List<Object> divided = Util.split(msg);
+        List<WisdomOuterClass.Transactions> divided = Util.split(msg);
 
         divided.stream()
-                .map(o -> ((WisdomOuterClass.Transactions) o).getTransactionsList())
                 .filter(o -> {
                     String k = Hex.encodeHexString(
-                            Utils.getTransactionsHash(o)
+                            Utils.getTransactionsHash(o.getTransactionsList())
                     );
                     if (!transactionCache.containsKey(k)) {
                         transactionCache.put(k, true);

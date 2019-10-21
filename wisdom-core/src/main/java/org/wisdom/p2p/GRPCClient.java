@@ -1,5 +1,6 @@
 package org.wisdom.p2p;
 
+import com.google.protobuf.AbstractMessage;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -52,7 +53,7 @@ public class GRPCClient {
         return this;
     }
 
-    public WisdomOuterClass.Message buildMessage(long ttl, Object msg){
+    public WisdomOuterClass.Message buildMessage(long ttl, AbstractMessage msg){
         return Util.buildMessage(self, nonce.incrementAndGet(), ttl, msg);
     }
 
@@ -91,7 +92,7 @@ public class GRPCClient {
         }
     }
 
-    public  CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, Object msg){
+    public  CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, AbstractMessage msg){
         return dial(host, port, buildMessage(ttl, msg));
     }
 

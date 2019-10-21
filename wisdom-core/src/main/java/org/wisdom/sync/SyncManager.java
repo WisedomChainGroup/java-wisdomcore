@@ -124,7 +124,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend != null && blocksToSend.size() > 0) {
-            Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
+            WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
             Util.split(resp).forEach(o -> server.dial(context.getPayload().getRemote(), o));
         }
     }
@@ -180,7 +180,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void onGetStatus(Context context, PeerServer server) {
         Block best = stateDB.getBestBlock();
-        Object resp = WisdomOuterClass.Status.newBuilder()
+        WisdomOuterClass.Status resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
                 .setCurrentHeight(best.nHeight)
                 .setGenesisHash(ByteString.copyFrom(genesis.getHash()))

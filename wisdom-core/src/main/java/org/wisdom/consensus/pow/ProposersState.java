@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public class ProposersState implements State {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    private static final int MAXIMUM_PROPOSERS = 15;
+    private static final int MAXIMUM_PROPOSERS = 2;
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
