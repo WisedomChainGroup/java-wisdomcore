@@ -61,8 +61,8 @@ public class Block {
     public static final int HASH_SIZE = 32;
     public static final int MAX_BLOCK_SIZE = 4 * (1 << 20);
 
-    // reserve 4kb for transports
-    public static final int RESERVED_SPACE = 4 << 10;
+    // reserve 128kb for transports
+    public static final int RESERVED_SPACE = 128 * (1 << 10);
     private static final Logger logger = LoggerFactory.getLogger(Block.class);
 
     public static byte[] calculatePOWHash(Block block) {
@@ -415,5 +415,4 @@ public class Block {
         }
         return new MerkleTree(hashes).getLevelSize();
     }
-
 }
