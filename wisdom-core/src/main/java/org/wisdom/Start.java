@@ -54,7 +54,7 @@ public class Start {
     public static final boolean enableAssertion = System.getenv(CODE_ASSERTION_ENV) != null && System.getenv(CODE_ASSERTION_ENV).equals("true");
 
     public static void main(String[] args) {
-        // 关闭 grpc
+        // 关闭 grpc 日志
         Logger.getLogger("io.grpc").setLevel(Level.OFF);
         SpringApplication.run(Start.class, args);
     }
