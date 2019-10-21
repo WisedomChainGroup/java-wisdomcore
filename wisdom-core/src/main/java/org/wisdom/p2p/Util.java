@@ -48,7 +48,7 @@ public class Util {
             if (tmp
                     .stream()
                     .map(AbstractMessage::getSerializedSize)
-                    .reduce(Integer::sum).orElse(0) + o.getSerializedSize() > MAX_MESSAGE_SIZE
+                    .reduce(Integer::sum).orElse(0) + o.getSerializedSize() > (MAX_MESSAGE_SIZE / 2)
             ) {
                 divided.add(tmp);
                 tmp = new ArrayList<>();
