@@ -108,7 +108,7 @@ public class GRPCClient {
         ).usePlaintext().build();
 
         WisdomGrpc.WisdomBlockingStub stub = WisdomGrpc.newBlockingStub(
-                ch).withDeadlineAfter(RPC_TIMEOUT, TimeUnit.SECONDS);
+                ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
 
         return CompletableFuture
                 .supplyAsync(() -> {
@@ -127,7 +127,7 @@ public class GRPCClient {
         ).usePlaintext().build();
 
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch).withDeadlineAfter(RPC_TIMEOUT, TimeUnit.SECONDS);
+                ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
 
         stub.entry(msg, new SimpleObserver(ch, function));
     }
