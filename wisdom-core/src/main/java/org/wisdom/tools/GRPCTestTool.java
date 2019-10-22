@@ -33,7 +33,6 @@ public class GRPCTestTool {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    return null;
                 }
         );
         Thread.sleep(1000);
