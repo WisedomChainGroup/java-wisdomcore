@@ -19,9 +19,6 @@
 package org.wisdom.core.state;
 
 import org.wisdom.core.Block;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wisdom.db.StateDB;
 
 import java.util.List;
 
@@ -31,10 +28,9 @@ import java.util.List;
  */
 public class EraLinkedStateFactory<T extends State<T>> extends AbstractStateFactory<T> {
     private int blocksPerEra;
-    private static final Logger logger = LoggerFactory.getLogger(EraLinkedStateFactory.class);
 
-    public EraLinkedStateFactory(StateDB stateDB, int cacheSize, T genesisState, int blocksPerEra) {
-        super(stateDB, genesisState, cacheSize);
+    public EraLinkedStateFactory(int cacheSize, T genesisState, int blocksPerEra) {
+        super(genesisState, cacheSize);
         this.blocksPerEra = blocksPerEra;
     }
 

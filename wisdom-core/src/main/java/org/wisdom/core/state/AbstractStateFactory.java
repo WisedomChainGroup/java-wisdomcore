@@ -43,8 +43,7 @@ public abstract class AbstractStateFactory<T extends State<T>> {
         return cache.get(getLRUCacheKey(target.getHash()));
     }
 
-    public AbstractStateFactory(StateDB stateDB, T genesisState, int cacheSize) {
-        this.stateDB = stateDB;
+    public AbstractStateFactory(T genesisState, int cacheSize) {
         this.genesisState = genesisState;
         this.cache = new ConcurrentLinkedHashMap.Builder<String, T>().maximumWeightedCapacity(cacheSize).build();
     }
@@ -64,5 +63,9 @@ public abstract class AbstractStateFactory<T extends State<T>> {
                 getLRUCacheKey(blocks.get(blocks.size() - 1).getHash()),
                 state.copy().updateBlocks(blocks)
         );
+    }
+
+    public void setStateDB(StateDB stateDB) {
+        this.stateDB = stateDB;
     }
 }

@@ -27,8 +27,8 @@ import org.wisdom.db.StateDB;
  */
 public class StateFactory<T extends State<T>> extends AbstractStateFactory<T> {
 
-    public StateFactory(StateDB stateDB, int cacheSize, T genesisState) {
-        super(stateDB, genesisState, cacheSize);
+    public StateFactory(int cacheSize, T genesisState) {
+        super(genesisState, cacheSize);
     }
 
     public T getFromCache(Block block) {

@@ -1,56 +1,76 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
 import org.wisdom.core.state.EraLinkedStateFactory;
-import org.wisdom.core.state.State;
 import org.wisdom.db.StateDB;
+import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.keystore.wallet.KeystoreAction;
 
+import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 
+@Component
 public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
+    private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     private static final int POW_WAIT_FACTOR = 3;
 
+    @Value("${wisdom.consensus.block-interval}")
     private int initialBlockInterval;
+
+    @Value("${wisdom.block-interval-switch-era}")
     private long blockIntervalSwitchEra;
+
+    @Value("${wisdom.block-interval-switch-to}")
     private int blockIntervalSwitchTo;
-
-    public void setInitialBlockInterval(int initialBlockInterval) {
-        this.initialBlockInterval = initialBlockInterval;
-    }
-
-    public void setBlockIntervalSwitchEra(long blockIntervalSwitchEra) {
-        this.blockIntervalSwitchEra = blockIntervalSwitchEra;
-    }
-
-    public void setBlockIntervalSwitchTo(int blockIntervalSwitchTo) {
-        this.blockIntervalSwitchTo = blockIntervalSwitchTo;
-    }
-
-    public ProposersFactory(StateDB stateDB, int cacheSize, ProposersState genesisState, int blocksPerEra) {
-        super(stateDB, cacheSize, genesisState, blocksPerEra);
-    }
 
     private List<String> initialProposers;
 
+    @Value("${wisdom.allow-miner-joins-era}")
     private long allowMinersJoinEra;
+
+    public ProposersFactory(
+            ProposersState genesisState,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            @Value("${miner.validators}") String validatorsFile
+    ) throws Exception{
+        super(StateDB.CACHE_SIZE, genesisState, blocksPerEra);
+
+        Resource resource = new FileSystemResource(validatorsFile);
+        if (!resource.exists()) {
+            resource = new ClassPathResource(validatorsFile);
+        }
+
+        initialProposers = Arrays.stream(
+                codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class)
+        ).map(v -> {
+            try {
+                URI uri = new URI(v);
+                return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }).collect(Collectors.toList());
+
+
+    }
 
     private long getPowWait(Block parent) {
         if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1, getBlocksPerEra()) >= blockIntervalSwitchEra) {
             return blockIntervalSwitchTo * POW_WAIT_FACTOR;
         }
         return initialBlockInterval * POW_WAIT_FACTOR;
-    }
-
-    public void setInitialProposers(List<String> initialProposers) {
-        this.initialProposers = initialProposers;
-    }
-
-    public void setAllowMinerJoinEra(long allowMinersJoinEra) {
-        this.allowMinersJoinEra = allowMinersJoinEra;
     }
 
     public List<String> getProposers(Block parentBlock) {
