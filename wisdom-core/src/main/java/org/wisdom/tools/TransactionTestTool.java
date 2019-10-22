@@ -305,7 +305,7 @@ public class TransactionTestTool {
     private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
-        GRPCClient client = new GRPCClient(self).withExecutor(executor);
+        GRPCClient client = new GRPCClient(self).withExecutor(executor).withTimeout(10);
         List<WisdomOuterClass.Transactions> transactionsList = Util.split(builder.build());
         transactionsList.forEach(li -> System.out.println(li.getSerializedSize() * 1.0 / (1 << 20)));
         CompletableFuture.allOf(

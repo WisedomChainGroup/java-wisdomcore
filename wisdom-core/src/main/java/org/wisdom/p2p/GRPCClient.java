@@ -12,7 +12,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 @Component
 public class GRPCClient {
@@ -34,9 +33,16 @@ public class GRPCClient {
 
     private AtomicLong nonce;
 
+    private int timeout;
+
+    public GRPCClient withTimeout(int timeout) {
+        this.timeout = timeout;
+        return this;
+    }
 
     public GRPCClient(){
         this.nonce = new AtomicLong();
+        this.timeout = RPC_TIMEOUT;
         this.executor = Executors.newCachedThreadPool();
     }
 
