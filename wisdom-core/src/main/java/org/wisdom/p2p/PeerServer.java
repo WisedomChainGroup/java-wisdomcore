@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 /**
  * @author sal 1564319846@qq.com
@@ -107,6 +108,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
+        java.util.logging.Logger.getLogger("io.grpc").setLevel(Level.OFF);
         this.server = ServerBuilder.forPort(peersCache.getSelf().port).addService(this).build().start();
     }
 

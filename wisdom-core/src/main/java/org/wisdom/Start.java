@@ -36,9 +36,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -57,7 +54,6 @@ public class Start {
 
     public static void main(String[] args) {
         // 关闭 grpc 日志
-        Logger.getLogger("io.grpc").setLevel(Level.OFF);
         SpringApplication.run(Start.class, args);
     }
 
