@@ -98,14 +98,6 @@ public class ProposersState implements State<ProposersState> {
         }
 
         void updateTransaction(Transaction tx){
-            try{
-                if(Arrays.equals(tx.payload, Hex.decodeHex("364d624e3a2ae6858075fc2ad7b6b4b6cbbe6f3cd8a4d363d88fb9f9b719937e"))){
-                    System.out.println("=======================");
-                }
-            }catch (Exception e){
-
-            }
-
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
