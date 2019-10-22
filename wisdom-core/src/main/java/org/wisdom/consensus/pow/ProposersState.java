@@ -147,6 +147,10 @@ public class ProposersState implements State<ProposersState> {
     private int blockInterval;
     private List<Proposer> candidatesCache;
 
+    private void clearCandidatesCache(){
+        candidatesCache = null;
+    }
+
     @Autowired
     public ProposersState(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
@@ -203,6 +207,8 @@ public class ProposersState implements State<ProposersState> {
 
     @Override
     public ProposersState updateBlocks(List<Block> blocks) {
+        clearCandidatesCache();
+
         for(Proposer p: all.values()){
             p.increaseEraCounters();
             p.attenuation();
