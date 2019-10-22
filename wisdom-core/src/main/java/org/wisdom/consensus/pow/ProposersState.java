@@ -47,7 +47,7 @@ public class ProposersState implements State<ProposersState> {
         private Map<String, Long> erasCounter;
 
         @JsonIgnore
-        private long votesCache;
+        private Long votesCache;
 
         public String publicKeyHash;
 
@@ -67,8 +67,12 @@ public class ProposersState implements State<ProposersState> {
             return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
+        private void clearVotesCache(){
+            votesCache = null;
+        }
+
         public long getVotes() {
-            if(votesCache != 0){
+            if(votesCache != null){
                 return votesCache;
             }
             this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
@@ -94,19 +98,30 @@ public class ProposersState implements State<ProposersState> {
         }
 
         void updateTransaction(Transaction tx){
+            try{
+                if(Arrays.equals(tx.payload, Hex.decodeHex("364d624e3a2ae6858075fc2ad7b6b4b6cbbe6f3cd8a4d363d88fb9f9b719937e"))){
+                    System.out.println("=======================");
+                }
+            }catch (Exception e){
+
+            }
+
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
                     receivedVotes.put(tx.getHashHexString(), tx.amount);
                     erasCounter.put(tx.getHashHexString(), 0L);
-                    votesCache = 0;
+                    clearVotesCache();
                     return;
                 }
                 // 撤回投票
                 case EXIT_VOTE: {
-                    receivedVotes.remove(tx.getHashHexString());
-                    erasCounter.remove(tx.getHashHexString());
-                    votesCache = 0;
+                    if (Start.ENABLE_ASSERTION){
+                        Assert.isTrue(receivedVotes.containsKey(Hex.encodeHexString(tx.payload)), "the exit vote has voted");
+                    }
+                    receivedVotes.remove(Hex.encodeHexString(tx.payload));
+                    erasCounter.remove(Hex.encodeHexString(tx.payload));
+                    clearVotesCache();
                     return;
                 }
                 // 抵押
