@@ -36,7 +36,7 @@ public class GRPCTestTool {
         });
     }
 
-    private static void getBlocksAdnWrite() throws Exception{
+    private static void getBlocksAndWrite() throws Exception{
         GRPCClient client = new GRPCClient(SELF).withExecutor(EXECUTOR);
         client.dialAsyncWithTTL("192.168.1.52", 9235, 1,
                 WisdomOuterClass.GetBlocks.newBuilder()
@@ -47,6 +47,7 @@ public class GRPCTestTool {
                 (msg, err) -> {
                     try {
                         System.out.println(new Payload(msg).getBlocks().getBlocksList().size());
+                        FileUtils.writeByteArrayToFile(new File("c:\\Users\\Sal\\bin.rpc"), msg.toByteArray());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
