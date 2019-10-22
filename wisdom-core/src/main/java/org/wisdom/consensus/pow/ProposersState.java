@@ -67,37 +67,38 @@ public class ProposersState implements State<ProposersState> {
             return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
-        private void clearVotesCache(){
+        private void clearVotesCache() {
             votesCache = null;
         }
 
         public long getVotes() {
-            if(votesCache != null){
+            if (votesCache != null) {
                 return votesCache;
             }
             this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
             return this.votesCache;
         }
 
-        void increaseEraCounters(){
+        void increaseEraCounters() {
             erasCounter.replaceAll((k, v) -> v + 1);
         }
 
-        void attenuation(){
-            for(String k: erasCounter.keySet()){
-                if(erasCounter.get(k) < ATTENUATION_ERAS){
+        void attenuation() {
+            clearVotesCache();
+            for (String k : erasCounter.keySet()) {
+                if (erasCounter.get(k) < ATTENUATION_ERAS) {
                     continue;
                 }
                 erasCounter.put(k, 0L);
                 receivedVotes.put(k,
                         new BigFraction(receivedVotes.get(k), 1L)
-                        .multiply(ATTENUATION_COEFFICIENT)
-                        .longValue()
+                                .multiply(ATTENUATION_COEFFICIENT)
+                                .longValue()
                 );
             }
         }
 
-        void updateTransaction(Transaction tx){
+        void updateTransaction(Transaction tx) {
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
@@ -108,7 +109,7 @@ public class ProposersState implements State<ProposersState> {
                 }
                 // 撤回投票
                 case EXIT_VOTE: {
-                    if (Start.ENABLE_ASSERTION){
+                    if (Start.ENABLE_ASSERTION) {
                         Assert.isTrue(receivedVotes.containsKey(Hex.encodeHexString(tx.payload)), "the exit vote has voted");
                     }
                     receivedVotes.remove(Hex.encodeHexString(tx.payload));
@@ -147,7 +148,7 @@ public class ProposersState implements State<ProposersState> {
     private int blockInterval;
     private List<Proposer> candidatesCache;
 
-    private void clearCandidatesCache(){
+    private void clearCandidatesCache() {
         candidatesCache = null;
     }
 
@@ -170,7 +171,7 @@ public class ProposersState implements State<ProposersState> {
     }
 
     public List<Proposer> getCandidates() {
-        if(this.candidatesCache != null){
+        if (this.candidatesCache != null) {
             return candidatesCache;
         }
         this.candidatesCache = getAll().values()
@@ -209,7 +210,7 @@ public class ProposersState implements State<ProposersState> {
     public ProposersState updateBlocks(List<Block> blocks) {
         clearCandidatesCache();
 
-        for(Proposer p: all.values()){
+        for (Proposer p : all.values()) {
             p.increaseEraCounters();
             p.attenuation();
         }
@@ -220,7 +221,7 @@ public class ProposersState implements State<ProposersState> {
         // 统计出块数量
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
-            if (Start.ENABLE_ASSERTION){
+            if (Start.ENABLE_ASSERTION) {
                 Assert.isTrue(b.body != null && b.body.size() > 0, "empty block body");
             }
             updateBlock(b);
