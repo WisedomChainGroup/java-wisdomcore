@@ -1,16 +1,16 @@
 package org.wisdom.p2p;
 
+import com.google.common.cache.Cache;
 import com.google.protobuf.AbstractMessage;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import io.grpc.Channel;
 import io.grpc.Context;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
@@ -23,6 +23,8 @@ public class GRPCClient {
     }
 
     private Executor executor;
+
+    private ConcurrentMap<HostPort, ManagedChannel> channelCache;
 
     private static final int RPC_TIMEOUT = 3;
 
@@ -41,10 +43,22 @@ public class GRPCClient {
         return this;
     }
 
+    private ManagedChannel getChannel(HostPort hostPort){
+        ManagedChannel channel = channelCache.get(hostPort);
+        if (channel != null && !channel.isShutdown()){
+            return channel;
+        }
+        ManagedChannel ch = ManagedChannelBuilder.forAddress(hostPort.getHost(), hostPort.getPort()
+        ).usePlaintext().build();
+        channelCache.put(hostPort, ch);
+        return ch;
+    }
+
     public GRPCClient(){
         this.nonce = new AtomicLong();
         this.timeout = RPC_TIMEOUT;
         this.executor = Executors.newCachedThreadPool();
+        this.channelCache = new ConcurrentLinkedHashMap.Builder<HostPort, ManagedChannel>().maximumWeightedCapacity(PeersCache.MAX_PEERS * 2).build();
     }
 
     public GRPCClient(Peer self){
@@ -75,7 +89,6 @@ public class GRPCClient {
         @Override
         public void onNext(WisdomOuterClass.Message value) {
             function.accept(value, null);
-            channel.shutdown();
         }
 
         @Override
@@ -85,9 +98,7 @@ public class GRPCClient {
         }
 
         @Override
-        public void onCompleted() {
-            channel.shutdown();
-        }
+        public void onCompleted() { }
     }
 
     public  CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, AbstractMessage msg){
@@ -106,12 +117,11 @@ public class GRPCClient {
     }
 
     private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
-        ).usePlaintext().build();
+        ManagedChannel ch = getChannel(new HostPort(host, port));
 
         WisdomGrpc.WisdomBlockingStub stub = WisdomGrpc.newBlockingStub(
                 ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
-
+        
         return CompletableFuture
                 .supplyAsync(() -> {
                     try{
@@ -125,9 +135,7 @@ public class GRPCClient {
     }
 
     private void dialAsync(String host, int port, WisdomOuterClass.Message msg, BiConsumer<WisdomOuterClass.Message, Throwable> function) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
-        ).usePlaintext().build();
-
+        ManagedChannel ch = getChannel(new HostPort(host, port));
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
 
