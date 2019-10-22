@@ -201,7 +201,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
-
+            if (size < blocksPerEra){
+                break;
+            }
             if (Start.ENABLE_ASSERTION) {
                 Assert.isTrue(Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
                         && isChain(blocks), "get blocks from database failed"
@@ -213,10 +215,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 proposersFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 last = blocks.get(blocksPerEra - 1);
                 blocks = blocks.subList(blocksPerEra, blocks.size());
-            }
-
-            if (size < blocksPerUpdate){
-                break;
             }
         }
     }
