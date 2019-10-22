@@ -93,7 +93,7 @@ public class PeersCache {
     }
 
     public void pend(Peer peer) {
-        if (peer.host.equals("localhost")){
+        if (peer.host.equals("localhost") || peer.host.equals("127.0.0.1")){
             return;
         }
         if (size() >= MAX_PEERS) {
