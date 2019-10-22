@@ -255,7 +255,6 @@ ext {
 dependencies {
 
     compile "com.google.guava:guava:24.1-jre"
-    compile group: 'io.netty', name: 'netty-all', version: '4.1.30.Final'
     compile "org.slf4j:slf4j-api:${slf4jVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:2.5.1"
     compile "org.apache.commons:commons-collections4:4.0"

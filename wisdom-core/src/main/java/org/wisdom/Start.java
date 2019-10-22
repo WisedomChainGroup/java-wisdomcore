@@ -22,7 +22,6 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -37,6 +36,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -89,4 +91,5 @@ public class Start {
         }
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
+
 }

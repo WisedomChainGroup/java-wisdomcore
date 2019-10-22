@@ -1,6 +1,7 @@
 package org.wisdom.p2p;
 
 import com.google.protobuf.AbstractMessage;
+import io.grpc.Context;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -74,6 +75,7 @@ public class GRPCClient {
         @Override
         public void onNext(WisdomOuterClass.Message value) {
             function.accept(value, null);
+            channel.shutdown();
         }
 
         @Override

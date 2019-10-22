@@ -208,18 +208,20 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 onMessage(m);
                 return;
             }
-            logger.error("cannot connect to " + peer.toString());
-            if (!enableDiscovery) {
-                return;
-            }
-            peersCache.half(peer);
+            e.printStackTrace();
+//            logger.error("cannot connect to " + peer.toString());
+//            if (!enableDiscovery) {
+//                return;
+//            }
+//            peersCache.half(peer);
         });
     }
 
     private void dialWithTTL(String host, int port, long ttl, AbstractMessage msg) {
         gRPCClient.dialAsyncWithTTL(host, port, ttl, msg, (m, e) -> {
             if (e != null){
-                logger.error("cannot connect to " + host + ":" + port);
+                e.printStackTrace();
+//                logger.error("cannot connect to " + host + ":" + port);
                 return;
             }
             onMessage(m);
