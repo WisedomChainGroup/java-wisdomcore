@@ -1,6 +1,7 @@
 package org.wisdom.tools;
 
 import org.wisdom.p2p.GRPCClient;
+import org.wisdom.p2p.Payload;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.WisdomOuterClass;
 
@@ -18,16 +19,23 @@ public class GRPCTestTool {
         }
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws InterruptedException {
         GRPCClient client = new GRPCClient(SELF).withExecutor(EXECUTOR);
-        client.dialWithTTL("192.168.1.11", 9585, 1,
+        client.dialAsyncWithTTL("192.168.1.52", 9235, 1,
                 WisdomOuterClass.GetBlocks.newBuilder()
                 .setStartHeight(1)
                 .setStopHeight(256)
                 .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_TAIL)
-                .build()
-        ).thenAcceptAsync((msg) -> {
-           System.out.println(msg.toString());
-        }, EXECUTOR).join();
+                .build(),
+                (msg, err) -> {
+                    try {
+                        System.out.println(new Payload(msg).getBlocks().getBlocksList().size());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                }
+        );
+        Thread.sleep(1000);
     }
 }

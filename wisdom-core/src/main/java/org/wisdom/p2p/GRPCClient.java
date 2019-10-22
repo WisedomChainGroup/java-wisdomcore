@@ -11,6 +11,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 @Component
@@ -57,21 +58,21 @@ public class GRPCClient {
 
         private ManagedChannel channel;
 
-        private BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function;
+        private BiConsumer<WisdomOuterClass.Message, Throwable> function;
 
-        public SimpleObserver(ManagedChannel channel, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function) {
+        public SimpleObserver(ManagedChannel channel, BiConsumer<WisdomOuterClass.Message, Throwable> function) {
             this.channel = channel;
             this.function = function;
         }
 
         @Override
         public void onNext(WisdomOuterClass.Message value) {
-            function.apply(value, null);
+            function.accept(value, null);
         }
 
         @Override
         public void onError(Throwable t) {
-            function.apply(null, t);
+            function.accept(null, t);
             channel.shutdown();
         }
 
@@ -88,7 +89,7 @@ public class GRPCClient {
         return dial(host, port, buildMessage(ttl, msg));
     }
 
-    public void dialAsyncWithTTL(String host, int port, long ttl, AbstractMessage msg, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function){
+    public void dialAsyncWithTTL(String host, int port, long ttl, AbstractMessage msg, BiConsumer<WisdomOuterClass.Message, Throwable> function){
         if(msg instanceof WisdomOuterClass.Message){
             dialAsync(host, port, (WisdomOuterClass.Message) msg, function);
             return;
@@ -115,7 +116,7 @@ public class GRPCClient {
                 }, executor);
     }
 
-    private void dialAsync(String host, int port, WisdomOuterClass.Message msg, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function) {
+    private void dialAsync(String host, int port, WisdomOuterClass.Message msg, BiConsumer<WisdomOuterClass.Message, Throwable> function) {
         ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
         ).usePlaintext().build();
 
