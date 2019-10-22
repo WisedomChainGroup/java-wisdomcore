@@ -20,19 +20,18 @@ package org.wisdom.core.state;
 
 import org.wisdom.core.Block;
 import org.wisdom.db.StateDB;
-import org.wisdom.encoding.JSONEncodeDecoder;
 
 /**
  * @author sal 1564319846@qq.com
  * state factory, lru cached
  */
-public class StateFactory extends AbstractStateFactory {
+public class StateFactory<T extends State<T>> extends AbstractStateFactory<T> {
 
-    public StateFactory(StateDB stateDB, int cacheSize, State genesisState) {
+    public StateFactory(StateDB stateDB, int cacheSize, T genesisState) {
         super(stateDB, genesisState, cacheSize);
     }
 
-    public State getFromCache(Block block) {
+    public T getFromCache(Block block) {
         if (block.nHeight == 0) {
             return genesisState;
         }
@@ -41,21 +40,13 @@ public class StateFactory extends AbstractStateFactory {
             return cache.get(key);
         }
         Block parent = stateDB.getBlock(block.hashPrevBlock);
-        State parentState = null;
-        try{
-            parentState = getFromCache(parent);
-        }catch (Exception e){
-            e.printStackTrace();
-            System.out.println("=============");
-            System.out.println("=============");
-            System.out.println(new String(new JSONEncodeDecoder().encodeBlock(block)));
-        }
-        State newState = parentState.copy().updateBlock(block);
+        T parentState = getFromCache(parent);
+        T newState = parentState.copy().updateBlock(block);
         cache.put(key, newState);
         return newState.copy();
     }
 
-    public State getInstance(Block block) {
+    public T getInstance(Block block) {
         if (block == null || !stateDB.hasBlock(block.getHash())) {
             return null;
         }

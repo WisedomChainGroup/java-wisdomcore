@@ -39,7 +39,7 @@ import java.util.List;
  * adjust difficulty per era
  */
 @Component
-public class TargetState implements State {
+public class TargetState implements State<TargetState> {
 
     private int initialBlockInterval;
     private long blockIntervalSwitchEra;
@@ -69,7 +69,7 @@ public class TargetState implements State {
     }
 
     @Override
-    public State updateBlock(Block block) {
+    public TargetState updateBlock(Block block) {
         return this;
     }
 
@@ -84,7 +84,7 @@ public class TargetState implements State {
      * @return
      */
     @Override
-    public State updateBlocks(List<Block> blocks) {
+    public TargetState updateBlocks(List<Block> blocks) {
         long blockInterval = this.initialBlockInterval;
 
         if (blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(blocks.get(0).nHeight, blocksPerEra) >= blockIntervalSwitchEra) {
@@ -120,12 +120,12 @@ public class TargetState implements State {
     }
 
     @Override
-    public State updateTransaction(Transaction transaction) {
+    public TargetState updateTransaction(Transaction transaction) {
         return this;
     }
 
     @Override
-    public State copy() {
+    public TargetState copy() {
         TargetState d = new TargetState();
         d.target = target;
         d.initialBlockInterval = initialBlockInterval;

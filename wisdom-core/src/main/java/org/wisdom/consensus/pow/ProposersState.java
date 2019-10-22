@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * 2019-10-11 增加投票衰减功能
  */
 @Component
-public class ProposersState implements State {
+public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
     private static final int MAXIMUM_PROPOSERS = 5;
@@ -175,7 +175,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateBlock(Block block) {
+    public ProposersState updateBlock(Block block) {
         for (Transaction t : block.body) {
             updateTransaction(t);
         }
@@ -193,7 +193,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateBlocks(List<Block> blocks) {
+    public ProposersState updateBlocks(List<Block> blocks) {
         for(Proposer p: all.values()){
             p.increaseEraCounters();
             p.attenuation();
@@ -243,7 +243,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateTransaction(Transaction transaction) {
+    public ProposersState updateTransaction(Transaction transaction) {
         Proposer p = all.get(Hex.encodeHexString(transaction.to));
         if (p == null) {
             p = new Proposer();
@@ -255,7 +255,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State copy() {
+    public ProposersState copy() {
         ProposersState state = new ProposersState(this.allowMinersJoinEra, this.blockInterval);
         state.all = new HashMap<>();
         for (String key : all.keySet()) {

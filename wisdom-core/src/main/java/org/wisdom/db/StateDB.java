@@ -60,16 +60,16 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
 
-    public StateFactory getValidatorStateFactory() {
+    public StateFactory<ValidatorState> getValidatorStateFactory() {
         return validatorStateFactory;
     }
 
-    public EraLinkedStateFactory getTargetStateFactory() {
+    public EraLinkedStateFactory<TargetState> getTargetStateFactory() {
         return targetStateFactory;
     }
 
-    private StateFactory validatorStateFactory;
-    private EraLinkedStateFactory targetStateFactory;
+    private StateFactory<ValidatorState> validatorStateFactory;
+    private EraLinkedStateFactory<TargetState> targetStateFactory;
 
     public ProposersFactory getProposersFactory() {
         return proposersFactory;
@@ -175,8 +175,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
         this.transactionIndex = new HashMap<>();
-        this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
-        this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
+        this.validatorStateFactory = new StateFactory<>(this, CACHE_SIZE, validatorState);
+        this.targetStateFactory = new EraLinkedStateFactory<>(this, CACHE_SIZE, targetState, blocksPerEra);
         this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
         this.confirms = new HashMap<>();
         this.leastConfirms = new HashMap<>();

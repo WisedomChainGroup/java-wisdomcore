@@ -29,11 +29,11 @@ import java.util.List;
  * @author sal 1564319846@qq.com
  * era linked state factory, updates per era
  */
-public class EraLinkedStateFactory extends AbstractStateFactory {
+public class EraLinkedStateFactory<T extends State<T>> extends AbstractStateFactory<T> {
     private int blocksPerEra;
     private static final Logger logger = LoggerFactory.getLogger(EraLinkedStateFactory.class);
 
-    public EraLinkedStateFactory(StateDB stateDB, int cacheSize, State genesisState, int blocksPerEra) {
+    public EraLinkedStateFactory(StateDB stateDB, int cacheSize, T genesisState, int blocksPerEra) {
         super(stateDB, genesisState, cacheSize);
         this.blocksPerEra = blocksPerEra;
     }
@@ -58,11 +58,11 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
     }
 
     @Override
-    public State getFromCache(Block eraHead) {
+    public T getFromCache(Block eraHead) {
         if (eraHead.nHeight == 0) {
             return genesisState;
         }
-        State t = cache.get(getLRUCacheKey(eraHead.getHash()));
+        T t = cache.get(getLRUCacheKey(eraHead.getHash()));
         if (t != null) {
             return t;
         }
@@ -77,7 +77,7 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         return t.copy();
     }
 
-    public State getInstance(Block block) {
+    public T getInstance(Block block) {
         if (block == null) {
             return null;
         }
@@ -88,16 +88,16 @@ public class EraLinkedStateFactory extends AbstractStateFactory {
         if (eraHead == null) {
             return null;
         }
-        State cached = getFromCache(eraHead);
+        T cached = getFromCache(eraHead);
         if (cached != null) {
             return cached;
         }
-        State parentEraState = getInstance(eraHead);
+        T parentEraState = getInstance(eraHead);
         if (parentEraState == null) {
             return null;
         }
         List<Block> blocks = stateDB.getAncestorBlocks(eraHead.getHash(), eraHead.nHeight - (blocksPerEra - 1));
-        State newState = parentEraState.copy().updateBlocks(blocks);
+        T newState = parentEraState.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), newState);
         return newState;
     }

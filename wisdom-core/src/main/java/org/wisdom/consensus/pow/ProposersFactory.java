@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 
-public class ProposersFactory extends EraLinkedStateFactory {
+public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     private static final int POW_WAIT_FACTOR = 3;
 
     private int initialBlockInterval;
@@ -30,7 +30,7 @@ public class ProposersFactory extends EraLinkedStateFactory {
         this.blockIntervalSwitchTo = blockIntervalSwitchTo;
     }
 
-    public ProposersFactory(StateDB stateDB, int cacheSize, State genesisState, int blocksPerEra) {
+    public ProposersFactory(StateDB stateDB, int cacheSize, ProposersState genesisState, int blocksPerEra) {
         super(stateDB, cacheSize, genesisState, blocksPerEra);
     }
 
@@ -67,10 +67,10 @@ public class ProposersFactory extends EraLinkedStateFactory {
 
         List<String> res;
         if (parentBlock.nHeight % getBlocksPerEra() == 0) {
-            ProposersState state = (ProposersState) getFromCache(parentBlock);
+            ProposersState state = getFromCache(parentBlock);
             res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
         } else {
-            ProposersState state = (ProposersState) getInstance(parentBlock);
+            ProposersState state = getInstance(parentBlock);
             res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
         }
         if (res.size() > 0) {

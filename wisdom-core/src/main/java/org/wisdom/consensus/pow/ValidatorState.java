@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class ValidatorState implements State {
+public class ValidatorState implements State<ValidatorState> {
     static final Base64.Encoder encoder = Base64.getEncoder();
 
     // public key hash base64 -> nonce
@@ -61,7 +61,7 @@ public class ValidatorState implements State {
 
 
     @Override
-    public State updateBlock(Block block) {
+    public ValidatorState updateBlock(Block block) {
         if (block == null || block.body == null) {
             return this;
         }
@@ -72,7 +72,7 @@ public class ValidatorState implements State {
     }
 
     @Override
-    public State updateBlocks(List<Block> blocks) {
+    public ValidatorState updateBlocks(List<Block> blocks) {
         if (blocks == null || blocks.size() == 0) {
             return this;
         }
@@ -83,7 +83,7 @@ public class ValidatorState implements State {
     }
 
     @Override
-    public State updateTransaction(Transaction transaction) {
+    public ValidatorState updateTransaction(Transaction transaction) {
         updateNonce(transaction);
         return this;
     }
@@ -97,7 +97,7 @@ public class ValidatorState implements State {
 
 
     @Override
-    public State copy() {
+    public ValidatorState copy() {
         return new ValidatorState(
                 new HashMap<>(nonce)
         );
