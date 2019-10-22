@@ -11,6 +11,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 
 @Component
 public class GRPCClient {
@@ -53,32 +54,25 @@ public class GRPCClient {
     }
 
     private static class SimpleObserver implements StreamObserver<WisdomOuterClass.Message> {
-        private WisdomOuterClass.Message response;
 
         private ManagedChannel channel;
 
-        private Throwable exception;
+        private BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function;
 
-        public SimpleObserver(ManagedChannel channel) {
+        public SimpleObserver(ManagedChannel channel, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function) {
             this.channel = channel;
-        }
-
-        public WisdomOuterClass.Message getResponse() {
-            return response;
-        }
-
-        public Throwable getException() {
-            return exception;
+            this.function = function;
         }
 
         @Override
         public void onNext(WisdomOuterClass.Message value) {
-            response = value;
+            function.apply(value, null);
         }
 
         @Override
         public void onError(Throwable t) {
-            this.exception = t;
+            function.apply(null, t);
+            channel.shutdown();
         }
 
         @Override
@@ -88,7 +82,18 @@ public class GRPCClient {
     }
 
     public  CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, AbstractMessage msg){
+        if(msg instanceof WisdomOuterClass.Message){
+            return dial(host, port, (WisdomOuterClass.Message) msg);
+        }
         return dial(host, port, buildMessage(ttl, msg));
+    }
+
+    public void dialAsyncWithTTL(String host, int port, long ttl, AbstractMessage msg, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function){
+        if(msg instanceof WisdomOuterClass.Message){
+            dialAsync(host, port, (WisdomOuterClass.Message) msg, function);
+            return;
+        }
+        dialAsync(host, port, buildMessage(ttl, msg), function);
     }
 
     private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
@@ -108,5 +113,15 @@ public class GRPCClient {
                         ch.shutdown();
                     }
                 }, executor);
+    }
+
+    private void dialAsync(String host, int port, WisdomOuterClass.Message msg, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function) {
+        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
+        ).usePlaintext().build();
+
+        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
+                ch).withDeadlineAfter(RPC_TIMEOUT, TimeUnit.SECONDS);
+
+        stub.entry(msg, new SimpleObserver(ch, function));
     }
 }

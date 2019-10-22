@@ -203,7 +203,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     private void dialWithTTL(Peer peer, long ttl, AbstractMessage msg) {
-        gRPCClient.dialWithTTL(peer.host, peer.port, ttl, msg).handleAsync((m, e) -> {
+        gRPCClient.dialAsyncWithTTL(peer.host, peer.port, ttl, msg, (m, e) -> {
             if (e == null) {
                 return m;
             }
@@ -213,11 +213,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             }
             peersCache.half(peer);
             return m;
-        }).thenApplyAsync((m) -> m == null ? null : onMessage(m));
+        });
     }
 
-    private CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, AbstractMessage msg) {
-        return gRPCClient.dialWithTTL(host, port, ttl, msg).handleAsync((m, e) -> {
+    private void dialWithTTL(String host, int port, long ttl, AbstractMessage msg) {
+        gRPCClient.dialAsyncWithTTL(host, port, ttl, msg, (m, e) -> {
             if (e != null){
                 logger.error("cannot connect to " + host + ":" + port);
                 return null;
