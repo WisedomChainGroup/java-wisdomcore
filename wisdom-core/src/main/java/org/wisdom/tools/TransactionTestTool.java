@@ -222,7 +222,7 @@ public class TransactionTestTool {
         public Payload payload;
         public int times;
         @JsonDeserialize(using = HatchTypeDeserializer.class)
-        public Integer HatchType;
+        public Integer hatchType;
     }
 
     public static void main(String[] args) throws Exception {
