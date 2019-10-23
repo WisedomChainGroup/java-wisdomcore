@@ -313,7 +313,7 @@ public class TransactionTestTool {
                 if (tx.payload != null && tx.payload.length > 0){
                     builder.setSharePubkeyHashBytes(ByteString.copyFrom(tx.payload));
                 }
-                builder.setType(info.HatchType);
+                builder.setType(info.hatchType);
                 tx.payload = builder.build().toByteArray();
             }
             for (int i = 0; i < info.times; i++) {
