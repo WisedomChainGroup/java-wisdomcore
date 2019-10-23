@@ -68,6 +68,22 @@ public class TransactionTestTool {
         public PublicKeyHash(byte[] publicKeyHash) {
             this.publicKeyHash = publicKeyHash;
         }
+
+        public static PublicKeyHash from(String encoded) throws PublicKeyHashDeserializer.PublicKeyHashDeserializeException{
+            byte[] publicKeyHash;
+            try {
+                publicKeyHash = Hex.decodeHex(encoded);
+                if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
+                    publicKeyHash = Address.publicKeyToHash(publicKeyHash);
+                }
+            } catch (Exception e) {
+                publicKeyHash = Address.addressToPublicKeyHash(encoded);
+            }
+            if (publicKeyHash == null) {
+                throw new PublicKeyHashDeserializer.PublicKeyHashDeserializeException("invalid to" + encoded);
+            }
+            return new PublicKeyHash(publicKeyHash);
+        }
     }
 
     private static class PublicKeyHashDeserializer extends StdDeserializer<PublicKeyHash> {
@@ -84,20 +100,7 @@ public class TransactionTestTool {
         @Override
         public PublicKeyHash deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
             JsonNode node = p.getCodec().readTree(p);
-            String encoded = node.asText();
-            byte[] publicKeyHash = null;
-            try {
-                publicKeyHash = Hex.decodeHex(encoded);
-                if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
-                    publicKeyHash = Address.publicKeyToHash(publicKeyHash);
-                }
-            } catch (Exception e) {
-                publicKeyHash = Address.addressToPublicKeyHash(encoded);
-            }
-            if (publicKeyHash == null) {
-                throw new PublicKeyHashDeserializeException("invalid to" + encoded);
-            }
-            return new PublicKeyHash(publicKeyHash);
+            return PublicKeyHash.from(node.asText());
         }
     }
 
@@ -310,8 +313,15 @@ public class TransactionTestTool {
                 byte[] zeroBytes = new byte[32];
                 HatchModel.Payload.Builder builder = HatchModel.Payload.newBuilder()
                         .setTxId(ByteString.copyFrom(zeroBytes));
+
                 if (tx.payload != null && tx.payload.length > 0){
-                    builder.setSharePubkeyHashBytes(ByteString.copyFromUtf8(Hex.encodeHexString(tx.payload)));
+                    builder.setSharePubkeyHashBytes(
+                            ByteString.copyFromUtf8(
+                                    Hex.encodeHexString(
+                                            PublicKeyHash.from(Hex.encodeHexString(tx.payload)).publicKeyHash
+                                    )
+                            )
+                    );
                 }
                 builder.setType(info.hatchType);
                 tx.payload = builder.build().toByteArray();

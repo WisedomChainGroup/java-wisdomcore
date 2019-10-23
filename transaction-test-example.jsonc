@@ -40,8 +40,8 @@
       {
         "amount":"300",
         "type": "INCUBATE",
-        "payload": "7d4d105a3fc6db71d35ed654b1b7aab73d8fa50d", // 孵化分享者公钥哈希
-        "to": "1G4HkuzKq8FaJZpcW7PTmrQMEh4tgk9Mwj", // 接收者的 公钥，公钥哈希或者地址
+        "payload": "7d4d105a3fc6db71d35ed654b1b7aab73d8fa50d", // 孵化分享者  公钥，公钥哈希或者地址
+        "to": "1G4HkuzKq8FaJZpcW7PTmrQMEh4tgk9Mwj", // 孵化事务的 to 填自己
         "times": 1, // 发送次数,
         "hatchType": 120 // 孵化天数
       }
