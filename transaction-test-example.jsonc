@@ -36,7 +36,15 @@
       "payload": "", // 可选，
       "to": "d0f1966cee219fcfdbcee698517fcf864f46817c30bc8218eb4889d02f312540", // 接收者的 公钥，公钥哈希或者地址
       "times": 1, // 发送次数
-    }
+    },
+      {
+        "amount":"300",
+        "type": "INCUBATE",
+        "payload": "7d4d105a3fc6db71d35ed654b1b7aab73d8fa50d", // 孵化分享者公钥哈希
+        "to": "1G4HkuzKq8FaJZpcW7PTmrQMEh4tgk9Mwj", // 接收者的 公钥，公钥哈希或者地址
+        "times": 1, // 发送次数,
+        "hatchType": 120 // 孵化天数
+      }
   ]
 }
 
