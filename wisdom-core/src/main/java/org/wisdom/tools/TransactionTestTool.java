@@ -311,7 +311,7 @@ public class TransactionTestTool {
                 HatchModel.Payload.Builder builder = HatchModel.Payload.newBuilder()
                         .setTxId(ByteString.copyFrom(zeroBytes));
                 if (tx.payload != null && tx.payload.length > 0){
-                    builder.setSharePubkeyHashBytes(ByteString.copyFrom(tx.payload));
+                    builder.setSharePubkeyHashBytes(ByteString.copyFromUtf8(Hex.encodeHexString(tx.payload)));
                 }
                 builder.setType(info.hatchType);
                 tx.payload = builder.build().toByteArray();
