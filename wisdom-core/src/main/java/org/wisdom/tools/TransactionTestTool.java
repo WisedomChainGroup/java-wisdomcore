@@ -6,8 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.protobuf.ByteString;
 import org.apache.commons.cli.*;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.core.io.FileSystemResource;
@@ -17,6 +19,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.*;
+import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.sync.Utils;
 import org.wisdom.util.Address;
 import org.wisdom.util.AsynchronousHttpClient;
@@ -184,12 +187,42 @@ public class TransactionTestTool {
         }
     }
 
+    private static class HatchTypeDeserializer extends StdDeserializer<Integer>{
+        public static class HatchTypeDeserializerException extends JsonProcessingException {
+            HatchTypeDeserializerException(String msg) {
+                super(msg);
+            }
+        }
+
+        public HatchTypeDeserializer() {
+            super(Integer.class);
+        }
+
+        @Override
+        public Integer deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+            JsonNode node = p.getCodec().readTree(p);
+            String encoded = node.asText();
+            try {
+                int i = Integer.parseInt(encoded);
+                if (i != 365 && i != 120) {
+                    throw new HatchTypeDeserializerException("hatch type must be 365 or 120");
+                }
+                return i;
+            } catch (Exception e) {
+                throw new HatchTypeDeserializerException("hatch type must be 365 or 120");
+            }
+        }
+    }
+
+
     private static class TransactionInfo {
         public BigDecimal amount;
         public TransactionType type;
         public PublicKeyHash to;
         public Payload payload;
         public int times;
+        @JsonDeserialize(using = HatchTypeDeserializer.class)
+        public Integer HatchType;
     }
 
     public static void main(String[] args) throws Exception {
@@ -270,6 +303,19 @@ public class TransactionTestTool {
                     0.002 * EconomicModel.WDC / Transaction.GAS_TABLE[tx.type]
             );
             tx.payload = info.payload.payload;
+
+            // 对 payload 进行 protobuf 编码
+            if (tx.type == Transaction.Type.INCUBATE.ordinal()){
+
+                byte[] zeroBytes = new byte[32];
+                HatchModel.Payload.Builder builder = HatchModel.Payload.newBuilder()
+                        .setTxId(ByteString.copyFrom(zeroBytes));
+                if (tx.payload != null && tx.payload.length > 0){
+                    builder.setSharePubkeyHashBytes(ByteString.copyFrom(tx.payload));
+                }
+                builder.setType(info.HatchType);
+                tx.payload = builder.build().toByteArray();
+            }
             for (int i = 0; i < info.times; i++) {
                 // clear cache
                 Transaction newTx = tx.copy();
