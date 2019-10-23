@@ -1,13 +1,11 @@
 package org.wisdom.p2p;
 
-import com.google.common.cache.Cache;
 import com.google.protobuf.AbstractMessage;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import io.grpc.Channel;
-import io.grpc.Context;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.*;
@@ -21,6 +19,9 @@ public class GRPCClient {
         this.executor = executor;
         return this;
     }
+
+    @Value("${p2p.enable-message-log}")
+    private boolean enableMessageLog;
 
     private Executor executor;
 
@@ -81,6 +82,13 @@ public class GRPCClient {
 
         private BiConsumer<WisdomOuterClass.Message, Throwable> function;
 
+        private boolean enableExceptionStackTrace;
+
+        public SimpleObserver withExceptionStackTrance(boolean enableExceptionStackTrance) {
+            this.enableExceptionStackTrace = enableExceptionStackTrace;
+            return this;
+        }
+
         public SimpleObserver(ManagedChannel channel, BiConsumer<WisdomOuterClass.Message, Throwable> function) {
             this.channel = channel;
             this.function = function;
@@ -139,6 +147,6 @@ public class GRPCClient {
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
                 ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
 
-        stub.entry(msg, new SimpleObserver(ch, function));
+        stub.entry(msg, new SimpleObserver(ch, function).withExceptionStackTrance(enableMessageLog));
     }
 }

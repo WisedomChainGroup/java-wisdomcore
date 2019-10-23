@@ -68,6 +68,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Autowired
     private GRPCClient gRPCClient;
 
+    @Value("${p2p.enable-message-log}")
+    private boolean enableMessageLog;
+
     @Value("${p2p.enable-discovery}")
     private boolean enableDiscovery;
 
@@ -108,7 +111,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
-        java.util.logging.Logger.getLogger("io.grpc").setLevel(Level.OFF);
+        if(!enableMessageLog){
+            java.util.logging.Logger.getLogger("io.grpc").setLevel(Level.OFF);
+        }
         this.server = ServerBuilder.forPort(peersCache.getSelf().port).addService(this).build().start();
     }
 
