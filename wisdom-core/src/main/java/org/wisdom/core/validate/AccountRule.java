@@ -118,10 +118,13 @@ public class AccountRule implements BlockRule {
                 if (!validateIncubator) {
                     continue;
                 }
+                byte[] pubkeyhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+                String publichash = Hex.encodeHexString(pubkeyhash);
                 switch (Transaction.Type.values()[tx.type]) {
                     case VOTE: {
                         // 投票必须投整数
                         if (tx.amount % EconomicModel.WDC != 0) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the amount of vote must be integral WDC");
                         }
                         break;
@@ -129,23 +132,28 @@ public class AccountRule implements BlockRule {
                     case EXIT_VOTE: {
                         // 投票没有撤回过
                         if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                         }
                         // 撤回的必须是投票
                         Transaction t = stateDB.getTransaction(block.hashPrevBlock, tx.payload);
                         if (t == null || t.type != Transaction.Type.VOTE.ordinal()) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " is not vote or not exists");
                         }
                         // 投票多少撤回多少
                         if (t.amount != tx.amount) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit vote " + t.amount + " while " + tx.amount + " received");
                         }
                         // 只有投票的人可以撤回
                         if (!Arrays.equals(t.from, tx.from)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit vote from" + Hex.encodeHexString(t.from) + " while " + Hex.encodeHexString(tx.from) + " received");
                         }
                         // 投票的人只能撤回自己投的人的票
                         if (!Arrays.equals(t.to, tx.to)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit vote to " + Hex.encodeHexString(t.to) + " while " + Hex.encodeHexString(tx.to) + " received");
                         }
                         break;
@@ -155,9 +163,11 @@ public class AccountRule implements BlockRule {
                         // 抵押撤回都只能抵押撤回给自己
                         // 抵押必须抵押整数
                         if (tx.amount % EconomicModel.WDC != 0) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the amount of mortgage must be integral WDC");
                         }
                         if (!Arrays.equals(Address.publicKeyToHash(tx.from), tx.to)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit mortgage address " + Address.publicKeyToAddress(tx.from) + " while " + Address.publicKeyHashToAddress(tx.to) + " received");
                         }
                         break;
@@ -165,24 +175,29 @@ public class AccountRule implements BlockRule {
                     case EXIT_MORTGAGE: {
                         // 抵押没有撤回过
                         if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                         }
                         // 撤回的必须是抵押
                         Transaction t = stateDB.getTransaction(block.hashPrevBlock, tx.payload);
                         if (t == null || t.type != Transaction.Type.MORTGAGE.ordinal()) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + Hex.encodeHexString(tx.payload) + " is not mortgage or not exists");
                         }
                         // 抵押多少撤回多少
                         if (t.amount != tx.amount) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit mortgage " + t.amount + " while " + tx.amount + " received");
                         }
                         // 只有抵押的人能撤回
                         if (!Arrays.equals(t.from, tx.from)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit mortgage address " + Address.publicKeyToAddress(t.from) + " while " + Address.publicKeyToAddress(tx.from) + " received");
                         }
                         // from 和 to 相等
                         // 抵押撤回都只能抵押撤回给自己
                         if (!Arrays.equals(Address.publicKeyToHash(tx.from), tx.to)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the transaction " + tx.getHashHexString() + " should exit mortgage address " + Address.publicKeyToAddress(tx.from) + " while " + Address.publicKeyHashToAddress(tx.to) + " received");
                         }
                         break;
@@ -190,8 +205,6 @@ public class AccountRule implements BlockRule {
                 }
                 // 校验事务
                 if (tx.type != Transaction.Type.COINBASE.ordinal()) {
-                    byte[] pubkeyhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
-                    String publichash = Hex.encodeHexString(pubkeyhash);
                     //校验格式
                     APIResult apiResult = transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
                     if (apiResult.getCode() == 5000) {
@@ -202,6 +215,7 @@ public class AccountRule implements BlockRule {
                     if (map.containsKey(publichash)) {
                         accountState = map.get(publichash);
                     } else {
+                        peningTransPool.removeOne(publichash, tx.nonce);
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from ");
                     }
                     Account account = accountState.getAccount();
@@ -242,6 +256,7 @@ public class AccountRule implements BlockRule {
                             mapaccount = packageMiner.updateMortgage(account, tx);
                         }
                         if (mapaccount == null) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
                         if (mapaccount.containsKey("fromaccount")) {
@@ -263,6 +278,7 @@ public class AccountRule implements BlockRule {
                         }
                         Map<String, Account> cancelaccountList = packageMiner.UpdateCancelVote(account, votetoaccount, tx);
                         if (cancelaccountList == null) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
                         if (cancelaccountList.containsKey("fromaccount")) {
@@ -275,6 +291,7 @@ public class AccountRule implements BlockRule {
                     } else if (tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {//撤回抵押
                         Map<String, Account> cancelAccountList = packageMiner.UpdateCancelMortgage(account, tx);
                         if (cancelAccountList == null) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
                         if (cancelAccountList.containsKey("fromaccount")) {
@@ -284,6 +301,7 @@ public class AccountRule implements BlockRule {
                     } else {//其他事务
                         Account otheraccount = packageMiner.UpdateOtherAccount(account, tx);
                         if (otheraccount == null) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
                         }
                         accountState.setAccount(otheraccount);

@@ -551,6 +551,11 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
+        if(transaction.type!=Transaction.Type.VOTE.ordinal()){
+            apiResult.setCode(5000);
+            apiResult.setMessage("The type of withdrawal is not a vote");
+            return apiResult;
+        }
         byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
         if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to, topubkeyhash)) {
             apiResult.setCode(5000);
@@ -599,6 +604,11 @@ public class TransactionCheck {
         if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
+            return apiResult;
+        }
+        if(transaction.type!=Transaction.Type.MORTGAGE.ordinal()){
+            apiResult.setCode(5000);
+            apiResult.setMessage("The type of withdrawal is not mortgage");
             return apiResult;
         }
         if (!Arrays.equals(transaction.to, topubkeyhash)) {
