@@ -25,12 +25,18 @@ public class Monad<T, E extends Exception> {
         this.cleaners = cleaners;
     }
 
+    /**
+     * a -> M a
+     * @param data
+     * @param <U>
+     * @return
+     */
     public static <U> Monad<U, Exception> of(U data) {
         return of(data, e -> e);
     }
 
     /**
-     *
+     * a -> M a
      * @param data    nullable object
      * @param handler handle null exception when object is null
      */
@@ -43,10 +49,24 @@ public class Monad<T, E extends Exception> {
         }
     }
 
+    /**
+     * a -> M a
+     * @param supplier
+     * @param <U>
+     * @return
+     */
     public static <U> Monad<U, Exception> supply(Supplier<U, ? extends Exception> supplier) {
         return supply(supplier, e -> e);
     }
 
+    /**
+     * a -> M a
+     * @param supplier
+     * @param handler
+     * @param <U>
+     * @param <V>
+     * @return
+     */
     public static <U, V extends Exception> Monad<U, V> supply(Supplier<U, ? extends Exception> supplier,
                                                               Function<Exception, V> handler) {
         Objects.requireNonNull(supplier);
@@ -58,10 +78,24 @@ public class Monad<T, E extends Exception> {
         }
     }
 
+    /**
+     * M a -> (a -> b) -> M b
+     * @param applier
+     * @param <U>
+     * @return
+     */
     public <U> Monad<U, Exception> map(Applier<T, U, ? extends Exception> applier) {
         return map(applier, e -> e);
     }
 
+    /**
+     * M a -> (a -> b) -> M b
+     * @param applier
+     * @param handler
+     * @param <U>
+     * @param <V>
+     * @return
+     */
     public <U, V extends Exception> Monad<U, V> map(Applier<T, U, ?> applier, Function<Exception, V> handler) {
         Objects.requireNonNull(handler);
         Objects.requireNonNull(applier);
@@ -75,6 +109,13 @@ public class Monad<T, E extends Exception> {
         }
     }
 
+    /**
+     * M a -> a -> M a
+     * @param consumer
+     * @param handler
+     * @param <V>
+     * @return
+     */
     public <V extends Exception> Monad<T, V> ifPresent(Consumer<T, ? extends Exception> consumer,
                                                        Function<Exception, V> handler) {
         Objects.requireNonNull(consumer);
@@ -90,23 +131,48 @@ public class Monad<T, E extends Exception> {
         }
     }
 
+    /**
+     * M a -> a -> M a
+     * @param consumer
+     * @return
+     */
     public Monad<T, Exception> ifPresent(Consumer<T, ? extends Exception> consumer) {
         return ifPresent(consumer, e -> e);
     }
 
+
+    /**
+     * M a -> a -> M b -> M b
+     * @param function
+     * @param <U>
+     * @return
+     */
     public <U> Monad<U, Exception> flatMap(Function<T, Monad<U, ? extends Exception>> function) {
         return flatMap(function, e -> e);
     }
 
+
+    /**
+     * M a -> M b -> a -> b -> c -> M c
+     * @param other
+     * @param function
+     * @param <U>
+     * @param <V>
+     * @return
+     */
     public <U, V> Monad<V, Exception> compose(Monad<U, ? extends Exception> other,
                                               BiFunction<T, U, V, ? extends Exception> function) {
         return compose(other, function, e -> e);
     }
 
     /**
-     * M a -> M b -> ( a -> b -> c ) -> M c
-     *
+     * M a -> M b -> a -> b -> c -> M c
+     * @param other
+     * @param function
+     * @param handler
      * @param <U>
+     * @param <V>
+     * @param <R>
      * @return
      */
     public <U, V, R extends Exception> Monad<V, R> compose(Monad<U, ? extends Exception> other,
