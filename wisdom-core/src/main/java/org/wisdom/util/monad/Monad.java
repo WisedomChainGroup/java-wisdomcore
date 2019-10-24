@@ -295,10 +295,12 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
+     * return value and clean resources
      * @param data complement value
      * @return data when error occurs
      */
     public T orElse(T data) {
+        cleanUp();
         Objects.requireNonNull(data);
         if (error != null) {
             return data;
@@ -307,10 +309,12 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
+     * return value and clean resources
      * @param supplier provide the complement value
      * @return supplied value when error occurs
      */
     public T orElseGet(java.util.function.Supplier<? extends T> supplier) {
+        cleanUp();
         Objects.requireNonNull(supplier);
         if (error != null) {
             return Objects.requireNonNull(supplier.get());
@@ -318,14 +322,28 @@ public class Monad<T, E extends Exception> {
         return data;
     }
 
+    /**
+     * return value and clean resources
+     * @return
+     * @throws E
+     */
     public T get() throws E {
+        cleanUp();
         if (error != null) {
             throw error;
         }
         return data;
     }
 
+    /**
+     * return value and clean resources
+     * @param handler
+     * @param <V>
+     * @return
+     * @throws V
+     */
     public <V extends Exception> T get(Function<? super E, V> handler) throws V {
+        cleanUp();
         Objects.requireNonNull(handler);
         if (error != null) {
             throw Objects.requireNonNull(handler.apply(error));

@@ -9,8 +9,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -72,7 +70,7 @@ public class AsynchronousHttpClient {
                 .map(client::execute)
                 .onClean(CloseableHttpResponse::close)
                 .onClean((n) -> client.close())
-                .map(AsynchronousHttpClient::getBody).cleanUp().get(e -> new RuntimeException("get " + url + " failed")), executor);
+                .map(AsynchronousHttpClient::getBody).get(e -> new RuntimeException("get " + url + " failed")), executor);
     }
 
     public static CompletableFuture<byte[]> post(String url, String... parameters) {
