@@ -400,19 +400,14 @@ public class TransactionTestTool {
     }
 
     private static CompletableFuture<Response> postTransaction(byte[] transaction, String host, int port) {
-        Monad<URI, Exception> m = AsynchronousHttpClient
-                .buildURI(
-                        String.format("http://%s:%d/sendTransaction", host, port));
-        return m.map(URI::toString)
-                .map(u -> AsynchronousHttpClient.post(u, "traninfo", Hex.encodeHexString(transaction)))
-                .except(Throwable::printStackTrace)
-                .get(e -> new RuntimeException("post failed"))
-                .thenApplyAsync(x -> codec.decode(x, Response.class));
+        return AsynchronousHttpClient.post(
+                String.format("http://%s:%d/sendTransaction", host, port), "traninfo", Hex.encodeHexString(transaction)
+                ).thenApplyAsync(x -> codec.decode(x, Response.class));
     }
 
     private static CompletableFuture<Long> getNonce(byte[] publicKeyHash, String host, int port) throws Exception {
         String url = String.format("http://%s:%d/account/%s", host, port, Hex.encodeHexString(publicKeyHash));
-        return AsynchronousHttpClient.get(url, null)
+        return AsynchronousHttpClient.get(url)
                 .thenApplyAsync((body) -> codec.decode(body, GetAccountResponse.class).nonce);
     }
 }

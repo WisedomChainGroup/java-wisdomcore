@@ -65,9 +65,9 @@ public class AsynchronousHttpClient {
         b.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
     }
 
-    public static CompletableFuture<byte[]> get(final String url, Map<String, String> query) {
+    public static CompletableFuture<byte[]> get(final String url, String ...queries) {
         CloseableHttpClient client = newClient();
-        return CompletableFuture.supplyAsync(() -> buildURI(url, query).map(HttpGet::new)
+        return CompletableFuture.supplyAsync(() -> buildURI(url, queries).map(HttpGet::new)
                 .ifPresent(AsynchronousHttpClient::setTimeout)
                 .map(client::execute)
                 .onClean(CloseableHttpResponse::close)
@@ -85,7 +85,7 @@ public class AsynchronousHttpClient {
                 .ifPresent(AsynchronousHttpClient::setTimeout)
                 .ifPresent(p -> p.setEntity(new UrlEncodedFormEntity(params, "UTF-8")))
                 .map(client::execute).onClean((resp) -> {resp.close(); client.close();})
-                .map(AsynchronousHttpClient::getBody).except(Exception::printStackTrace).get(e -> new RuntimeException("post " + url + " failed")), executor);
+                .map(AsynchronousHttpClient::getBody).get(e -> new RuntimeException("post " + url + " failed")), executor);
     }
 
     private static byte[] getBody(final HttpResponse response) throws Exception {
