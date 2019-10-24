@@ -227,7 +227,7 @@ public class Monad<T, E extends Exception> {
     /**
      * M a -> (a -> M b) -> M b
      *
-     * @param function
+     * @param function 
      * @param handler
      * @param <U>
      * @param <V>
@@ -251,8 +251,8 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
-     * @param function handle exception in functional way
-     * @return
+     * @param function mapper to convert wrapped exception
+     * @return self with mapped exception
      */
     public <V extends Exception> Monad<T, V> handle(Function<? super E, V> function) {
         Objects.requireNonNull(function);
@@ -262,6 +262,11 @@ public class Monad<T, E extends Exception> {
         return new Monad<>(data, null, cleaners);
     }
 
+    /**
+     *
+     * @param consumer invoke when error occurs
+     * @return self
+     */
     public Monad<T, E> except(java.util.function.Consumer<? super E> consumer) {
         Objects.requireNonNull(consumer);
         return handle((e) -> {
@@ -272,7 +277,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * @param consumer the clean up method of resource
-     * @return
+     * @return self
      */
     public Monad<T, E> onClean(Consumer<T, ? extends Exception> consumer) {
         Objects.requireNonNull(consumer);
@@ -324,8 +329,8 @@ public class Monad<T, E extends Exception> {
 
     /**
      * return value and clean resources
-     * @return
-     * @throws E
+     * @return wrapped value
+     * @throws E exception if error occurs
      */
     public T get() throws E {
         cleanUp();
@@ -337,10 +342,8 @@ public class Monad<T, E extends Exception> {
 
     /**
      * return value and clean resources
-     * @param handler
-     * @param <V>
-     * @return
-     * @throws V
+     * @param handler exception to throw
+     * @return wrapped value
      */
     public <V extends Exception> T get(Function<? super E, V> handler) throws V {
         cleanUp();
