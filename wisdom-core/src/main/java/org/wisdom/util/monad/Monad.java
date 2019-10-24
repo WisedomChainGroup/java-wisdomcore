@@ -227,7 +227,7 @@ public class Monad<T, E extends Exception> {
     /**
      * M a -> (a -> M b) -> M b
      *
-     * @param function
+     * @param function 
      * @param handler
      * @param <U>
      * @param <V>
@@ -251,8 +251,8 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
-     * @param function handle exception in functional way
-     * @return
+     * @param function mapper to convert wrapped exception
+     * @return self with mapped exception
      */
     public <V extends Exception> Monad<T, V> handle(Function<? super E, V> function) {
         Objects.requireNonNull(function);
@@ -262,6 +262,11 @@ public class Monad<T, E extends Exception> {
         return new Monad<>(data, null, cleaners);
     }
 
+    /**
+     *
+     * @param consumer invoke when error occurs
+     * @return self
+     */
     public Monad<T, E> except(java.util.function.Consumer<? super E> consumer) {
         Objects.requireNonNull(consumer);
         return handle((e) -> {
@@ -272,7 +277,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * @param consumer the clean up method of resource
-     * @return
+     * @return self
      */
     public Monad<T, E> onClean(Consumer<T, ? extends Exception> consumer) {
         Objects.requireNonNull(consumer);
@@ -295,10 +300,12 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
+     * return value and clean resources
      * @param data complement value
      * @return data when error occurs
      */
     public T orElse(T data) {
+        cleanUp();
         Objects.requireNonNull(data);
         if (error != null) {
             return data;
@@ -307,10 +314,12 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
+     * return value and clean resources
      * @param supplier provide the complement value
      * @return supplied value when error occurs
      */
     public T orElseGet(java.util.function.Supplier<? extends T> supplier) {
+        cleanUp();
         Objects.requireNonNull(supplier);
         if (error != null) {
             return Objects.requireNonNull(supplier.get());
@@ -318,14 +327,26 @@ public class Monad<T, E extends Exception> {
         return data;
     }
 
+    /**
+     * return value and clean resources
+     * @return wrapped value
+     * @throws E exception if error occurs
+     */
     public T get() throws E {
+        cleanUp();
         if (error != null) {
             throw error;
         }
         return data;
     }
 
+    /**
+     * return value and clean resources
+     * @param handler exception to throw
+     * @return wrapped value
+     */
     public <V extends Exception> T get(Function<? super E, V> handler) throws V {
+        cleanUp();
         Objects.requireNonNull(handler);
         if (error != null) {
             throw Objects.requireNonNull(handler.apply(error));
