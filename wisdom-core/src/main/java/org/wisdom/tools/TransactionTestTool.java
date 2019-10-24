@@ -23,6 +23,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.sync.Utils;
 import org.wisdom.util.Address;
 import org.wisdom.util.AsynchronousHttpClient;
+import org.wisdom.util.monad.Monad;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -389,19 +390,16 @@ public class TransactionTestTool {
 
 
     private static CompletableFuture<Response> postTransaction(byte[] body, String host, int port) {
-        try {
-            URI uri = new URI(
-                    "http",
-                    null,
-                    host,
-                    port,
-                    "/sendTransaction",
-                    "traninfo=" + Hex.encodeHexString(body), null
-            );
-            return AsynchronousHttpClient.post(uri.toString(), new byte[]{}).thenApplyAsync(x -> codec.decode(x, Response.class));
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        Monad<URI, Exception> m = AsynchronousHttpClient
+                .buildURI(
+                        String.format("http://%s:%d/sendTransaction", host, port),
+                        "traninfo",
+                        Hex.encodeHexString(body));
+        return m.map(URI::toString)
+                .map(u -> AsynchronousHttpClient.post(u, new byte[0]))
+                .except(Throwable::printStackTrace)
+                .get(e -> new RuntimeException("post failed"))
+                .thenApplyAsync(x -> codec.decode(x, Response.class));
     }
 
     private static CompletableFuture<Long> getNonce(String publicKeyHash, String host, int port) throws Exception {
