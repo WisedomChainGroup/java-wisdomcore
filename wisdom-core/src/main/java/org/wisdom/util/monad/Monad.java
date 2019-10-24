@@ -79,7 +79,8 @@ public class Monad<T, E extends Exception> {
     }
 
     public <V extends Exception> Monad<T, V> exceptAs(Function<Exception, ? extends V> function) {
-        return new Monad<>(data, function.apply(error), cleaners);
+        Objects.requireNonNull(function);
+        return new Monad<>(data, Objects.requireNonNull(function.apply(error)), cleaners);
     }
 
     /**
@@ -139,7 +140,7 @@ public class Monad<T, E extends Exception> {
         List<Runnable> tmp = new LinkedList<>(cleaners);
         tmp.addAll(other.cleaners);
         if (other.error != null) {
-            return new Monad<>(null, error, tmp);
+            return new Monad<>(null, other.error, tmp);
         }
         try {
             return new Monad<>(Objects.requireNonNull(function.apply(data, other.data)), null, tmp);
@@ -176,7 +177,7 @@ public class Monad<T, E extends Exception> {
      */
     public Monad<T, E> except(java.util.function.Consumer<? super E> consumer) {
         Objects.requireNonNull(consumer);
-        if (error != null){
+        if (error != null) {
             consumer.accept(error);
         }
         return this;
@@ -301,9 +302,9 @@ public class Monad<T, E extends Exception> {
             return exceptAs();
         }
         if (predicate.test(data)) {
-            return new Monad<>(data, null, cleaners);
+            return exceptAs();
         }
-        return new Monad<>(null, error, cleaners);
+        return new Monad<>(null, new PredicateFailedException(), cleaners);
     }
 
     public boolean isPresent() {
