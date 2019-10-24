@@ -26,10 +26,28 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
+     * @param dataType generic parameter
+     * @return an empty monad, which contains null pointer exception
+     */
+    public static <U> Monad<U, Exception> empty(Class<U> dataType) {
+        return new Monad<>(null, new NullPointerException());
+    }
+
+    /**
+     * @param dataType generic parameter
+     * @param supplier exception provider
+     * @return an empty monad, which contains exception provided by supplier
+     */
+    public static <U, V extends Exception> Monad<U, V> empty(Class<U> dataType, java.util.function.Supplier<V> supplier) {
+        Objects.requireNonNull(supplier);
+        return new Monad<>(null, Objects.requireNonNull(supplier.get()));
+    }
+
+    /**
      * a -> M a
-     * @param data
-     * @param <U>
-     * @return
+     *
+     * @param data non-nullable object
+     * @return an empty monad if data is null or else a presented monad
      */
     public static <U> Monad<U, Exception> of(U data) {
         return of(data, e -> e);
@@ -37,8 +55,10 @@ public class Monad<T, E extends Exception> {
 
     /**
      * a -> M a
+     *
      * @param data    nullable object
      * @param handler handle null exception when object is null
+     * @return an empty monad if data is null or else a presented monad
      */
     public static <U, V extends Exception> Monad<U, V> of(U data, Function<Exception, V> handler) {
         Objects.requireNonNull(handler);
@@ -51,6 +71,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * a -> M a
+     *
      * @param supplier
      * @param <U>
      * @return
@@ -61,6 +82,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * a -> M a
+     *
      * @param supplier
      * @param handler
      * @param <U>
@@ -80,6 +102,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> (a -> b) -> M b
+     *
      * @param applier
      * @param <U>
      * @return
@@ -90,6 +113,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> (a -> b) -> M b
+     *
      * @param applier
      * @param handler
      * @param <U>
@@ -111,6 +135,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> a -> M a
+     *
      * @param consumer
      * @param handler
      * @param <V>
@@ -133,6 +158,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> a -> M a
+     *
      * @param consumer
      * @return
      */
@@ -143,6 +169,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> a -> M b -> M b
+     *
      * @param function
      * @param <U>
      * @return
@@ -154,6 +181,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> M b -> a -> b -> c -> M c
+     *
      * @param other
      * @param function
      * @param <U>
@@ -167,6 +195,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * M a -> M b -> a -> b -> c -> M c
+     *
      * @param other
      * @param function
      * @param handler
