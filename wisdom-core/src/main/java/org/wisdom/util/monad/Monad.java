@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * @param <T> Functor for functionally exception handling
@@ -227,7 +228,7 @@ public class Monad<T, E extends Exception> {
     /**
      * M a -> (a -> M b) -> M b
      *
-     * @param function 
+     * @param function
      * @param handler
      * @param <U>
      * @param <V>
@@ -263,7 +264,6 @@ public class Monad<T, E extends Exception> {
     }
 
     /**
-     *
      * @param consumer invoke when error occurs
      * @return self
      */
@@ -301,6 +301,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * return value and clean resources
+     *
      * @param data complement value
      * @return data when error occurs
      */
@@ -315,6 +316,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * return value and clean resources
+     *
      * @param supplier provide the complement value
      * @return supplied value when error occurs
      */
@@ -329,6 +331,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * return value and clean resources
+     *
      * @return wrapped value
      * @throws E exception if error occurs
      */
@@ -342,6 +345,7 @@ public class Monad<T, E extends Exception> {
 
     /**
      * return value and clean resources
+     *
      * @param handler exception to throw
      * @return wrapped value
      */
@@ -352,6 +356,22 @@ public class Monad<T, E extends Exception> {
             throw Objects.requireNonNull(handler.apply(error));
         }
         return data;
+    }
+
+    public <V extends Exception> Monad<T, V> filter(Predicate<T> predicate, Function<? super E, V> handler) {
+        Objects.requireNonNull(predicate);
+        Objects.requireNonNull(handler);
+        if (error != null) {
+            return new Monad<>(null, Objects.requireNonNull(handler.apply(error)), cleaners);
+        }
+        if (predicate.test(data)) {
+            return new Monad<>(data, null, cleaners);
+        }
+        return new Monad<>(null, Objects.requireNonNull(handler.apply(error)), cleaners);
+    }
+
+    public Monad<T, Exception> filter(Predicate<T> predicate) {
+        return filter(predicate, e -> e);
     }
 
     public boolean isPresent() {
