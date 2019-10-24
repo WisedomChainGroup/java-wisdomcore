@@ -206,11 +206,7 @@ public class TransactionTestTool {
             JsonNode node = p.getCodec().readTree(p);
             String encoded = node.asText();
             try {
-                int i = Integer.parseInt(encoded);
-                if (i != 365 && i != 120) {
-                    throw new HatchTypeDeserializerException("hatch type must be 365 or 120");
-                }
-                return i;
+                return Integer.parseInt(encoded);
             } catch (Exception e) {
                 throw new HatchTypeDeserializerException("hatch type must be 365 or 120");
             }
