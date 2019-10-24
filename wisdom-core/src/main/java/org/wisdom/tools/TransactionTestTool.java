@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -50,7 +51,6 @@ public class TransactionTestTool {
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     public static final Executor executor = command -> new Thread(command).start();
 
-
     private static class TestConfig {
         public String host;
         public int port;
@@ -70,7 +70,7 @@ public class TransactionTestTool {
             this.publicKeyHash = publicKeyHash;
         }
 
-        public static PublicKeyHash from(String encoded) throws PublicKeyHashDeserializer.PublicKeyHashDeserializeException{
+        public static PublicKeyHash from(String encoded) throws PublicKeyHashDeserializer.PublicKeyHashDeserializeException {
             byte[] publicKeyHash;
             try {
                 publicKeyHash = Hex.decodeHex(encoded);
@@ -191,7 +191,7 @@ public class TransactionTestTool {
         }
     }
 
-    private static class HatchTypeDeserializer extends StdDeserializer<Integer>{
+    private static class HatchTypeDeserializer extends StdDeserializer<Integer> {
         public static class HatchTypeDeserializerException extends JsonProcessingException {
             HatchTypeDeserializerException(String msg) {
                 super(msg);
@@ -274,11 +274,11 @@ public class TransactionTestTool {
             testConfig.nonce = Integer.parseInt(line.getOptionValue("nonce"));
         }
         Ed25519PrivateKey privateKey = new Ed25519PrivateKey(testConfig.privateKey);
-        String publicKeyHashHex = Hex.encodeHexString(Address.publicKeyToHash(privateKey.generatePublicKey().getEncoded()));
+        PublicKeyHash publicKeyHash = new PublicKeyHash(Address.publicKeyToHash(privateKey.generatePublicKey().getEncoded()));
 
         // 如果 nonce 等于0 获取全局 nonce
         if (testConfig.nonce == 0) {
-            testConfig.nonce = getNonce(publicKeyHashHex, testConfig.host, testConfig.port).get() + 1;
+            testConfig.nonce = getNonce(publicKeyHash.publicKeyHash, testConfig.host, testConfig.port).get() + 1;
         }
 
         List<Transaction> transactions = new ArrayList<>();
@@ -305,13 +305,13 @@ public class TransactionTestTool {
             tx.payload = info.payload.payload;
 
             // 对 payload 进行 protobuf 编码
-            if (tx.type == Transaction.Type.INCUBATE.ordinal()){
+            if (tx.type == Transaction.Type.INCUBATE.ordinal()) {
 
                 byte[] zeroBytes = new byte[32];
                 HatchModel.Payload.Builder builder = HatchModel.Payload.newBuilder()
                         .setTxId(ByteString.copyFrom(zeroBytes));
 
-                if (tx.payload != null && tx.payload.length > 0){
+                if (tx.payload != null && tx.payload.length > 0) {
                     builder.setSharePubkeyHashBytes(
                             ByteString.copyFromUtf8(
                                     Hex.encodeHexString(
@@ -363,9 +363,9 @@ public class TransactionTestTool {
         transactionsList.forEach(li -> System.out.println(li.getSerializedSize() * 1.0 / (1 << 20)));
         CompletableFuture.allOf(
                 transactionsList
-                .stream()
-                .map(o -> client.dialWithTTL(testConfig.host, testConfig.grpcPort, 8, o))
-                .toArray(CompletableFuture[]::new)
+                        .stream()
+                        .map(o -> client.dialWithTTL(testConfig.host, testConfig.grpcPort, 8, o))
+                        .toArray(CompletableFuture[]::new)
         ).join()
         ;
     }
@@ -388,32 +388,31 @@ public class TransactionTestTool {
         public List<Map<String, Object>> data;
     }
 
+    private static class GetAccountResponse {
+        @JsonDeserialize(using = PublicKeyHashDeserializer.class)
+        public PublicKeyHash publicKeyHash;
+        public String address;
+        public long nonce;
+        public String balance;
+        public String incubateCost;
+        public String mortgage;
+        public String votes;
+    }
 
-    private static CompletableFuture<Response> postTransaction(byte[] body, String host, int port) {
+    private static CompletableFuture<Response> postTransaction(byte[] transaction, String host, int port) {
         Monad<URI, Exception> m = AsynchronousHttpClient
                 .buildURI(
-                        String.format("http://%s:%d/sendTransaction", host, port),
-                        "traninfo",
-                        Hex.encodeHexString(body));
+                        String.format("http://%s:%d/sendTransaction", host, port));
         return m.map(URI::toString)
-                .map(u -> AsynchronousHttpClient.post(u, new byte[0]))
+                .map(u -> AsynchronousHttpClient.post(u, "traninfo", Hex.encodeHexString(transaction)))
                 .except(Throwable::printStackTrace)
                 .get(e -> new RuntimeException("post failed"))
                 .thenApplyAsync(x -> codec.decode(x, Response.class));
     }
 
-    private static CompletableFuture<Long> getNonce(String publicKeyHash, String host, int port) throws Exception {
-        URI uri = new URI(
-                "http",
-                null,
-                host,
-                port,
-                "/sendNonce",
-                "pubkeyhash=" + publicKeyHash, ""
-        );
-        return AsynchronousHttpClient.post(uri.toString(), new byte[]{}).thenApplyAsync((body) -> {
-            GetNonceResponse getNonceResponse = codec.decode(body, GetNonceResponse.class);
-            return getNonceResponse.data;
-        });
+    private static CompletableFuture<Long> getNonce(byte[] publicKeyHash, String host, int port) throws Exception {
+        String url = String.format("http://%s:%d/account/%s", host, port, Hex.encodeHexString(publicKeyHash));
+        return AsynchronousHttpClient.get(url, null)
+                .thenApplyAsync((body) -> codec.decode(body, GetAccountResponse.class).nonce);
     }
 }

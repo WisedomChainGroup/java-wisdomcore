@@ -1,7 +1,9 @@
 package org.wisdom.util;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -12,11 +14,14 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.wisdom.util.monad.Monad;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -70,13 +75,17 @@ public class AsynchronousHttpClient {
                 .map(AsynchronousHttpClient::getBody).cleanUp().get(e -> new RuntimeException("get " + url + " failed")), executor);
     }
 
-    public static CompletableFuture<byte[]> post(String url, byte[] body) {
+    public static CompletableFuture<byte[]> post(String url, String... parameters) {
         CloseableHttpClient client = newClient();
+        List<NameValuePair> params = new ArrayList<>();
+        for(int i = 0; i + 1< parameters.length; i+= 2){
+            params.add(new BasicNameValuePair(parameters[i], parameters[i+1]));
+        }
         return CompletableFuture.supplyAsync(() -> buildURI(url).map(HttpPost::new)
                 .ifPresent(AsynchronousHttpClient::setTimeout)
-                .ifPresent(p -> p.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON)))
+                .ifPresent(p -> p.setEntity(new UrlEncodedFormEntity(params, "UTF-8")))
                 .map(client::execute).onClean((resp) -> {resp.close(); client.close();})
-                .map(AsynchronousHttpClient::getBody).get(e -> new RuntimeException("get " + url + " failed")), executor);
+                .map(AsynchronousHttpClient::getBody).except(Exception::printStackTrace).get(e -> new RuntimeException("post " + url + " failed")), executor);
     }
 
     private static byte[] getBody(final HttpResponse response) throws Exception {
