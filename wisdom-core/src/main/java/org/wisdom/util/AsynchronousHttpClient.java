@@ -1,11 +1,11 @@
 package org.wisdom.util;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
@@ -13,8 +13,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
+import org.wisdom.util.monad.Monad;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -23,76 +25,52 @@ public class AsynchronousHttpClient {
     private static final int HTTP_TIMEOUT = 5000;
     private static final Executor executor = command -> new Thread(command).start();
 
-    public static CompletableFuture<byte[]> get(final String url, Map<String, String> query) {
+    private static Monad<CloseableHttpClient, Exception> newClient(){
         CloseableHttpClient httpclient = HttpClients.custom()
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
                 .setConnectionManagerShared(true)
                 .build();
+        return Monad.of(httpclient).onClean(CloseableHttpClient::close);
+    }
 
-        return CompletableFuture.supplyAsync(() -> {
-            CloseableHttpResponse resp = null;
-            try {
-                URI uriObject = new URI(url);
-                URIBuilder builder = new URIBuilder()
-                        .setScheme(uriObject.getScheme())
-                        .setHost(uriObject.getHost())
-                        .setPort(uriObject.getPort())
-                        .setPath(uriObject.getPath());
-                for (String k : query.keySet()) {
-                    builder.setParameter(k, query.get(k));
-                }
-                uriObject = builder.build();
-                HttpGet httpget = new HttpGet(uriObject);
-                httpget.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
-                // Create a custom response handler
-                resp = httpclient.execute(httpget);
-                return getBody(resp);
-            } catch (Exception e) {
-                try {
-                    resp.close();
-                } catch (Exception ignored) {
+    private static Monad<URI, Exception> buildURI(final String url, Map<String, String> query){
+        return Monad.of(url).map(URI::new).map(u -> new URIBuilder()
+                .setScheme(u.getScheme())
+                .setHost(u.getHost())
+                .setPort(u.getPort())
+                .setPath(u.getPath()))
+               .ifPresent(b -> {
+                   if (query == null) return;
+                   for (String k : query.keySet()) {
+                       b.setParameter(k, query.get(k));
+                   }
+               }).map(URIBuilder::build);
+    }
 
-                }
-                throw new RuntimeException("get " + url + " fail");
-            }
-        }, executor);
+    private static void setTimeout(HttpRequestBase b){
+        b.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
+    }
+
+    public static CompletableFuture<byte[]> get(final String url, Map<String, String> query) {
+        return CompletableFuture.supplyAsync(() -> buildURI(url, query).map(HttpGet::new)
+                .ifPresent(AsynchronousHttpClient::setTimeout)
+                .compose(newClient(), (g, c) -> c.execute(g)).onClean(CloseableHttpResponse::close)
+                .map(AsynchronousHttpClient::getBody).cleanUp().get(e -> new RuntimeException("get " + url + " failed")), executor);
     }
 
     public static CompletableFuture<byte[]> post(String url, byte[] body) {
-        CloseableHttpClient httpclient = HttpClients.custom()
-                .setConnectionManager(new PoolingHttpClientConnectionManager())
-                .setConnectionManagerShared(true)
-                .build();
-        return CompletableFuture.supplyAsync(() -> {
-            CloseableHttpResponse resp = null;
-            try {
-                URI uriObject = new URI(url);
-                HttpPost httppost = new HttpPost(uriObject);
-                httppost.setConfig(RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT).build());
-                httppost.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
-                // Create a custom response handler
-                resp = httpclient.execute(httppost);
-                return getBody(resp);
-            } catch (Exception e) {
-                try {
-                    resp.close();
-                } catch (Exception ignored) {
-                }
-                throw new RuntimeException("post " + url + " fail");
-            }
-        }, executor);
+        return CompletableFuture.supplyAsync(() -> buildURI(url, new HashMap<>()).map(HttpPost::new)
+                .ifPresent(AsynchronousHttpClient::setTimeout)
+                .ifPresent(p -> p.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON)))
+                .compose(newClient(), (g, c) -> c.execute(g)).onClean(CloseableHttpResponse::close)
+                .map(AsynchronousHttpClient::getBody).get(e -> new RuntimeException("get " + url + " failed")), executor);
     }
 
-    private static byte[] getBody(final HttpResponse response) {
+    private static byte[] getBody(final HttpResponse response) throws Exception{
         int status = response.getStatusLine().getStatusCode();
         if (status < 200 || status >= 300) {
-            return null;
+            throw new RuntimeException("http response 404");
         }
-        try {
-            HttpEntity entity = response.getEntity();
-            return entity != null ? EntityUtils.toByteArray(entity) : null;
-        } catch (Exception e) {
-            return null;
-        }
+        return EntityUtils.toByteArray(response.getEntity());
     }
 }
