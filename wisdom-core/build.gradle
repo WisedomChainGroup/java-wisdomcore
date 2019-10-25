@@ -128,6 +128,18 @@ task buildDockerJdk(type: Docker) {
     dockerfile = file('src/main/docker/server_jre8/Dockerfile')
 }
 
+task buildDockerJdkWithDependencies(type: Docker) {
+    push = false
+    tag = "wisdomchain/server_jre8_with_dependencies"
+    tagVersion = 'latest'
+    applicationName = 'server_jre8_with_dependencies'
+    dockerfile = file('src/main/docker/server_jre8_with_dependencies/Dockerfile')
+    doFirst {
+        copy {
+            from copyDependencies into "${stageDir}/lib"
+        }
+    }
+}
 
 task buildDockerCore(type: Docker, dependsOn: jar) {
     push = false
@@ -139,9 +151,6 @@ task buildDockerCore(type: Docker, dependsOn: jar) {
     doFirst {
         copy {
             from jar into stageDir
-        }
-        copy {
-            from copyDependencies into "${stageDir}/lib"
         }
         copy {
             from 'src/main/docker/core/run_wdc_core.sh' into stageDir
@@ -162,9 +171,6 @@ task buildDockerCoreTest(type: Docker, dependsOn: jar) {
     doFirst {
         copy {
             from jar into stageDir
-        }
-        copy {
-            from copyDependencies into "${stageDir}/lib"
         }
         copy {
             from 'src/main/docker/core/run_wdc_core.sh' into stageDir
