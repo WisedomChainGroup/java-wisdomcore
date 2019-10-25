@@ -20,7 +20,7 @@ PROJECT_ROOT=`cd $PROJECT_ROOT; pwd`
 
 pushd $PROJECT_ROOT/..
 
-bash $PROJECT_ROOT/../gradlew jar
+bash $PROJECT_ROOT/../gradlew copyDependencies
 
 # copy dependencies to tempory directory
 cp $PROJECT_ROOT/build/libs/lib/*.jar $CUR/build

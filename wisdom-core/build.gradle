@@ -123,6 +123,7 @@ task runCoreUser(type: JavaExec) {
     }
 }
 
+// bash src/main/docker/core_v2/build-docker.sh -t test
 task buildDockerJdk(type: Docker) {
     push = false
     tag = "wisdomchain/server_jre8"
@@ -131,6 +132,7 @@ task buildDockerJdk(type: Docker) {
     dockerfile = file('src/main/docker/server_jre8/Dockerfile')
 }
 
+// bash src/main/docker/server_jre8_with_dependencies/build-docker.sh -t latest
 task buildDockerJdkWithDependencies(type: Docker) {
     push = false
     tag = "wisdomchain/server_jre8_with_dependencies"
@@ -361,7 +363,8 @@ jar {
         attributes 'Class-Path': '. ' + configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
     }
 }
-jar.dependsOn += copyDependencies
+
+// jar.dependsOn += copyDependencies
 
 
 //create a single Jar with all dependencies
