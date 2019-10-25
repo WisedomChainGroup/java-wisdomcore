@@ -26,6 +26,9 @@ apply plugin: 'propdeps-maven'
 apply plugin: 'com.jfrog.artifactory-upload'
 apply plugin: 'docker'
 
+processResources{
+    exclude('genesis/wisdom-genesis-generator.json')
+}
 
 //apply plugin: 'io.spring.dependency-management'
 
@@ -137,6 +140,9 @@ task buildDockerJdkWithDependencies(type: Docker) {
     doFirst {
         copy {
             from copyDependencies into "${stageDir}/lib"
+        }
+        copy{
+            from 'src/main/resources/genesis/wisdom-genesis-generator.json' into "${stageDir}/genesis"
         }
     }
 }
