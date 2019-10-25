@@ -4,24 +4,17 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
-import org.wisdom.consensus.pow.ProposersState;
-import org.wisdom.consensus.pow.TargetState;
-import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
 import org.wisdom.core.WisdomBlockChain;
@@ -34,18 +27,14 @@ import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
-import org.wisdom.core.state.EraLinkedStateFactory;
-import org.wisdom.core.state.StateFactory;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import javax.annotation.PostConstruct;
-import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -59,24 +48,6 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
-
-    public StateFactory getValidatorStateFactory() {
-        return validatorStateFactory;
-    }
-
-    public EraLinkedStateFactory getTargetStateFactory() {
-        return targetStateFactory;
-    }
-
-    private StateFactory validatorStateFactory;
-    private EraLinkedStateFactory targetStateFactory;
-
-    public ProposersFactory getProposersFactory() {
-        return proposersFactory;
-    }
-
-    private ProposersFactory proposersFactory;
-
 
     // 区块相对于已持久化的账本产生状态变更的账户
     // block hash -> public key hash -> account
@@ -96,7 +67,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private Map<String, Set<String>> transactionIndex;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
-    private static final int CACHE_SIZE = 512;
+    public static final int CACHE_SIZE = 512;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -118,6 +89,27 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Autowired
     private Block genesis;
+
+    public ValidatorStateFactory getValidatorStateFactory() {
+        return validatorStateFactory;
+    }
+
+    public TargetStateFactory getTargetStateFactory() {
+        return targetStateFactory;
+    }
+
+    public ProposersFactory getProposersFactory() {
+        return proposersFactory;
+    }
+
+    @Autowired
+    private ValidatorStateFactory validatorStateFactory;
+
+    @Autowired
+    private TargetStateFactory targetStateFactory;
+
+    @Autowired
+    private ProposersFactory proposersFactory;
 
     @Value("${wisdom.consensus.blocks-per-era}")
     int blocksPerEra;
@@ -160,47 +152,19 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     public StateDB(
-            ValidatorState validatorState,
-            TargetState targetState,
-            ProposersState proposersState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
-            @Value("${miner.validators}") String validatorsFile,
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
             @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo
-    ) throws Exception {
+    ){
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
         this.blocksCache = new BlocksCache(CACHE_SIZE);
         this.transactionIndex = new HashMap<>();
-        this.validatorStateFactory = new StateFactory(this, CACHE_SIZE, validatorState);
-        this.targetStateFactory = new EraLinkedStateFactory(this, CACHE_SIZE, targetState, blocksPerEra);
-        this.proposersFactory = new ProposersFactory(this, CACHE_SIZE, proposersState, blocksPerEra);
         this.confirms = new HashMap<>();
         this.leastConfirms = new HashMap<>();
-
-        Resource resource = new FileSystemResource(validatorsFile);
-        if (!resource.exists()) {
-            resource = new ClassPathResource(validatorsFile);
-        }
-
-        this.proposersFactory.setInitialProposers(Arrays.stream(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class))
-                .map(v -> {
-                    try {
-                        URI uri = new URI(v);
-                        return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    return null;
-                }).collect(Collectors.toList()));
-
-        this.proposersFactory.setAllowMinerJoinEra(allowMinersJoinEra);
-        this.proposersFactory.setInitialBlockInterval(blockInterval);
-        this.proposersFactory.setBlockIntervalSwitchTo(blockIntervalSwitchTo);
-        this.proposersFactory.setBlockIntervalSwitchEra(blockIntervalSwitchEra);
 
         if (allowMinersJoinEra < 0) {
             logger.info("miners join is disabled");
@@ -224,6 +188,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     private void initUnsafe() {
+        proposersFactory.setStateDB(this);
+        validatorStateFactory.setStateDB(this);
+        targetStateFactory.setStateDB(this);
+
         this.latestConfirmed = bc.getLastConfirmedBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
@@ -232,24 +200,22 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
-            if (blocks.size() < blocksPerUpdate) {
+            int size = blocks.size();
+            if (size < blocksPerEra){
                 break;
             }
-
             if (Start.ENABLE_ASSERTION) {
-                Assert.isTrue(Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock) &&
-                        blocks.size() == blocksPerUpdate &&
-                        isChain(blocks), "get blocks from database failed"
+                Assert.isTrue(Arrays.equals(last.getHash(), blocks.get(0).hashPrevBlock)
+                        && isChain(blocks), "get blocks from database failed"
                 );
             }
-            while (blocks.size() > 0) {
+            while (blocks.size() >= blocksPerEra) {
                 validatorStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 targetStateFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 proposersFactory.initCache(last, blocks.subList(0, blocksPerEra));
                 last = blocks.get(blocksPerEra - 1);
                 blocks = blocks.subList(blocksPerEra, blocks.size());
             }
-
         }
     }
 
@@ -1154,4 +1120,5 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
     }
+
 }

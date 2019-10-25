@@ -1,17 +1,16 @@
 package org.wisdom.p2p;
 
 import com.google.protobuf.AbstractMessage;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 
 @Component
 public class GRPCClient {
@@ -21,7 +20,12 @@ public class GRPCClient {
         return this;
     }
 
+    @Value("${p2p.enable-message-log}")
+    private boolean enableMessageLog;
+
     private Executor executor;
+
+    private ConcurrentMap<HostPort, ManagedChannel> channelCache;
 
     private static final int RPC_TIMEOUT = 3;
 
@@ -33,10 +37,29 @@ public class GRPCClient {
 
     private AtomicLong nonce;
 
+    private int timeout;
+
+    public GRPCClient withTimeout(int timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+
+    private ManagedChannel getChannel(HostPort hostPort){
+        ManagedChannel channel = channelCache.get(hostPort);
+        if (channel != null && !channel.isShutdown()){
+            return channel;
+        }
+        ManagedChannel ch = ManagedChannelBuilder.forAddress(hostPort.getHost(), hostPort.getPort()
+        ).usePlaintext().build();
+        channelCache.put(hostPort, ch);
+        return ch;
+    }
 
     public GRPCClient(){
         this.nonce = new AtomicLong();
+        this.timeout = RPC_TIMEOUT;
         this.executor = Executors.newCachedThreadPool();
+        this.channelCache = new ConcurrentLinkedHashMap.Builder<HostPort, ManagedChannel>().maximumWeightedCapacity(PeersCache.MAX_PEERS * 2).build();
     }
 
     public GRPCClient(Peer self){
@@ -57,28 +80,33 @@ public class GRPCClient {
 
         private ManagedChannel channel;
 
-        private BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function;
+        private BiConsumer<WisdomOuterClass.Message, Throwable> function;
 
-        public SimpleObserver(ManagedChannel channel, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function) {
+        private boolean enableExceptionStackTrace;
+
+        public SimpleObserver withExceptionStackTrance(boolean enableExceptionStackTrance) {
+            this.enableExceptionStackTrace = enableExceptionStackTrace;
+            return this;
+        }
+
+        public SimpleObserver(ManagedChannel channel, BiConsumer<WisdomOuterClass.Message, Throwable> function) {
             this.channel = channel;
             this.function = function;
         }
 
         @Override
         public void onNext(WisdomOuterClass.Message value) {
-            function.apply(value, null);
+            function.accept(value, null);
         }
 
         @Override
         public void onError(Throwable t) {
-            function.apply(null, t);
+            function.accept(null, t);
             channel.shutdown();
         }
 
         @Override
-        public void onCompleted() {
-            channel.shutdown();
-        }
+        public void onCompleted() { }
     }
 
     public  CompletableFuture<WisdomOuterClass.Message> dialWithTTL(String host, int port, long ttl, AbstractMessage msg){
@@ -88,7 +116,7 @@ public class GRPCClient {
         return dial(host, port, buildMessage(ttl, msg));
     }
 
-    public void dialAsyncWithTTL(String host, int port, long ttl, AbstractMessage msg, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function){
+    public void dialAsyncWithTTL(String host, int port, long ttl, AbstractMessage msg, BiConsumer<WisdomOuterClass.Message, Throwable> function){
         if(msg instanceof WisdomOuterClass.Message){
             dialAsync(host, port, (WisdomOuterClass.Message) msg, function);
             return;
@@ -97,12 +125,11 @@ public class GRPCClient {
     }
 
     private CompletableFuture<WisdomOuterClass.Message> dial(String host, int port, WisdomOuterClass.Message msg) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
-        ).usePlaintext().build();
+        ManagedChannel ch = getChannel(new HostPort(host, port));
 
         WisdomGrpc.WisdomBlockingStub stub = WisdomGrpc.newBlockingStub(
-                ch).withDeadlineAfter(RPC_TIMEOUT, TimeUnit.SECONDS);
-
+                ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
+        
         return CompletableFuture
                 .supplyAsync(() -> {
                     try{
@@ -115,13 +142,11 @@ public class GRPCClient {
                 }, executor);
     }
 
-    private void dialAsync(String host, int port, WisdomOuterClass.Message msg, BiFunction<WisdomOuterClass.Message, Throwable, WisdomOuterClass.Message> function) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
-        ).usePlaintext().build();
-
+    private void dialAsync(String host, int port, WisdomOuterClass.Message msg, BiConsumer<WisdomOuterClass.Message, Throwable> function) {
+        ManagedChannel ch = getChannel(new HostPort(host, port));
         WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch).withDeadlineAfter(RPC_TIMEOUT, TimeUnit.SECONDS);
+                ch).withDeadlineAfter(timeout, TimeUnit.SECONDS);
 
-        stub.entry(msg, new SimpleObserver(ch, function));
+        stub.entry(msg, new SimpleObserver(ch, function).withExceptionStackTrance(enableMessageLog));
     }
 }

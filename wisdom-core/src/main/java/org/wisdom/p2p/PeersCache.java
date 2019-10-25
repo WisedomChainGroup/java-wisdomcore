@@ -93,6 +93,9 @@ public class PeersCache {
     }
 
     public void pend(Peer peer) {
+        if (peer.host.equals("localhost") || peer.host.equals("127.0.0.1")){
+            return;
+        }
         if (size() >= MAX_PEERS) {
             return;
         }
@@ -230,16 +233,15 @@ public class PeersCache {
             tmp.addAll(trusted);
             return new ArrayList<>(tmp);
         }
-        List<Peer> res = peers.values().stream().reduce(
-                new ArrayList<>(), (id, y) -> {
-            ArrayList<Peer> tmp = new ArrayList<>(id);
-            tmp.addAll(y.values());
-            return tmp;
-        }, (x, y) -> {
-            ArrayList<Peer> ps = new ArrayList<>(x);
-            ps.addAll(y);
-            return ps;
-        });
+        List<Peer> res = peers.values().stream()
+                .map(x ->
+                        Arrays.asList(x.values().toArray(new Peer[]{}))
+                )
+                .reduce(new ArrayList<>(), (id, x)-> {
+                    List<Peer> tmp = new ArrayList<>(id);
+                    tmp.addAll(x);
+                    return tmp;
+                });
         res.addAll(trusted);
         if(res.size() > 0){
             return res;

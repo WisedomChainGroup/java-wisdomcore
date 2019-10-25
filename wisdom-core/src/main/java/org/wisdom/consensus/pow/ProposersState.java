@@ -26,10 +26,10 @@ import java.util.stream.Collectors;
  * 2019-10-11 增加投票衰减功能
  */
 @Component
-public class ProposersState implements State {
+public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    private static final int MAXIMUM_PROPOSERS = 2;
+    private static final int MAXIMUM_PROPOSERS = 15;
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
@@ -47,7 +47,7 @@ public class ProposersState implements State {
         private Map<String, Long> erasCounter;
 
         @JsonIgnore
-        private long votesCache;
+        private Long votesCache;
 
         public String publicKeyHash;
 
@@ -67,44 +67,54 @@ public class ProposersState implements State {
             return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
+        private void clearVotesCache() {
+            votesCache = null;
+        }
+
         public long getVotes() {
-            if(votesCache != 0){
+            if (votesCache != null) {
                 return votesCache;
             }
             this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
             return this.votesCache;
         }
 
-        void increaseEraCounters(){
+        void increaseEraCounters() {
             erasCounter.replaceAll((k, v) -> v + 1);
         }
 
-        void attenuation(){
-            for(String k: erasCounter.keySet()){
-                if(erasCounter.get(k) < ATTENUATION_ERAS){
+        void attenuation() {
+            clearVotesCache();
+            for (String k : erasCounter.keySet()) {
+                if (erasCounter.get(k) < ATTENUATION_ERAS) {
                     continue;
                 }
                 erasCounter.put(k, 0L);
                 receivedVotes.put(k,
                         new BigFraction(receivedVotes.get(k), 1L)
-                        .multiply(ATTENUATION_COEFFICIENT)
-                        .longValue()
+                                .multiply(ATTENUATION_COEFFICIENT)
+                                .longValue()
                 );
             }
         }
 
-        void updateTransaction(Transaction tx){
+        void updateTransaction(Transaction tx) {
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
                     receivedVotes.put(tx.getHashHexString(), tx.amount);
                     erasCounter.put(tx.getHashHexString(), 0L);
+                    clearVotesCache();
                     return;
                 }
                 // 撤回投票
                 case EXIT_VOTE: {
-                    receivedVotes.remove(tx.getHashHexString());
-                    erasCounter.remove(tx.getHashHexString());
+                    if (Start.ENABLE_ASSERTION) {
+                        Assert.isTrue(receivedVotes.containsKey(Hex.encodeHexString(tx.payload)), "the exit vote has voted");
+                    }
+                    receivedVotes.remove(Hex.encodeHexString(tx.payload));
+                    erasCounter.remove(Hex.encodeHexString(tx.payload));
+                    clearVotesCache();
                     return;
                 }
                 // 抵押
@@ -138,6 +148,10 @@ public class ProposersState implements State {
     private int blockInterval;
     private List<Proposer> candidatesCache;
 
+    private void clearCandidatesCache() {
+        candidatesCache = null;
+    }
+
     @Autowired
     public ProposersState(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
@@ -157,7 +171,7 @@ public class ProposersState implements State {
     }
 
     public List<Proposer> getCandidates() {
-        if(this.candidatesCache != null){
+        if (this.candidatesCache != null) {
             return candidatesCache;
         }
         this.candidatesCache = getAll().values()
@@ -175,7 +189,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateBlock(Block block) {
+    public ProposersState updateBlock(Block block) {
         for (Transaction t : block.body) {
             updateTransaction(t);
         }
@@ -193,8 +207,10 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateBlocks(List<Block> blocks) {
-        for(Proposer p: all.values()){
+    public ProposersState updateBlocks(List<Block> blocks) {
+        clearCandidatesCache();
+
+        for (Proposer p : all.values()) {
             p.increaseEraCounters();
             p.attenuation();
         }
@@ -205,7 +221,7 @@ public class ProposersState implements State {
         // 统计出块数量
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
-            if (Start.ENABLE_ASSERTION){
+            if (Start.ENABLE_ASSERTION) {
                 Assert.isTrue(b.body != null && b.body.size() > 0, "empty block body");
             }
             updateBlock(b);
@@ -243,7 +259,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateTransaction(Transaction transaction) {
+    public ProposersState updateTransaction(Transaction transaction) {
         Proposer p = all.get(Hex.encodeHexString(transaction.to));
         if (p == null) {
             p = new Proposer();
@@ -255,7 +271,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State copy() {
+    public ProposersState copy() {
         ProposersState state = new ProposersState(this.allowMinersJoinEra, this.blockInterval);
         state.all = new HashMap<>();
         for (String key : all.keySet()) {

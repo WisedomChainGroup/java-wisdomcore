@@ -61,10 +61,10 @@ public class Transaction {
             if (type < 0 || type >= Type.values().length) {
                 return null;
             }
+            return type;
         } catch (Exception e) {
             return null;
         }
-        return null;
     }
 
     public static final int DEFAULT_TRANSACTION_VERSION = 1;

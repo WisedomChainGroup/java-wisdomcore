@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 /**
  * @author sal 1564319846@qq.com
@@ -67,6 +68,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Autowired
     private GRPCClient gRPCClient;
 
+    @Value("${p2p.enable-message-log}")
+    private boolean enableMessageLog;
+
     @Value("${p2p.enable-discovery}")
     private boolean enableDiscovery;
 
@@ -106,6 +110,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 "@" + peersCache.getSelf().hostPort());
         for (Plugin p : pluginList) {
             p.onStart(this);
+        }
+        if(!enableMessageLog){
+            java.util.logging.Logger.getLogger("io.grpc").setLevel(Level.OFF);
         }
         this.server = ServerBuilder.forPort(peersCache.getSelf().port).addService(this).build().start();
     }
@@ -204,25 +211,26 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private void dialWithTTL(Peer peer, long ttl, AbstractMessage msg) {
         gRPCClient.dialAsyncWithTTL(peer.host, peer.port, ttl, msg, (m, e) -> {
-            if (e == null) {
-                return m;
+            if (m != null) {
+                onMessage(m);
+//                return;
             }
-            logger.error("cannot connect to " + peer.toString());
-            if (!enableDiscovery) {
-                return m;
-            }
-            peersCache.half(peer);
-            return m;
+//            e.printStackTrace();
+//            logger.error("cannot connect to " + peer.toString());
+//            if (!enableDiscovery) {
+//                return;
+//            }
+//            peersCache.half(peer);
         });
     }
 
     private void dialWithTTL(String host, int port, long ttl, AbstractMessage msg) {
         gRPCClient.dialAsyncWithTTL(host, port, ttl, msg, (m, e) -> {
-            if (e != null){
-                logger.error("cannot connect to " + host + ":" + port);
-                return null;
+            if (m != null) {
+                onMessage(m);
+//                e.printStackTrace();
+//                logger.error("cannot connect to " + host + ":" + port);
             }
-            return onMessage(m);
         });
     }
 

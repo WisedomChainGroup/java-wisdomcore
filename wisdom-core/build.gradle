@@ -261,7 +261,6 @@ ext {
 dependencies {
 
     compile "com.google.guava:guava:24.1-jre"
-    compile group: 'io.netty', name: 'netty-all', version: '4.1.30.Final'
     compile "org.slf4j:slf4j-api:${slf4jVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:2.5.1"
     compile "org.apache.commons:commons-collections4:4.0"
@@ -316,9 +315,10 @@ dependencies {
     compile group: 'org.hibernate.validator', name: 'hibernate-validator', version: '6.0.17.Final'
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.8'
 
-    compile 'io.grpc:grpc-netty-shaded:1.22.1'
-    compile 'io.grpc:grpc-protobuf:1.22.1'
-    compile 'io.grpc:grpc-stub:1.22.1'
+    compile group: 'io.netty', name: 'netty-all', version: '4.1.42.Final'
+    compile 'io.grpc:grpc-netty-shaded:1.24.0'
+    compile 'io.grpc:grpc-protobuf:1.24.0'
+    compile 'io.grpc:grpc-stub:1.24.0'
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
     compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.7'
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb-api

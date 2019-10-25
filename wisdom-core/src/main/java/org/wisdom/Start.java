@@ -22,7 +22,6 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -36,9 +35,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Roman Mandeleil
@@ -55,7 +51,6 @@ public class Start {
 
     public static void main(String[] args) {
         // 关闭 grpc 日志
-        Logger.getLogger("io.grpc").setLevel(Level.OFF);
         SpringApplication.run(Start.class, args);
     }
 
@@ -89,4 +84,5 @@ public class Start {
         }
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
+
 }

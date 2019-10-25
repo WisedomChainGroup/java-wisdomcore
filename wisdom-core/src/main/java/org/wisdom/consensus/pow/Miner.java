@@ -108,12 +108,12 @@ public class Miner implements ApplicationListener {
 
         // merkle state root
         block.nHeight = parent.nHeight + 1;
-        TargetState targetState = (TargetState) stateDB.getTargetStateFactory().getInstance(block);
+        TargetState targetState = stateDB.getTargetStateFactory().getInstance(block);
         block.nBits = BigEndian.encodeUint256(targetState.getTarget());
         block.nNonce = new byte[Block.HASH_SIZE];
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
-        ValidatorState validatorState = (ValidatorState) stateDB.getValidatorStateFactory().getInstance(parent);
+        ValidatorState validatorState = stateDB.getValidatorStateFactory().getInstance(parent);
         long nonce = validatorState.
                 getNonceFromPublicKeyHash(block.body.get(0).to);
 

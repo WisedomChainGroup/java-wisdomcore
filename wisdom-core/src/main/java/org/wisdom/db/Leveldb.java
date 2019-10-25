@@ -1,8 +1,8 @@
 package org.wisdom.db;
 
-import org.apache.commons.io.FileUtils;
 import org.iq80.leveldb.*;
 import org.iq80.leveldb.impl.Iq80DBFactory;
+import org.iq80.leveldb.util.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,21 +14,23 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class Leveldb {
 
-    private Charset CHARSET;
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
     private File file;
     private Options options;
 
     public Leveldb(@Value("${wisdom.cache-dir}") String cacheDir, @Value("${clear-cache}") boolean clearCache) throws Exception {
-        this.CHARSET = StandardCharsets.UTF_8;
         if (cacheDir == null || cacheDir.equals("")) {
             cacheDir = System.getProperty("user.dir") + File.separator + "leveldb";
         }
-        if (clearCache) {
-            FileUtils.deleteDirectory(new File(cacheDir));
+        file = new File(cacheDir);
+        if (!file.exists()) {
+            file.mkdirs();
         }
-        this.file = new File(cacheDir);
-        if (!this.file.exists()) {
-            this.file.mkdirs();
+        if(!file.isDirectory()){
+            throw new Exception(file.getName() + " is not directory");
+        }
+        if (clearCache) {
+            FileUtils.deleteDirectoryContents(file);
         }
         this.options = new Options();
 

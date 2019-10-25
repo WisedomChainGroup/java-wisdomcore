@@ -6,8 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.protobuf.ByteString;
 import org.apache.commons.cli.*;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.core.io.FileSystemResource;
@@ -17,15 +19,18 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.*;
+import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.sync.Utils;
 import org.wisdom.util.Address;
 import org.wisdom.util.AsynchronousHttpClient;
+import org.wisdom.util.monad.Monad;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +51,6 @@ public class TransactionTestTool {
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     public static final Executor executor = command -> new Thread(command).start();
 
-
     private static class TestConfig {
         public String host;
         public int port;
@@ -65,6 +69,22 @@ public class TransactionTestTool {
         public PublicKeyHash(byte[] publicKeyHash) {
             this.publicKeyHash = publicKeyHash;
         }
+
+        public static PublicKeyHash from(String encoded) throws PublicKeyHashDeserializer.PublicKeyHashDeserializeException {
+            byte[] publicKeyHash;
+            try {
+                publicKeyHash = Hex.decodeHex(encoded);
+                if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
+                    publicKeyHash = Address.publicKeyToHash(publicKeyHash);
+                }
+            } catch (Exception e) {
+                publicKeyHash = Address.addressToPublicKeyHash(encoded);
+            }
+            if (publicKeyHash == null) {
+                throw new PublicKeyHashDeserializer.PublicKeyHashDeserializeException("invalid to" + encoded);
+            }
+            return new PublicKeyHash(publicKeyHash);
+        }
     }
 
     private static class PublicKeyHashDeserializer extends StdDeserializer<PublicKeyHash> {
@@ -81,20 +101,7 @@ public class TransactionTestTool {
         @Override
         public PublicKeyHash deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
             JsonNode node = p.getCodec().readTree(p);
-            String encoded = node.asText();
-            byte[] publicKeyHash = null;
-            try {
-                publicKeyHash = Hex.decodeHex(encoded);
-                if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
-                    publicKeyHash = Address.publicKeyToHash(publicKeyHash);
-                }
-            } catch (Exception e) {
-                publicKeyHash = Address.addressToPublicKeyHash(encoded);
-            }
-            if (publicKeyHash == null) {
-                throw new PublicKeyHashDeserializeException("invalid to" + encoded);
-            }
-            return new PublicKeyHash(publicKeyHash);
+            return PublicKeyHash.from(node.asText());
         }
     }
 
@@ -184,12 +191,38 @@ public class TransactionTestTool {
         }
     }
 
+    private static class HatchTypeDeserializer extends StdDeserializer<Integer> {
+        public static class HatchTypeDeserializerException extends JsonProcessingException {
+            HatchTypeDeserializerException(String msg) {
+                super(msg);
+            }
+        }
+
+        public HatchTypeDeserializer() {
+            super(Integer.class);
+        }
+
+        @Override
+        public Integer deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+            JsonNode node = p.getCodec().readTree(p);
+            String encoded = node.asText();
+            try {
+                return Integer.parseInt(encoded);
+            } catch (Exception e) {
+                throw new HatchTypeDeserializerException("hatch type must be 365 or 120");
+            }
+        }
+    }
+
+
     private static class TransactionInfo {
         public BigDecimal amount;
         public TransactionType type;
         public PublicKeyHash to;
         public Payload payload;
         public int times;
+        @JsonDeserialize(using = HatchTypeDeserializer.class)
+        public Integer hatchType;
     }
 
     public static void main(String[] args) throws Exception {
@@ -241,11 +274,11 @@ public class TransactionTestTool {
             testConfig.nonce = Integer.parseInt(line.getOptionValue("nonce"));
         }
         Ed25519PrivateKey privateKey = new Ed25519PrivateKey(testConfig.privateKey);
-        String publicKeyHashHex = Hex.encodeHexString(Address.publicKeyToHash(privateKey.generatePublicKey().getEncoded()));
+        PublicKeyHash publicKeyHash = new PublicKeyHash(Address.publicKeyToHash(privateKey.generatePublicKey().getEncoded()));
 
         // 如果 nonce 等于0 获取全局 nonce
         if (testConfig.nonce == 0) {
-            testConfig.nonce = getNonce(publicKeyHashHex, testConfig.host, testConfig.port).get() + 1;
+            testConfig.nonce = getNonce(publicKeyHash.publicKeyHash, testConfig.host, testConfig.port).get() + 1;
         }
 
         List<Transaction> transactions = new ArrayList<>();
@@ -270,6 +303,26 @@ public class TransactionTestTool {
                     0.002 * EconomicModel.WDC / Transaction.GAS_TABLE[tx.type]
             );
             tx.payload = info.payload.payload;
+
+            // 对 payload 进行 protobuf 编码
+            if (tx.type == Transaction.Type.INCUBATE.ordinal()) {
+
+                byte[] zeroBytes = new byte[32];
+                HatchModel.Payload.Builder builder = HatchModel.Payload.newBuilder()
+                        .setTxId(ByteString.copyFrom(zeroBytes));
+
+                if (tx.payload != null && tx.payload.length > 0) {
+                    builder.setSharePubkeyHashBytes(
+                            ByteString.copyFromUtf8(
+                                    Hex.encodeHexString(
+                                            PublicKeyHash.from(Hex.encodeHexString(tx.payload)).publicKeyHash
+                                    )
+                            )
+                    );
+                }
+                builder.setType(info.hatchType);
+                tx.payload = builder.build().toByteArray();
+            }
             for (int i = 0; i < info.times; i++) {
                 // clear cache
                 Transaction newTx = tx.copy();
@@ -305,14 +358,14 @@ public class TransactionTestTool {
     private static void sendTransactionsByGRPC(List<Transaction> transactions, Peer self, TestConfig testConfig) throws Exception {
         WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
         transactions.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
-        GRPCClient client = new GRPCClient(self).withExecutor(executor);
+        GRPCClient client = new GRPCClient(self).withExecutor(executor).withTimeout(Integer.MAX_VALUE);
         List<WisdomOuterClass.Transactions> transactionsList = Util.split(builder.build());
         transactionsList.forEach(li -> System.out.println(li.getSerializedSize() * 1.0 / (1 << 20)));
         CompletableFuture.allOf(
                 transactionsList
-                .stream()
-                .map(o -> client.dialWithTTL(testConfig.host, testConfig.grpcPort, 8, o))
-                .toArray(CompletableFuture[]::new)
+                        .stream()
+                        .map(o -> client.dialWithTTL(testConfig.host, testConfig.grpcPort, 8, o))
+                        .toArray(CompletableFuture[]::new)
         ).join()
         ;
     }
@@ -335,35 +388,26 @@ public class TransactionTestTool {
         public List<Map<String, Object>> data;
     }
 
-
-    private static CompletableFuture<Response> postTransaction(byte[] body, String host, int port) {
-        try {
-            URI uri = new URI(
-                    "http",
-                    null,
-                    host,
-                    port,
-                    "/sendTransaction",
-                    "traninfo=" + Hex.encodeHexString(body), null
-            );
-            return AsynchronousHttpClient.post(uri.toString(), new byte[]{}).thenApplyAsync(x -> codec.decode(x, Response.class));
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+    private static class GetAccountResponse {
+        @JsonDeserialize(using = PublicKeyHashDeserializer.class)
+        public PublicKeyHash publicKeyHash;
+        public String address;
+        public long nonce;
+        public String balance;
+        public String incubateCost;
+        public String mortgage;
+        public String votes;
     }
 
-    private static CompletableFuture<Long> getNonce(String publicKeyHash, String host, int port) throws Exception {
-        URI uri = new URI(
-                "http",
-                null,
-                host,
-                port,
-                "/sendNonce",
-                "pubkeyhash=" + publicKeyHash, ""
-        );
-        return AsynchronousHttpClient.post(uri.toString(), new byte[]{}).thenApplyAsync((body) -> {
-            GetNonceResponse getNonceResponse = codec.decode(body, GetNonceResponse.class);
-            return getNonceResponse.data;
-        });
+    private static CompletableFuture<Response> postTransaction(byte[] transaction, String host, int port) {
+        return AsynchronousHttpClient.post(
+                String.format("http://%s:%d/sendTransaction", host, port), "traninfo", Hex.encodeHexString(transaction)
+                ).thenApplyAsync(x -> codec.decode(x, Response.class));
+    }
+
+    private static CompletableFuture<Long> getNonce(byte[] publicKeyHash, String host, int port) throws Exception {
+        String url = String.format("http://%s:%d/account/%s", host, port, Hex.encodeHexString(publicKeyHash));
+        return AsynchronousHttpClient.get(url)
+                .thenApplyAsync((body) -> codec.decode(body, GetAccountResponse.class).nonce);
     }
 }

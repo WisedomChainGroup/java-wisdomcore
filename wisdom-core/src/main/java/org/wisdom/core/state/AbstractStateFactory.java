@@ -23,34 +23,32 @@ import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.Block;
 import org.wisdom.db.StateDB;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-public abstract class AbstractStateFactory {
+public abstract class AbstractStateFactory<T extends State<T>> {
     protected StateDB stateDB;
-    protected State genesisState;
-    protected ConcurrentMap<String, State> cache;
+    protected T genesisState;
+    protected ConcurrentMap<String, T> cache;
 
     protected String getLRUCacheKey(byte[] hash) {
         return Hex.encodeHexString(hash);
     }
 
 
-    protected State getFromCache(Block target) {
+    protected T getFromCache(Block target) {
         if (target == null) {
             return null;
         }
         return cache.get(getLRUCacheKey(target.getHash()));
     }
 
-    public AbstractStateFactory(StateDB stateDB, State genesisState, int cacheSize) {
-        this.stateDB = stateDB;
+    public AbstractStateFactory(T genesisState, int cacheSize) {
         this.genesisState = genesisState;
-        this.cache = new ConcurrentLinkedHashMap.Builder<String, State>().maximumWeightedCapacity(cacheSize).build();
+        this.cache = new ConcurrentLinkedHashMap.Builder<String, T>().maximumWeightedCapacity(cacheSize).build();
     }
 
-    public abstract State getInstance(Block block);
+    public abstract T getInstance(Block block);
 
     public void initCache(Block lastUpdated, List<Block> blocks) {
         if (lastUpdated.nHeight == 0) {
@@ -60,10 +58,14 @@ public abstract class AbstractStateFactory {
             );
             return;
         }
-        State state = cache.get(getLRUCacheKey(lastUpdated.getHash()));
+        T state = cache.get(getLRUCacheKey(lastUpdated.getHash()));
         cache.put(
                 getLRUCacheKey(blocks.get(blocks.size() - 1).getHash()),
                 state.copy().updateBlocks(blocks)
         );
+    }
+
+    public void setStateDB(StateDB stateDB) {
+        this.stateDB = stateDB;
     }
 }
