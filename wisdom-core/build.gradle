@@ -361,7 +361,8 @@ jar {
         attributes 'Class-Path': '. ' + configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
     }
 }
-jar.dependsOn += copyDependencies
+
+// jar.dependsOn += copyDependencies
 
 
 //create a single Jar with all dependencies
