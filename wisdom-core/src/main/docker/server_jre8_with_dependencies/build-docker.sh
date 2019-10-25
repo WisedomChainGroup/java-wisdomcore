@@ -18,8 +18,8 @@ source $CUR/arg_parse.sh
 PROJECT_ROOT=$CUR/../../../..
 PROJECT_ROOT=`cd $PROJECT_ROOT; pwd`
 
+pushd $PROJECT_ROOT/..
 
-cd $PROJECT_ROOT/..
 bash $PROJECT_ROOT/../gradlew copyDependencies
 
 # copy dependencies to tempory directory
@@ -30,7 +30,8 @@ if [[ $SUFFIX == ':' ]]; then
   SUFFIX=''
 fi
 
-cd $CUR
+popd
+
 docker build -f $CUR/Dockerfile -t $IMAGE$SUFFIX $CUR
 
 # clean tempory files
