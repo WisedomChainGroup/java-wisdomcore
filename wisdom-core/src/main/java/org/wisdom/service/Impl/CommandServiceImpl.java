@@ -19,12 +19,10 @@
 package org.wisdom.service.Impl;
 
 import org.apache.commons.codec.binary.Hex;
-import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 
-import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;

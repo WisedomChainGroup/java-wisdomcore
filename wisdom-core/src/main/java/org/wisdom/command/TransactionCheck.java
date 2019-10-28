@@ -17,15 +17,12 @@
  */
 package org.wisdom.command;
 
-import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
