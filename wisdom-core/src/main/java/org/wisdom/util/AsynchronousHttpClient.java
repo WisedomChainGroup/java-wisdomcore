@@ -17,16 +17,13 @@ import org.apache.http.util.EntityUtils;
 import org.wisdom.util.monad.Monad;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 public class AsynchronousHttpClient {
     private static final int HTTP_TIMEOUT = 5000;
-    private static final Executor executor = command -> new Thread(command).start();
+    private static final Executor EXECUTOR = command -> new Thread(command).start();
 
     private static CloseableHttpClient newClient() {
         return  HttpClients.custom()
@@ -70,7 +67,7 @@ public class AsynchronousHttpClient {
                 .map(client::execute)
                 .onClean(CloseableHttpResponse::close)
                 .onClean((n) -> client.close())
-                .map(AsynchronousHttpClient::getBody).get(e -> new RuntimeException("get " + url + " failed")), executor);
+                .map(AsynchronousHttpClient::getBody).orElse(new byte[0]), EXECUTOR);
     }
 
     public static CompletableFuture<byte[]> post(String url, String... parameters) {
@@ -83,7 +80,7 @@ public class AsynchronousHttpClient {
                 .ifPresent(AsynchronousHttpClient::setTimeout)
                 .ifPresent(p -> p.setEntity(new UrlEncodedFormEntity(params, "UTF-8")))
                 .map(client::execute).onClean((resp) -> {resp.close(); client.close();})
-                .map(AsynchronousHttpClient::getBody).get(e -> new RuntimeException("post " + url + " failed")), executor);
+                .map(AsynchronousHttpClient::getBody).orElse(new byte[0]), EXECUTOR);
     }
 
     private static byte[] getBody(final HttpResponse response) throws Exception {

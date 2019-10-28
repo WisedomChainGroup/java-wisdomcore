@@ -134,11 +134,11 @@ public class Monad<T, E extends Exception> {
                                               BiFunction<? super T, U, V, ? extends Exception> function) {
         Objects.requireNonNull(other);
         Objects.requireNonNull(function);
-        if (error != null) {
-            return new Monad<>(null, error, cleaners);
-        }
         List<Runnable> tmp = new LinkedList<>(cleaners);
         tmp.addAll(other.cleaners);
+        if (error != null) {
+            return new Monad<>(null, error, tmp);
+        }
         if (other.error != null) {
             return new Monad<>(null, other.error, tmp);
         }
@@ -207,6 +207,17 @@ public class Monad<T, E extends Exception> {
         return this;
     }
 
+    public Monad<T, E> orElse(Monad<? extends T, ? extends E> m){
+        Objects.requireNonNull(m);
+        if (this.error != null){
+            List<Runnable> tmp = new LinkedList<>(cleaners);
+            tmp.addAll(m.cleaners);
+            return new Monad<>(m.data, m.error, tmp);
+        }
+        cleaners.addAll(m.cleaners);
+        return this;
+    }
+
     /**
      * return value and clean resources
      *
@@ -214,7 +225,6 @@ public class Monad<T, E extends Exception> {
      * @return data when error occurs
      */
     public <R extends T> Monad<T, E> orElseOf(R data) {
-        cleanUp();
         Objects.requireNonNull(data);
         if (error != null) {
             return new Monad<>(data, null, cleaners);
@@ -286,7 +296,7 @@ public class Monad<T, E extends Exception> {
      *
      * @return wrapped value
      */
-    public <V extends Exception> T getOrThrow(V v) throws V {
+    public <V extends Exception> T orElseThrow(V v) throws V {
         cleanUp();
         Objects.requireNonNull(v);
         if (error != null) {
