@@ -18,6 +18,7 @@ PROJECT_ROOT=`cd $PROJECT_ROOT; pwd`
 
 
 cd $PROJECT_ROOT/..
+bash $PROJECT_ROOT/../gradlew clean
 bash $PROJECT_ROOT/../gradlew jar
 
 cp $PROJECT_ROOT/build/libs/wisdom*.jar $CUR/build
