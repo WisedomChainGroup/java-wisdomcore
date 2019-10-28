@@ -18,6 +18,7 @@
 
 package org.wisdom.p2p;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.crypto.KeyPair;
 import org.wisdom.crypto.PrivateKey;
@@ -70,7 +71,9 @@ public class Peer {
 
     @Max(65535)
     @Min(0)
+    @JsonIgnore
     public int port;
+
     public int score;
 
     public PrivateKey privateKey;
@@ -137,7 +140,7 @@ public class Peer {
     public static Peer newPeer(String url) throws Exception {
         URI u = new URI(url);
         if (u.getRawUserInfo() == null || u.getRawUserInfo().equals("")) {
-            KeyPair kp = Ed25519.GenerateKeyPair();
+            KeyPair kp = Ed25519.generateKeyPair();
             url = String.format("%s://%s@%s:%d", PROTOCOL_NAME,
                     Hex.encodeHexString(kp.getPrivateKey().getEncoded()) + Hex.encodeHexString(kp.getPublicKey().getEncoded()),
                     u.getHost(), u.getPort()

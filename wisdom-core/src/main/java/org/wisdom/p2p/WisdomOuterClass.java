@@ -67,6 +67,38 @@ public final class WisdomOuterClass {
      * <code>TRANSACTIONS = 10;</code>
      */
     TRANSACTIONS(10),
+    /**
+     * <pre>
+     * 以下新增
+     * </pre>
+     *
+     * <code>GET_MERKELE_TRANSACTIONS = 11;</code>
+     */
+    GET_MERKELE_TRANSACTIONS(11),
+    /**
+     * <pre>
+     * 接受Merket事务
+     * </pre>
+     *
+     * <code>MERKLE_TRANSACTIONS = 12;</code>
+     */
+    MERKLE_TRANSACTIONS(12),
+    /**
+     * <pre>
+     * 请求获取Tree_Nodes
+     * </pre>
+     *
+     * <code>GET_TREE_NODES = 13;</code>
+     */
+    GET_TREE_NODES(13),
+    /**
+     * <pre>
+     * 接受TREE_NODES
+     * </pre>
+     *
+     * <code>TREE_NODES = 14;</code>
+     */
+    TREE_NODES(14),
     UNRECOGNIZED(-1),
     ;
 
@@ -118,6 +150,38 @@ public final class WisdomOuterClass {
      * <code>TRANSACTIONS = 10;</code>
      */
     public static final int TRANSACTIONS_VALUE = 10;
+    /**
+     * <pre>
+     * 以下新增
+     * </pre>
+     *
+     * <code>GET_MERKELE_TRANSACTIONS = 11;</code>
+     */
+    public static final int GET_MERKELE_TRANSACTIONS_VALUE = 11;
+    /**
+     * <pre>
+     * 接受Merket事务
+     * </pre>
+     *
+     * <code>MERKLE_TRANSACTIONS = 12;</code>
+     */
+    public static final int MERKLE_TRANSACTIONS_VALUE = 12;
+    /**
+     * <pre>
+     * 请求获取Tree_Nodes
+     * </pre>
+     *
+     * <code>GET_TREE_NODES = 13;</code>
+     */
+    public static final int GET_TREE_NODES_VALUE = 13;
+    /**
+     * <pre>
+     * 接受TREE_NODES
+     * </pre>
+     *
+     * <code>TREE_NODES = 14;</code>
+     */
+    public static final int TREE_NODES_VALUE = 14;
 
 
     public final int getNumber() {
@@ -149,6 +213,10 @@ public final class WisdomOuterClass {
         case 8: return BLOCKS;
         case 9: return PROPOSAL;
         case 10: return TRANSACTIONS;
+        case 11: return GET_MERKELE_TRANSACTIONS;
+        case 12: return MERKLE_TRANSACTIONS;
+        case 13: return GET_TREE_NODES;
+        case 14: return TREE_NODES;
         default: return null;
       }
     }
@@ -10174,6 +10242,6279 @@ public final class WisdomOuterClass {
 
   }
 
+  public interface GetMerkleTransactionsOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:GetMerkleTransactions)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    com.google.protobuf.ByteString getBlockHash();
+
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> 
+        getTreeNodesList();
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index);
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    int getTreeNodesCount();
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getTreeNodesOrBuilderList();
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code GetMerkleTransactions}
+   */
+  public  static final class GetMerkleTransactions extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:GetMerkleTransactions)
+      GetMerkleTransactionsOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use GetMerkleTransactions.newBuilder() to construct.
+    private GetMerkleTransactions(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private GetMerkleTransactions() {
+      blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      treeNodes_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private GetMerkleTransactions(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+
+              blockHash_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+                treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              treeNodes_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+          treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_GetMerkleTransactions_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_GetMerkleTransactions_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.class, org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int BLOCK_HASH_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString blockHash_;
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    public com.google.protobuf.ByteString getBlockHash() {
+      return blockHash_;
+    }
+
+    public static final int TREE_NODES_FIELD_NUMBER = 2;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_;
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getTreeNodesList() {
+      return treeNodes_;
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getTreeNodesOrBuilderList() {
+      return treeNodes_;
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public int getTreeNodesCount() {
+      return treeNodes_.size();
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index) {
+      return treeNodes_.get(index);
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+        int index) {
+      return treeNodes_.get(index);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (!blockHash_.isEmpty()) {
+        output.writeBytes(1, blockHash_);
+      }
+      for (int i = 0; i < treeNodes_.size(); i++) {
+        output.writeMessage(2, treeNodes_.get(i));
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!blockHash_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, blockHash_);
+      }
+      for (int i = 0; i < treeNodes_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, treeNodes_.get(i));
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions other = (org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions) obj;
+
+      if (!getBlockHash()
+          .equals(other.getBlockHash())) return false;
+      if (!getTreeNodesList()
+          .equals(other.getTreeNodesList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + BLOCK_HASH_FIELD_NUMBER;
+      hash = (53 * hash) + getBlockHash().hashCode();
+      if (getTreeNodesCount() > 0) {
+        hash = (37 * hash) + TREE_NODES_FIELD_NUMBER;
+        hash = (53 * hash) + getTreeNodesList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code GetMerkleTransactions}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:GetMerkleTransactions)
+        org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactionsOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_GetMerkleTransactions_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_GetMerkleTransactions_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.class, org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getTreeNodesFieldBuilder();
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        blockHash_ = com.google.protobuf.ByteString.EMPTY;
+
+        if (treeNodesBuilder_ == null) {
+          treeNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          treeNodesBuilder_.clear();
+        }
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_GetMerkleTransactions_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions build() {
+        org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions result = new org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        result.blockHash_ = blockHash_;
+        if (treeNodesBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) != 0)) {
+            treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.treeNodes_ = treeNodes_;
+        } else {
+          result.treeNodes_ = treeNodesBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.getDefaultInstance()) return this;
+        if (other.getBlockHash() != com.google.protobuf.ByteString.EMPTY) {
+          setBlockHash(other.getBlockHash());
+        }
+        if (treeNodesBuilder_ == null) {
+          if (!other.treeNodes_.isEmpty()) {
+            if (treeNodes_.isEmpty()) {
+              treeNodes_ = other.treeNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureTreeNodesIsMutable();
+              treeNodes_.addAll(other.treeNodes_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.treeNodes_.isEmpty()) {
+            if (treeNodesBuilder_.isEmpty()) {
+              treeNodesBuilder_.dispose();
+              treeNodesBuilder_ = null;
+              treeNodes_ = other.treeNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              treeNodesBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getTreeNodesFieldBuilder() : null;
+            } else {
+              treeNodesBuilder_.addAllMessages(other.treeNodes_);
+            }
+          }
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public com.google.protobuf.ByteString getBlockHash() {
+        return blockHash_;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder setBlockHash(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        blockHash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder clearBlockHash() {
+        
+        blockHash_ = getDefaultInstance().getBlockHash();
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_ =
+        java.util.Collections.emptyList();
+      private void ensureTreeNodesIsMutable() {
+        if (!((bitField0_ & 0x00000002) != 0)) {
+          treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(treeNodes_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> treeNodesBuilder_;
+
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getTreeNodesList() {
+        if (treeNodesBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(treeNodes_);
+        } else {
+          return treeNodesBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public int getTreeNodesCount() {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.size();
+        } else {
+          return treeNodesBuilder_.getCount();
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index) {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.get(index);
+        } else {
+          return treeNodesBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder setTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.set(index, value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder setTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(index, value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addAllTreeNodes(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.TreeNode> values) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, treeNodes_);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder clearTreeNodes() {
+        if (treeNodesBuilder_ == null) {
+          treeNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          treeNodesBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder removeTreeNodes(int index) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.remove(index);
+          onChanged();
+        } else {
+          treeNodesBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder getTreeNodesBuilder(
+          int index) {
+        return getTreeNodesFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+          int index) {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.get(index);  } else {
+          return treeNodesBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+           getTreeNodesOrBuilderList() {
+        if (treeNodesBuilder_ != null) {
+          return treeNodesBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(treeNodes_);
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addTreeNodesBuilder() {
+        return getTreeNodesFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addTreeNodesBuilder(
+          int index) {
+        return getTreeNodesFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder> 
+           getTreeNodesBuilderList() {
+        return getTreeNodesFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+          getTreeNodesFieldBuilder() {
+        if (treeNodesBuilder_ == null) {
+          treeNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
+                  treeNodes_,
+                  ((bitField0_ & 0x00000002) != 0),
+                  getParentForChildren(),
+                  isClean());
+          treeNodes_ = null;
+        }
+        return treeNodesBuilder_;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:GetMerkleTransactions)
+    }
+
+    // @@protoc_insertion_point(class_scope:GetMerkleTransactions)
+    private static final org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<GetMerkleTransactions>
+        PARSER = new com.google.protobuf.AbstractParser<GetMerkleTransactions>() {
+      @java.lang.Override
+      public GetMerkleTransactions parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new GetMerkleTransactions(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<GetMerkleTransactions> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<GetMerkleTransactions> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface MerkleTransactionsOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:MerkleTransactions)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    com.google.protobuf.ByteString getBlockHash();
+
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> 
+        getTreeNodesList();
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index);
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    int getTreeNodesCount();
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getTreeNodesOrBuilderList();
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+        int index);
+
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> 
+        getMerketTransList();
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.MerkleTransaction getMerketTrans(int index);
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    int getMerketTransCount();
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder> 
+        getMerketTransOrBuilderList();
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder getMerketTransOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code MerkleTransactions}
+   */
+  public  static final class MerkleTransactions extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:MerkleTransactions)
+      MerkleTransactionsOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use MerkleTransactions.newBuilder() to construct.
+    private MerkleTransactions(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private MerkleTransactions() {
+      blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      treeNodes_ = java.util.Collections.emptyList();
+      merketTrans_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private MerkleTransactions(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+
+              blockHash_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+                treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              treeNodes_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
+              break;
+            }
+            case 26: {
+              if (!((mutable_bitField0_ & 0x00000004) != 0)) {
+                merketTrans_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              merketTrans_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.parser(), extensionRegistry));
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+          treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
+        }
+        if (((mutable_bitField0_ & 0x00000004) != 0)) {
+          merketTrans_ = java.util.Collections.unmodifiableList(merketTrans_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransactions_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransactions_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.class, org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int BLOCK_HASH_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString blockHash_;
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    public com.google.protobuf.ByteString getBlockHash() {
+      return blockHash_;
+    }
+
+    public static final int TREE_NODES_FIELD_NUMBER = 2;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_;
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getTreeNodesList() {
+      return treeNodes_;
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getTreeNodesOrBuilderList() {
+      return treeNodes_;
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public int getTreeNodesCount() {
+      return treeNodes_.size();
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index) {
+      return treeNodes_.get(index);
+    }
+    /**
+     * <pre>
+     * 认定有问题的TreeNodes集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+        int index) {
+      return treeNodes_.get(index);
+    }
+
+    public static final int MERKET_TRANS_FIELD_NUMBER = 3;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> merketTrans_;
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> getMerketTransList() {
+      return merketTrans_;
+    }
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder> 
+        getMerketTransOrBuilderList() {
+      return merketTrans_;
+    }
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    public int getMerketTransCount() {
+      return merketTrans_.size();
+    }
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction getMerketTrans(int index) {
+      return merketTrans_.get(index);
+    }
+    /**
+     * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder getMerketTransOrBuilder(
+        int index) {
+      return merketTrans_.get(index);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (!blockHash_.isEmpty()) {
+        output.writeBytes(1, blockHash_);
+      }
+      for (int i = 0; i < treeNodes_.size(); i++) {
+        output.writeMessage(2, treeNodes_.get(i));
+      }
+      for (int i = 0; i < merketTrans_.size(); i++) {
+        output.writeMessage(3, merketTrans_.get(i));
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!blockHash_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, blockHash_);
+      }
+      for (int i = 0; i < treeNodes_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, treeNodes_.get(i));
+      }
+      for (int i = 0; i < merketTrans_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, merketTrans_.get(i));
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.MerkleTransactions)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.MerkleTransactions other = (org.wisdom.p2p.WisdomOuterClass.MerkleTransactions) obj;
+
+      if (!getBlockHash()
+          .equals(other.getBlockHash())) return false;
+      if (!getTreeNodesList()
+          .equals(other.getTreeNodesList())) return false;
+      if (!getMerketTransList()
+          .equals(other.getMerketTransList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + BLOCK_HASH_FIELD_NUMBER;
+      hash = (53 * hash) + getBlockHash().hashCode();
+      if (getTreeNodesCount() > 0) {
+        hash = (37 * hash) + TREE_NODES_FIELD_NUMBER;
+        hash = (53 * hash) + getTreeNodesList().hashCode();
+      }
+      if (getMerketTransCount() > 0) {
+        hash = (37 * hash) + MERKET_TRANS_FIELD_NUMBER;
+        hash = (53 * hash) + getMerketTransList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.MerkleTransactions prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code MerkleTransactions}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:MerkleTransactions)
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransactionsOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransactions_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransactions_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.class, org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getTreeNodesFieldBuilder();
+          getMerketTransFieldBuilder();
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        blockHash_ = com.google.protobuf.ByteString.EMPTY;
+
+        if (treeNodesBuilder_ == null) {
+          treeNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          treeNodesBuilder_.clear();
+        }
+        if (merketTransBuilder_ == null) {
+          merketTrans_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          merketTransBuilder_.clear();
+        }
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransactions_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransactions getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransactions build() {
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransactions result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransactions buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransactions result = new org.wisdom.p2p.WisdomOuterClass.MerkleTransactions(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        result.blockHash_ = blockHash_;
+        if (treeNodesBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) != 0)) {
+            treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.treeNodes_ = treeNodes_;
+        } else {
+          result.treeNodes_ = treeNodesBuilder_.build();
+        }
+        if (merketTransBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) != 0)) {
+            merketTrans_ = java.util.Collections.unmodifiableList(merketTrans_);
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.merketTrans_ = merketTrans_;
+        } else {
+          result.merketTrans_ = merketTransBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.MerkleTransactions) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.MerkleTransactions)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.MerkleTransactions other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.getDefaultInstance()) return this;
+        if (other.getBlockHash() != com.google.protobuf.ByteString.EMPTY) {
+          setBlockHash(other.getBlockHash());
+        }
+        if (treeNodesBuilder_ == null) {
+          if (!other.treeNodes_.isEmpty()) {
+            if (treeNodes_.isEmpty()) {
+              treeNodes_ = other.treeNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureTreeNodesIsMutable();
+              treeNodes_.addAll(other.treeNodes_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.treeNodes_.isEmpty()) {
+            if (treeNodesBuilder_.isEmpty()) {
+              treeNodesBuilder_.dispose();
+              treeNodesBuilder_ = null;
+              treeNodes_ = other.treeNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              treeNodesBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getTreeNodesFieldBuilder() : null;
+            } else {
+              treeNodesBuilder_.addAllMessages(other.treeNodes_);
+            }
+          }
+        }
+        if (merketTransBuilder_ == null) {
+          if (!other.merketTrans_.isEmpty()) {
+            if (merketTrans_.isEmpty()) {
+              merketTrans_ = other.merketTrans_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureMerketTransIsMutable();
+              merketTrans_.addAll(other.merketTrans_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.merketTrans_.isEmpty()) {
+            if (merketTransBuilder_.isEmpty()) {
+              merketTransBuilder_.dispose();
+              merketTransBuilder_ = null;
+              merketTrans_ = other.merketTrans_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+              merketTransBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getMerketTransFieldBuilder() : null;
+            } else {
+              merketTransBuilder_.addAllMessages(other.merketTrans_);
+            }
+          }
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransactions parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.MerkleTransactions) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public com.google.protobuf.ByteString getBlockHash() {
+        return blockHash_;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder setBlockHash(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        blockHash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder clearBlockHash() {
+        
+        blockHash_ = getDefaultInstance().getBlockHash();
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_ =
+        java.util.Collections.emptyList();
+      private void ensureTreeNodesIsMutable() {
+        if (!((bitField0_ & 0x00000002) != 0)) {
+          treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(treeNodes_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> treeNodesBuilder_;
+
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getTreeNodesList() {
+        if (treeNodesBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(treeNodes_);
+        } else {
+          return treeNodesBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public int getTreeNodesCount() {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.size();
+        } else {
+          return treeNodesBuilder_.getCount();
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index) {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.get(index);
+        } else {
+          return treeNodesBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder setTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.set(index, value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder setTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(index, value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addAllTreeNodes(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.TreeNode> values) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, treeNodes_);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder clearTreeNodes() {
+        if (treeNodesBuilder_ == null) {
+          treeNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          treeNodesBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder removeTreeNodes(int index) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.remove(index);
+          onChanged();
+        } else {
+          treeNodesBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder getTreeNodesBuilder(
+          int index) {
+        return getTreeNodesFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+          int index) {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.get(index);  } else {
+          return treeNodesBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+           getTreeNodesOrBuilderList() {
+        if (treeNodesBuilder_ != null) {
+          return treeNodesBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(treeNodes_);
+        }
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addTreeNodesBuilder() {
+        return getTreeNodesFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addTreeNodesBuilder(
+          int index) {
+        return getTreeNodesFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 认定有问题的TreeNodes集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder> 
+           getTreeNodesBuilderList() {
+        return getTreeNodesFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+          getTreeNodesFieldBuilder() {
+        if (treeNodesBuilder_ == null) {
+          treeNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
+                  treeNodes_,
+                  ((bitField0_ & 0x00000002) != 0),
+                  getParentForChildren(),
+                  isClean());
+          treeNodes_ = null;
+        }
+        return treeNodesBuilder_;
+      }
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> merketTrans_ =
+        java.util.Collections.emptyList();
+      private void ensureMerketTransIsMutable() {
+        if (!((bitField0_ & 0x00000004) != 0)) {
+          merketTrans_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction>(merketTrans_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.MerkleTransaction, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder, org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder> merketTransBuilder_;
+
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> getMerketTransList() {
+        if (merketTransBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(merketTrans_);
+        } else {
+          return merketTransBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public int getMerketTransCount() {
+        if (merketTransBuilder_ == null) {
+          return merketTrans_.size();
+        } else {
+          return merketTransBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction getMerketTrans(int index) {
+        if (merketTransBuilder_ == null) {
+          return merketTrans_.get(index);
+        } else {
+          return merketTransBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder setMerketTrans(
+          int index, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction value) {
+        if (merketTransBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMerketTransIsMutable();
+          merketTrans_.set(index, value);
+          onChanged();
+        } else {
+          merketTransBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder setMerketTrans(
+          int index, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder builderForValue) {
+        if (merketTransBuilder_ == null) {
+          ensureMerketTransIsMutable();
+          merketTrans_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          merketTransBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder addMerketTrans(org.wisdom.p2p.WisdomOuterClass.MerkleTransaction value) {
+        if (merketTransBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMerketTransIsMutable();
+          merketTrans_.add(value);
+          onChanged();
+        } else {
+          merketTransBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder addMerketTrans(
+          int index, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction value) {
+        if (merketTransBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMerketTransIsMutable();
+          merketTrans_.add(index, value);
+          onChanged();
+        } else {
+          merketTransBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder addMerketTrans(
+          org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder builderForValue) {
+        if (merketTransBuilder_ == null) {
+          ensureMerketTransIsMutable();
+          merketTrans_.add(builderForValue.build());
+          onChanged();
+        } else {
+          merketTransBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder addMerketTrans(
+          int index, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder builderForValue) {
+        if (merketTransBuilder_ == null) {
+          ensureMerketTransIsMutable();
+          merketTrans_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          merketTransBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder addAllMerketTrans(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> values) {
+        if (merketTransBuilder_ == null) {
+          ensureMerketTransIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, merketTrans_);
+          onChanged();
+        } else {
+          merketTransBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder clearMerketTrans() {
+        if (merketTransBuilder_ == null) {
+          merketTrans_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+        } else {
+          merketTransBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public Builder removeMerketTrans(int index) {
+        if (merketTransBuilder_ == null) {
+          ensureMerketTransIsMutable();
+          merketTrans_.remove(index);
+          onChanged();
+        } else {
+          merketTransBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder getMerketTransBuilder(
+          int index) {
+        return getMerketTransFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder getMerketTransOrBuilder(
+          int index) {
+        if (merketTransBuilder_ == null) {
+          return merketTrans_.get(index);  } else {
+          return merketTransBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder> 
+           getMerketTransOrBuilderList() {
+        if (merketTransBuilder_ != null) {
+          return merketTransBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(merketTrans_);
+        }
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder addMerketTransBuilder() {
+        return getMerketTransFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder addMerketTransBuilder(
+          int index) {
+        return getMerketTransFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MerkleTransaction merket_trans = 3;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder> 
+           getMerketTransBuilderList() {
+        return getMerketTransFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.MerkleTransaction, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder, org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder> 
+          getMerketTransFieldBuilder() {
+        if (merketTransBuilder_ == null) {
+          merketTransBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.MerkleTransaction, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder, org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder>(
+                  merketTrans_,
+                  ((bitField0_ & 0x00000004) != 0),
+                  getParentForChildren(),
+                  isClean());
+          merketTrans_ = null;
+        }
+        return merketTransBuilder_;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:MerkleTransactions)
+    }
+
+    // @@protoc_insertion_point(class_scope:MerkleTransactions)
+    private static final org.wisdom.p2p.WisdomOuterClass.MerkleTransactions DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.MerkleTransactions();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransactions getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<MerkleTransactions>
+        PARSER = new com.google.protobuf.AbstractParser<MerkleTransactions>() {
+      @java.lang.Override
+      public MerkleTransactions parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new MerkleTransactions(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<MerkleTransactions> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<MerkleTransactions> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.MerkleTransactions getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface MerkleTransactionOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:MerkleTransaction)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>.Transaction transaction = 1;</code>
+     */
+    boolean hasTransaction();
+    /**
+     * <code>.Transaction transaction = 1;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.Transaction getTransaction();
+    /**
+     * <code>.Transaction transaction = 1;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getTransactionOrBuilder();
+
+    /**
+     * <pre>
+     * 事务在区块中的位置
+     * </pre>
+     *
+     * <code>int32 index = 2;</code>
+     */
+    int getIndex();
+  }
+  /**
+   * Protobuf type {@code MerkleTransaction}
+   */
+  public  static final class MerkleTransaction extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:MerkleTransaction)
+      MerkleTransactionOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use MerkleTransaction.newBuilder() to construct.
+    private MerkleTransaction(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private MerkleTransaction() {
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private MerkleTransaction(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+              org.wisdom.p2p.WisdomOuterClass.Transaction.Builder subBuilder = null;
+              if (transaction_ != null) {
+                subBuilder = transaction_.toBuilder();
+              }
+              transaction_ = input.readMessage(org.wisdom.p2p.WisdomOuterClass.Transaction.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(transaction_);
+                transaction_ = subBuilder.buildPartial();
+              }
+
+              break;
+            }
+            case 16: {
+
+              index_ = input.readInt32();
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransaction_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransaction_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.class, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder.class);
+    }
+
+    public static final int TRANSACTION_FIELD_NUMBER = 1;
+    private org.wisdom.p2p.WisdomOuterClass.Transaction transaction_;
+    /**
+     * <code>.Transaction transaction = 1;</code>
+     */
+    public boolean hasTransaction() {
+      return transaction_ != null;
+    }
+    /**
+     * <code>.Transaction transaction = 1;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.Transaction getTransaction() {
+      return transaction_ == null ? org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance() : transaction_;
+    }
+    /**
+     * <code>.Transaction transaction = 1;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getTransactionOrBuilder() {
+      return getTransaction();
+    }
+
+    public static final int INDEX_FIELD_NUMBER = 2;
+    private int index_;
+    /**
+     * <pre>
+     * 事务在区块中的位置
+     * </pre>
+     *
+     * <code>int32 index = 2;</code>
+     */
+    public int getIndex() {
+      return index_;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (transaction_ != null) {
+        output.writeMessage(1, getTransaction());
+      }
+      if (index_ != 0) {
+        output.writeInt32(2, index_);
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (transaction_ != null) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, getTransaction());
+      }
+      if (index_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(2, index_);
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.MerkleTransaction)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.MerkleTransaction other = (org.wisdom.p2p.WisdomOuterClass.MerkleTransaction) obj;
+
+      if (hasTransaction() != other.hasTransaction()) return false;
+      if (hasTransaction()) {
+        if (!getTransaction()
+            .equals(other.getTransaction())) return false;
+      }
+      if (getIndex()
+          != other.getIndex()) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasTransaction()) {
+        hash = (37 * hash) + TRANSACTION_FIELD_NUMBER;
+        hash = (53 * hash) + getTransaction().hashCode();
+      }
+      hash = (37 * hash) + INDEX_FIELD_NUMBER;
+      hash = (53 * hash) + getIndex();
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.MerkleTransaction prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code MerkleTransaction}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:MerkleTransaction)
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransaction_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransaction_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.class, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        if (transactionBuilder_ == null) {
+          transaction_ = null;
+        } else {
+          transaction_ = null;
+          transactionBuilder_ = null;
+        }
+        index_ = 0;
+
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_MerkleTransaction_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction build() {
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransaction result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransaction result = new org.wisdom.p2p.WisdomOuterClass.MerkleTransaction(this);
+        if (transactionBuilder_ == null) {
+          result.transaction_ = transaction_;
+        } else {
+          result.transaction_ = transactionBuilder_.build();
+        }
+        result.index_ = index_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.MerkleTransaction) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.MerkleTransaction)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.MerkleTransaction other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.getDefaultInstance()) return this;
+        if (other.hasTransaction()) {
+          mergeTransaction(other.getTransaction());
+        }
+        if (other.getIndex() != 0) {
+          setIndex(other.getIndex());
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.MerkleTransaction parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.MerkleTransaction) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      private org.wisdom.p2p.WisdomOuterClass.Transaction transaction_;
+      private com.google.protobuf.SingleFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> transactionBuilder_;
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public boolean hasTransaction() {
+        return transactionBuilder_ != null || transaction_ != null;
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.Transaction getTransaction() {
+        if (transactionBuilder_ == null) {
+          return transaction_ == null ? org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance() : transaction_;
+        } else {
+          return transactionBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public Builder setTransaction(org.wisdom.p2p.WisdomOuterClass.Transaction value) {
+        if (transactionBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          transaction_ = value;
+          onChanged();
+        } else {
+          transactionBuilder_.setMessage(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public Builder setTransaction(
+          org.wisdom.p2p.WisdomOuterClass.Transaction.Builder builderForValue) {
+        if (transactionBuilder_ == null) {
+          transaction_ = builderForValue.build();
+          onChanged();
+        } else {
+          transactionBuilder_.setMessage(builderForValue.build());
+        }
+
+        return this;
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public Builder mergeTransaction(org.wisdom.p2p.WisdomOuterClass.Transaction value) {
+        if (transactionBuilder_ == null) {
+          if (transaction_ != null) {
+            transaction_ =
+              org.wisdom.p2p.WisdomOuterClass.Transaction.newBuilder(transaction_).mergeFrom(value).buildPartial();
+          } else {
+            transaction_ = value;
+          }
+          onChanged();
+        } else {
+          transactionBuilder_.mergeFrom(value);
+        }
+
+        return this;
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public Builder clearTransaction() {
+        if (transactionBuilder_ == null) {
+          transaction_ = null;
+          onChanged();
+        } else {
+          transaction_ = null;
+          transactionBuilder_ = null;
+        }
+
+        return this;
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.Transaction.Builder getTransactionBuilder() {
+        
+        onChanged();
+        return getTransactionFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getTransactionOrBuilder() {
+        if (transactionBuilder_ != null) {
+          return transactionBuilder_.getMessageOrBuilder();
+        } else {
+          return transaction_ == null ?
+              org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance() : transaction_;
+        }
+      }
+      /**
+       * <code>.Transaction transaction = 1;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> 
+          getTransactionFieldBuilder() {
+        if (transactionBuilder_ == null) {
+          transactionBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder>(
+                  getTransaction(),
+                  getParentForChildren(),
+                  isClean());
+          transaction_ = null;
+        }
+        return transactionBuilder_;
+      }
+
+      private int index_ ;
+      /**
+       * <pre>
+       * 事务在区块中的位置
+       * </pre>
+       *
+       * <code>int32 index = 2;</code>
+       */
+      public int getIndex() {
+        return index_;
+      }
+      /**
+       * <pre>
+       * 事务在区块中的位置
+       * </pre>
+       *
+       * <code>int32 index = 2;</code>
+       */
+      public Builder setIndex(int value) {
+        
+        index_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       * 事务在区块中的位置
+       * </pre>
+       *
+       * <code>int32 index = 2;</code>
+       */
+      public Builder clearIndex() {
+        
+        index_ = 0;
+        onChanged();
+        return this;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:MerkleTransaction)
+    }
+
+    // @@protoc_insertion_point(class_scope:MerkleTransaction)
+    private static final org.wisdom.p2p.WisdomOuterClass.MerkleTransaction DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.MerkleTransaction();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.MerkleTransaction getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<MerkleTransaction>
+        PARSER = new com.google.protobuf.AbstractParser<MerkleTransaction>() {
+      @java.lang.Override
+      public MerkleTransaction parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new MerkleTransaction(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<MerkleTransaction> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<MerkleTransaction> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.MerkleTransaction getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface GetTreeNodesOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:GetTreeNodes)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    com.google.protobuf.ByteString getBlockHash();
+
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> 
+        getParentNodesList();
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNode getParentNodes(int index);
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    int getParentNodesCount();
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getParentNodesOrBuilderList();
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getParentNodesOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code GetTreeNodes}
+   */
+  public  static final class GetTreeNodes extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:GetTreeNodes)
+      GetTreeNodesOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use GetTreeNodes.newBuilder() to construct.
+    private GetTreeNodes(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private GetTreeNodes() {
+      blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      parentNodes_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private GetTreeNodes(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+
+              blockHash_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+                parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              parentNodes_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+          parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_GetTreeNodes_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_GetTreeNodes_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.class, org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int BLOCK_HASH_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString blockHash_;
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    public com.google.protobuf.ByteString getBlockHash() {
+      return blockHash_;
+    }
+
+    public static final int PARENT_NODES_FIELD_NUMBER = 2;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> parentNodes_;
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getParentNodesList() {
+      return parentNodes_;
+    }
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getParentNodesOrBuilderList() {
+      return parentNodes_;
+    }
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    public int getParentNodesCount() {
+      return parentNodes_.size();
+    }
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNode getParentNodes(int index) {
+      return parentNodes_.get(index);
+    }
+    /**
+     * <pre>
+     * 获取parent_nodes的子节点集合
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getParentNodesOrBuilder(
+        int index) {
+      return parentNodes_.get(index);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (!blockHash_.isEmpty()) {
+        output.writeBytes(1, blockHash_);
+      }
+      for (int i = 0; i < parentNodes_.size(); i++) {
+        output.writeMessage(2, parentNodes_.get(i));
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!blockHash_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, blockHash_);
+      }
+      for (int i = 0; i < parentNodes_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, parentNodes_.get(i));
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.GetTreeNodes)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.GetTreeNodes other = (org.wisdom.p2p.WisdomOuterClass.GetTreeNodes) obj;
+
+      if (!getBlockHash()
+          .equals(other.getBlockHash())) return false;
+      if (!getParentNodesList()
+          .equals(other.getParentNodesList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + BLOCK_HASH_FIELD_NUMBER;
+      hash = (53 * hash) + getBlockHash().hashCode();
+      if (getParentNodesCount() > 0) {
+        hash = (37 * hash) + PARENT_NODES_FIELD_NUMBER;
+        hash = (53 * hash) + getParentNodesList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.GetTreeNodes prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code GetTreeNodes}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:GetTreeNodes)
+        org.wisdom.p2p.WisdomOuterClass.GetTreeNodesOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_GetTreeNodes_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_GetTreeNodes_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.class, org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getParentNodesFieldBuilder();
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        blockHash_ = com.google.protobuf.ByteString.EMPTY;
+
+        if (parentNodesBuilder_ == null) {
+          parentNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          parentNodesBuilder_.clear();
+        }
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_GetTreeNodes_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.GetTreeNodes getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.GetTreeNodes build() {
+        org.wisdom.p2p.WisdomOuterClass.GetTreeNodes result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.GetTreeNodes buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.GetTreeNodes result = new org.wisdom.p2p.WisdomOuterClass.GetTreeNodes(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        result.blockHash_ = blockHash_;
+        if (parentNodesBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) != 0)) {
+            parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.parentNodes_ = parentNodes_;
+        } else {
+          result.parentNodes_ = parentNodesBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.GetTreeNodes) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.GetTreeNodes)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.GetTreeNodes other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.getDefaultInstance()) return this;
+        if (other.getBlockHash() != com.google.protobuf.ByteString.EMPTY) {
+          setBlockHash(other.getBlockHash());
+        }
+        if (parentNodesBuilder_ == null) {
+          if (!other.parentNodes_.isEmpty()) {
+            if (parentNodes_.isEmpty()) {
+              parentNodes_ = other.parentNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureParentNodesIsMutable();
+              parentNodes_.addAll(other.parentNodes_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.parentNodes_.isEmpty()) {
+            if (parentNodesBuilder_.isEmpty()) {
+              parentNodesBuilder_.dispose();
+              parentNodesBuilder_ = null;
+              parentNodes_ = other.parentNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              parentNodesBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getParentNodesFieldBuilder() : null;
+            } else {
+              parentNodesBuilder_.addAllMessages(other.parentNodes_);
+            }
+          }
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.GetTreeNodes parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.GetTreeNodes) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public com.google.protobuf.ByteString getBlockHash() {
+        return blockHash_;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder setBlockHash(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        blockHash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder clearBlockHash() {
+        
+        blockHash_ = getDefaultInstance().getBlockHash();
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> parentNodes_ =
+        java.util.Collections.emptyList();
+      private void ensureParentNodesIsMutable() {
+        if (!((bitField0_ & 0x00000002) != 0)) {
+          parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(parentNodes_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> parentNodesBuilder_;
+
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getParentNodesList() {
+        if (parentNodesBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(parentNodes_);
+        } else {
+          return parentNodesBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public int getParentNodesCount() {
+        if (parentNodesBuilder_ == null) {
+          return parentNodes_.size();
+        } else {
+          return parentNodesBuilder_.getCount();
+        }
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode getParentNodes(int index) {
+        if (parentNodesBuilder_ == null) {
+          return parentNodes_.get(index);
+        } else {
+          return parentNodesBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder setParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (parentNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureParentNodesIsMutable();
+          parentNodes_.set(index, value);
+          onChanged();
+        } else {
+          parentNodesBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder setParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          parentNodesBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder addParentNodes(org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (parentNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureParentNodesIsMutable();
+          parentNodes_.add(value);
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder addParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (parentNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureParentNodesIsMutable();
+          parentNodes_.add(index, value);
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder addParentNodes(
+          org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.add(builderForValue.build());
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder addParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder addAllParentNodes(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.TreeNode> values) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, parentNodes_);
+          onChanged();
+        } else {
+          parentNodesBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder clearParentNodes() {
+        if (parentNodesBuilder_ == null) {
+          parentNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          parentNodesBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public Builder removeParentNodes(int index) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.remove(index);
+          onChanged();
+        } else {
+          parentNodesBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder getParentNodesBuilder(
+          int index) {
+        return getParentNodesFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getParentNodesOrBuilder(
+          int index) {
+        if (parentNodesBuilder_ == null) {
+          return parentNodes_.get(index);  } else {
+          return parentNodesBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+           getParentNodesOrBuilderList() {
+        if (parentNodesBuilder_ != null) {
+          return parentNodesBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(parentNodes_);
+        }
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addParentNodesBuilder() {
+        return getParentNodesFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addParentNodesBuilder(
+          int index) {
+        return getParentNodesFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 获取parent_nodes的子节点集合
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder> 
+           getParentNodesBuilderList() {
+        return getParentNodesFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+          getParentNodesFieldBuilder() {
+        if (parentNodesBuilder_ == null) {
+          parentNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
+                  parentNodes_,
+                  ((bitField0_ & 0x00000002) != 0),
+                  getParentForChildren(),
+                  isClean());
+          parentNodes_ = null;
+        }
+        return parentNodesBuilder_;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:GetTreeNodes)
+    }
+
+    // @@protoc_insertion_point(class_scope:GetTreeNodes)
+    private static final org.wisdom.p2p.WisdomOuterClass.GetTreeNodes DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.GetTreeNodes();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.GetTreeNodes getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<GetTreeNodes>
+        PARSER = new com.google.protobuf.AbstractParser<GetTreeNodes>() {
+      @java.lang.Override
+      public GetTreeNodes parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new GetTreeNodes(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<GetTreeNodes> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<GetTreeNodes> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.GetTreeNodes getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface TreeNodesOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:TreeNodes)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    com.google.protobuf.ByteString getBlockHash();
+
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> 
+        getTreeNodesList();
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index);
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    int getTreeNodesCount();
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getTreeNodesOrBuilderList();
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+        int index);
+
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> 
+        getParentNodesList();
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNode getParentNodes(int index);
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    int getParentNodesCount();
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getParentNodesOrBuilderList();
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getParentNodesOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code TreeNodes}
+   */
+  public  static final class TreeNodes extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:TreeNodes)
+      TreeNodesOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use TreeNodes.newBuilder() to construct.
+    private TreeNodes(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private TreeNodes() {
+      blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      treeNodes_ = java.util.Collections.emptyList();
+      parentNodes_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TreeNodes(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+
+              blockHash_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+                treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              treeNodes_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
+              break;
+            }
+            case 26: {
+              if (!((mutable_bitField0_ & 0x00000004) != 0)) {
+                parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              parentNodes_.add(
+                  input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+          treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
+        }
+        if (((mutable_bitField0_ & 0x00000004) != 0)) {
+          parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNodes_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNodes_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.TreeNodes.class, org.wisdom.p2p.WisdomOuterClass.TreeNodes.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int BLOCK_HASH_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString blockHash_;
+    /**
+     * <code>bytes block_hash = 1;</code>
+     */
+    public com.google.protobuf.ByteString getBlockHash() {
+      return blockHash_;
+    }
+
+    public static final int TREE_NODES_FIELD_NUMBER = 2;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_;
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getTreeNodesList() {
+      return treeNodes_;
+    }
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getTreeNodesOrBuilderList() {
+      return treeNodes_;
+    }
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public int getTreeNodesCount() {
+      return treeNodes_.size();
+    }
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index) {
+      return treeNodes_.get(index);
+    }
+    /**
+     * <code>repeated .TreeNode tree_nodes = 2;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+        int index) {
+      return treeNodes_.get(index);
+    }
+
+    public static final int PARENT_NODES_FIELD_NUMBER = 3;
+    private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> parentNodes_;
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getParentNodesList() {
+      return parentNodes_;
+    }
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+        getParentNodesOrBuilderList() {
+      return parentNodes_;
+    }
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    public int getParentNodesCount() {
+      return parentNodes_.size();
+    }
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNode getParentNodes(int index) {
+      return parentNodes_.get(index);
+    }
+    /**
+     * <pre>
+     * 返回请求的parent_nodes
+     * </pre>
+     *
+     * <code>repeated .TreeNode parent_nodes = 3;</code>
+     */
+    public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getParentNodesOrBuilder(
+        int index) {
+      return parentNodes_.get(index);
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (!blockHash_.isEmpty()) {
+        output.writeBytes(1, blockHash_);
+      }
+      for (int i = 0; i < treeNodes_.size(); i++) {
+        output.writeMessage(2, treeNodes_.get(i));
+      }
+      for (int i = 0; i < parentNodes_.size(); i++) {
+        output.writeMessage(3, parentNodes_.get(i));
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!blockHash_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, blockHash_);
+      }
+      for (int i = 0; i < treeNodes_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, treeNodes_.get(i));
+      }
+      for (int i = 0; i < parentNodes_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, parentNodes_.get(i));
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.TreeNodes)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.TreeNodes other = (org.wisdom.p2p.WisdomOuterClass.TreeNodes) obj;
+
+      if (!getBlockHash()
+          .equals(other.getBlockHash())) return false;
+      if (!getTreeNodesList()
+          .equals(other.getTreeNodesList())) return false;
+      if (!getParentNodesList()
+          .equals(other.getParentNodesList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + BLOCK_HASH_FIELD_NUMBER;
+      hash = (53 * hash) + getBlockHash().hashCode();
+      if (getTreeNodesCount() > 0) {
+        hash = (37 * hash) + TREE_NODES_FIELD_NUMBER;
+        hash = (53 * hash) + getTreeNodesList().hashCode();
+      }
+      if (getParentNodesCount() > 0) {
+        hash = (37 * hash) + PARENT_NODES_FIELD_NUMBER;
+        hash = (53 * hash) + getParentNodesList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.TreeNodes prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code TreeNodes}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:TreeNodes)
+        org.wisdom.p2p.WisdomOuterClass.TreeNodesOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNodes_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNodes_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.TreeNodes.class, org.wisdom.p2p.WisdomOuterClass.TreeNodes.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.TreeNodes.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getTreeNodesFieldBuilder();
+          getParentNodesFieldBuilder();
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        blockHash_ = com.google.protobuf.ByteString.EMPTY;
+
+        if (treeNodesBuilder_ == null) {
+          treeNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          treeNodesBuilder_.clear();
+        }
+        if (parentNodesBuilder_ == null) {
+          parentNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          parentNodesBuilder_.clear();
+        }
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNodes_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodes getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.TreeNodes.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodes build() {
+        org.wisdom.p2p.WisdomOuterClass.TreeNodes result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodes buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.TreeNodes result = new org.wisdom.p2p.WisdomOuterClass.TreeNodes(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        result.blockHash_ = blockHash_;
+        if (treeNodesBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) != 0)) {
+            treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.treeNodes_ = treeNodes_;
+        } else {
+          result.treeNodes_ = treeNodesBuilder_.build();
+        }
+        if (parentNodesBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) != 0)) {
+            parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.parentNodes_ = parentNodes_;
+        } else {
+          result.parentNodes_ = parentNodesBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.TreeNodes) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.TreeNodes)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.TreeNodes other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.TreeNodes.getDefaultInstance()) return this;
+        if (other.getBlockHash() != com.google.protobuf.ByteString.EMPTY) {
+          setBlockHash(other.getBlockHash());
+        }
+        if (treeNodesBuilder_ == null) {
+          if (!other.treeNodes_.isEmpty()) {
+            if (treeNodes_.isEmpty()) {
+              treeNodes_ = other.treeNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensureTreeNodesIsMutable();
+              treeNodes_.addAll(other.treeNodes_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.treeNodes_.isEmpty()) {
+            if (treeNodesBuilder_.isEmpty()) {
+              treeNodesBuilder_.dispose();
+              treeNodesBuilder_ = null;
+              treeNodes_ = other.treeNodes_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              treeNodesBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getTreeNodesFieldBuilder() : null;
+            } else {
+              treeNodesBuilder_.addAllMessages(other.treeNodes_);
+            }
+          }
+        }
+        if (parentNodesBuilder_ == null) {
+          if (!other.parentNodes_.isEmpty()) {
+            if (parentNodes_.isEmpty()) {
+              parentNodes_ = other.parentNodes_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureParentNodesIsMutable();
+              parentNodes_.addAll(other.parentNodes_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.parentNodes_.isEmpty()) {
+            if (parentNodesBuilder_.isEmpty()) {
+              parentNodesBuilder_.dispose();
+              parentNodesBuilder_ = null;
+              parentNodes_ = other.parentNodes_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+              parentNodesBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getParentNodesFieldBuilder() : null;
+            } else {
+              parentNodesBuilder_.addAllMessages(other.parentNodes_);
+            }
+          }
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.TreeNodes parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.TreeNodes) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public com.google.protobuf.ByteString getBlockHash() {
+        return blockHash_;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder setBlockHash(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        blockHash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes block_hash = 1;</code>
+       */
+      public Builder clearBlockHash() {
+        
+        blockHash_ = getDefaultInstance().getBlockHash();
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_ =
+        java.util.Collections.emptyList();
+      private void ensureTreeNodesIsMutable() {
+        if (!((bitField0_ & 0x00000002) != 0)) {
+          treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(treeNodes_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> treeNodesBuilder_;
+
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getTreeNodesList() {
+        if (treeNodesBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(treeNodes_);
+        } else {
+          return treeNodesBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public int getTreeNodesCount() {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.size();
+        } else {
+          return treeNodesBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode getTreeNodes(int index) {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.get(index);
+        } else {
+          return treeNodesBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder setTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.set(index, value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder setTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (treeNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(index, value);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addTreeNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          treeNodesBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder addAllTreeNodes(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.TreeNode> values) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, treeNodes_);
+          onChanged();
+        } else {
+          treeNodesBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder clearTreeNodes() {
+        if (treeNodesBuilder_ == null) {
+          treeNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          treeNodesBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public Builder removeTreeNodes(int index) {
+        if (treeNodesBuilder_ == null) {
+          ensureTreeNodesIsMutable();
+          treeNodes_.remove(index);
+          onChanged();
+        } else {
+          treeNodesBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder getTreeNodesBuilder(
+          int index) {
+        return getTreeNodesFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getTreeNodesOrBuilder(
+          int index) {
+        if (treeNodesBuilder_ == null) {
+          return treeNodes_.get(index);  } else {
+          return treeNodesBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+           getTreeNodesOrBuilderList() {
+        if (treeNodesBuilder_ != null) {
+          return treeNodesBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(treeNodes_);
+        }
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addTreeNodesBuilder() {
+        return getTreeNodesFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addTreeNodesBuilder(
+          int index) {
+        return getTreeNodesFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .TreeNode tree_nodes = 2;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder> 
+           getTreeNodesBuilderList() {
+        return getTreeNodesFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+          getTreeNodesFieldBuilder() {
+        if (treeNodesBuilder_ == null) {
+          treeNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
+                  treeNodes_,
+                  ((bitField0_ & 0x00000002) != 0),
+                  getParentForChildren(),
+                  isClean());
+          treeNodes_ = null;
+        }
+        return treeNodesBuilder_;
+      }
+
+      private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> parentNodes_ =
+        java.util.Collections.emptyList();
+      private void ensureParentNodesIsMutable() {
+        if (!((bitField0_ & 0x00000004) != 0)) {
+          parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(parentNodes_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> parentNodesBuilder_;
+
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> getParentNodesList() {
+        if (parentNodesBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(parentNodes_);
+        } else {
+          return parentNodesBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public int getParentNodesCount() {
+        if (parentNodesBuilder_ == null) {
+          return parentNodes_.size();
+        } else {
+          return parentNodesBuilder_.getCount();
+        }
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode getParentNodes(int index) {
+        if (parentNodesBuilder_ == null) {
+          return parentNodes_.get(index);
+        } else {
+          return parentNodesBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder setParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (parentNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureParentNodesIsMutable();
+          parentNodes_.set(index, value);
+          onChanged();
+        } else {
+          parentNodesBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder setParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          parentNodesBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder addParentNodes(org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (parentNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureParentNodesIsMutable();
+          parentNodes_.add(value);
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder addParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode value) {
+        if (parentNodesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureParentNodesIsMutable();
+          parentNodes_.add(index, value);
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder addParentNodes(
+          org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.add(builderForValue.build());
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder addParentNodes(
+          int index, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder builderForValue) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          parentNodesBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder addAllParentNodes(
+          java.lang.Iterable<? extends org.wisdom.p2p.WisdomOuterClass.TreeNode> values) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, parentNodes_);
+          onChanged();
+        } else {
+          parentNodesBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder clearParentNodes() {
+        if (parentNodesBuilder_ == null) {
+          parentNodes_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+        } else {
+          parentNodesBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public Builder removeParentNodes(int index) {
+        if (parentNodesBuilder_ == null) {
+          ensureParentNodesIsMutable();
+          parentNodes_.remove(index);
+          onChanged();
+        } else {
+          parentNodesBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder getParentNodesBuilder(
+          int index) {
+        return getParentNodesFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder getParentNodesOrBuilder(
+          int index) {
+        if (parentNodesBuilder_ == null) {
+          return parentNodes_.get(index);  } else {
+          return parentNodesBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public java.util.List<? extends org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+           getParentNodesOrBuilderList() {
+        if (parentNodesBuilder_ != null) {
+          return parentNodesBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(parentNodes_);
+        }
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addParentNodesBuilder() {
+        return getParentNodesFieldBuilder().addBuilder(
+            org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder addParentNodesBuilder(
+          int index) {
+        return getParentNodesFieldBuilder().addBuilder(
+            index, org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance());
+      }
+      /**
+       * <pre>
+       * 返回请求的parent_nodes
+       * </pre>
+       *
+       * <code>repeated .TreeNode parent_nodes = 3;</code>
+       */
+      public java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder> 
+           getParentNodesBuilderList() {
+        return getParentNodesFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder> 
+          getParentNodesFieldBuilder() {
+        if (parentNodesBuilder_ == null) {
+          parentNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
+                  parentNodes_,
+                  ((bitField0_ & 0x00000004) != 0),
+                  getParentForChildren(),
+                  isClean());
+          parentNodes_ = null;
+        }
+        return parentNodesBuilder_;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:TreeNodes)
+    }
+
+    // @@protoc_insertion_point(class_scope:TreeNodes)
+    private static final org.wisdom.p2p.WisdomOuterClass.TreeNodes DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.TreeNodes();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNodes getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<TreeNodes>
+        PARSER = new com.google.protobuf.AbstractParser<TreeNodes>() {
+      @java.lang.Override
+      public TreeNodes parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TreeNodes(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<TreeNodes> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TreeNodes> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.TreeNodes getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface TreeNodeOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:TreeNode)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>string hash = 1;</code>
+     */
+    java.lang.String getHash();
+    /**
+     * <code>string hash = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getHashBytes();
+
+    /**
+     * <code>int32 level = 2;</code>
+     */
+    int getLevel();
+
+    /**
+     * <code>string name = 3;</code>
+     */
+    java.lang.String getName();
+    /**
+     * <code>string name = 3;</code>
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
+
+    /**
+     * <pre>
+     * 当level=1时，data是tx_hash
+     * </pre>
+     *
+     * <code>string data = 4;</code>
+     */
+    java.lang.String getData();
+    /**
+     * <pre>
+     * 当level=1时，data是tx_hash
+     * </pre>
+     *
+     * <code>string data = 4;</code>
+     */
+    com.google.protobuf.ByteString
+        getDataBytes();
+
+    /**
+     * <pre>
+     * 每一层的index都不会重复
+     * </pre>
+     *
+     * <code>int32 index = 5;</code>
+     */
+    int getIndex();
+  }
+  /**
+   * Protobuf type {@code TreeNode}
+   */
+  public  static final class TreeNode extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:TreeNode)
+      TreeNodeOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use TreeNode.newBuilder() to construct.
+    private TreeNode(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private TreeNode() {
+      hash_ = "";
+      name_ = "";
+      data_ = "";
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TreeNode(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            case 10: {
+              java.lang.String s = input.readStringRequireUtf8();
+
+              hash_ = s;
+              break;
+            }
+            case 16: {
+
+              level_ = input.readInt32();
+              break;
+            }
+            case 26: {
+              java.lang.String s = input.readStringRequireUtf8();
+
+              name_ = s;
+              break;
+            }
+            case 34: {
+              java.lang.String s = input.readStringRequireUtf8();
+
+              data_ = s;
+              break;
+            }
+            case 40: {
+
+              index_ = input.readInt32();
+              break;
+            }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNode_descriptor;
+    }
+
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNode_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.wisdom.p2p.WisdomOuterClass.TreeNode.class, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder.class);
+    }
+
+    public static final int HASH_FIELD_NUMBER = 1;
+    private volatile java.lang.Object hash_;
+    /**
+     * <code>string hash = 1;</code>
+     */
+    public java.lang.String getHash() {
+      java.lang.Object ref = hash_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        hash_ = s;
+        return s;
+      }
+    }
+    /**
+     * <code>string hash = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getHashBytes() {
+      java.lang.Object ref = hash_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        hash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int LEVEL_FIELD_NUMBER = 2;
+    private int level_;
+    /**
+     * <code>int32 level = 2;</code>
+     */
+    public int getLevel() {
+      return level_;
+    }
+
+    public static final int NAME_FIELD_NUMBER = 3;
+    private volatile java.lang.Object name_;
+    /**
+     * <code>string name = 3;</code>
+     */
+    public java.lang.String getName() {
+      java.lang.Object ref = name_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        name_ = s;
+        return s;
+      }
+    }
+    /**
+     * <code>string name = 3;</code>
+     */
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      java.lang.Object ref = name_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        name_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int DATA_FIELD_NUMBER = 4;
+    private volatile java.lang.Object data_;
+    /**
+     * <pre>
+     * 当level=1时，data是tx_hash
+     * </pre>
+     *
+     * <code>string data = 4;</code>
+     */
+    public java.lang.String getData() {
+      java.lang.Object ref = data_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        data_ = s;
+        return s;
+      }
+    }
+    /**
+     * <pre>
+     * 当level=1时，data是tx_hash
+     * </pre>
+     *
+     * <code>string data = 4;</code>
+     */
+    public com.google.protobuf.ByteString
+        getDataBytes() {
+      java.lang.Object ref = data_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        data_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int INDEX_FIELD_NUMBER = 5;
+    private int index_;
+    /**
+     * <pre>
+     * 每一层的index都不会重复
+     * </pre>
+     *
+     * <code>int32 index = 5;</code>
+     */
+    public int getIndex() {
+      return index_;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    @java.lang.Override
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    @java.lang.Override
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (!getHashBytes().isEmpty()) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, hash_);
+      }
+      if (level_ != 0) {
+        output.writeInt32(2, level_);
+      }
+      if (!getNameBytes().isEmpty()) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, name_);
+      }
+      if (!getDataBytes().isEmpty()) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, data_);
+      }
+      if (index_ != 0) {
+        output.writeInt32(5, index_);
+      }
+      unknownFields.writeTo(output);
+    }
+
+    @java.lang.Override
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (!getHashBytes().isEmpty()) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, hash_);
+      }
+      if (level_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(2, level_);
+      }
+      if (!getNameBytes().isEmpty()) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, name_);
+      }
+      if (!getDataBytes().isEmpty()) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, data_);
+      }
+      if (index_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, index_);
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.wisdom.p2p.WisdomOuterClass.TreeNode)) {
+        return super.equals(obj);
+      }
+      org.wisdom.p2p.WisdomOuterClass.TreeNode other = (org.wisdom.p2p.WisdomOuterClass.TreeNode) obj;
+
+      if (!getHash()
+          .equals(other.getHash())) return false;
+      if (getLevel()
+          != other.getLevel()) return false;
+      if (!getName()
+          .equals(other.getName())) return false;
+      if (!getData()
+          .equals(other.getData())) return false;
+      if (getIndex()
+          != other.getIndex()) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + HASH_FIELD_NUMBER;
+      hash = (53 * hash) + getHash().hashCode();
+      hash = (37 * hash) + LEVEL_FIELD_NUMBER;
+      hash = (53 * hash) + getLevel();
+      hash = (37 * hash) + NAME_FIELD_NUMBER;
+      hash = (53 * hash) + getName().hashCode();
+      hash = (37 * hash) + DATA_FIELD_NUMBER;
+      hash = (53 * hash) + getData().hashCode();
+      hash = (37 * hash) + INDEX_FIELD_NUMBER;
+      hash = (53 * hash) + getIndex();
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    @java.lang.Override
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.wisdom.p2p.WisdomOuterClass.TreeNode prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code TreeNode}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:TreeNode)
+        org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNode_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNode_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.wisdom.p2p.WisdomOuterClass.TreeNode.class, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder.class);
+      }
+
+      // Construct using org.wisdom.p2p.WisdomOuterClass.TreeNode.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+        }
+      }
+      @java.lang.Override
+      public Builder clear() {
+        super.clear();
+        hash_ = "";
+
+        level_ = 0;
+
+        name_ = "";
+
+        data_ = "";
+
+        index_ = 0;
+
+        return this;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.wisdom.p2p.WisdomOuterClass.internal_static_TreeNode_descriptor;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode getDefaultInstanceForType() {
+        return org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance();
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode build() {
+        org.wisdom.p2p.WisdomOuterClass.TreeNode result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      @java.lang.Override
+      public org.wisdom.p2p.WisdomOuterClass.TreeNode buildPartial() {
+        org.wisdom.p2p.WisdomOuterClass.TreeNode result = new org.wisdom.p2p.WisdomOuterClass.TreeNode(this);
+        result.hash_ = hash_;
+        result.level_ = level_;
+        result.name_ = name_;
+        result.data_ = data_;
+        result.index_ = index_;
+        onBuilt();
+        return result;
+      }
+
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.wisdom.p2p.WisdomOuterClass.TreeNode) {
+          return mergeFrom((org.wisdom.p2p.WisdomOuterClass.TreeNode)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.wisdom.p2p.WisdomOuterClass.TreeNode other) {
+        if (other == org.wisdom.p2p.WisdomOuterClass.TreeNode.getDefaultInstance()) return this;
+        if (!other.getHash().isEmpty()) {
+          hash_ = other.hash_;
+          onChanged();
+        }
+        if (other.getLevel() != 0) {
+          setLevel(other.getLevel());
+        }
+        if (!other.getName().isEmpty()) {
+          name_ = other.name_;
+          onChanged();
+        }
+        if (!other.getData().isEmpty()) {
+          data_ = other.data_;
+          onChanged();
+        }
+        if (other.getIndex() != 0) {
+          setIndex(other.getIndex());
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      @java.lang.Override
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      @java.lang.Override
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.wisdom.p2p.WisdomOuterClass.TreeNode parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.wisdom.p2p.WisdomOuterClass.TreeNode) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      private java.lang.Object hash_ = "";
+      /**
+       * <code>string hash = 1;</code>
+       */
+      public java.lang.String getHash() {
+        java.lang.Object ref = hash_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          hash_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>string hash = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getHashBytes() {
+        java.lang.Object ref = hash_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          hash_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>string hash = 1;</code>
+       */
+      public Builder setHash(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        hash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string hash = 1;</code>
+       */
+      public Builder clearHash() {
+        
+        hash_ = getDefaultInstance().getHash();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string hash = 1;</code>
+       */
+      public Builder setHashBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        hash_ = value;
+        onChanged();
+        return this;
+      }
+
+      private int level_ ;
+      /**
+       * <code>int32 level = 2;</code>
+       */
+      public int getLevel() {
+        return level_;
+      }
+      /**
+       * <code>int32 level = 2;</code>
+       */
+      public Builder setLevel(int value) {
+        
+        level_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 level = 2;</code>
+       */
+      public Builder clearLevel() {
+        
+        level_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object name_ = "";
+      /**
+       * <code>string name = 3;</code>
+       */
+      public java.lang.String getName() {
+        java.lang.Object ref = name_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          name_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>string name = 3;</code>
+       */
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        java.lang.Object ref = name_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          name_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>string name = 3;</code>
+       */
+      public Builder setName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        name_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string name = 3;</code>
+       */
+      public Builder clearName() {
+        
+        name_ = getDefaultInstance().getName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string name = 3;</code>
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        name_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object data_ = "";
+      /**
+       * <pre>
+       * 当level=1时，data是tx_hash
+       * </pre>
+       *
+       * <code>string data = 4;</code>
+       */
+      public java.lang.String getData() {
+        java.lang.Object ref = data_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          data_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <pre>
+       * 当level=1时，data是tx_hash
+       * </pre>
+       *
+       * <code>string data = 4;</code>
+       */
+      public com.google.protobuf.ByteString
+          getDataBytes() {
+        java.lang.Object ref = data_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          data_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <pre>
+       * 当level=1时，data是tx_hash
+       * </pre>
+       *
+       * <code>string data = 4;</code>
+       */
+      public Builder setData(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        data_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       * 当level=1时，data是tx_hash
+       * </pre>
+       *
+       * <code>string data = 4;</code>
+       */
+      public Builder clearData() {
+        
+        data_ = getDefaultInstance().getData();
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       * 当level=1时，data是tx_hash
+       * </pre>
+       *
+       * <code>string data = 4;</code>
+       */
+      public Builder setDataBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        data_ = value;
+        onChanged();
+        return this;
+      }
+
+      private int index_ ;
+      /**
+       * <pre>
+       * 每一层的index都不会重复
+       * </pre>
+       *
+       * <code>int32 index = 5;</code>
+       */
+      public int getIndex() {
+        return index_;
+      }
+      /**
+       * <pre>
+       * 每一层的index都不会重复
+       * </pre>
+       *
+       * <code>int32 index = 5;</code>
+       */
+      public Builder setIndex(int value) {
+        
+        index_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       * 每一层的index都不会重复
+       * </pre>
+       *
+       * <code>int32 index = 5;</code>
+       */
+      public Builder clearIndex() {
+        
+        index_ = 0;
+        onChanged();
+        return this;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:TreeNode)
+    }
+
+    // @@protoc_insertion_point(class_scope:TreeNode)
+    private static final org.wisdom.p2p.WisdomOuterClass.TreeNode DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.wisdom.p2p.WisdomOuterClass.TreeNode();
+    }
+
+    public static org.wisdom.p2p.WisdomOuterClass.TreeNode getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<TreeNode>
+        PARSER = new com.google.protobuf.AbstractParser<TreeNode>() {
+      @java.lang.Override
+      public TreeNode parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TreeNode(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<TreeNode> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TreeNode> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public org.wisdom.p2p.WisdomOuterClass.TreeNode getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Message_descriptor;
   private static final 
@@ -10244,6 +16585,36 @@ public final class WisdomOuterClass {
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Block_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_GetMerkleTransactions_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_GetMerkleTransactions_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_MerkleTransactions_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_MerkleTransactions_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_MerkleTransaction_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_MerkleTransaction_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_GetTreeNodes_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_GetTreeNodes_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_TreeNodes_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_TreeNodes_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_TreeNode_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_TreeNode_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -10278,21 +16649,37 @@ public final class WisdomOuterClass {
       "hash_merkle_incubate\030\005 \001(\014\022\016\n\006height\030\006 \001" +
       "(\r\022\022\n\ncreated_at\030\007 \001(\r\022\016\n\006n_bits\030\010 \001(\014\022\r" +
       "\n\005nonce\030\t \001(\014\022\032\n\004body\030\n \003(\0132\014.Transactio" +
-      "n*\227\001\n\004Code\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001\022\010\n\004PON" +
-      "G\020\002\022\013\n\007LOOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGET_STATU" +
-      "S\020\005\022\n\n\006STATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n\n\006BLOCK" +
-      "S\020\010\022\014\n\010PROPOSAL\020\t\022\020\n\014TRANSACTIONS\020\n*0\n\rC" +
-      "lipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_INIT" +
-      "IAL\020\001*\305\002\n\017TransactionType\022\014\n\010COINBASE\020\000\022" +
-      "\014\n\010TRANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT\020\003\022\036\n\032" +
-      "TRANSFER_MULTISIG_MULTISIG\020\004\022\034\n\030TRANSFER" +
-      "_MULTISIG_NORMAL\020\005\022\034\n\030TRANSFER_NORMAL_MU" +
-      "LTISIG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOMIC_EXC" +
-      "HANGE\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_INTERES" +
-      "T\020\n\022\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n\014EXTRA" +
-      "CT_COST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE\020\016\022\017\n\013" +
-      "EXIT_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010.Messa" +
-      "ge\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006proto3"
+      "n\"J\n\025GetMerkleTransactions\022\022\n\nblock_hash" +
+      "\030\001 \001(\014\022\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\"q\n" +
+      "\022MerkleTransactions\022\022\n\nblock_hash\030\001 \001(\014\022" +
+      "\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\022(\n\014merket" +
+      "_trans\030\003 \003(\0132\022.MerkleTransaction\"E\n\021Merk" +
+      "leTransaction\022!\n\013transaction\030\001 \001(\0132\014.Tra" +
+      "nsaction\022\r\n\005index\030\002 \001(\005\"C\n\014GetTreeNodes\022" +
+      "\022\n\nblock_hash\030\001 \001(\014\022\037\n\014parent_nodes\030\002 \003(" +
+      "\0132\t.TreeNode\"_\n\tTreeNodes\022\022\n\nblock_hash\030" +
+      "\001 \001(\014\022\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\022\037\n\014" +
+      "parent_nodes\030\003 \003(\0132\t.TreeNode\"R\n\010TreeNod" +
+      "e\022\014\n\004hash\030\001 \001(\t\022\r\n\005level\030\002 \001(\005\022\014\n\004name\030\003" +
+      " \001(\t\022\014\n\004data\030\004 \001(\t\022\r\n\005index\030\005 \001(\005*\362\001\n\004Co" +
+      "de\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001\022\010\n\004PONG\020\002\022\013\n\007L" +
+      "OOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGET_STATUS\020\005\022\n\n\006S" +
+      "TATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n\n\006BLOCKS\020\010\022\014\n\010P" +
+      "ROPOSAL\020\t\022\020\n\014TRANSACTIONS\020\n\022\034\n\030GET_MERKE" +
+      "LE_TRANSACTIONS\020\013\022\027\n\023MERKLE_TRANSACTIONS" +
+      "\020\014\022\022\n\016GET_TREE_NODES\020\r\022\016\n\nTREE_NODES\020\016*0" +
+      "\n\rClipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_I" +
+      "NITIAL\020\001*\305\002\n\017TransactionType\022\014\n\010COINBASE" +
+      "\020\000\022\014\n\010TRANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT\020\003\022" +
+      "\036\n\032TRANSFER_MULTISIG_MULTISIG\020\004\022\034\n\030TRANS" +
+      "FER_MULTISIG_NORMAL\020\005\022\034\n\030TRANSFER_NORMAL" +
+      "_MULTISIG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOMIC_" +
+      "EXCHANGE\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_INTE" +
+      "REST\020\n\022\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n\014EX" +
+      "TRACT_COST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE\020\016\022" +
+      "\017\n\013EXIT_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010.Me" +
+      "ssage\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006pro" +
+      "to3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -10391,6 +16778,42 @@ public final class WisdomOuterClass {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Block_descriptor,
         new java.lang.String[] { "Version", "HashPrevBlock", "HashMerkleRoot", "HashMerkleState", "HashMerkleIncubate", "Height", "CreatedAt", "NBits", "Nonce", "Body", });
+    internal_static_GetMerkleTransactions_descriptor =
+      getDescriptor().getMessageTypes().get(14);
+    internal_static_GetMerkleTransactions_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_GetMerkleTransactions_descriptor,
+        new java.lang.String[] { "BlockHash", "TreeNodes", });
+    internal_static_MerkleTransactions_descriptor =
+      getDescriptor().getMessageTypes().get(15);
+    internal_static_MerkleTransactions_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_MerkleTransactions_descriptor,
+        new java.lang.String[] { "BlockHash", "TreeNodes", "MerketTrans", });
+    internal_static_MerkleTransaction_descriptor =
+      getDescriptor().getMessageTypes().get(16);
+    internal_static_MerkleTransaction_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_MerkleTransaction_descriptor,
+        new java.lang.String[] { "Transaction", "Index", });
+    internal_static_GetTreeNodes_descriptor =
+      getDescriptor().getMessageTypes().get(17);
+    internal_static_GetTreeNodes_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_GetTreeNodes_descriptor,
+        new java.lang.String[] { "BlockHash", "ParentNodes", });
+    internal_static_TreeNodes_descriptor =
+      getDescriptor().getMessageTypes().get(18);
+    internal_static_TreeNodes_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_TreeNodes_descriptor,
+        new java.lang.String[] { "BlockHash", "TreeNodes", "ParentNodes", });
+    internal_static_TreeNode_descriptor =
+      getDescriptor().getMessageTypes().get(19);
+    internal_static_TreeNode_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_TreeNode_descriptor,
+        new java.lang.String[] { "Hash", "Level", "Name", "Data", "Index", });
     com.google.protobuf.TimestampProto.getDescriptor();
   }
 

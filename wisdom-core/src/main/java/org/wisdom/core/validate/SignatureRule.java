@@ -22,6 +22,7 @@ import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.springframework.stereotype.Component;
+import org.wisdom.encoding.JSONEncodeDecoder;
 
 // 签名校验规则
 @Component

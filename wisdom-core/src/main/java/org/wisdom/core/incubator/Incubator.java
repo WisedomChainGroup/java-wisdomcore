@@ -33,6 +33,7 @@ public class Incubator {
     private long share_amount;
     private long last_blockheight_interest;
     private long last_blockheight_share;
+    private int days;
 
     public Incubator(){}
 
@@ -46,6 +47,30 @@ public class Incubator {
         this.share_amount = share_Amount;
         this.last_blockheight_interest = last_BlockHeight_Interest;
         this.last_blockheight_share = last_BlockHeight_Share;
+    }
+
+    public Incubator(byte[] pubkeyhash, byte[] txid_issue, long height, long cost, long interest_Amount,long last_BlockHeight_Interest,int days){
+        this.pubkeyhash = pubkeyhash;
+        this.txid_issue = txid_issue;
+        this.height = height;
+        this.cost = cost;
+        this.interest_amount = interest_Amount;
+        this.last_blockheight_interest = last_BlockHeight_Interest;
+        this.days=days;
+    }
+
+    public Incubator(byte[] share_pubkeyhash,byte[] txid_issue,long height, long cost, int days, long share_Amount,long last_BlockHeight_Share){
+        this.share_pubkeyhash = share_pubkeyhash;
+        this.txid_issue = txid_issue;
+        this.height = height;
+        this.cost = cost;
+        this.days = days;
+        this.share_amount = share_Amount;
+        this.last_blockheight_share = last_BlockHeight_Share;
+    }
+
+    public String getTxhash(){
+        return Hex.encodeHexString(this.txid_issue);
     }
 
     public String getIdHexString(){
@@ -133,4 +158,18 @@ public class Incubator {
         this.last_blockheight_share = last_blockheight_share;
     }
 
+    public int getDays() {
+        return days;
+    }
+
+    public void setDays(int days) {
+        this.days = days;
+    }
+
+    public Incubator copy(){
+        Incubator incubator = new Incubator(share_pubkeyhash, pubkeyhash, txid_issue, height, cost, interest_amount, share_amount, last_blockheight_interest, last_blockheight_share);
+        incubator.setDays(days);
+        incubator.setId(id);
+        return incubator;
+    }
 }

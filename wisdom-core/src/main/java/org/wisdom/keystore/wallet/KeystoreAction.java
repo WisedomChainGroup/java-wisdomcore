@@ -35,9 +35,6 @@ import org.json.simple.JSONArray;
 import net.sf.json.JSONObject;
 import org.wisdom.keystore.account.Address;
 import org.wisdom.keystore.crypto.*;
-import org.wisdom.keystore.util.Base58Utility;
-import org.wisdom.keystore.util.Utils;
-import org.wisdom.util.ByteUtil;
 
 
 import java.io.*;
@@ -62,6 +59,7 @@ public class KeystoreAction {
         Gson gson = new Gson();
         return gson.toJson(keystore);
     }
+
     public static Keystore fromPassword(String password) throws Exception{
         if (password.length()>20 || password.length()<8){
             throw new Exception("请输入8-20位密码");
@@ -335,5 +333,9 @@ public class KeystoreAction {
         }else {//地址格式错误
             return  -2;
         }
+    }
+
+    public static void main(String[] args){
+
     }
 }

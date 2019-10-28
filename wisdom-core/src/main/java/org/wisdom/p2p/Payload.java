@@ -1,5 +1,6 @@
 package org.wisdom.p2p;
 
+import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class Payload {
@@ -10,7 +11,7 @@ public class Payload {
     private long nonce;
     private byte[] signature;
 
-    private Object body;
+    private AbstractMessage body;
 
     private WisdomOuterClass.Message message;
 
@@ -29,7 +30,7 @@ public class Payload {
         parseBody();
     }
 
-    public Object getBody() {
+    public AbstractMessage getBody() {
         return body;
     }
 
@@ -67,6 +68,18 @@ public class Payload {
                 return;
             case TRANSACTIONS:
                 body = WisdomOuterClass.Transactions.parseFrom(message.getBody());
+                return;
+            case GET_TREE_NODES:
+                body = WisdomOuterClass.GetTreeNodes.parseFrom(message.getBody());
+                return;
+            case TREE_NODES:
+                body = WisdomOuterClass.TreeNodes.parseFrom(message.getBody());
+                return;
+            case GET_MERKELE_TRANSACTIONS:
+                body = WisdomOuterClass.GetMerkleTransactions.parseFrom(message.getBody());
+                return;
+            case MERKLE_TRANSACTIONS:
+                body = WisdomOuterClass.MerkleTransactions.parseFrom(message.getBody());
                 return;
             default:
                 body = WisdomOuterClass.Nothing.newBuilder().build();
@@ -112,6 +125,23 @@ public class Payload {
     public WisdomOuterClass.Transaction getTransaction() {
         return (WisdomOuterClass.Transaction) body;
     }
+
+    public WisdomOuterClass.TreeNodes getTreeNodes() {
+        return (WisdomOuterClass.TreeNodes) body;
+    }
+
+    public WisdomOuterClass.GetTreeNodes getGetTreeNodes() {
+        return (WisdomOuterClass.GetTreeNodes) body;
+    }
+
+    public WisdomOuterClass.GetMerkleTransactions getGetMerkleTransactions() {
+        return (WisdomOuterClass.GetMerkleTransactions) body;
+    }
+
+    public WisdomOuterClass.MerkleTransactions getMerkleTransactions() {
+        return (WisdomOuterClass.MerkleTransactions) body;
+    }
+
 
     public Peer getRemote() {
         return remote;

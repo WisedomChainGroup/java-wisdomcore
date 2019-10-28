@@ -19,12 +19,15 @@
 package org.wisdom.core;
 
 import org.wisdom.core.validate.CompositeBlockRule;
+import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.StateDB;
+import org.wisdom.merkletree.MerkleTreeManager;
 
 import java.util.List;
 
@@ -35,20 +38,34 @@ public class PendingBlocksManager {
     private WisdomBlockChain bc;
 
     @Autowired
+    private StateDB stateDB;
+
+    @Autowired
     private CompositeBlockRule rule;
 
+    @Autowired
+    private MerkleRule merkleRule;
+
     private Logger logger = LoggerFactory.getLogger(PendingBlocksManager.class);
+
+    @Autowired
+    private MerkleTreeManager merkleTreeManager;
 
     // 区块的写入全部走这里
     @Async
     public void addPendingBlocks(BlocksCache cache) {
-        for(List<Block> chain: cache.popLongestChains()){
+        while (true) {
+            List<Block> chain = cache.popLongestChain();
+            if (chain == null || chain.size() == 0){
+                break;
+            }
             if (chainHasWritten(chain)) {
                 continue;
             }
             logger.info("try to write blocks to local storage, size = " + chain.size());
+            Block lastConfirmed = stateDB.getLastConfirmed();
             for (Block b : chain) {
-                if(bc.hasBlock(b.getHash())){
+                if (b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlockInCache(b.getHash())) {
                     logger.info("the block has written");
                     continue;
                 }
@@ -57,16 +74,22 @@ public class PendingBlocksManager {
                     logger.error("validate the block fail error = " + res.getMessage());
                     return;
                 }
+                Result result = merkleRule.validateBlock(b);
+                if (!result.isSuccess()) {
+                    merkleTreeManager.writeBlockToCache(b);
+                    continue;
+                }
                 b.weight = 1;
-                bc.writeBlock(b);
+                stateDB.writeBlock(b);
             }
         }
     }
 
-    private boolean chainHasWritten(List<Block> chain){
-        if(chain == null || chain.size() == 0){
+    private boolean chainHasWritten(List<Block> chain) {
+        if (chain == null || chain.size() == 0) {
             return true;
         }
-        return bc.hasBlock(chain.get(chain.size() - 1).getHash());
+        byte[] hash = chain.get(chain.size() - 1).getHash();
+        return stateDB.hasBlock(hash) || bc.hasBlock(hash);
     }
 }

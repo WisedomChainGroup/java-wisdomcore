@@ -21,6 +21,7 @@ package org.wisdom;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -43,7 +44,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 @EnableAsync
 @EnableScheduling
 public class Start {
+    private static final String CODE_ASSERTION_ENV = "ENABLE_CODE_ASSERTION";
+
+    // 开启断言 用于调试
+    public static final boolean ENABLE_ASSERTION = System.getenv(CODE_ASSERTION_ENV) != null && System.getenv(CODE_ASSERTION_ENV).equals("true");
+
     public static void main(String[] args) {
+        // 关闭 grpc 日志
         SpringApplication.run(Start.class, args);
     }
 
@@ -71,7 +78,11 @@ public class Start {
     @Bean
     public Genesis genesis(JSONEncodeDecoder codec, @Value("${wisdom.consensus.genesis}") String genesis)
             throws Exception {
-        Resource resource = new ClassPathResource(genesis);
+        Resource resource = new FileSystemResource(genesis);
+        if (!resource.exists()){
+            resource = new ClassPathResource(genesis);
+        }
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
+
 }

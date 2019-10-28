@@ -20,10 +20,9 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.EconomicModel;
-import org.wisdom.consensus.pow.ValidatorStateFactory;
+import org.wisdom.db.StateDB;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -33,14 +32,19 @@ import org.springframework.stereotype.Component;
 public class CoinbaseRule implements BlockRule, TransactionRule {
 
     @Autowired
-    private ValidatorStateFactory factory;
+    private StateDB stateDB;
 
     @Autowired
-    private WisdomBlockChain bc;
+    private EconomicModel economicModel;
+
+    public CoinbaseRule() {
+    }
 
     @Override
     public Result validateBlock(Block block) {
-
+        if(block.body == null || block.body.size() == 0){
+            return Result.Error("missing block body");
+        }
         // the first transaction of block must be coin base
         Transaction coinbase = block.body.get(0);
         if (coinbase == null) {
@@ -49,7 +53,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         if (coinbase.type != Transaction.Type.COINBASE.ordinal()) {
             return Result.Error("the first transaction of block body must be coin base");
         }
-        Block parent = bc.getBlock(block.hashPrevBlock);
+        Block parent = stateDB.getBlock(block.hashPrevBlock);
         if (parent == null) {
             return Result.Error("cannot find parent" + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
         }
@@ -68,7 +72,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
 
         // check amount = consensus amount + fees
-        if (coinbase.amount != EconomicModel.getConsensusRewardAtHeight(block.nHeight) + fees) {
+        if (coinbase.amount != economicModel.getConsensusRewardAtHeight(block.nHeight) + fees) {
             return Result.Error("amount not equals to consensus reward plus fees");
         }
         return Result.SUCCESS;

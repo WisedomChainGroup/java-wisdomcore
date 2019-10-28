@@ -63,10 +63,7 @@ public class PeersManager implements Plugin {
         try {
             for (String p : context.getPayload().getPeers().getPeersList()) {
                 Peer pr = Peer.parse(p);
-                if (pr.equals(server.getSelf()) || server.hasPeer(pr)) {
-                    continue;
-                }
-                server.dial(Peer.parse(p), PING);
+                server.pend(pr);
             }
         } catch (Exception e) {
             logger.error("parse peer fail");

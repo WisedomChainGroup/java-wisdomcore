@@ -26,9 +26,13 @@ import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.merkletree.MerkleTree;
+import org.wisdom.merkletree.TreeNode;
 import org.wisdom.protobuf.tcp.ProtocolModel;
+import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -44,17 +48,21 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
+
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 @Component
 public class Block {
     public static final int MAX_NOTICE_LENGTH = 32;
     public static final int HASH_SIZE = 32;
-    public static final int MAX_BLOCK_SIZE = 8 * (1 << 20);
+    public static final int MAX_BLOCK_SIZE = 4 * (1 << 20);
+
+    // reserve 128kb for transports
+    public static final int RESERVED_SPACE = 128 * (1 << 10);
     private static final Logger logger = LoggerFactory.getLogger(Block.class);
 
     public static byte[] calculatePOWHash(Block block) {
@@ -80,6 +88,28 @@ public class Block {
                         block.nBits,
                         block.nNonce
                 });
+    }
+
+    public static Block deepCopy(Block b) {
+        Block block = new Block();
+        block.body = b.body;
+        block.blockHash = b.blockHash;
+        block.blockNotice = b.blockNotice;
+        block.nHeight = b.nHeight;
+        block.hashMerkleIncubate = b.hashMerkleIncubate;
+        block.blockSize = b.blockSize;
+        block.weight = b.weight;
+        block.hashCache = b.hashCache;
+        block.hashHexCache = b.hashHexCache;
+        block.hashPrevBlock = b.hashPrevBlock;
+        block.hashMerkleRoot = b.hashMerkleRoot;
+        block.hashMerkleState = b.hashMerkleState;
+        block.nBits = b.nBits;
+        block.nNonce = b.nNonce;
+        block.nTime = b.nTime;
+        block.nVersion = b.nVersion;
+        block.totalWeight = b.totalWeight;
+        return block;
     }
 
     public static byte[] calculateMerkleRoot(List<Transaction> txs) {
@@ -162,12 +192,12 @@ public class Block {
     public int size() {
         int size = getHeaderRaw().length;
         if (body == null) {
-            return size;
+            return size + RESERVED_SPACE;
         }
         for (Transaction tx : body) {
             size += tx.size();
         }
-        return size;
+        return size + RESERVED_SPACE;
     }
 
     @JsonProperty("blockHash")
@@ -358,5 +388,31 @@ public class Block {
         h.nNonce = nNonce;
         h.blockNotice = blockNotice;
         return h;
+    }
+
+    @JsonIgnore
+    public List<byte[]> getFromsPublicKeyHash() {
+        return body.stream()
+                .filter(tx -> tx.type != 0)
+                .map(tx -> Address.publicKeyToAddress(tx.from))
+                .distinct()
+                .map(Address::addressToPublicKeyHash)
+                .collect(toList());
+    }
+
+    public static List<TreeNode> getMerkleTreeNode(List<Transaction> txs, Byte level) {
+        List<String> hashes = new ArrayList<>();
+        for (Transaction tx : txs) {
+            hashes.add(tx.getHashHexString());
+        }
+        return new MerkleTree(hashes).getLevelList(level);
+    }
+
+    public static int getMerkleRootLevel(List<Transaction> txs) {
+        List<String> hashes = new ArrayList<>();
+        for (Transaction tx : txs) {
+            hashes.add(tx.getHashHexString());
+        }
+        return new MerkleTree(hashes).getLevelSize();
     }
 }

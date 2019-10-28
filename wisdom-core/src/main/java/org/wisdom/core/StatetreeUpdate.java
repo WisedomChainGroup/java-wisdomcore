@@ -18,8 +18,6 @@
 
 package org.wisdom.core;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.commons.codec.DecoderException;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.event.NewBestBlockEvent;
@@ -59,6 +57,7 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
         Block b = event.getBlock();
         peningTransPool.updatePool(b.body, 2, b.nHeight);
         Map<String, Object> merklemap = null;
+
         try {
             merklemap = merkleRule.validateMerkle(b.body, b.nHeight);
             List<Account> accountList = (List<Account>) merklemap.get("account");
@@ -81,13 +80,10 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
                 });
             }
             incubatorDB.insertIncubatorList(incubatorobjct);
-        } catch (InvalidProtocolBufferException e) {
-            e.printStackTrace();
-            return;
-        } catch (DecoderException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
-        ctx.publishEvent(new AccountUpdatedEvent(this, event.getBlock()));
+        ctx.publishEvent(new AccountUpdatedEvent(this, b));
     }
 }

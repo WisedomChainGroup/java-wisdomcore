@@ -90,7 +90,6 @@ public class MineThread {
 
     public void terminate() {
         terminated = true;
-        logger.info("mining terminated");
     }
 
     public boolean isTerminated() {

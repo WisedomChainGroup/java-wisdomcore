@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = BlocksCacheTest.BlocksCacheTestConfig.class)
-// TODO: more robust test
 public class BlocksCacheTest {
     private List<Block> getHeightN(long endHeight, byte[] merkleRoot) {
         List<Block> blocks = new ArrayList<>();
@@ -94,7 +93,7 @@ public class BlocksCacheTest {
 
     @Test
     public void testGetLeavesHash() {
-        assert ctx.getBean(BlocksCache.class).getLeavesHash().size() == 2;
+        assert ctx.getBean(BlocksCache.class).getLeaves().size() == 2;
     }
 
     @Test

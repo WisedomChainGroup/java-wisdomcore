@@ -20,7 +20,11 @@ package org.wisdom.core.validate;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.wisdom.command.IncubatorAddress;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.pool.PeningTransPool;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
@@ -28,8 +32,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 // 官方孵化余额校验，需要事务里填充高度
 // 出块时校验，收到块时不校验
@@ -42,9 +45,13 @@ public class OfficialIncubateBalanceRule {
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    PeningTransPool peningTransPool;
+
     public List<Transaction> validateTransaction(List<Transaction> transaction) throws InvalidProtocolBufferException, DecoderException {
         List<Transaction> newlsit = new ArrayList<>();
         long totalincubate = accountDB.getBalance(IncubatorAddress.resultpubhash());
+        IdentityHashMap<String,Long> maps=new IdentityHashMap<>();
         for (Transaction tx : transaction) {
             if (tx.type == Transaction.Type.INCUBATE.ordinal()) {
                 long height = tx.height;
@@ -59,13 +66,16 @@ public class OfficialIncubateBalanceRule {
                 long interest = tx.getInterest(height, rateTable, days);
                 long total = share + interest;
                 if (totalincubate < total) {
-                    break;
+                    String from=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)));
+                    maps.put(new String(from),tx.nonce);
+                    continue;
                 }
                 totalincubate -= total;
             }
-
             newlsit.add(tx);
         }
+        //删除错误的内存池事务
+        peningTransPool.remove(maps);
         return newlsit;
     }
 }

@@ -26,10 +26,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.StateDB;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -38,10 +38,10 @@ import java.util.List;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    private BlocksCache orphans;
+    private BlocksCacheWrapper orphans;
 
     @Autowired
-    private WisdomBlockChain bc;
+    private StateDB stateDB;
 
     @Autowired
     private PendingBlocksManager pool;
@@ -53,32 +53,34 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
 
     public OrphanBlocksManager() {
-        this.orphans = new BlocksCache();
+        this.orphans = new BlocksCacheWrapper();
     }
 
     private boolean isOrphan(Block block) {
-        return !bc.hasBlock(block.hashPrevBlock);
+        return !stateDB.hasBlock(block.hashPrevBlock);
     }
 
-    private void addBlock(Block block) {
-        orphans.addBlocks(Collections.singletonList(block));
+    public void addBlock(Block block) {
+        orphans.addBlock(block);
     }
 
     // remove orphans return writable blocks，过滤掉孤块
     public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
-        BlocksCache cache = new BlocksCache(blocks);
+        Block lastConfirmed = stateDB.getLastConfirmed();
+        BlocksCache cache = new BlocksCache(blocks.stream()
+                .filter(b -> b.nHeight > lastConfirmed.nHeight)
+                .collect(Collectors.toList())
+        );
         BlocksCache res = new BlocksCache();
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         for (Block init : cache.getInitials()) {
-            List<Block> descendantBlocks = new ArrayList<>();
-            descendantBlocks.add(init);
-            descendantBlocks.addAll(cache.getDescendantBlocks(init));
+            List<Block> descendantBlocks = cache.getDescendantBlocks(init);
             if (!isOrphan(init)) {
                 res.addBlocks(descendantBlocks);
                 continue;
             }
             for (Block b : descendantBlocks) {
-                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange) {
+                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange && !orphans.hasBlock(b.getHash())) {
                     logger.info("add block at height = " + b.nHeight + " to orphans pool");
                     addBlock(b);
                 }
@@ -96,7 +98,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
             if (!isOrphan(ini)) {
                 logger.info("writable orphan block found in pool");
                 List<Block> descendants = orphans.getDescendantBlocks(ini);
-                descendants.add(ini);
                 orphans.deleteBlocks(descendants);
                 pool.addPendingBlocks(new BlocksCache(descendants));
             }
@@ -109,18 +110,16 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
 
-    // 定时清理距离当前高度超过 50 的孤块
+    // 定时清理距离当前高度已经被确认的区块
     @Scheduled(fixedRate = 30 * 1000)
     public void clearOrphans() {
-        Block best = bc.currentHeader();
-        for (Block init : orphans.getInitials()) {
-            if (Math.abs(best.nHeight - init.nHeight) < orphanHeightsRange) {
-                continue;
-            }
-            List<Block> descendantBlocks = new ArrayList<>();
-            descendantBlocks.add(init);
-            descendantBlocks.addAll(orphans.getDescendantBlocks(init));
-            orphans.deleteBlocks(descendantBlocks);
-        }
+        Block lastConfirmed = stateDB.getLastConfirmed();
+        orphans.getAll().stream()
+                .filter(b -> b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlock(b.getHash()))
+                .forEach(b -> orphans.deleteBlock(b));
+    }
+
+    public List<Block> getOrphans(){
+        return orphans.getAll();
     }
 }

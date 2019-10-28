@@ -186,3 +186,67 @@ In the Linux system, the program deployed by docker can use the IPC client
 python2 ./ipc_client.py
 ```
 
+## 6. Run in command line
+
+### Requirements
+
+1. jdk 1.8
+2. gradle >= 5.6
+3. python, pip >= 3.7
+4. postgresql >= 10
+
+### Install python dotenv
+
+```shell script
+pip install -U "python-dotenv[cli]" --user
+```
+
+### Provide your genesis file and initial validators file
+
+for example, wisdom-genesis-generator.json and validators.json
+
+### Create configuration dot env file
+
+for example create local.env in project root directory:
+
+```.env
+DATA_SOURCE_URL=jdbc:postgresql://localhost:5432/postgres # 
+DB_USERNAME=postgres 
+DB_PASSWORD=postgres  
+WDC_MINER_COINBASE= # your coinbase address
+
+# clear data in database if enabled 
+# CLEAR_DATA=true  
+
+P2P_MODE=grpc # use grpc 
+ENABLE_MINING=true # enable mining
+
+BOOTSTRAPS=wisdom://192.168.1.142:9586 # bootstrap nodes, split by comma
+
+
+# your p2p address, provide your network ip address
+P2P_ADDRESS=wisdom://192.168.1.142:9585 
+
+# enable peers discovery
+ENABLE_DISCOVERY=true
+
+GENESIS_FILE=C:\Users\admin\wisdom-genesis-generator-test.json # genesis file
+
+VALIDATORS=C:\Users\admin\validators-test.json # initial miners
+
+SERVER_PORT=19585 # rpc port
+
+ALLOW_MINER_JOINS_ERA=1 # enable miner joins at era 1
+
+MAX_BLOCKS_PER_TRANSFER=256 # maximum blocks in a response
+
+CACHE_DIR=C:\Users\Sal\Desktop\configs\leveldb # directory for transaction pool persistence
+
+ENABLE_CODE_ASSERTION=true # enable code assertion for easy debug
+```
+
+### Run start script
+
+```shell script
+python start.py --env=local.env
+```

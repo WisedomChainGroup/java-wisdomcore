@@ -15,7 +15,7 @@ buildscript {
 
 plugins {
     id 'application'
-    id 'jacoco'
+//    id 'jacoco'
     id 'com.github.kt3k.coveralls' version '2.6.3'
     id 'com.jfrog.bintray' version '1.0'
     id 'org.ajoberstar.grgit' version '2.2.0' apply false
@@ -26,6 +26,9 @@ apply plugin: 'propdeps-maven'
 apply plugin: 'com.jfrog.artifactory-upload'
 apply plugin: 'docker'
 
+processResources{
+    exclude('genesis/wisdom-genesis-generator.json')
+}
 
 //apply plugin: 'io.spring.dependency-management'
 
@@ -50,6 +53,23 @@ sourceSets.main.java.srcDirs += generatedSrcDir
 
 tasks.withType(JavaCompile) {
     options.warnings = false
+}
+
+task runKeyStoreTool(type: JavaExec){
+    main = "org.wisdom.tools.KeyStoreTool"
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    if (project.hasProperty("appArgs")) {
+        args appArgs.split(" ")
+    }
+}
+
+task runTransactionTestTool(type: JavaExec){
+    main = "org.wisdom.tools.TransactionTestTool"
+    classpath = sourceSets.main.runtimeClasspath
+    if (project.hasProperty("appArgs")) {
+        args appArgs.split(" ")
+    }
 }
 
 task runRopsten(type: JavaExec) {
@@ -89,7 +109,6 @@ task tckRun(type: JavaExec) {
 task runCoreUser(type: JavaExec) {
     main = mainClassName
     classpath = sourceSets.main.runtimeClasspath
-    println "++++++++++++++ " + System.getProperty('ethereumj.conf.file')
     if (System.getProperty('ethereumj.conf.file') != null) {
         def confPathProperty = "-Dethereumj.conf.file=" + System.getProperty('ethereumj.conf.file')
         jvmArgs = applicationDefaultJvmArgs + confPathProperty
@@ -102,9 +121,9 @@ task runCoreUser(type: JavaExec) {
         def dbusername = "-Dspring.datasource.username=" + System.getProperty('spring.datasource.username')
         jvmArgs = jvmArgs + dbusername
     }
-    println jvmArgs
 }
 
+// bash src/main/docker/core_v2/build-docker.sh -t test
 task buildDockerJdk(type: Docker) {
     push = false
     tag = "wisdomchain/server_jre8"
@@ -113,6 +132,22 @@ task buildDockerJdk(type: Docker) {
     dockerfile = file('src/main/docker/server_jre8/Dockerfile')
 }
 
+// bash src/main/docker/server_jre8_with_dependencies/build-docker.sh -t latest
+task buildDockerJdkWithDependencies(type: Docker) {
+    push = false
+    tag = "wisdomchain/server_jre8_with_dependencies"
+    tagVersion = 'latest'
+    applicationName = 'server_jre8_with_dependencies'
+    dockerfile = file('src/main/docker/server_jre8_with_dependencies/Dockerfile')
+    doFirst {
+        copy {
+            from copyDependencies into "${stageDir}/lib"
+        }
+        copy{
+            from 'src/main/resources/genesis/wisdom-genesis-generator.json' into "${stageDir}/genesis"
+        }
+    }
+}
 
 task buildDockerCore(type: Docker, dependsOn: jar) {
     push = false
@@ -124,9 +159,6 @@ task buildDockerCore(type: Docker, dependsOn: jar) {
     doFirst {
         copy {
             from jar into stageDir
-        }
-        copy {
-            from copyDependencies into "${stageDir}/lib"
         }
         copy {
             from 'src/main/docker/core/run_wdc_core.sh' into stageDir
@@ -147,9 +179,6 @@ task buildDockerCoreTest(type: Docker, dependsOn: jar) {
     doFirst {
         copy {
             from jar into stageDir
-        }
-        copy {
-            from copyDependencies into "${stageDir}/lib"
         }
         copy {
             from 'src/main/docker/core/run_wdc_core.sh' into stageDir
@@ -240,7 +269,6 @@ ext {
 dependencies {
 
     compile "com.google.guava:guava:24.1-jre"
-    compile group: 'io.netty', name: 'netty-all', version: '4.1.30.Final'
     compile "org.slf4j:slf4j-api:${slf4jVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:2.5.1"
     compile "org.apache.commons:commons-collections4:4.0"
@@ -295,15 +323,20 @@ dependencies {
     compile group: 'org.hibernate.validator', name: 'hibernate-validator', version: '6.0.17.Final'
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.8'
 
-    compile 'io.grpc:grpc-netty-shaded:1.22.1'
-    compile 'io.grpc:grpc-protobuf:1.22.1'
-    compile 'io.grpc:grpc-stub:1.22.1'
+    compile group: 'io.netty', name: 'netty-all', version: '4.1.42.Final'
+    compile 'io.grpc:grpc-netty-shaded:1.24.0'
+    compile 'io.grpc:grpc-protobuf:1.24.0'
+    compile 'io.grpc:grpc-stub:1.24.0'
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
     compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.7'
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb-api
     compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.7'
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile group: 'com.beust', name: 'jcommander', version: '1.72'
+
+    compile fileTree(dir:'libs',include:['*.jar'])
 }
 
 
@@ -330,7 +363,8 @@ jar {
         attributes 'Class-Path': '. ' + configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
     }
 }
-jar.dependsOn += copyDependencies
+
+// jar.dependsOn += copyDependencies
 
 
 //create a single Jar with all dependencies
@@ -360,12 +394,12 @@ artifacts {
     archives javadocJar
 }
 
-jacocoTestReport {
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-}
+//jacocoTestReport {
+//    reports {
+//        xml.enabled = true
+//        html.enabled = true
+//    }
+//}
 
 def bintrayUsername = project.hasProperty('bintrayUser') ? project.bintrayUser : ''
 def bintrayPassword = project.hasProperty('bintrayKey') ? project.bintrayKey : ''

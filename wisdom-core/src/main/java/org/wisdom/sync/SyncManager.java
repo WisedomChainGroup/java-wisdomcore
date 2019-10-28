@@ -13,6 +13,7 @@ import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
+import org.wisdom.db.StateDB;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.service.Impl.CommandServiceImpl;
@@ -41,9 +42,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private int maxBlocksPerTransfer;
 
     @Autowired
-    private WisdomBlockChain bc;
-
-    @Autowired
     private Block genesis;
 
     @Autowired
@@ -55,8 +53,14 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Autowired
     private BasicRule rule;
 
+    @Autowired
+    private StateDB stateDB;
+
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
+
+    @Value("${wisdom.consensus.blocks-per-era}")
+    private int blocksPerEra;
 
     public SyncManager() {
         this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
@@ -100,7 +104,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         server.dial(ps.get(index), WisdomOuterClass.GetStatus.newBuilder().build());
         for (Block b : orphanBlocksManager.getInitials()) {
-            long startHeight = b.nHeight - maxBlocksPerTransfer + 1;
+            long startHeight = b.nHeight - blocksPerEra * 2 + 1;
             if (startHeight <= 0) {
                 startHeight = 1;
             }
@@ -118,11 +122,17 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
-        List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
-        if (blocksToSend != null && blocksToSend.size() > 0) {
-            Object resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
-            context.response(resp);
+        List<Block> blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        if (blocksToSend == null || blocksToSend.size() == 0) {
+            return;
         }
+        WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
+        List<WisdomOuterClass.Blocks> divided = Util.split(resp);
+        if (divided.size() == 0){
+            return;
+        }
+        context.response(divided.get(0));
+        divided.subList(1, divided.size()).forEach(o -> server.dial(context.getPayload().getRemote(), o));
     }
 
     private void onBlocks(Context context, PeerServer server) {
@@ -146,7 +156,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
 
         // 拉黑创世区块不相同的节点
         if (!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())) {
@@ -175,8 +185,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onGetStatus(Context context, PeerServer server) {
-        Block best = bc.currentHeader();
-        Object resp = WisdomOuterClass.Status.newBuilder()
+        Block best = stateDB.getBestBlock();
+        WisdomOuterClass.Status resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
                 .setCurrentHeight(best.nHeight)
                 .setGenesisHash(ByteString.copyFrom(genesis.getHash()))
@@ -210,6 +220,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (server == null) {
             return;
         }
+        proposalCache.put(event.getBlock().getHashHexString(), true);
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }

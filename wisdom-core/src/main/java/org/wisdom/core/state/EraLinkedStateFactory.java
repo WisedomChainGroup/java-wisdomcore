@@ -18,13 +18,7 @@
 
 package org.wisdom.core.state;
 
-import org.apache.commons.codec.binary.Hex;
-import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wisdom.encoding.BigEndian;
 
 import java.util.List;
 
@@ -32,14 +26,11 @@ import java.util.List;
  * @author sal 1564319846@qq.com
  * era linked state factory, updates per era
  */
-public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory {
+public class EraLinkedStateFactory<T extends State<T>> extends AbstractStateFactory<T> {
     private int blocksPerEra;
-    private static final Logger logger = LoggerFactory.getLogger(EraLinkedStateFactory.class);
-    private T genesisState;
 
-    public EraLinkedStateFactory(WisdomBlockChain blockChain, int cacheSize, T genesisState, int blocksPerEra) {
-        super(blockChain, cacheSize);
-        this.genesisState = genesisState;
+    public EraLinkedStateFactory(int cacheSize, T genesisState, int blocksPerEra) {
+        super(genesisState, cacheSize);
         this.blocksPerEra = blocksPerEra;
     }
 
@@ -47,20 +38,19 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
         return blocksPerEra;
     }
 
-    private long getEraAtBlockNumber(long number) {
+    public static long getEraAtBlockNumber(long number, int blocksPerEra) {
         return (number - 1) / blocksPerEra;
     }
 
-
-    private Block prevEralastBlock(Block target) {
+    private Block prevEraLast(Block target) {
         if (target.nHeight == 0) {
             return null;
         }
-        long lastHeaderNumber = getEraAtBlockNumber(target.nHeight) * blocksPerEra;
+        long lastHeaderNumber = getEraAtBlockNumber(target.nHeight, this.blocksPerEra) * blocksPerEra;
         if (lastHeaderNumber == target.nHeight - 1) {
-            return blockChain.getBlock(target.hashPrevBlock);
+            return stateDB.getHeader(target.hashPrevBlock);
         }
-        return blockChain.findAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
+        return stateDB.findAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
     }
 
     @Override
@@ -68,62 +58,44 @@ public class EraLinkedStateFactory<T extends State> extends AbstractStateFactory
         if (eraHead.nHeight == 0) {
             return genesisState;
         }
-        T t = (T) cache.get(getLRUCacheKey(eraHead.getHash()));
+        T t = cache.get(getLRUCacheKey(eraHead.getHash()));
         if (t != null) {
             return t;
         }
-        Block parentEraHead = prevEralastBlock(eraHead);
+        Block parentEraHead = prevEraLast(eraHead);
+        if (parentEraHead == null) {
+            return null;
+        }
         t = getFromCache(parentEraHead);
-        List<Block> blocks = blockChain.getAncestorBlocks(eraHead.getHash(), parentEraHead.nHeight + 1);
-        t = (T) t.copy().updateBlocks(blocks);
+        List<Block> blocks = stateDB.getAncestorBlocks(eraHead.getHash(), parentEraHead.nHeight + 1);
+        t = t.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), t);
-        return t;
+        return t.copy();
     }
 
     public T getInstance(Block block) {
         if (block == null) {
             return null;
         }
-        if (block.nHeight == 0 || getEraAtBlockNumber(block.nHeight) == 0) {
+        if (block.nHeight == 0 || getEraAtBlockNumber(block.nHeight, this.blocksPerEra) == 0) {
             return genesisState;
         }
-        Block eraHead = prevEralastBlock(block);
+        Block eraHead = prevEraLast(block);
         if (eraHead == null) {
             return null;
         }
-        State cached = getFromCache(eraHead);
+        T cached = getFromCache(eraHead);
         if (cached != null) {
-            return (T) cached;
+            return cached;
         }
         T parentEraState = getInstance(eraHead);
         if (parentEraState == null) {
             return null;
         }
-        List<Block> blocks = blockChain.getAncestorBlocks(eraHead.getHash(), eraHead.nHeight - (blocksPerEra - 1));
-        State newState = parentEraState.copy().updateBlocks(blocks);
+        List<Block> blocks = stateDB.getAncestorBlocks(eraHead.getHash(), eraHead.nHeight - (blocksPerEra - 1));
+        T newState = parentEraState.copy().updateBlocks(blocks);
         cache.put(getLRUCacheKey(eraHead.getHash()), newState);
-        return (T) newState;
-    }
-
-    public T getCurrentState() {
-        Block target = blockChain.currentHeader();
-        return getInstance(target);
-    }
-
-    // init cache when restart, avoid stack overflow
-    public void initCache() {
-        Block latest = blockChain.currentBlock();
-        if (latest.nHeight < blocksPerEra) {
-            return;
-        }
-        long latestHeight = latest.nHeight - 6 < 0 ? latest.nHeight : latest.nHeight - 6;
-        Block confirmed = blockChain.getCanonicalBlock(latestHeight);
-        long era = getEraAtBlockNumber(confirmed.nHeight);
-        T state = genesisState;
-        for (int i = 0; i < era; i++) {
-            List<Block> bks = blockChain.getCanonicalBlocks(i * blocksPerEra + 1, blocksPerEra);
-            state = (T) state.copy().updateBlocks(bks);
-            cache.put(getLRUCacheKey(bks.get(bks.size() - 1).getHash()), state);
-        }
+        return newState;
     }
 }
+

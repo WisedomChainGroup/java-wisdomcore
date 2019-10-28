@@ -23,6 +23,7 @@ import org.bouncycastle.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.core.Block;
@@ -42,16 +43,15 @@ import java.util.Map;
 // 基本规则校验 校验区块版本号，字段类型, pow，交易 merkle root
 @Component
 public class BasicRule implements BlockRule, TransactionRule {
-    @Autowired
-    MerkleRule merkleRule;
 
     @Autowired
     private WisdomBlockChain bc;
 
+    @Autowired
+    private StateDB stateDB;
+
     @Value("${wisdom.consensus.block-interval}")
     private int blockInterval;
-
-    private boolean validateIncubator;
 
     private Block genesis;
     private static javax.validation.Validator validator = Validation.byProvider(HibernateValidator.class)
@@ -66,19 +66,19 @@ public class BasicRule implements BlockRule, TransactionRule {
 
     @Override
     public Result validateBlock(Block block) {
-        Block best = bc.currentHeader();
+        Block best = stateDB.getBestBlock();
         if (block == null) {
             return Result.Error("null block");
         }
         if (Math.abs(best.nHeight - block.nHeight) > orphanHeightsRange) {
-            return Result.Error("the block height" + block.nHeight + " is too small, current height is " + best.nHeight);
+            return Result.Error("the block height " + block.nHeight + " is too small or too large, current height is " + best.nHeight);
         }
         // 区块基本校验 字段值非空
         if (validator.validate(block).size() != 0) {
             return Result.Error(validator.validate(block).toArray()[0].toString());
         }
-        // 区块时间戳必须小于当前系统时间
-        if (block.nTime > System.currentTimeMillis() / 1000) {
+        // 区块时间戳必须在一个周期的时间内
+        if (block.nTime - System.currentTimeMillis() / 1000 > blockInterval) {
             return Result.Error("the received block timestamp too large");
         }
         // 区块大小限制
@@ -101,32 +101,11 @@ public class BasicRule implements BlockRule, TransactionRule {
         if (BigEndian.compareUint256(Block.calculatePOWHash(block), block.nBits) >= 0) {
             return Result.Error("pow validate fail");
         }
-        // 梅克尔根校验
-        if (!Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
-            return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
-        }
         for (Transaction tx : block.body) {
             Result r = validateTransaction(tx);
             if (!r.isSuccess()) {
                 return r;
             }
-        }
-        try {
-            Map<String, Object> merklemap = merkleRule.validateMerkle(block.body, block.nHeight);
-            List<Account> accountList = (List<Account>) merklemap.get("account");
-            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
-            if (!Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
-                return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
-            }
-            // 交易所不校验孵化状态
-            if (!validateIncubator) {
-                return Result.SUCCESS;
-            }
-            if (!Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
-                return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
-            }
-        } catch (Exception e) {
-            return Result.Error("error occurs when validate merle hash");
         }
         return Result.SUCCESS;
     }
@@ -146,6 +125,5 @@ public class BasicRule implements BlockRule, TransactionRule {
     @Autowired
     public BasicRule(Block genesis, @Value("${node-character}") String character) {
         this.genesis = genesis;
-        this.validateIncubator = !character.equals("exchange");
     }
 }

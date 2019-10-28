@@ -19,11 +19,14 @@
 package org.wisdom.core.orm;
 
 
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.core.Block;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 public class BlockMapper implements RowMapper<Block> {
     @Override
@@ -40,7 +43,9 @@ public class BlockMapper implements RowMapper<Block> {
         header.nBits = rs.getBytes("nbits");
         header.blockNotice = rs.getBytes("block_notice");
         header.totalWeight = rs.getLong("total_weight");
-        header.setHashCache(rs.getBytes("block_hash"));
+        if (Start.ENABLE_ASSERTION){
+            Assert.isTrue(Arrays.equals(header.getHash(), rs.getBytes("block_hash")), "block in db had been modified");
+        }
         return header;
     }
 }

@@ -22,15 +22,13 @@ import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.consensus.pow.TargetState;
-import org.wisdom.consensus.pow.TargetStateFactory;
+import org.wisdom.core.state.EraLinkedStateFactory;
+import org.wisdom.db.StateDB;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 // 共识校验规则
@@ -40,19 +38,22 @@ import java.util.Optional;
 // 4. 时间戳递增
 @Component
 public class ConsensusRule implements BlockRule {
-
-    @Autowired
-    private WisdomBlockChain bc;
-
-    @Autowired
-    private TargetStateFactory factory;
+    private EraLinkedStateFactory targetStateFactory;
 
     @Autowired
     ConsensusConfig consensusConfig;
 
+    private StateDB stateDB;
+
+    @Autowired
+    public ConsensusRule(StateDB stateDB) {
+        this.stateDB = stateDB;
+        this.targetStateFactory = stateDB.getTargetStateFactory();
+    }
+
     @Override
     public Result validateBlock(Block block) {
-        Block parent = bc.getBlock(block.hashPrevBlock);
+        Block parent = stateDB.getBlock(block.hashPrevBlock);
         // 不接受孤块
         if (parent == null) {
             return Result.Error("failed to find parent block");
@@ -62,16 +63,16 @@ public class ConsensusRule implements BlockRule {
             return Result.Error("block height invalid");
         }
         // 出块在是否在合理时间内出块
-        Optional<Proposer> p = consensusConfig.getProposer(parent, block.nTime);
+        Optional<Proposer> p = stateDB.getProposersFactory().getProposer(parent, block.nTime);
         if (!p.
                 map(x -> x.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to)))
                 .orElse(false)) {
             return Result.Error("the proposer cannot propose this block");
         }
         // 难度值符合调整难度值
-        TargetState state = factory.getInstance(block);
-        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) > 0) {
-            return Result.Error("block nbits invalid");
+        TargetState state = (TargetState) targetStateFactory.getInstance(block);
+        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) != 0) {
+            return Result.Error("block at height " + block.nHeight + " nbits invalid " + Hex.encodeHexString(BigEndian.encodeUint256(state.getTarget())) + " expected " + Hex.encodeHexString(block.nBits) + " received");
         }
         return Result.SUCCESS;
     }

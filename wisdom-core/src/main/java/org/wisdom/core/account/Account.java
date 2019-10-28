@@ -39,7 +39,8 @@ public class Account {
 
     private long vote;
 
-    public Account(){}
+    public Account() {
+    }
 
     public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote) {
         this.blockHeight = blockHeight;
@@ -51,12 +52,12 @@ public class Account {
         this.vote = vote;
     }
 
-    public String getIdHexString(){
+    public String getIdHexString() {
         return Hex.encodeHexString(getId());
     }
 
     public byte[] getId() {
-        return ByteUtil.merge(pubkeyHash,BigEndian.encodeUint32(blockHeight));
+        return ByteUtil.merge(pubkeyHash, BigEndian.encodeUint32(blockHeight));
     }
 
     public void setId(byte[] id) {
@@ -117,5 +118,9 @@ public class Account {
 
     public void setVote(long vote) {
         this.vote = vote;
+    }
+
+    public Account copy() {
+        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote);
     }
 }

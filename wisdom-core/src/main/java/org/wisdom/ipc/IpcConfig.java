@@ -17,19 +17,6 @@ public class IpcConfig {
     @Value("${p2p.mode}")
     private String p2pMode;
 
-    @Value("${wisdom.ipc-config.queued-max-size}")
-    private int queuedMaxSize;
-
-    @Value("${wisdom.ipc-config.pending-max-size}")
-    private int pendingMaxSize;
-
-    // queued到pending的写入周期
-    @Value("${wisdom.ipc-config.queued_account_slot_value}")
-    private int queuedAccountSlotValue;
-
-    @Value("${wisdom.ipc-config.pending_account_slot_value}")
-    private int pendingAccountSlotValue;
-
     @Value("${wisdom.ipc-config.lifetime}")
     private long tranLifetime;
 
@@ -70,36 +57,13 @@ public class IpcConfig {
         this.p2pMode = p2pMode;
     }
 
-    public int getQueuedMaxSize() {
-        return queuedMaxSize;
-    }
 
     public void setQueuedMaxSize(int queuedMaxSize) {
-        this.queuedMaxSize = queuedMaxSize;
-    }
-
-    public int getPendingMaxSize() {
-        return pendingMaxSize;
+        configuration.setMaxqueued(queuedMaxSize);
     }
 
     public void setPendingMaxSize(int pendingMaxSize) {
-        this.pendingMaxSize = pendingMaxSize;
-    }
-
-    public int getQueuedAccountSlotValue() {
-        return queuedAccountSlotValue;
-    }
-
-    public void setQueuedAccountSlotValue(int queuedAccountSlotValue) {
-        this.queuedAccountSlotValue = queuedAccountSlotValue;
-    }
-
-    public int getPendingAccountSlotValue() {
-        return pendingAccountSlotValue;
-    }
-
-    public void setPendingAccountSlotValue(int pendingAccountSlotValue) {
-        this.pendingAccountSlotValue = pendingAccountSlotValue;
+        configuration.setMaxpending(pendingMaxSize);
     }
 
     public long getTranLifetime() {

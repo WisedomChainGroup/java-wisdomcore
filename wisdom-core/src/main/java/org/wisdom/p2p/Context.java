@@ -1,5 +1,7 @@
 package org.wisdom.p2p;
 
+import com.google.protobuf.AbstractMessage;
+
 /**
  * @author sal 1564319846@qq.com
  * wisdom protocol context for multi-thread communication
@@ -10,7 +12,7 @@ public class Context {
     boolean block;
     boolean keep;
     boolean pending;
-    Object response;
+    AbstractMessage response;
     boolean relay;
     Payload payload;
 
@@ -35,7 +37,7 @@ public class Context {
         pending = true;
     }
 
-    public void response(Object o) {
+    public void response(AbstractMessage o) {
         response = o;
     }
 

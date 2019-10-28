@@ -18,11 +18,18 @@
 
 package org.wisdom.core;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.util.Assert;
+import org.wisdom.Start;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.event.NewBestBlockEvent;
-import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.orm.BlockMapper;
 import org.wisdom.core.orm.TransactionMapper;
 import org.slf4j.Logger;
@@ -36,6 +43,7 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author sal 1564319846@qq.com
@@ -46,11 +54,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     private JdbcTemplate tmpl;
     private TransactionTemplate txTmpl;
     private Block genesis;
-    private ApplicationContext ctx;
-    private String dataname;
+
     private static final Logger logger = LoggerFactory.getLogger(RDBMSBlockChainImpl.class);
-    private BlockChainOptional blockChainOptional;
-    private boolean allowFork;
 
     private <T> T getOne(List<T> res) {
         if (res.size() == 0) {
@@ -59,26 +64,24 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return res.get(0);
     }
 
-    private void createIndices() {
-        tmpl.batchUpdate(
-                "create index if not exists header_height_index on header (height desc)",
-                "create index if not exists header_total_weight_index on header (total_weight desc)",
-                "create index if not exists account_blockheight_index on account (blockheight desc)",
-                "create index if not exists  account_pubkeyhash_index on account (pubkeyhash)",
-                "create index if not exists incubator_state_height_index on incubator_state (height desc)",
-                "create index if not exists incubator_state_txid_issue_index on incubator_state (txid_issue)",
-                "create index if not exists  account_heightpub_index on account (blockheight,pubkeyhash)",
-                "create index if not exists incubator_state_txidheight_index on incubator_state (txid_issue,height)",
-                "create index if not exists transaction_index_tx_hash_index on transaction_index (tx_hash)"
-        );
+    private void createTableAndIndices(BasicDataSource basicDataSource) throws Exception {
+        String ddl = "ddl.sql";
+        Resource resource;
+        try {
+            resource = new ClassPathResource(ddl);
+        } catch (Exception e) {
+            resource = new FileSystemResource(ddl);
+        }
+        assert resource.exists();
+        ScriptUtils.executeSqlScript(basicDataSource.getConnection(), resource);
     }
 
     public void clearData() {
-        tmpl.batchUpdate("delete  from header where 1 = 1",
-                "delete from transaction where 1 = 1",
-                "delete from transaction_index where 1 = 1",
-                "delete from account where 1 = 1",
-                "delete from incubator_state where 1 = 1");
+        tmpl.batchUpdate("drop table if exists header",
+                "drop table if exists transaction",
+                "drop table if exists transaction_index",
+                "drop table if exists account",
+                "drop table if exists incubator_state");
     }
 
     // get block body
@@ -98,23 +101,25 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return block;
     }
 
+    // reduce ios
     private List<Block> getBlocksFromHeaders(List<Block> headers) {
-        List<Block> res = new ArrayList<>();
-        for (Block h : headers) {
-            res.add(getBlockFromHeader(h));
+        if (headers.size() == 0) {
+            return new ArrayList<>();
         }
-        return res;
-    }
-
-    private long getTotalWeight(byte[] hash) {
-        try {
-            tmpl.queryForObject("select total_weight from header where block_hash = ?", new Object[]{
-                    hash
-            }, Long.class);
-        } catch (Exception e) {
-            logger.error(e.getMessage());
+        Map<String, Block> cache = new HashMap<>();
+        for (Block b : headers) {
+            cache.put(b.getHashHexString(), b);
+            b.body = new ArrayList<>();
         }
-        return 0;
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate =
+                new NamedParameterJdbcTemplate(tmpl);
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("blocksHash", headers.stream().map(Block::getHash).collect(Collectors.toList()));
+        List<Transaction> transactions = namedParameterJdbcTemplate.query("select tx.*, ti.block_hash, h.height from transaction as tx inner join transaction_index as ti on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where ti.block_hash in (:blocksHash) order by ti.tx_index", paramMap, new TransactionMapper());
+        for (Transaction tx : transactions) {
+            cache.get(Hex.encodeHexString(tx.blockHash)).body.add(tx);
+        }
+        return cache.values().stream().sorted(Comparator.comparingLong(x -> x.nHeight)).collect(Collectors.toList());
     }
 
     // write header with total weight
@@ -123,23 +128,20 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                         "(block_hash, version, hash_prev_block, " +
                         "hash_merkle_root, hash_merkle_state, hash_merkle_incubate," +
                         "height, created_at, nonce, nBits," +
-                        "block_notice, is_canonical) values (?,?,?,?,?,?,?,?,?,?,?,?)",
+                        "block_notice, is_canonical, total_weight) values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 header.getHash(), header.nVersion, header.hashPrevBlock,
                 header.hashMerkleRoot, header.hashMerkleState, header.hashMerkleIncubate, header.nHeight,
                 header.nTime, header.nNonce, header.nBits,
-                header.blockNotice, false);
+                header.blockNotice, true, header.nHeight);
     }
 
-    private void writeTotalWeight(byte[] blockHash, long totalWeight) {
-        tmpl.update("update header set total_weight = ? where block_hash = ?", totalWeight, blockHash);
-    }
-
-    private void writeTransactions(List<Transaction> txs) {
-        if (txs == null || txs.size() == 0) {
+    private void writeBody(Block block) {
+        if (block.body == null || block.size() == 0) {
             return;
         }
         List<Object[]> args0 = new ArrayList<>();
-        for (Transaction tx : txs) {
+        for (int i = 0; i < block.body.size(); i++) {
+            Transaction tx = block.body.get(i);
             args0.add(new Object[]{
                     tx.version,
                     tx.getHash(), tx.type, tx.nonce,
@@ -147,16 +149,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                     tx.payload, tx.signature, tx.to
             });
         }
+
+        // 写入 transaction 表
         tmpl.batchUpdate("insert into transaction (" +
                 "version, tx_hash, type, nonce, " +
                 "\"from\", gas_price, amount, " +
                 "payload, signature, \"to\") VALUES (?, ?,?,?,?,?,?,?,?,?) on conflict(tx_hash) do nothing", args0);
-    }
 
-    private void writeBody(Block block) {
-        if (block.body == null || block.body.size() == 0) {
-            return;
-        }
         List<Object[]> args = new ArrayList<>();
         for (int i = 0; i < block.body.size(); i++) {
             Transaction tx = block.body.get(i);
@@ -164,65 +163,21 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                     block.getHash(), tx.getHash(), i
             });
         }
+
+        // 写入 transaction_index 表
         tmpl.batchUpdate("insert into transaction_index (block_hash, tx_hash, tx_index) values (?,?,?)", args);
-        writeTransactions(block.body);
     }
 
-    private void deleteCanonical(long height) {
-        tmpl.update("update header set is_canonical = false where height = ?", height);
-    }
-
-    private void deleteCanonicals(long start, long end) {
-        tmpl.update("update header set is_canonical = false where height >= ? and height <= ?", start, end);
-    }
-
-    private void setCanonical(byte[] hash) {
-        tmpl.update("update header set is_canonical = true where block_hash = ?", new Object[]{hash});
-    }
-
-    private void setCanonicals(List<byte[]> hashes) {
-        List<Object[]> args = new ArrayList<>();
-        for (byte[] hash : hashes) {
-            args.add(new Object[]{hash});
-        }
-        tmpl.batchUpdate("update header set is_canonical = true where block_hash = ?", args);
-    }
 
     private boolean dbHasGenesis() {
         return tmpl.queryForObject("select count(*) from header where height = 0 limit 1", new Object[]{}, Integer.class) > 0;
     }
 
-    private Block findCommonAncestor(Block a, Block b) {
-        for (long bn = b.nHeight; a.nHeight > bn; ) {
-            a = getHeader(a.hashPrevBlock);
-            if (a == null) {
-                return null;
-            }
-        }
-        for (long an = a.nHeight; an < b.nHeight; ) {
-            b = getHeader(b.hashPrevBlock);
-            if (b == null) {
-                return null;
-            }
-        }
-        while (!Arrays.areEqual(a.getHash(), b.getHash())) {
-            a = getHeader(a.hashPrevBlock);
-            if (a == null) {
-                return null;
-            }
-            b = getHeader(b.hashPrevBlock);
-            if (b == null) {
-                return null;
-            }
-        }
-        return a;
-    }
 
     public void writeGenesis(Block genesis) {
         // null pointer execption
         txTmpl.execute((TransactionStatus status) -> {
             writeHeader(genesis);
-            setCanonical(genesis.getHash());
             writeBody(genesis);
             return null;
         });
@@ -242,43 +197,46 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             TransactionTemplate txTmpl,
             Block genesis,
             ApplicationContext ctx,
-            @Value("${spring.datasource.username}") String dataname,
+            @Value("${spring.datasource.username}") String databaseUserName,
             @Value("${clear-data}") boolean clearData,
-            BlockChainOptional blockChainOptional,
-            @Value("${wisdom.consensus.allow-fork}") boolean allowFork
-    ) {
+            BasicDataSource basicDataSource
+    ) throws Exception {
         this.tmpl = tmpl;
         this.txTmpl = txTmpl;
         this.genesis = genesis;
-        this.ctx = ctx;
-        this.dataname = dataname;
-        this.blockChainOptional = blockChainOptional;
-        this.allowFork = allowFork;
+
         if (clearData) {
             clearData();
         }
+
+        createTableAndIndices(basicDataSource);
         //增加account vote字段
-        if (this.dataname != null && this.dataname != "" && !this.dataname.equals("")) {
-            String sql = "ALTER TABLE account OWNER TO " + dataname;
+        if (databaseUserName != null && !databaseUserName.equals("")) {
+            String sql = "ALTER TABLE account OWNER TO " + databaseUserName;
             tmpl.execute(sql);//更换属主
         }
+
         tmpl.execute("ALTER TABLE account ADD COLUMN IF NOT EXISTS vote int8 not null DEFAULT 0");
-        createIndices();
+
+        // 重构表
+        // refactorTables();
+
+
         if (!dbHasGenesis()) {
-            clearData();
             writeGenesis(genesis);
             return;
         }
+
+        // 发现数据库的创世区块和配置文件的创世区块不一样
         Block dbGenesis = getCanonicalHeader(0);
         if (!Arrays.areEqual(dbGenesis.getHash(), genesis.getHash())) {
-            clearData();
-            writeGenesis(genesis);
+            throw new Exception("the genesis in db and genesis in config is not equal");
         }
     }
 
     @Override
     public Block currentHeader() {
-        return getOne(tmpl.query("select * from header where is_canonical = true order by total_weight desc limit 1", new BlockMapper()));
+        return getOne(tmpl.query("select * from header order by total_weight desc limit 1", new BlockMapper()));
     }
 
     @Override
@@ -299,6 +257,10 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public List<Block> getHeaders(long startHeight, int headersCount) {
         return tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, startHeight + headersCount - 1, headersCount}, new BlockMapper());
+    }
+
+    private List<Block> getHeaders(long startHeight, long stopHeight) {
+        return tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
     }
 
     @Override
@@ -331,12 +293,12 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public Block getCanonicalHeader(long num) {
-        return getOne(tmpl.query("select * from header where height = ? and is_canonical = true", new Object[]{num}, new BlockMapper()));
+        return getOne(tmpl.query("select * from header where height = ?", new Object[]{num}, new BlockMapper()));
     }
 
     @Override
     public List<Block> getCanonicalHeaders(long start, int size) {
-        return tmpl.query("select * from header where height < ? and height >= ? and is_canonical = true order by height", new Object[]{start + size, start}, new BlockMapper());
+        return tmpl.query("select * from header where height < ? and height >= ? order by height", new Object[]{start + size, start}, new BlockMapper());
     }
 
     @Override
@@ -361,115 +323,64 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public synchronized void writeBlock(Block block) {
-        Optional<Block> parent = Optional.ofNullable(block)
-                .flatMap(b -> blockChainOptional.getHeader(b.hashPrevBlock));
-        if (!parent.isPresent()) {
-            // cannot find parent, write fail
-            return;
-        }
-        Block parentHeader = parent.get();
+    public synchronized boolean writeBlock(Block block) {
+        Block parentHeader = getBlock(block.hashPrevBlock);
 
-        // 单机挖矿时防止分叉
-        if (blockChainOptional.hasBlock(block.getnHeight())
-                .orElse(true) && !allowFork) {
-            return;
+        if (parentHeader == null) {
+            return false;
         }
+
         long ptw = parentHeader.totalWeight;
-        Optional<Block> current = blockChainOptional.currentHeader();
-        Optional<Long> localTW = current.flatMap(x -> blockChainOptional.getTotalWeight(x.getHash()));
-        long externalTW = block.weight + ptw;
-        block.totalWeight = externalTW;
+        block.totalWeight = block.weight + ptw;
 
-        Optional<Boolean> isNewHeadBlock = localTW.map(x -> externalTW > x);
-        Optional<Boolean> parentIsCurrent = current.
-                map(Block::getHash)
-                .flatMap(h ->
-                        Optional.ofNullable(parentHeader.getHash())
-                                .map(y -> Arrays.areEqual(h, y))
-                );
-        Optional<Boolean> refork = isNewHeadBlock
-                .flatMap(
-                        x -> parentIsCurrent.map(y -> x && !y)
-                );
-        Optional<Block> commonAncestor = current
-                .flatMap(c ->
-                        blockChainOptional.findCommonAncestorHeader(parentHeader, c)
-                );
-        Optional<List<Block>> canonicalHeaders = commonAncestor
-                .flatMap(a ->
-                        blockChainOptional.getAncestorHeaders(parentHeader.getHash(), a.nHeight + 1)
-                );
-        if (!refork.isPresent()) {
-            return;
-        }
-        if (refork.get() && !canonicalHeaders.isPresent()) {
-            return;
-        }
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
-                writeTotalWeight(block.getHash(), block.totalWeight);
                 writeBody(block);
-                if (!isNewHeadBlock.get()) {
-                    return true;
-                }
-                if (!refork.get()) {
-                    setCanonical(block.getHash());
-                    return true;
-                }
-                // delete previous fork's canonical hash
-                deleteCanonicals(commonAncestor.get().nHeight + 1, current.get().nHeight);
-                List<byte[]> hashes = new ArrayList<>();
-                // update canonical headers
-                for (Block h : canonicalHeaders.get()) {
-                    hashes.add(h.getHash());
-                }
-                hashes.add(block.getHash());
-                setCanonicals(hashes);
             } catch (Exception e) {
                 e.printStackTrace();
                 status.setRollbackOnly();
+                e.printStackTrace();
                 return false;
             }
             return true;
         });
-        if (Optional.ofNullable(result).orElse(false)) {
-            ctx.publishEvent(new NewBlockEvent(this, block));
+        return Optional.ofNullable(result).orElse(false);
+    }
+
+
+    @Override
+    public Block findAncestorHeader(byte[] blockHash, long ancestorHeight) {
+        Block b = getAncestorHeaders(blockHash, ancestorHeight).get(0);
+        if (Start.ENABLE_ASSERTION) {
+            Assert.isTrue(b.nHeight == ancestorHeight, "wrong ancestor height");
         }
-        if (Optional.ofNullable(result).map(r -> r && isNewHeadBlock.get()).orElse(false)) {
-            ctx.publishEvent(new NewBestBlockEvent(this, block));
-        }
+        return b;
     }
 
     @Override
-    public Block findAncestorHeader(byte[] bhash, long anum) {
-        Block bHeader = getHeader(bhash);
-        while (bHeader.nHeight != anum) {
-            bHeader = getHeader(bHeader.hashPrevBlock);
+    public Block findAncestorBlock(byte[] blockHash, long minimumAncestorHeight) {
+        return getBlockFromHeader(findAncestorHeader(blockHash, minimumAncestorHeight));
+    }
+
+    @Override
+    public List<Block> getAncestorHeaders(byte[] blockHash, long minimumAncestorHeight) {
+        Block block = getHeader(blockHash);
+        if (block == null) {
+            return new ArrayList<>();
         }
-        return bHeader;
-    }
+        List<Block> blocks = new BlocksCache(getHeaders(minimumAncestorHeight, block.nHeight)).getAncestors(block);
 
-    @Override
-    public Block findAncestorBlock(byte[] bhash, long anum) {
-        return getBlockFromHeader(findAncestorHeader(bhash, anum));
-    }
-
-    @Override
-    public List<Block> getAncestorHeaders(byte[] bhash, long anum) {
-        List<Block> headers = new ArrayList<>();
-        for (Block h = getHeader(bhash); h != null && h.nHeight >= anum; ) {
-            headers.add(h);
-            h = getHeader(h.hashPrevBlock);
+        if (Start.ENABLE_ASSERTION) {
+            Assert.isTrue(blocks.size() == block.nHeight - minimumAncestorHeight + 1, "ancestors height invalid");
+            Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
         }
-        Collections.reverse(headers);
-        return headers;
+        return blocks;
     }
 
     @Override
-    public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
-        List<Block> headers = getAncestorHeaders(bhash, anum);
+    public List<Block> getAncestorBlocks(byte[] blockHash, long minimumAncestorHeight) {
+        List<Block> headers = getAncestorHeaders(blockHash, minimumAncestorHeight);
         return getBlocksFromHeaders(headers);
     }
 
@@ -481,25 +392,32 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public boolean hasTransaction(byte[] txHash) {
         return tmpl.queryForObject("select count(*) from transaction as tx " +
-                "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                "inner join header as h on ti.block_hash = h.block_hash " +
-                "where tx.tx_hash = ? and h.is_canonical = true limit 1", new Object[]{txHash}, Integer.class) > 0;
+                "where tx.tx_hash = ? limit 1", new Object[]{txHash}, Integer.class) > 0;
     }
 
     @Override
     public Transaction getTransaction(byte[] txHash) {
         return getOne(tmpl.query(
-                "select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
-                        "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                        "inner join header as h on ti.block_hash = h.block_hash" +
-                        " where tx.tx_hash = ? and h.is_canonical = true", new Object[]{txHash}, new TransactionMapper()));
+                "select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                        "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.tx_hash = ?", new Object[]{txHash}, new TransactionMapper()));
     }
 
-    public Transaction getTransactionByTo(byte[] pubKeyHash) {
-        return getOne(tmpl.query("select tx.*, h.height as height, ti.block_hash as block_hash from transaction as tx " +
-                "inner join transaction_index as ti on tx.tx_hash = ti.tx_hash " +
-                "inner join header as h on ti.block_hash = h.block_hash" +
-                " where tx.to = ? and h.is_canonical = true", new Object[]{pubKeyHash}, new TransactionMapper()));
+    public Transaction getTransactionByTo(byte[] publicKeyHash) {
+        return getOne(tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.to = ? limit 1", new Object[]{publicKeyHash}, new TransactionMapper()));
+    }
+
+    @Override
+    public Block getLastConfirmedBlock() {
+        try {
+            Long height = tmpl.queryForObject("select max(height) from header", Long.class);
+            if (height == null) {
+                return null;
+            }
+            return getCanonicalBlock(height);
+        } catch (Exception e) {
+            return genesis;
+        }
     }
 
     @Async
@@ -508,4 +426,76 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
             writeBlock(b);
         }
     }
+
+    public boolean hasPayload(byte[] payload) {
+        return tmpl.queryForObject("select count(*) from transaction as tx where tx.payload = ?  limit 1", new Object[]{payload}, Integer.class) > 0;
+    }
+
+    // 删除孤块
+
+
+    @Override
+    public List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit) {
+        return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.from = ? order by height, ti.tx_index offset ? limit ?", new Object[]{publicKey, offset, limit}, new TransactionMapper());
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByFromAndType(int type, byte[] publicKey, int offset, int limit) {
+        return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type = ? and  tx.from = ?  order by height, ti.tx_index offset ? limit ?", new Object[]{type, publicKey, offset, limit}, new TransactionMapper());
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByTo(byte[] publicKeyHash, int offset, int limit) {
+        return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.to = ? order by height, ti.tx_index offset ? limit ?", new Object[]{publicKeyHash, offset, limit}, new TransactionMapper());
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByToAndType(int type, byte[] publicKeyHash, int offset, int limit) {
+        return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type = ? and tx.to = ? order by height, ti.tx_index offset ? limit ?", new Object[]{type, publicKeyHash, offset, limit}, new TransactionMapper());
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByFromAndTo(byte[] from, byte[] to, int offset, int limit) {
+        return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.from = ? and tx.to =? order by height, ti.tx_index offset ? limit ?", new Object[]{from, to, offset, limit}, new TransactionMapper());
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit) {
+        return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type =? and tx.from = ? and tx.to =? order by height, ti.tx_index offset ? limit ?", new Object[]{type, from, to, offset, limit}, new TransactionMapper());
+    }
+
+    // 重构关系表，删除孤快，冗余 transaction_index 中字段到 transaction 表
+    private void refactorTables() {
+        // 判断是否已经重构过了
+        if (tmpl.queryForObject("SELECT count(*) " +
+                "FROM information_schema.columns " +
+                "WHERE table_name = 'transaction' and column_name = 'block_hash'", Integer.class) > 0) {
+            return;
+        }
+
+
+        // 增加列
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS block_hash bytea DEFAULT null");
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS height bigint NOT NULL DEFAULT 0");
+        tmpl.update("ALTER TABLE \"transaction\" ADD COLUMN IF NOT EXISTS tx_index bigint NOT NULL DEFAULT 0");
+
+        // 增加索引
+        tmpl.batchUpdate(
+                "create index if not exists transaction_height_index on \"transaction\" (height desc)",
+                "create index if not exists transaction_block_hash_index on \"transaction\" (block_hash)",
+                "create index if not exists transaction_tx_index_index on \"transaction\" (tx_index)"
+        );
+
+        // 对字段进行冗余
+        tmpl.update("update \"transaction\" as t set block_hash = (select ti.block_hash from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set tx_index = (select ti.tx_index from transaction_index as ti where ti.tx_hash = t.tx_hash limit 1)");
+        tmpl.update("update \"transaction\" as t set height = (select h.height from header as h where h.block_hash = t.block_hash limit 1)");
+    }
+
 }

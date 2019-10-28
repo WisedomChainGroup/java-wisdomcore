@@ -4,11 +4,14 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections.map.LinkedMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.command.Configuration;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.pool.TransPool;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,23 +19,26 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class AdoptTransPool {
 
-    private ConcurrentHashMap<String, Map<String, TransPool>> atpool;
+    @Autowired
+    Configuration configuration;
 
-    public ConcurrentHashMap<String, Map<String, TransPool>> getAtpool() {
-        return atpool;
-    }
+    @Autowired
+    private Leveldb leveldb;
+
+    // publicKeyHash -> Strings.concat(publicKeyHash, nonce) -> transaction
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
 
     public AdoptTransPool() {
-        Leveldb leveldb=new Leveldb();
-        this.atpool = new ConcurrentHashMap<>();
+        atpool = new ConcurrentHashMap<>();
         try {
-            String dbdata=leveldb.readPoolDb("QueuedPool");
-            if(dbdata!=null && !dbdata.equals("")){
-                List<Transaction> list=JSON.parseObject(dbdata,new TypeReference<ArrayList<Transaction>>() {});
+            String dbdata = leveldb.readPoolDb("QueuedPool");
+            if (dbdata != null && !dbdata.equals("")) {
+                List<Transaction> list = JSON.parseObject(dbdata, new TypeReference<ArrayList<Transaction>>() {
+                });
                 add(list);
             }
         } catch (Exception e) {
-            this.atpool = new ConcurrentHashMap<>();
+            atpool = new ConcurrentHashMap<>();
         }
     }
 
@@ -40,17 +46,31 @@ public class AdoptTransPool {
         for (Transaction t : txs) {
             String from = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(t.from)));
             if (hasExist(from)) {
-                Map<String, TransPool> map = new HashMap<>();
+                ConcurrentHashMap<String, TransPool> map = new ConcurrentHashMap<>();
                 TransPool tp = new TransPool(t, 0, new Date().getTime());
                 map.put(getKeyTrans(t), tp);
                 atpool.put(from, map);
             } else {
-                Map<String, TransPool> map = atpool.get(from);
-                TransPool tp = new TransPool(t, 0, new Date().getTime());
-                map.put(getKeyTrans(t), tp);
-                atpool.put(from, map);
+                ConcurrentHashMap<String, TransPool> map = atpool.get(from);
+                if (map.containsKey(getKeyTrans(t))) {
+                    TransPool transPool = map.get(getKeyTrans(t));
+                    Transaction transaction = transPool.getTransaction();
+                    if (transaction.type == t.type) {//同一事务才可覆盖
+                        TransPool tp = new TransPool(t, 0, new Date().getTime());
+                        map.put(getKeyTrans(t), tp);
+                        atpool.put(from, map);
+                    }
+                } else {
+                    TransPool tp = new TransPool(t, 0, new Date().getTime());
+                    map.put(getKeyTrans(t), tp);
+                    atpool.put(from, map);
+                }
             }
         }
+    }
+
+    public int size(){
+        return getAllFull().size();
     }
 
     public String getKeyTrans(Transaction t) {
@@ -64,22 +84,8 @@ public class AdoptTransPool {
         }
     }
 
-    public String getKey(TransPool transPool) {
-        if (transPool != null) {
-            return getKeyTrans(transPool.getTransaction());
-        } else {
-            return null;
-        }
-    }
-
-    public boolean hasExistQueued(String key, String key1) {
-        if (atpool.containsKey(key)) {
-            Map<String, TransPool> map = atpool.get(key);
-            if (map.containsKey(key1)) {
-                return false;
-            }
-        }
-        return true;
+    public String getKey(Transaction transaction) {
+        return getKeyTrans(transaction);
     }
 
     public boolean hasExist(String key) {
@@ -90,17 +96,21 @@ public class AdoptTransPool {
         }
     }
 
-    public void remove(Map<String, String> maps) {
+    public void remove(IdentityHashMap<String, String> maps) {
         for (Map.Entry<String, String> entry : maps.entrySet()) {
-            if (!hasExist(entry.getKey())) {
-                Map<String, TransPool> map = atpool.get(entry.getKey());
-                if (map.containsKey(entry.getValue())) {
-                    map.remove(entry.getValue());
-                    if (map.size() == 0) {
-                        atpool.remove(entry.getKey());
-                    } else {
-                        atpool.put(entry.getKey(), map);
-                    }
+            removeOne(entry.getKey(),entry.getValue());
+        }
+    }
+
+    public void removeOne(String key,String mapkey){
+        if (!hasExist(key)) {
+            ConcurrentHashMap<String, TransPool> map = atpool.get(key);
+            if (map.containsKey(mapkey)) {
+                map.remove(mapkey);
+                if (map.size() == 0) {
+                    atpool.remove(key);
+                } else {
+                    atpool.put(key, map);
                 }
             }
         }
@@ -108,21 +118,46 @@ public class AdoptTransPool {
 
     public List<TransPool> getAll() {
         List<TransPool> list = new ArrayList<>();
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             Map<String, TransPool> map = compare(entry.getValue());
             for (Map.Entry<String, TransPool> entry1 : map.entrySet()) {
                 TransPool t = entry1.getValue();
                 list.add(t);
-                break;
             }
         }
         return list;
     }
 
+    //转账、投票、撤回投票、(抵押、撤回抵押)可多nonce进入
+    public Map<String, List<TransPool>> getqueuedtopending() {
+        Map<String, List<TransPool>> map = new HashMap<>();
+        int index = 0;
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
+            List<TransPool> transPoolList = new ArrayList<>();
+            Map<String, TransPool> maps = compare(entry.getValue());
+            for (Map.Entry<String, TransPool> entry1 : maps.entrySet()) {
+                if (index < configuration.getMaxqpcount()) {
+                    TransPool t = entry1.getValue();
+                    Transaction transaction = t.getTransaction();
+                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
+                        transPoolList.add(t);
+                        index++;
+                    } else {//其他类型，保存一个退出
+                        transPoolList.add(t);
+                        index++;
+                        break;
+                    }
+                }
+            }
+            map.put(entry.getKey(), transPoolList);
+        }
+        return map;
+    }
+
     public List<TransPool> getAllFrom(String from) {
         List<TransPool> list = new ArrayList<>();
         if (!hasExist(from)) {
-            Map<String, TransPool> map = atpool.get(from);
+            ConcurrentHashMap<String, TransPool> map = atpool.get(from);
             for (Map.Entry<String, TransPool> entry : map.entrySet()) {
                 TransPool t = entry.getValue();
                 list.add(t);
@@ -133,7 +168,7 @@ public class AdoptTransPool {
 
     public List<TransPool> getAllFull() {
         List<TransPool> list = new ArrayList<>();
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             for (Map.Entry<String, TransPool> entrys : entry.getValue().entrySet()) {
                 list.add(entrys.getValue());
             }
@@ -142,7 +177,7 @@ public class AdoptTransPool {
     }
 
     public TransPool getPoolTranHash(byte[] txhash) {
-        for (Map.Entry<String, Map<String, TransPool>> entry : atpool.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             for (Map.Entry<String, TransPool> entrys : entry.getValue().entrySet()) {
                 Transaction t = entrys.getValue().getTransaction();
                 if (Arrays.equals(t.getHash(), txhash)) {
@@ -153,15 +188,9 @@ public class AdoptTransPool {
         return null;
     }
 
-    public Map<String, TransPool> getfromPool(String from) {
-        if (!hasExist(from)) {
-            return atpool.get(from);
-        }
-        return null;
-    }
-
     public Map<String, TransPool> compare(Map<String, TransPool> maps) {
-        List<Map.Entry<String, TransPool>> list = new ArrayList<>(maps.entrySet());
+        //value is not null
+        List<Map.Entry<String, TransPool>> list = new ArrayList<>(cleanvaluenull(maps).entrySet());
         Collections.sort(list, new Comparator<Map.Entry<String, TransPool>>() {
             @Override
             public int compare(Map.Entry<String, TransPool> o1, Map.Entry<String, TransPool> o2) {
@@ -175,6 +204,29 @@ public class AdoptTransPool {
             map.put(entry.getKey(), entry.getValue());
         }
         return map;
+    }
+
+    public Map<String, TransPool> cleanvaluenull(Map<String, TransPool> maps){
+        String pubhash="";
+        int index=0;
+        boolean type=false;
+        for(Map.Entry<String, TransPool> entry:maps.entrySet()){
+            if(entry.getValue()==null){
+                type=true;
+                maps.remove(entry.getKey());
+            }
+            if(index==0){
+                TransPool transPool=entry.getValue();
+                Transaction transaction=transPool.getTransaction();
+                byte[] from=transaction.from;
+                pubhash=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
+                index++;
+            }
+        }
+        if(!pubhash.equals("") && pubhash!="" && type){
+            atpool.put(pubhash, (ConcurrentHashMap<String, TransPool>) maps);
+        }
+        return maps;
     }
 
 
@@ -229,3 +281,4 @@ public class AdoptTransPool {
         }
     }*/
 }
+

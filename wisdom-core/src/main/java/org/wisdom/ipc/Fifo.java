@@ -16,7 +16,7 @@ import org.springframework.context.ApplicationListener;
 
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.Controller.RPCClient;
+import org.wisdom.controller.RPCClient;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
@@ -31,7 +31,6 @@ import java.io.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 
 @Component
@@ -113,16 +112,26 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private void initFifo() throws IOException, InterruptedException {
-        File readFile = new File("/ipc/pipe.in");
+        String dir = CreateFifoDir();
+        File readFile = new File(dir + File.separator + "pipe.in");
         if (!readFile.exists()) {
-            readFile = createFifoPipe("/ipc/pipe.in");
+            readFile = createFifoPipe(dir + File.separator + "pipe.in");
         }
-        File writeFile = new File("/ipc/pipe.out");
+        File writeFile = new File(dir + File.separator + "pipe.out");
         if (!writeFile.exists()) {
-            writeFile = createFifoPipe("/ipc/pipe.out");
+            writeFile = createFifoPipe(dir + File.separator + "pipe.out");
         }
         reader = new FileReader(readFile);
         writer = new FileWriter(writeFile);
+    }
+
+    private String CreateFifoDir() {
+        File filePath = new File(System.getProperty("user.home") + File.separator + "ipc");
+        //判断该文件夹是否已存在
+        if (!filePath.exists()) {
+            filePath.mkdirs();
+        }
+        return filePath.getAbsolutePath();
     }
 
     private void closeFifo() throws IOException {
@@ -205,8 +214,24 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return modifyFeeLimit(message);
             case "setP2PMode":
                 return setP2PMode(message);
+            case "setQueuedMaxSize":
+                return setQueuedMaxSize(message);
+            case "setPendingMaxSize":
+                return setPendingMaxSize(message);
         }
         return "";
+    }
+
+    private String setPendingMaxSize(String message) {
+        int pendingMaxSize = Integer.parseInt(message);
+        ipcConfig.setPendingMaxSize(pendingMaxSize);
+        return ModifySuccess;
+    }
+
+    private String setQueuedMaxSize(String message) {
+        int queuedMaxSize = Integer.parseInt(message);
+        ipcConfig.setQueuedMaxSize(queuedMaxSize);
+        return ModifySuccess;
     }
 
     private String setP2PMode(String message) {

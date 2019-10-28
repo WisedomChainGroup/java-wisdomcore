@@ -17,6 +17,7 @@
  */
 
 package org.wisdom.core.validate;
+
 import org.wisdom.core.Block;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Component
-public class CompositeBlockRule implements BlockRule{
+public class CompositeBlockRule implements BlockRule {
 
     private List<BlockRule> rulers;
 
@@ -49,27 +50,27 @@ public class CompositeBlockRule implements BlockRule{
     @Autowired
     private SignatureRule signatureRule;
 
-    public void addRule(BlockRule... rules){
+    public void addRule(BlockRule... rules) {
         Collections.addAll(rulers, rules);
     }
 
     @Override
     public Result validateBlock(Block block) {
-        for(BlockRule r: rulers){
+        for (BlockRule r : rulers) {
             Result res = r.validateBlock(block);
-            if (!res.isSuccess()){
+            if (!res.isSuccess()) {
                 return res;
             }
         }
         return Result.SUCCESS;
     }
 
-    public CompositeBlockRule(){
+    public CompositeBlockRule() {
         rulers = new ArrayList<>();
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         addRule(basicRule, addressRule, coinbaseRule, consensusRule, signatureRule, accountRule);
     }
 }

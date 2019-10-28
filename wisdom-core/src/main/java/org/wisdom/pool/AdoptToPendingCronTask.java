@@ -1,8 +1,5 @@
 package org.wisdom.pool;
 
-import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
@@ -11,19 +8,14 @@ import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.ipc.IpcConfig;
-import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 @Component
@@ -40,9 +32,6 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
     PeningTransPool peningTransPool;
 
     @Autowired
-    WisdomBlockChain wisdomBlockChain;
-
-    @Autowired
     Configuration configuration;
 
     @Autowired
@@ -54,58 +43,48 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    TransactionCheck transactionCheck;
+
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.addTriggerTask(() -> {
-            List<TransPool> list = adoptTransPool.getAll();
-            long nowheight = wisdomBlockChain.currentHeader().nHeight;
-            Map<String, String> maps = new HashMap<>();
+            Map<String, List<TransPool>> map = adoptTransPool.getqueuedtopending();
+            IdentityHashMap<String, String> maps = new IdentityHashMap<>();
             List<TransPool> newlist = new ArrayList<>();
-            int index = 1;
-            for (TransPool t : list) {
-                Transaction tran = t.getTransaction();
-                String fromhex=Hex.encodeHexString(tran.from);
-                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                long nownonce = accountDB.getNonce(frompubhash);
-                long nonce = tran.nonce;
-                if (nonce > nownonce) {
-                    boolean statue=true;
-                    //判断pendingnonce是否存在 状态不为2的地址
-                    Map<String, PendingNonce> noncemap=peningTransPool.getPtnonce();
-                    if(noncemap.containsKey(fromhex)){
-                        PendingNonce pendingNonce=noncemap.get(fromhex);
-                        int state=pendingNonce.getState();
-                        if(state!=2){
-                            statue=false;
-                        }
-                    }
-                    if(statue){
-                        if (TransactionCheck.checkoutPool(tran, wisdomBlockChain, configuration, accountDB, incubatorDB, rateTable, nowheight)) {
-                            if (index > 5000) {
-                                break;
-                            } else {
-                                maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
-                                newlist.add(t);
+            int index = peningTransPool.size();
+            boolean state = false;
+            for (Map.Entry<String, List<TransPool>> entry : map.entrySet()) {
+                //判断pendingnonce是否存在 状态不为2的地址
+                PendingNonce pendingNonce = peningTransPool.findptnonce(entry.getKey());
+                if (pendingNonce.getState() == 2) {
+                    List<TransPool> list = entry.getValue();
+                    for (TransPool transPool : list) {
+                        Transaction transaction = transPool.getTransaction();
+                        if (pendingNonce.getNonce() < transaction.nonce) {
+                            Incubator incubator=null;
+                            if(transaction.type==0x0a || transaction.type==0x0b || transaction.type==0x0c){
+                                incubator=incubatorDB.selectIncubator(transaction.payload);
+                            }
+                            if (transactionCheck.checkoutPool(transaction,incubator)) {
+                                //超过pending上限
+                                if (index > configuration.getMaxpending()) {
+                                    state = true;
+                                    break;
+                                }
+                                newlist.add(transPool);
                                 index++;
                             }
-                        } else {
-                            maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
                         }
+                        maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
                     }
-                } else if (nonce <= nownonce) {
-                    if (index > 5000) {
+                    if (state) {
                         break;
-                    } else {
-                        maps.put(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from))), adoptTransPool.getKey(t));
                     }
                 }
             }
-            if (maps.size() > 0) {
-                adoptTransPool.remove(maps);
-            }
-            if (newlist.size() > 0) {
-                peningTransPool.add(newlist);
-            }
+            adoptTransPool.remove(maps);
+            peningTransPool.add(newlist);
         }, triggerContext -> {
             //任务触发，可修改任务的执行周期
             CronTrigger trigger = new CronTrigger(ipcConfig.getQueuedToPendingCycle());
@@ -113,3 +92,5 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
         });
     }
 }
+
+

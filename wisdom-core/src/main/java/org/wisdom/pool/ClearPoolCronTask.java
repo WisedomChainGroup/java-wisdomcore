@@ -45,7 +45,7 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
         taskRegistrar.addTriggerTask(() -> {
             //adoptTransPool
             List<TransPool> list = adoptTransPool.getAll();
-            Map<String, String> maps = new HashMap<>();
+            IdentityHashMap<String, String> maps = new IdentityHashMap<>();
             for (TransPool transPool : list) {
                 Transaction t = transPool.getTransaction();
                 long nonce = t.nonce;
@@ -54,18 +54,18 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
                 //nonce
                 long nownonce = accountDB.getNonce(frompubhash);
                 if (nownonce >= nonce) {
-                    maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
+                    maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                     continue;
                 }
                 long daysBetween = (new Date().getTime() - transPool.getDatetime()) / (60 * 60 * 1000);
                 if (daysBetween >= configuration.getPoolcleardays()) {
-                    maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
+                    maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                     continue;
                 }
                 //db
                 Transaction transaction = wisdomBlockChain.getTransaction(t.getHash());
                 if (transaction != null) {
-                    maps.put(Hex.encodeHexString(frompubhash), adoptTransPool.getKeyTrans(t));
+                    maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                 }
             }
             if (maps.size() > 0) {
@@ -73,33 +73,28 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
             }
             //peningTransPool
             List<TransPool> pendinglist = peningTransPool.getAll();
-            List<String> pendinglists = new ArrayList<>();
             List<Transaction> updatelist = new ArrayList<>();
-            Map<String, Long> map = new HashMap<>();
+            IdentityHashMap<String, Long> map = new IdentityHashMap<>();
             for (TransPool transPool : pendinglist) {
                 Transaction t = transPool.getTransaction();
                 long nonce = t.nonce;
                 byte[] from = t.from;
-                String fromhex = Hex.encodeHexString(from);
                 byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(from));
                 //nonce
                 long nownonce = accountDB.getNonce(frompubhash);
                 if (nownonce >= nonce) {
-                    pendinglists.add(peningTransPool.getKeyTrans(t));
-                    map.put(fromhex, t.nonce);
+                    map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                     continue;
                 }
                 long daysBetween = (new Date().getTime() - transPool.getDatetime()) / (60 * 60 * 1000);
                 if (daysBetween >= configuration.getPoolcleardays()) {
-                    pendinglists.add(peningTransPool.getKeyTrans(t));
-                    map.put(fromhex, t.nonce);
+                    map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                     continue;
                 }
                 //db
                 Transaction transaction = wisdomBlockChain.getTransaction(t.getHash());
                 if (transaction != null) {
-                    pendinglists.add(peningTransPool.getKeyTrans(t));
-                    map.put(fromhex, t.nonce);
+                    map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                     continue;
                 }
                 //高度
@@ -126,8 +121,8 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
             if (updatelist.size() > 0) {
                 peningTransPool.updatePool(updatelist, 0, 0);
             }
-            if (pendinglists.size() > 0) {
-                peningTransPool.remove(pendinglists, map);
+            if (map.size() > 0) {
+                peningTransPool.remove(map);
             }
         }, triggerContext -> {
             //任务触发，可修改任务的执行周期

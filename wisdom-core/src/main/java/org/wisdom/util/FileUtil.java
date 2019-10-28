@@ -18,6 +18,8 @@
 
 package org.wisdom.util;
 
+import org.wisdom.core.state.State;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -77,5 +79,4 @@ public class FileUtil {
             return false;
         }
     }
-
 }

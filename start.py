@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 # require
-# pip3 install -U "python-dotenv[cli]"
+# pip install -U "python-dotenv[cli]"
 
-# usage python3 start.py --env rest.env
+# usage python start.py
 
 import os
 import argparse
@@ -14,7 +14,11 @@ parser.add_argument('-e', '--env', default="local.env", type=str, help="env file
 args = vars(parser.parse_args())
 load_dotenv(dotenv_path=args['env'])
 
-os.system("./gradlew run")
+if os.name == 'nt':
+    os.system(".\gradlew.bat run")
+else:
+    os.system("./gradlew run")
+
 
 
 

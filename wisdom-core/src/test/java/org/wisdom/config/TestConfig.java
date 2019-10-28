@@ -73,7 +73,7 @@ public class TestConfig {
     }
 
     @Bean
-    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) {
+    public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) throws Exception {
         return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx, "", true, blockChainOptional, true);
     }
 
@@ -85,6 +85,6 @@ public class TestConfig {
     @Bean
     @Scope("prototype")
     public KeyPair getKeyPair() {
-        return Ed25519.GenerateKeyPair();
+        return Ed25519.generateKeyPair();
     }
 }

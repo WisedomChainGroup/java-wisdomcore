@@ -2,75 +2,89 @@ package org.wisdom.db;
 
 import org.iq80.leveldb.*;
 import org.iq80.leveldb.impl.Iq80DBFactory;
+import org.iq80.leveldb.util.FileUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+@Component
 public class Leveldb {
 
-    private DB db;
-    private Charset CHARSET;
-    private String path;
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
     private File file;
     private Options options;
 
-    public Leveldb() {
-        this.db = null;
-        this.CHARSET = StandardCharsets.UTF_8;
-        this.path = System.getProperty("user.dir") + File.separator + "leveldb";
-        this.file = new File(path);
-        options = new Options();
+    public Leveldb(@Value("${wisdom.cache-dir}") String cacheDir, @Value("${clear-cache}") boolean clearCache) throws Exception {
+        if (cacheDir == null || cacheDir.equals("")) {
+            cacheDir = System.getProperty("user.dir") + File.separator + "leveldb";
+        }
+        file = new File(cacheDir);
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+        if(!file.isDirectory()){
+            throw new Exception(file.getName() + " is not directory");
+        }
+        if (clearCache) {
+            FileUtils.deleteDirectoryContents(file);
+        }
+        this.options = new Options();
+
     }
 
     public void addPoolDb(String key, String noncepoolval) {
-        try {
-            DBFactory factory = new Iq80DBFactory();
-            options.createIfMissing(true);
-            this.db = factory.open(file, options);
-            byte[] keyByte = key.getBytes(CHARSET);
-            // 会写入磁盘中
-            this.db.put(keyByte, noncepoolval.getBytes(CHARSET));
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (db != null) {
-                try {
-                    db.close();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-        }
+        write(key.getBytes(CHARSET), noncepoolval.getBytes(CHARSET));
     }
 
     public String readPoolDb(String key) {
-        String noncepool = "";
+        byte[] res = read(key.getBytes(CHARSET));
+        if (res != null && res.length > 0) {
+            return new String(res);
+        }
+        return "";
+    }
+
+    public void write(byte[] key, byte[] value) {
+        DB db = null;
         try {
             DBFactory factory = new Iq80DBFactory();
-            options.createIfMissing(true);
-            this.db = factory.open(file, options);
-            byte[] valueByte = db.get(key.getBytes(CHARSET));
-            if (valueByte != null && valueByte.length > 0) {
-                return new String(valueByte);
-            }
+            db = factory.open(file, options);
+            // 会写入磁盘中
+            db.put(key, value);
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } finally {
             if (db != null) {
                 try {
                     db.close();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
         }
-        return noncepool;
     }
 
-
+    public byte[] read(byte[] key) {
+        DB db = null;
+        try {
+            DBFactory factory = new Iq80DBFactory();
+            db = factory.open(file, options);
+            return db.get(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            if (db != null) {
+                try {
+                    db.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }

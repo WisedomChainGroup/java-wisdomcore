@@ -64,7 +64,7 @@ public interface WisdomBlockChain {
     boolean isCanonical(byte[] hash);
 
     // write the block to the database
-    void writeBlock(Block block);
+    boolean writeBlock(Block block);
 
     // find b's ancestor header at height of anum
     Block findAncestorHeader(byte[] bhash, long anum);
@@ -81,9 +81,25 @@ public interface WisdomBlockChain {
 
     boolean hasTransaction(byte[] txHash);
 
+    boolean hasPayload(byte[] payload);
+
     Transaction getTransaction(byte[] txHash);
 
     void writeBlocksAsync(List<Block> blocks);
 
     Transaction getTransactionByTo(byte[] pubKeyHash);
+
+    List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit);
+
+    List<Transaction> getTransactionsByFromAndType(int type, byte[] publicKey, int offset, int limit);
+
+    List<Transaction> getTransactionsByTo(byte[] publicKeyHash, int offset, int limit);
+
+    List<Transaction> getTransactionsByToAndType(int type, byte[] publicKeyHash, int offset, int limit);
+
+    List<Transaction> getTransactionsByFromAndTo(byte[] from, byte[] to, int offset, int limit);
+
+    List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit);
+
+    Block getLastConfirmedBlock();
 }

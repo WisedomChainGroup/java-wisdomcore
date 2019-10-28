@@ -7,6 +7,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +80,7 @@ public class JSONEncodeDecoderTest {
 
     @Test
     public void testEncodeHashes(){
-        List<byte[]> hashes = new ArrayList();
+        List<byte[]> hashes = new ArrayList<>();
         hashes.add(testHash);
         hashes.add(testHash);
         hashes.add(testHash);
@@ -87,10 +89,15 @@ public class JSONEncodeDecoderTest {
 
     @Test
     public void testdecodeHashes(){
-        List<byte[]> hashes = new ArrayList();
+        List<byte[]> hashes = new ArrayList<>();
         hashes.add(testHash);
         hashes.add(testHash);
         hashes.add(testHash);
         System.out.println(new String(encodeDecoder.encodeHashes(encodeDecoder.decodeHashes(encodeDecoder.encodeHashes(hashes)))));
+    }
+
+    @Test
+    public void test3() throws Exception{
+        System.out.println(Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(Hex.decodeHex("7ddf093b90c62b0b698f6ee1e78c499ed38fabaf15fe5f78aac6e20def11f051")))));
     }
 }

@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -61,12 +62,34 @@ public class IncubatorDB {
         }
     }
 
+    public List<Incubator> selectList(byte[] pubkeyhash){
+        try {
+            String sql = "select s.* from incubator_state s left join (\n" +
+                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.pubkeyhash=? and i.cost>=0 group by i.txid_issue) aa\n" +
+                    "on s.txid_issue=aa.txid_issue where s.height=aa.height";
+            return tmpl.query(sql, new Object[]{pubkeyhash}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    public List<Incubator> selectShareList(byte[] pubkeyhash){
+        try {
+            String sql = "select s.* from incubator_state s left join (\n" +
+                    "select i.txid_issue,max(i.height) as height from incubator_state i where i.share_pubkeyhash=? and i.share_amount>=0 group by i.txid_issue) aa\n" +
+                    "on s.txid_issue=aa.txid_issue where s.height=aa.height";
+            return tmpl.query(sql, new Object[]{pubkeyhash}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
 
     public int insertIncubator(Incubator incubator) {
         try {
             String sql = "insert into incubator_state VALUES(?,?,?,?,?,?,?,?,?,?)";
             return tmpl.update(sql, new Object[]{incubator.getId(), incubator.getShare_pubkeyhash(), incubator.getPubkeyhash(), incubator.getTxid_issue(), incubator.getHeight(), incubator.getCost(), incubator.getInterest_amount(), incubator.getShare_pubkeyhash(), incubator.getLast_blockheight_interest(), incubator.getLast_blockheight_share()});
         } catch (Exception e) {
+            e.printStackTrace();
             return 0;
         }
     }
@@ -76,6 +99,7 @@ public class IncubatorDB {
             String sql = "insert into incubator_state(id,share_pubkeyhash,pubkeyhash,txid_issue,height,cost,interest_amount,share_amount,last_blockheight_interest,last_blockheight_share) VALUES(?,?,?,?,?,?,?,?,?,?) on conflict(id) do nothing";
             return tmpl.batchUpdate(sql, Object);
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
