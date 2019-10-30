@@ -26,6 +26,7 @@ import org.wisdom.p2p.PeerServer;
 import org.wisdom.service.CommandService;
 import org.wisdom.service.HatchService;
 import org.wisdom.sync.TransactionHandler;
+import org.wisdom.util.JWTUtil;
 
 import java.io.*;
 import java.util.Collections;
@@ -218,8 +219,15 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
                 return setQueuedMaxSize(message);
             case "setPendingMaxSize":
                 return setPendingMaxSize(message);
+            case "getJWTToken":
+                return getJWTToken(message);
         }
         return "";
+    }
+
+    private String getJWTToken(String message) {
+        long ttlMillis = Long.parseLong(message);
+        return "JWT Token is: " + JWTUtil.createJWT(ttlMillis);
     }
 
     private String setPendingMaxSize(String message) {
