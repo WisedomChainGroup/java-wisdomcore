@@ -56,10 +56,10 @@ public class JWTUtil {
             Claims claims = Jwts.parser()
                     .setSigningKey(DatatypeConverter.parseBase64Binary(APP_ID + APP_SECRET))
                     .parseClaimsJws(jwt).getBody();
-            System.out.println("ID: " + claims.getId());
-            System.out.println("Subject: " + claims.getSubject());
-            System.out.println("Issuer: " + claims.getIssuer());
-            System.out.println("Expiration: " + claims.getExpiration());
+//            System.out.println("ID: " + claims.getId());
+//            System.out.println("Subject: " + claims.getSubject());
+//            System.out.println("Issuer: " + claims.getIssuer());
+//            System.out.println("Expiration: " + claims.getExpiration());
         }catch (Exception e){
             return false;
         }
