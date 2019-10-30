@@ -14,9 +14,9 @@ print("Welcome to the IPC client!!!")
 
 def select():
     print("Please choose the operation：")
-    print("A:Send transaction \nB:Modify the operating parameters \nC:Get node information \nD:Node book information")
-    choice = raw_input('input A, B, C or D :')
-    if choice not in ('A','B','C','D'):
+    print("A:Send transaction \nB:Modify the operating parameters \nC:Get node information \nD:Node book information \nE:Generate JWT Token")
+    choice = raw_input('input A, B, C , D or E:')
+    if choice not in ('A','B','C','D','E'):
         return select()
     return choice
 
@@ -28,7 +28,7 @@ def DA():
     s = os.read(rf, 1024)
     print ("received msg: %s" % s)
     time.sleep(1)
-    os.close(rf)    
+    os.close(rf)
 
 def DB():
     publicKeyHash = raw_input('input publicKeyHash:')
@@ -114,7 +114,7 @@ def BA():
     os.close(rf)
 
 def BB():
-    print("BB")    
+    print("BB")
 
 def BC():
     print("Please enter whether only the native client can connect to false/true, if true, rpc will be disabled")
@@ -136,7 +136,7 @@ def BE():
     global mode
     if isRpc:
         mode = 'rest'
-    else:            
+    else:
         mode = 'grpc'
     message = json.dumps({'type':'setP2PMode','message':mode})
     os.write(wf, message)
@@ -144,7 +144,7 @@ def BE():
     s = os.read(rf, 1024)
     print ("received msg: %s" % s)
     time.sleep(1)
-    os.close(rf)    
+    os.close(rf)
 
 def BF():
     print("Whether to support gpc, true / false, true switch to grpc, false switch to rpc")
@@ -152,7 +152,7 @@ def BF():
     global mode
     if isGrpc:
         mode = 'grpc'
-    else:            
+    else:
         mode = 'rest'
     message = json.dumps({'type':'setP2PMode','message':mode})
     os.write(wf, message)
@@ -219,7 +219,7 @@ def BL():
     s = os.read(rf, 1024)
     print ("received msg: %s" % s)
     time.sleep(1)
-    os.close(rf)                        
+    os.close(rf)
 
 
 def A():
@@ -247,7 +247,7 @@ def B():
     if choice == 'C':
         BC()
     if choice == 'D':
-        BD()    
+        BD()
     if choice == 'E':
         BE()
     if choice == 'F':
@@ -263,7 +263,7 @@ def B():
     if choice == 'K':
         BK()
     if choice == 'L':
-        BL()    
+        BL()
 
 
 def C():
@@ -289,7 +289,7 @@ def D():
     if choice == 'C':
         DC()
     if choice == 'D':
-        DD()    
+        DD()
     if choice == 'E':
         DE()
     if choice == 'F':
@@ -299,13 +299,25 @@ def D():
     if choice == 'H':
         DH()
 
+def E():
+    print("Please enter expiration time,One hour is 1000 * 60 * 60 ,in the format:3600000")
+    milliseconds = raw_input('input expiration time in milliseconds:')
+    message = json.dumps({'type':'getJWTToken','message':milliseconds})
+    os.write(wf, message)
+    print ("sent msg: %s" % message)
+    s = os.read(rf, 1024)
+    print ("received msg: %s" % s)
+    time.sleep(1)
+    os.close(rf)
+
 value = select()
 
 switch = {
     "A":A,
     "B":B,
     "C":C,
-    "D":D
+    "D":D,
+    "E":E
 }
 
 try:
