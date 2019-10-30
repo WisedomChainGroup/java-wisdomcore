@@ -335,6 +335,9 @@ dependencies {
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
     compile group: 'com.beust', name: 'jcommander', version: '1.72'
+    compile group: 'io.jsonwebtoken', name: 'jjwt-api', version: '0.10.5'
+    compile group: 'io.jsonwebtoken', name: 'jjwt-impl', version: '0.10.5'
+    compile group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.10.5'
 
     compile fileTree(dir:'libs',include:['*.jar'])
 }
