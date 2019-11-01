@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.EraLinkedStateFactory;
@@ -35,12 +36,24 @@ public class ProposersState implements State<ProposersState> {
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
     private static final long ATTENUATION_ERAS = 2160;
 
+    public static class Vote {
+        public PublicKeyHash from;
+        public long amount;
+        public long accumulated;
+
+        public Vote(PublicKeyHash from, long amount, long accumulated) {
+            this.from = from;
+            this.amount = amount;
+            this.accumulated = accumulated;
+        }
+    }
+
     public static class Proposer {
         public long mortgage;
 
         // transaction hash -> votes
         @JsonIgnore
-        private Map<String, Long> receivedVotes;
+        private Map<String, Vote> receivedVotes;
 
         @JsonIgnore
         // transaction hash -> count
@@ -56,7 +69,7 @@ public class ProposersState implements State<ProposersState> {
             erasCounter = new HashMap<>();
         }
 
-        Proposer(long mortgage, String publicKeyHash, Map<String, Long> receivedVotes, Map<String, Long> erasCounter) {
+        Proposer(long mortgage, String publicKeyHash, Map<String, Vote> receivedVotes, Map<String, Long> erasCounter) {
             this.mortgage = mortgage;
             this.publicKeyHash = publicKeyHash;
             this.receivedVotes = receivedVotes;
@@ -75,8 +88,12 @@ public class ProposersState implements State<ProposersState> {
             if (votesCache != null) {
                 return votesCache;
             }
-            this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            this.votesCache = receivedVotes.values().stream().map(v -> v.accumulated).reduce(Long::sum).orElse(0L);
             return this.votesCache;
+        }
+
+        public Map<String, Vote> getReceivedVotes(){
+            return receivedVotes;
         }
 
         void increaseEraCounters() {
@@ -90,11 +107,15 @@ public class ProposersState implements State<ProposersState> {
                     continue;
                 }
                 erasCounter.put(k, 0L);
-                receivedVotes.put(k,
-                        new BigFraction(receivedVotes.get(k), 1L)
-                                .multiply(ATTENUATION_COEFFICIENT)
-                                .longValue()
-                );
+                Vote v = receivedVotes.get(k);
+                Vote v2 = new Vote(v.from, v.amount, new BigFraction(receivedVotes.get(k).accumulated, 1L)
+                        .multiply(ATTENUATION_COEFFICIENT)
+                        .longValue());
+                if (v2.accumulated == 0) {
+                    receivedVotes.remove(k);
+                    continue;
+                }
+                receivedVotes.put(k, v2);
             }
         }
 
@@ -102,7 +123,7 @@ public class ProposersState implements State<ProposersState> {
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
-                    receivedVotes.put(tx.getHashHexString(), tx.amount);
+                    receivedVotes.put(tx.getHashHexString(), new Vote(PublicKeyHash.fromPublicKey(tx.from), tx.amount, tx.amount));
                     erasCounter.put(tx.getHashHexString(), 0L);
                     clearVotesCache();
                     return;
