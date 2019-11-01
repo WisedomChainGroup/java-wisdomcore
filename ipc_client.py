@@ -114,9 +114,6 @@ def BA():
     os.close(rf)
 
 def BB():
-    print("BB")
-
-def BC():
     print("Please enter whether only the native client can connect to false/true, if true, rpc will be disabled")
     isLocalOnly = raw_input('input false or true:')
     message = json.dumps({'type':'setIsLocalOnly','message':isLocalOnly})
@@ -127,10 +124,7 @@ def BC():
     time.sleep(1)
     os.close(rf)
 
-def BD():
-    print("BD")
-
-def BE():
+def BC():
     print("Whether to support json-rpc, true/false, true switch to rpc, false switch to grpc")
     isRpc = bool(raw_input('input true or false:'))
     global mode
@@ -146,7 +140,7 @@ def BE():
     time.sleep(1)
     os.close(rf)
 
-def BF():
+def BD():
     print("Whether to support gpc, true / false, true switch to grpc, false switch to rpc")
     isGrpc = bool(raw_input('input true or false:'))
     global mode
@@ -162,7 +156,7 @@ def BF():
     time.sleep(1)
     os.close(rf)
 
-def BG():
+def BE():
     print("Modify the transaction limit of the queued queue. The default is 60000.")
     queuedLimit = raw_input('input queued limit:')
     message = json.dumps({'type':'setQueuedMaxSize','message':queuedLimit})
@@ -173,7 +167,7 @@ def BG():
     time.sleep(1)
     os.close(rf)
 
-def BH():
+def BF():
     print("Modify the transaction limit of the pending queue. The default is 30000.")
     pendingLimit = raw_input('input pending limit:')
     message = json.dumps({'type':'setPendingMaxSize','message':pendingLimit})
@@ -184,10 +178,7 @@ def BH():
     time.sleep(1)
     os.close(rf)
 
-def BI():
-    print("BI")
-
-def BJ():
+def BG():
     print("Please enter the transaction into the memory pool minimum fee, the default is 200000")
     feeLimit = raw_input('input feeLimit:')
     message = json.dumps({'type':'modifyFeeLimit','message':feeLimit})
@@ -198,7 +189,7 @@ def BJ():
     time.sleep(1)
     os.close(rf)
 
-def BK():
+def BH():
     print("Please enter a write cycle that is queued to pending, in the format: */5 * * * * ?")
     queuedToPendingCycle = raw_input('input queuedToPendingCycle:')
     message = json.dumps({'type':'modifyQueuedToPendingCycle','message':queuedToPendingCycle})
@@ -210,7 +201,7 @@ def BK():
     os.close(rf)
 
 
-def BL():
+def BI():
     print("The cleanup cycle of queued and pending, in the format: 0 */1 * * * ?")
     clearCycle = raw_input('input clearCycle:')
     message = json.dumps({'type':'modifyClearCycle','message':clearCycle})
@@ -234,9 +225,9 @@ def A():
 
 def B():
     print("Please choose the operation：")
-    print("A:Modify version \nB:Modify the number of network nodes that are allowed to connect the most \nC:Modify whether only native clients can connect \nD:The number of blocks obtained in one-time request when modifying the sync block")
-    print("E:Whether to support json-rpc \nF:Whether to support grpc \nG:Modify the transaction limit of the queued queue \nH:Modify the transaction limit of the pending queue")
-    print("I:Modify the expiration time of the transaction \nJ:Modify the transaction into the memory pool minimum fee \nK:Queued to pending write cycle \nL:Queued and pending cleaning cycles")
+    print("A:Modify version \nB:Modify whether only native clients can connect")
+    print("C:Whether to support json-rpc \nD:Whether to support grpc \nE:Modify the transaction limit of the queued queue \nF:Modify the transaction limit of the pending queue")
+    print("G:Modify the transaction into the memory pool minimum fee \nH:Queued to pending write cycle \nI:Queued and pending cleaning cycles")
     choice = raw_input('input A ~ L :')
     if choice not in ('A','B','C','D','E','F','G','H','I','J','K','L'):
         B()
@@ -258,13 +249,6 @@ def B():
         BH()
     if choice == 'I':
         BI()
-    if choice == 'J':
-        BJ()
-    if choice == 'K':
-        BK()
-    if choice == 'L':
-        BL()
-
 
 def C():
     message = json.dumps({'type':'getNodeInfo','message':""})
