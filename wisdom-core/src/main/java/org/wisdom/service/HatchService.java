@@ -34,9 +34,18 @@ public interface HatchService {
 
     Object getCost(int height);
 
+    Object getVote(int height);
+
+    Object getCancelVote(int height);
+
+    Object getMortgage(int height);
+
+    Object getCancelMortgage(int height);
+
     Object getNowInterest(String tranhash);
 
     Object getNowShare(String tranhash);
 
     Object getTxrecordFromAddress(String address);
+
 }

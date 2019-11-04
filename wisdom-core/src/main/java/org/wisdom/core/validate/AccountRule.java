@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.PackageMiner;
 import org.wisdom.core.Block;
 import org.wisdom.core.WhitelistTransaction;
@@ -35,13 +34,11 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.wisdom.core.validate.Result;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.PeningTransPool;
-import org.wisdom.util.Address;
 
 import java.util.*;
 
@@ -108,7 +105,6 @@ public class AccountRule implements BlockRule {
             }
             payloads.add(k);
         }
-
         List<Transaction> transactionList = new ArrayList<>();
         if (block.nHeight > 0) {
             for (Transaction tx : block.body) {
@@ -120,6 +116,32 @@ public class AccountRule implements BlockRule {
                 }
                 byte[] pubkeyhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
                 String publichash = Hex.encodeHexString(pubkeyhash);
+                switch (Transaction.Type.values()[tx.type]) {
+                    case EXIT_VOTE: {
+                        // 投票没有撤回过
+                        if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
+                            return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
+                        }
+                        break;
+                    }
+                    case EXIT_MORTGAGE: {
+                        // 抵押没有撤回过
+                        if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
+                            peningTransPool.removeOne(publichash, tx.nonce);
+                            return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
+                        }
+                        break;
+                    }
+                    case EXTRACT_COST: {
+                        //本金没有被撤回过
+                        if(stateDB.hasPayload(block.hashPrevBlock, tx.payload)){
+                            peningTransPool.removeOne(publichash, tx.nonce);
+                            return Result.Error("the incubate transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
+                        }
+                        break;
+                    }
+                }
                 // 校验事务
                 if (tx.type != Transaction.Type.COINBASE.ordinal()) {
                     //校验格式

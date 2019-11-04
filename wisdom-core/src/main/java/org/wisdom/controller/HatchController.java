@@ -92,4 +92,25 @@ public class HatchController {
     public Object sendCostList(@RequestParam("height") int height){
         return hatchService.getCost(height);
     }
+
+    @GetMapping(value = "/WisdomCore/sendVoteList")
+    public Object sendVoteList(@RequestParam("height") int height){
+        return hatchService.getVote(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendCancelVoteList")
+    public Object sendCancelVoteList(@RequestParam("height") int height){
+        return hatchService.getCancelVote(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendMortgageList")
+    public Object sendMortgageList(@RequestParam("height") int height){
+        return hatchService.getMortgage(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendCancelMortgageList")
+    public Object sendCancelMortgageList(@RequestParam("height") int height){
+        return hatchService.getCancelMortgage(height);
+    }
+
 }

@@ -200,7 +200,7 @@ public class AccountDB {
             String sql = "select encode(t.tx_hash::bytea,'hex') as \"coinHash\",encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"coinAccount\",h.height as \"blockHeight\",encode(t.payload::bytea,'hex')as payload \n" +
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height=? and TYPE=? order by h.height";
+                    "where  h.height=? and TYPE=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
         } catch (Exception e) {
             e.printStackTrace();
@@ -213,7 +213,7 @@ public class AccountDB {
             String sql = "select encode(t.tx_hash::bytea,'hex') as \"tranHash\",t.to as \"coinAddress\",t.amount as \"amount\",h.height as \"coinHeigth\",encode(t.payload::bytea,'hex') as \"coinHash\"\n" +
                     "from transaction t left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height=? and TYPE=? order by h.height";
+                    "where  h.height=? and TYPE=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
         } catch (Exception e) {
             e.printStackTrace();
@@ -229,7 +229,7 @@ public class AccountDB {
                     "left join transaction_index i on t.tx_hash=i.tx_hash \n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "left join transaction r on t.payload=r.tx_hash\n" +
-                    "where  h.height=? and t.type=? order by h.height";
+                    "where  h.height=? and t.type=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
         } catch (Exception e) {
             e.printStackTrace();
@@ -243,9 +243,65 @@ public class AccountDB {
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
-                    "where  h.height=? and t.type=? order by h.height";
+                    "where  h.height=? and t.type=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
         } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistVote(int height, int type) {
+        try{
+            String sql = "select encode(t.to::bytea,'hex') as \"toAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",encode(t.from::bytea,'hex') as \"coinAddress\" \n" +
+                    "from transaction t\n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height=? and t.type=? ";
+            return tmpl.queryForList(sql, new Object[]{height, type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistCancelVote(int height, int type) {
+        try{
+            String sql = "select encode(t.to::bytea,'hex') as \"toAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",encode(t.from::bytea,'hex') as \"coinAddress\",encode(t.payload::bytea,'hex') as \"tradeHash\"\n" +
+                    "from transaction t\n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height=? and t.type=? ";
+            return tmpl.queryForList(sql, new Object[]{height, type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistMortgage(int height, int type) {
+        try{
+            String sql = "select encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\"\n" +
+                    "from transaction t\n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height=? and t.type=? ";
+            return tmpl.queryForList(sql, new Object[]{height, type});
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Map<String,Object>> selectlistCancelMortgage(int height, int type) {
+        try{
+            String sql = "select encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",encode(t.payload::bytea,'hex') as \"tradeHash\"\n" +
+                    "from transaction t\n" +
+                    "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
+                    "left join header h on h.block_hash=i.block_hash\n" +
+                    "where  h.height=? and t.type=? ";
+            return tmpl.queryForList(sql, new Object[]{height, type});
+        }catch (Exception e){
             e.printStackTrace();
             return null;
         }
