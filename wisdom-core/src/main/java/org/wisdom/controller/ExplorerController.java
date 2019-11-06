@@ -1,11 +1,14 @@
 package org.wisdom.controller;
 
+import org.apache.commons.codec.binary.Hex;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.wisdom.db.StateDB;
 
 @RestController
 public class ExplorerController {
-    public static class ExploreResult{
+    public static class ExploreResult {
         // 每日出块数
         public long blocksCount;
         // 当前难度
@@ -38,8 +41,14 @@ public class ExplorerController {
         }
     }
 
+    @Autowired
+    private StateDB stateDB;
+
     @GetMapping(value = "/WisdomCore/ExplorerInfo")
-    public Object getExplorerInfo(){
+    public Object getExplorerInfo() {
+        long blocksCount = stateDB.countBlocksAfter(System.currentTimeMillis() / 1000 - 24 * 60 * 60);
+        String target = Hex.encodeHexString(stateDB.getBestBlock().nBits);
+        double avgInterval = stateDB.averageBlocksInterval();
         return new ExploreResult();
     }
 
