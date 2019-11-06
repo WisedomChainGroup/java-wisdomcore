@@ -34,7 +34,8 @@ public class ProposersState implements State<ProposersState> {
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
-    private static final long ATTENUATION_ERAS = 2160;
+    private static final long ATTENUATION_ERAS = System.getenv("ATTENUATION_ERAS") == null ? 2160
+            : Long.parseLong(System.getenv("ATTENUATION_ERAS"));
 
     public static class Vote {
         public PublicKeyHash from;
@@ -92,7 +93,7 @@ public class ProposersState implements State<ProposersState> {
             return this.votesCache;
         }
 
-        public Map<String, Vote> getReceivedVotes(){
+        public Map<String, Vote> getReceivedVotes() {
             return receivedVotes;
         }
 
