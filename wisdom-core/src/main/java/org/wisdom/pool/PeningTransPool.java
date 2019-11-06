@@ -85,6 +85,7 @@ public class PeningTransPool {
         return getAll().size();
     }
 
+    public int Unpacksize() { return getAllnostate().size(); }
 
     public List<TransPool> getAll() {
         List<TransPool> list = new ArrayList<>();

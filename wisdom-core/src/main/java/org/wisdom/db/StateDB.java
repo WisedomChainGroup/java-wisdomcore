@@ -35,13 +35,15 @@ import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
@@ -289,7 +291,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             }
             BlocksCache res = new BlocksCache();
             List<Block> blocks = blocksCache.getAncestors(b)
-                    .stream().filter(bl -> bl.nHeight >= anum).collect(Collectors.toList());
+                    .stream().filter(bl -> bl.nHeight >= anum).collect(toList());
             res.addBlocks(blocks);
             res.addBlocks(bc.getAncestorBlocks(res.getAll().get(0).hashPrevBlock, anum));
             List<Block> all = res.getAll();
@@ -659,6 +661,20 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
+    public long AverageFee(){
+        List<Block> list=getBestChain(10);
+        List<Transaction> transactionList=new ArrayList<>();
+        list.stream().map(m->m.body).filter(f->f!=null).forEach(f->transactionList.addAll(f));
+        Set<Long> longSet=transactionList.stream()
+                .filter(transaction -> transaction.type!=Transaction.Type.COINBASE.ordinal())
+                .map(Transaction::getFee).collect(toSet());
+        if(longSet.size()==0){
+            return 0;
+        }
+        long total=longSet.stream().reduce(Long::sum).orElse(0L);
+        return total/longSet.size();
+    }
+
     // get the best chain of forkdb
     public List<Block> getBestChain(int limit) {
         readWriteLock.readLock().lock();
@@ -692,11 +708,13 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             List<Block> best = blocksCache.getAllForks().get(0);
             if (best.size() >= 10) {
                 best = best.subList(0, 10);
-                return (best.get(best.size() - 1).nTime - best.get(0).nTime) / (9.0);
+                BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - best.get(0).nTime) / (9.0));
+                return bd.setScale(2,BigDecimal.ROUND_HALF_UP).doubleValue();
             }
             long toFetch = 10 - best.size();
             List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
-            return (best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0);
+            BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0));
+            return bd.setScale(2,BigDecimal.ROUND_HALF_UP).doubleValue();
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1007,7 +1025,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         readWriteLock.readLock().lock();
         try {
             Block best = getBestBlockUnsafe();
-            return getTransactionsByTo(best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(Collectors.toList());
+            return getTransactionsByTo(best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(toList());
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1017,7 +1035,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         readWriteLock.readLock().lock();
         try {
             Block best = getBestBlockUnsafe();
-            return getTransactionsByFrom(best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(Collectors.toList());
+            return getTransactionsByFrom(best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(toList());
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1027,7 +1045,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         readWriteLock.readLock().lock();
         try {
             Block best = getBestBlockUnsafe();
-            return getTransactionsByFromAndTo(best.getHash(), from, to, offset, limit).stream().limit(limit).collect(Collectors.toList());
+            return getTransactionsByFromAndTo(best.getHash(), from, to, offset, limit).stream().limit(limit).collect(toList());
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1037,7 +1055,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         readWriteLock.readLock().lock();
         try {
             Block best = getBestBlockUnsafe();
-            return getTransactionsByToAndType(type, best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(Collectors.toList());
+            return getTransactionsByToAndType(type, best.getHash(), publicKeyHash, offset, limit).stream().limit(limit).collect(toList());
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1047,7 +1065,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         readWriteLock.readLock().lock();
         try {
             Block best = getBestBlockUnsafe();
-            return getTransactionsByFromAndType(type, best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(Collectors.toList());
+            return getTransactionsByFromAndType(type, best.getHash(), publicKey, offset, limit).stream().limit(limit).collect(toList());
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1057,7 +1075,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         readWriteLock.readLock().lock();
         try {
             Block best = getBestBlockUnsafe();
-            return getTransactionsByFromToAndType(type, best.getHash(), from, to, offset, limit).stream().limit(limit).collect(Collectors.toList());
+            return getTransactionsByFromToAndType(type, best.getHash(), from, to, offset, limit).stream().limit(limit).collect(toList());
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -1074,7 +1092,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByTo(b.hashPrevBlock, publicKeyHash, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.to, publicKeyHash)).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.to, publicKeyHash)).collect(toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByTo(b.hashPrevBlock, publicKeyHash, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
@@ -1091,7 +1109,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByFrom(b.hashPrevBlock, publicKey, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.from, publicKey)).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.from, publicKey)).collect(toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByFrom(b.hashPrevBlock, publicKey, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
@@ -1108,7 +1126,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByFromAndTo(b.hashPrevBlock, from, to, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.from, from) && Arrays.equals(tx.to, to)).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> Arrays.equals(tx.from, from) && Arrays.equals(tx.to, to)).collect(toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByFromAndTo(b.hashPrevBlock, from, to, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
@@ -1125,7 +1143,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByToAndType(type, b.hashPrevBlock, publicKeyHash, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.to, publicKeyHash)).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.to, publicKeyHash)).collect(toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByToAndType(type, b.hashPrevBlock, publicKeyHash, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
@@ -1142,7 +1160,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey)).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, publicKey)).collect(toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByFromAndType(type, b.hashPrevBlock, publicKey, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
@@ -1159,7 +1177,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         if (b.body == null) {
             return getTransactionsByFromToAndType(type, b.hashPrevBlock, from, to, offset, limit);
         }
-        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, from) && Arrays.equals(tx.to, to)).collect(Collectors.toList());
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type && Arrays.equals(tx.from, from) && Arrays.equals(tx.to, to)).collect(toList());
         List<Transaction> transactionsPrevBlocks = getTransactionsByFromToAndType(type, b.hashPrevBlock, from, to, offset, limit);
         transactionsPrevBlocks.addAll(transactions);
         return transactionsPrevBlocks;
