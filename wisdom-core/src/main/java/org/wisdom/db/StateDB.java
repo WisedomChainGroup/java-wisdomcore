@@ -660,10 +660,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     }
 
     // get the best chain of forkdb
-    public List<Block> getBestChain() {
+    public List<Block> getBestChain(int limit) {
         readWriteLock.readLock().lock();
         try {
-            return blocksCache.getAllForks().get(0);
+            List<Block> blocks = blocksCache.getAllForks().get(0);
+            if (blocks.size() >= limit) return blocks.subList(0, limit);
+            long toFetch = limit- blocks.size();
+            List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
+            fetched.addAll(blocks);
+            return fetched;
         } finally {
             readWriteLock.readLock().unlock();
         }
