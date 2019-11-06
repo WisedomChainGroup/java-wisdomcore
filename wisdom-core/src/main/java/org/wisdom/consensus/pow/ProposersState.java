@@ -30,12 +30,24 @@ import java.util.stream.Collectors;
 public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    private static final int MAXIMUM_PROPOSERS = 15;
+    private static final int MAXIMUM_PROPOSERS = getenv("MAXIMUM_PROPOSERS", 15);
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
-    private static final long ATTENUATION_ERAS = System.getenv("ATTENUATION_ERAS") == null ? 2160
-            : Long.parseLong(System.getenv("ATTENUATION_ERAS"));
+    private static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
+
+    private static int getenv(String key, int defaultValue) {
+        String v = System.getenv(key);
+        if (v == null || v.equals("")) return defaultValue;
+        return Integer.parseInt(v);
+    }
+
+    private static long getenv(String key, long defaultValue) {
+        String v = System.getenv(key);
+        if (v == null || v.equals("")) return defaultValue;
+        return Long.parseLong(v);
+    }
+
 
     public static class Vote {
         public PublicKeyHash from;
