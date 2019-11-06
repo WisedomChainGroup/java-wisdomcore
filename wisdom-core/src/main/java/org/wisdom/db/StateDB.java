@@ -157,7 +157,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
             @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo
-    ){
+    ) {
         this.readWriteLock = new ReentrantReadWriteLock();
         this.cache = new ConcurrentLinkedHashMap.Builder<String, Map<String, AccountState>>()
                 .maximumWeightedCapacity(CACHE_SIZE).build();
@@ -201,7 +201,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
-            if (size < blocksPerEra){
+            if (size < blocksPerEra) {
                 break;
             }
             if (Start.ENABLE_ASSERTION) {
@@ -658,6 +658,45 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             readWriteLock.readLock().unlock();
         }
     }
+
+    // get the best chain of forkdb
+    public List<Block> getBestChain() {
+        readWriteLock.readLock().lock();
+        try {
+            return blocksCache.getAllForks().get(0);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    // count blocks after timestamp
+    public long countBlocksAfter(long timestamp) {
+        readWriteLock.readLock().lock();
+        try {
+            return blocksCache.getAll().stream().filter(x -> x.nTime >= timestamp).count() +
+                    bc.countBlocksAfter(timestamp);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    // average blocks interval
+    public double averageBlocksInterval() {
+        readWriteLock.readLock().lock();
+        try {
+            List<Block> best = blocksCache.getAllForks().get(0);
+            if (best.size() >= 10) {
+                best = best.subList(0, 10);
+                return (best.get(best.size() - 1).nTime - best.get(0).nTime) / (9.0);
+            }
+            long toFetch = 10 - best.size();
+            List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
+            return (best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
 
     private AccountState applyCoinbase(Transaction tx, AccountState accountState) {
         Account account = accountState.getAccount();

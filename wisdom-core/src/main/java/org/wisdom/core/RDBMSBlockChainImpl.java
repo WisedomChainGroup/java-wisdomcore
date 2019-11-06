@@ -470,6 +470,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type =? and tx.from = ? and tx.to =? order by height, ti.tx_index offset ? limit ?", new Object[]{type, from, to, offset, limit}, new TransactionMapper());
     }
 
+    @Override
+    public long countBlocksAfter(long timestamp) {
+        return tmpl.queryForObject("select count(*) from header where created_at > ?", new Object[]{timestamp}, Long.class);
+    }
+
     // 重构关系表，删除孤快，冗余 transaction_index 中字段到 transaction 表
     private void refactorTables() {
         // 判断是否已经重构过了

@@ -102,4 +102,6 @@ public interface WisdomBlockChain {
     List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit);
 
     Block getLastConfirmedBlock();
+
+    long countBlocksAfter(long timestamp);
 }
