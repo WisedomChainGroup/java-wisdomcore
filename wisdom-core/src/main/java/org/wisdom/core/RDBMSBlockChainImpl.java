@@ -427,8 +427,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
     }
 
-    public boolean hasPayload(byte[] payload) {
-        return tmpl.queryForObject("select count(*) from transaction as tx where tx.payload = ?  limit 1", new Object[]{payload}, Integer.class) > 0;
+    public boolean hasPayload(int type, byte[] payload) {
+        return tmpl.queryForObject("select count(*) from transaction as tx where tx.type = ? and tx.payload = ?  limit 1", new Object[]{type, payload}, Integer.class) > 0;
     }
 
     // 删除孤块

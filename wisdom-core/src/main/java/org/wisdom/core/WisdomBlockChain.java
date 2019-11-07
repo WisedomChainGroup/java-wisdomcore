@@ -81,7 +81,7 @@ public interface WisdomBlockChain {
 
     boolean hasTransaction(byte[] txHash);
 
-    boolean hasPayload(byte[] payload);
+    boolean hasPayload(int type, byte[] payload);
 
     Transaction getTransaction(byte[] txHash);
 

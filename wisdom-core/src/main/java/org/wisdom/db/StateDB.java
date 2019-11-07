@@ -403,29 +403,29 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         return getTransactionUnsafe(b.hashPrevBlock, txHash);
     }
 
-    public boolean hasPayload(byte[] hash, byte[] payload) {
+    public boolean hasPayload(byte[] hash, int type, byte[] payload) {
         readWriteLock.readLock().lock();
         try {
-            return hasPayloadUnsafe(hash, payload);
+            return hasPayloadUnsafe(hash, type, payload);
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
-    private boolean hasPayloadUnsafe(byte[] blockHash, byte[] payload) {
+    private boolean hasPayloadUnsafe(byte[] blockHash, int type, byte[] payload) {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasPayload(payload);
+            return bc.hasPayload(type, payload);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
             return true;
         }
         for (Transaction t : b.body) {
-            if (t.payload != null && Arrays.equals(t.payload, payload)) {
+            if (t.payload != null && t.type == type && Arrays.equals(t.payload, payload)) {
                 return true;
             }
         }
-        return hasPayloadUnsafe(b.hashPrevBlock, payload);
+        return hasPayloadUnsafe(b.hashPrevBlock, type, payload);
     }
 
     public Block getLastConfirmed() {

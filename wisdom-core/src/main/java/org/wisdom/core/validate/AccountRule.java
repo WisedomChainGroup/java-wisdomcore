@@ -42,6 +42,9 @@ import org.wisdom.pool.PeningTransPool;
 
 import java.util.*;
 
+import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
+import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
+
 // 账户规则校验
 // 1. 一个区块内一个只能有一个 from 的事务
 // 2. nonce 校验
@@ -94,9 +97,9 @@ public class AccountRule implements BlockRule {
         // 一个区块内同一个投票或者抵押只能被撤回一次
         for (Transaction t : block.body) {
             if (
-                    t.type != Transaction.Type.EXIT_VOTE.ordinal() ||
+                    t.type != EXIT_VOTE.ordinal() ||
                             t.type != Transaction.Type.EXIT_MORTGAGE.ordinal() || t.payload == null
-                    ) {
+            ) {
                 continue;
             }
             String k = Hex.encodeHexString(t.payload);
@@ -119,7 +122,7 @@ public class AccountRule implements BlockRule {
                 switch (Transaction.Type.values()[tx.type]) {
                     case EXIT_VOTE: {
                         // 投票没有撤回过
-                        if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
+                        if (stateDB.hasPayload(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)) {
                             peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                         }
@@ -127,7 +130,7 @@ public class AccountRule implements BlockRule {
                     }
                     case EXIT_MORTGAGE: {
                         // 抵押没有撤回过
-                        if (stateDB.hasPayload(block.hashPrevBlock, tx.payload)) {
+                        if (stateDB.hasPayload(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
                             peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                         }
@@ -135,7 +138,7 @@ public class AccountRule implements BlockRule {
                     }
                     case EXTRACT_COST: {
                         //本金没有被撤回过
-                        if(stateDB.hasPayload(block.hashPrevBlock, tx.payload)){
+                        if (stateDB.hasPayload(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
                             peningTransPool.removeOne(publichash, tx.nonce);
                             return Result.Error("the incubate transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                         }
@@ -205,7 +208,7 @@ public class AccountRule implements BlockRule {
                             toaccountState.setAccount(mapaccount.get("toaccount"));
                             map.put(tohash, accountState);
                         }
-                    } else if (tx.type == Transaction.Type.EXIT_VOTE.ordinal()) {//撤回投票
+                    } else if (tx.type == EXIT_VOTE.ordinal()) {//撤回投票
                         Account votetoaccount;
                         AccountState tovoteaccountState;
                         if (map.containsKey(Hex.encodeHexString(tx.to))) {
