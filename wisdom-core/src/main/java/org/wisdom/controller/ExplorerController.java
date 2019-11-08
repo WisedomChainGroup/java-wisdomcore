@@ -69,7 +69,7 @@ public class ExplorerController {
             int pengcount=peningTransPool.Unpacksize();
             long lastConfirmedHeight=wisdomBlockChain.getCurrentTotalWeight();
             long bestHeight=stateDB.getBestBlock().nHeight;
-            return APIResult.newFailResult(2000,"SUCCESS",new ExploreResult(blocksCount,target,avgInterval,averageFee,adoptcount,pengcount,lastConfirmedHeight,bestHeight));
+            return APIResult.newFailResult(2000,"SUCCESS",new ExploreResult(blocksCount,target,avgInterval,averageFee,pengcount,adoptcount,lastConfirmedHeight,bestHeight));
         }catch (Exception e){
             return APIResult.newFailResult(5000, "Exception error");
         }
