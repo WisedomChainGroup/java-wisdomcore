@@ -125,6 +125,7 @@ public class ProposersState implements State<ProposersState> {
                         .multiply(ATTENUATION_COEFFICIENT)
                         .longValue());
                 if (v2.accumulated == 0) {
+                    erasCounter.remove(k);
                     receivedVotes.remove(k);
                     continue;
                 }
