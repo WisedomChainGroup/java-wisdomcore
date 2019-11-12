@@ -115,6 +115,7 @@ public class ProposersState implements State<ProposersState> {
 
         void attenuation() {
             clearVotesCache();
+            Set<String> toRemoves = new HashSet<>();
             for (String k : erasCounter.keySet()) {
                 if (erasCounter.get(k) < ATTENUATION_ERAS) {
                     continue;
@@ -125,12 +126,15 @@ public class ProposersState implements State<ProposersState> {
                         .multiply(ATTENUATION_COEFFICIENT)
                         .longValue());
                 if (v2.accumulated == 0) {
-                    erasCounter.remove(k);
-                    receivedVotes.remove(k);
+                    toRemoves.add(k);
                     continue;
                 }
                 receivedVotes.put(k, v2);
             }
+            toRemoves.forEach(k -> {
+                erasCounter.remove(k);
+                receivedVotes.remove(k);
+            });
         }
 
         void updateTransaction(Transaction tx) {
