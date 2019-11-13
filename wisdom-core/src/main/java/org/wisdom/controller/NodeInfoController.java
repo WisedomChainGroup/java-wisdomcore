@@ -175,7 +175,7 @@ public class NodeInfoController {
                             if (y.address == null) return x;
                             return new Vote(x.address, x.amount + y.amount, x.accumulated + y.accumulated);
                         })
-                ));
+                )).values();
 
     }
 
