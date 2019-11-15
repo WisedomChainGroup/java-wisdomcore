@@ -112,8 +112,9 @@ public class NodeInfoController {
         res.put("votes", proposersState.getCandidates().stream().map(c -> {
             Map<String, Object> m = new HashMap<>();
             m.put("publicKeyHash", c.publicKeyHash);
-            m.put("votes", c.getVotes());
+            m.put("amount", c.getVotes());
             m.put("mortgage", c.mortgage);
+            m.put("accumulated", c.getAccumulated());
             return m;
         }).toArray());
         return res;

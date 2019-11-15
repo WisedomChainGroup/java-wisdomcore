@@ -105,6 +105,10 @@ public class ProposersState implements State<ProposersState> {
             return this.votesCache;
         }
 
+        public long getAccumulated(){
+            return receivedVotes.values().stream().map(v -> v.amount).reduce(Long::sum).orElse(0L);
+        }
+
         public Map<String, Vote> getReceivedVotes() {
             return receivedVotes;
         }
