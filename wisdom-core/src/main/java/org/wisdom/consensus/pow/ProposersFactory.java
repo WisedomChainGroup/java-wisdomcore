@@ -17,13 +17,24 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Component
 public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     private static final int POW_WAIT_FACTOR = 3;
+    private static final int MINER_JOINS_HEIGHT = 522215;
+    private static final Set<String> WHITE_LIST = Stream.of(
+            "552f6d4390367de2b05f4c9fc345eeaaf0750db9",
+            "5b0a4c7e31c3123db40a4c14200b54b8e358294b",
+            "08f74cb61f41f692011a5e66e3c038969eb0ec75",
+            "12acb24a3bbc5b9eaa32b6f8ae5e6c66c8c152aa",
+            "15f581858068ed39f7e8cf8e9fdec5dfdae9cf15"
+    ).collect(Collectors.toSet());
+
 
     @Value("${wisdom.consensus.block-interval}")
     private int initialBlockInterval;
@@ -43,7 +54,7 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
             ProposersState genesisState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             @Value("${miner.validators}") String validatorsFile
-    ) throws Exception{
+    ) throws Exception {
         super(StateDB.CACHE_SIZE, genesisState, blocksPerEra);
 
         Resource resource = new FileSystemResource(validatorsFile);
@@ -92,6 +103,9 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
         } else {
             ProposersState state = getInstance(parentBlock);
             res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+        }
+        if (parentBlock.getnHeight() + 1 < MINER_JOINS_HEIGHT) {
+            res = res.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
         }
         if (res.size() > 0) {
             return res;
