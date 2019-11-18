@@ -32,7 +32,12 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
             "5b0a4c7e31c3123db40a4c14200b54b8e358294b",
             "08f74cb61f41f692011a5e66e3c038969eb0ec75",
             "12acb24a3bbc5b9eaa32b6f8ae5e6c66c8c152aa",
-            "15f581858068ed39f7e8cf8e9fdec5dfdae9cf15"
+            "15f581858068ed39f7e8cf8e9fdec5dfdae9cf15",
+
+
+            "2c5de963729478a48d89df268e8c29fd94fd5182",
+            "3e8f7c9406e8bb62363eaed0d1e3def77faa9df9",
+            "83670eb15325c86b479abb87191be93d3470f91a"
     ).collect(Collectors.toSet());
 
 
