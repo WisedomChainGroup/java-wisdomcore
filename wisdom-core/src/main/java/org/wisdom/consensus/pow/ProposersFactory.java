@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     private static final int POW_WAIT_FACTOR = 3;
-    private static final int MINER_JOINS_HEIGHT = 522215;
     private static final Set<String> WHITE_LIST = Stream.of(
             "552f6d4390367de2b05f4c9fc345eeaaf0750db9",
             "5b0a4c7e31c3123db40a4c14200b54b8e358294b",
@@ -109,7 +108,7 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
             ProposersState state = getInstance(parentBlock);
             res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
         }
-        if (parentBlock.getnHeight() + 1 < MINER_JOINS_HEIGHT) {
+        if (parentBlock.getnHeight() + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
             res = res.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
         }
         if (res.size() > 0) {

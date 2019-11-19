@@ -31,6 +31,7 @@ public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
     private static final int MAXIMUM_PROPOSERS = getenv("MAXIMUM_PROPOSERS", 15);
+    public static final int COMMUNITY_MINER_JOINS_HEIGHT = getenv("COMMUNITY_MINER_JOINS_HEIGHT", 522215);
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
@@ -281,6 +282,12 @@ public class ProposersState implements State<ProposersState> {
             }
             logger.info("block the proposer " + proposers.get(i));
             blockList.add(proposers.get(i));
+        }
+        // delete all block list after community miner joins
+        if(blocks.stream().anyMatch(b -> b.getnHeight() >= COMMUNITY_MINER_JOINS_HEIGHT
+                && blocks.stream().anyMatch(x -> x.getnHeight() < COMMUNITY_MINER_JOINS_HEIGHT))
+        ){
+            blockList.clear();
         }
         // 重新生成 proposers
         proposers = all.values().stream()
