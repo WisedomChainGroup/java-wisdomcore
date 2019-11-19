@@ -18,6 +18,7 @@ import org.wisdom.core.state.State;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 投票事务
@@ -120,7 +121,6 @@ public class ProposersState implements State<ProposersState> {
 
         void attenuation() {
             clearVotesCache();
-            Set<String> toRemoves = new HashSet<>();
             for (String k : erasCounter.keySet()) {
                 if (erasCounter.get(k) < ATTENUATION_ERAS) {
                     continue;
@@ -130,16 +130,9 @@ public class ProposersState implements State<ProposersState> {
                 Vote v2 = new Vote(v.from, v.amount, new BigFraction(receivedVotes.get(k).accumulated, 1L)
                         .multiply(ATTENUATION_COEFFICIENT)
                         .longValue());
-                if (v2.accumulated == 0) {
-                    toRemoves.add(k);
-                    continue;
-                }
                 receivedVotes.put(k, v2);
             }
-            toRemoves.forEach(k -> {
-                erasCounter.remove(k);
-                receivedVotes.remove(k);
-            });
+
         }
 
         void updateTransaction(Transaction tx) {
@@ -181,8 +174,8 @@ public class ProposersState implements State<ProposersState> {
         return all;
     }
 
-    public Set<String> getBlockList() {
-        return blockList;
+    public Stream<Proposer> getBlockList() {
+        return blockList.stream().map(x -> all.get(x));
     }
 
     private Map<String, Proposer> all;

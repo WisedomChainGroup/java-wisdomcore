@@ -108,16 +108,18 @@ public class NodeInfoController {
         }
         ProposersState proposersState = stateDB.getProposersFactory().getInstance(best);
         res.put("proposers", proposersState.getProposers().stream().map(p -> p.publicKeyHash).toArray());
-        res.put("blockList", proposersState.getBlockList());
-        res.put("votes", proposersState.getCandidates().stream().map(c -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("publicKeyHash", c.publicKeyHash);
-            m.put("amount", c.getVotes());
-            m.put("mortgage", c.mortgage);
-            m.put("accumulated", c.getAccumulated());
-            return m;
-        }).toArray());
+        res.put("blockList", proposersState.getBlockList().map(this::toProposer));
+        res.put("votes", proposersState.getCandidates().stream().map(this::toProposer).toArray());
         return res;
+    }
+
+    private Map<String, Object> toProposer(ProposersState.Proposer p){
+        Map<String, Object> m = new HashMap<>();
+        m.put("publicKeyHash", p.publicKeyHash);
+        m.put("amount", p.getVotes());
+        m.put("mortgage", p.mortgage);
+        m.put("accumulated", p.getAccumulated());
+        return m;
     }
 
     @GetMapping(value = "/account/{account}", produces = APPLICATION_JSON_VALUE)
