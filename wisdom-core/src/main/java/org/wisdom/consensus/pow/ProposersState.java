@@ -99,16 +99,16 @@ public class ProposersState implements State<ProposersState> {
             votesCache = null;
         }
 
-        public long getVotes() {
+        public long getAmount() {
             if (votesCache != null) {
                 return votesCache;
             }
-            this.votesCache = receivedVotes.values().stream().map(v -> v.accumulated).reduce(Long::sum).orElse(0L);
+            this.votesCache = receivedVotes.values().stream().map(v -> v.amount).reduce(Long::sum).orElse(0L);
             return this.votesCache;
         }
 
         public long getAccumulated(){
-            return receivedVotes.values().stream().map(v -> v.amount).reduce(Long::sum).orElse(0L);
+            return receivedVotes.values().stream().map(v -> v.accumulated).reduce(Long::sum).orElse(0L);
         }
 
         public Map<String, Vote> getReceivedVotes() {
@@ -234,8 +234,8 @@ public class ProposersState implements State<ProposersState> {
     }
 
     private static int compareProposer(Proposer x, Proposer y) {
-        if (x.getVotes() != y.getVotes()) {
-            return Long.compare(x.getVotes(), y.getVotes());
+        if (x.getAccumulated() != y.getAccumulated()) {
+            return Long.compare(x.getAccumulated(), y.getAccumulated());
         }
         if (x.mortgage != y.mortgage) {
             return Long.compare(x.mortgage, y.mortgage);

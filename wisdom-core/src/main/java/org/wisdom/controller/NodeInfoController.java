@@ -1,6 +1,5 @@
 package org.wisdom.controller;
 
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,14 +10,11 @@ import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
-import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.keystore.crypto.PublicKey;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeerServer;
-import org.wisdom.p2p.PeersManager;
 import org.wisdom.util.Address;
 
 import java.util.*;
@@ -116,7 +112,7 @@ public class NodeInfoController {
     private Map<String, Object> toProposer(ProposersState.Proposer p){
         Map<String, Object> m = new HashMap<>();
         m.put("publicKeyHash", p.publicKeyHash);
-        m.put("amount", p.getVotes());
+        m.put("amount", p.getAmount());
         m.put("mortgage", p.mortgage);
         m.put("accumulated", p.getAccumulated());
         return m;
