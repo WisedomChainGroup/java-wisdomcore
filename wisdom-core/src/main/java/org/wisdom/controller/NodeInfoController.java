@@ -1,5 +1,6 @@
 package org.wisdom.controller;
 
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -175,7 +176,16 @@ public class NodeInfoController {
                             return new Vote(x.address, x.amount + y.amount, x.accumulated + y.accumulated);
                         })
                 )).values();
+    }
 
+    @GetMapping(value = "/getAccumulatedByTransactionHash/{transactionHash}", produces = APPLICATION_JSON_VALUE)
+    public Object getAccumulatedByAddress(@PathVariable("transactionHash") String transactionHash) throws Exception{
+        Block best = stateDB.getBestBlock();
+        ProposersState state = stateDB.getProposersFactory().getInstance(best);
+        Map<String, Object> res = new HashMap<>();
+        res.put("transactionHash", transactionHash);
+        res.put("accumulated", state.getAccumulatedByTransactionHash(Hex.decodeHex(transactionHash)).orElse(0L));
+        return res;
     }
 
     private static class Account {

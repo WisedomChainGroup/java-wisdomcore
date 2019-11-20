@@ -107,7 +107,7 @@ public class ProposersState implements State<ProposersState> {
             return this.votesCache;
         }
 
-        public long getAccumulated(){
+        public long getAccumulated() {
             return receivedVotes.values().stream().map(v -> v.accumulated).reduce(Long::sum).orElse(0L);
         }
 
@@ -277,9 +277,9 @@ public class ProposersState implements State<ProposersState> {
             blockList.add(proposers.get(i));
         }
         // delete all block list after community miner joins
-        if(blocks.stream().anyMatch(b -> b.getnHeight() >= COMMUNITY_MINER_JOINS_HEIGHT
+        if (blocks.stream().anyMatch(b -> b.getnHeight() >= COMMUNITY_MINER_JOINS_HEIGHT
                 && blocks.stream().anyMatch(x -> x.getnHeight() < COMMUNITY_MINER_JOINS_HEIGHT))
-        ){
+        ) {
             blockList.clear();
         }
         // 重新生成 proposers
@@ -327,5 +327,11 @@ public class ProposersState implements State<ProposersState> {
         }
         state.proposers = new ArrayList<>(proposers);
         return state;
+    }
+
+    public Optional<Long> getAccumulatedByTransactionHash(byte[] transactionHash) {
+        String txHash = Hex.encodeHexString(transactionHash);
+        return all.values().stream().filter(x -> x.receivedVotes.containsKey(txHash))
+                .map(x -> x.receivedVotes.get(txHash)).findFirst().map(x -> x.accumulated);
     }
 }

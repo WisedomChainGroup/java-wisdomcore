@@ -4,6 +4,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.util.Address;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 public class PublicKeyHash {
@@ -46,5 +47,18 @@ public class PublicKeyHash {
     public String getHex(){
         if (hex == null) hex = Hex.encodeHexString(publicKeyHash);
         return hex;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PublicKeyHash that = (PublicKeyHash) o;
+        return Arrays.equals(publicKeyHash, that.publicKeyHash);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(publicKeyHash);
     }
 }
