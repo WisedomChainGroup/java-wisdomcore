@@ -47,7 +47,7 @@ public class PoolController {
                 JSONObject json = new JSONObject();
                 json.put("pool","AdoptTransPool");
                 json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
-                json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                json.put("tranhash",Hex.encodeHexString(transaction.getHash()));
                 json.put("type",transaction.type);
                 json.put("nonce",transaction.nonce);
                 json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
@@ -70,7 +70,7 @@ public class PoolController {
                 JSONObject json = new JSONObject();
                 json.put("pool","PendingTransPool");
                 json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
-                json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                json.put("tranhash",Hex.encodeHexString(transaction.getHash()));
                 json.put("type",transaction.type);
                 json.put("nonce",transaction.nonce);
                 json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
@@ -119,7 +119,7 @@ public class PoolController {
                     JSONObject json = new JSONObject();
                     json.put("pool","AdoptTransPool");
                     json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
-                    json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                    json.put("tranhash",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
                     json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
@@ -142,7 +142,7 @@ public class PoolController {
                     JSONObject json = new JSONObject();
                     json.put("pool","PendingTransPool");
                     json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
-                    json.put("tranhaxh",Hex.encodeHexString(transaction.getHash()));
+                    json.put("tranhash",Hex.encodeHexString(transaction.getHash()));
                     json.put("type",transaction.type);
                     json.put("nonce",transaction.nonce);
                     json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
