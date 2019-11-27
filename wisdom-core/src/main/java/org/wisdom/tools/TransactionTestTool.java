@@ -282,7 +282,7 @@ public class TransactionTestTool {
         }
 
         List<Transaction> transactions = new ArrayList<>();
-
+        StringBuilder  sBuilder = new StringBuilder ();
         // 发送事务
         for (TransactionInfo info : testConfig.transactions) {
             Transaction tx = new Transaction();
@@ -330,15 +330,17 @@ public class TransactionTestTool {
                 newTx.signature = privateKey.sign(newTx.getRawForSign());
                 transactions.add(newTx);
                 testConfig.nonce++;
+                sBuilder.append(Hex.encodeHexString(newTx.getHash())+",");
             }
         }
-
+        sBuilder.deleteCharAt(sBuilder.length()-1);
         if (testConfig.protocol != null && testConfig.protocol.equals("grpc")) {
             final Peer self = Peer.newPeer("wisdom://localhost:9585");
             sendTransactionsByGRPC(transactions, self, testConfig);
         } else {
             sendTransactionsByRPC(transactions, testConfig);
         }
+        System.out.println("TxhashLits-> "+sBuilder);
     }
 
     private static void sendTransactionsByRPC(List<Transaction> transactions, TestConfig testConfig) {
