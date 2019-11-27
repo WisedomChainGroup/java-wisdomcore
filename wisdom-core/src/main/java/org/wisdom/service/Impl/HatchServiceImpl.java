@@ -315,7 +315,7 @@ public class HatchServiceImpl implements HatchService {
                 jsonObject.put("dueinAmount", incubator.getInterest_amount());
                 jsonObject.put("capitalAmount", incubator.getInterest_amount());
             } else {
-                int muls = (int) (incubator.getInterest_amount() % dayrate.longValue());
+                long muls = (long) (incubator.getInterest_amount() % dayrate.longValue());
                 if (muls != 0) {
                     long syamount = muls;
                     jsonObject.put("dueinAmount", syamount);
@@ -381,7 +381,7 @@ public class HatchServiceImpl implements HatchService {
                 jsonObject.put("dueinAmount", incubator.getShare_amount());
                 jsonObject.put("capitalAmount", incubator.getShare_amount());
             } else {
-                int muls = (int) (incubator.getShare_amount() % dayrate.longValue());
+                long muls = (long) (incubator.getShare_amount() % dayrate.longValue());
                 if (muls != 0) {
                     long syamount = muls;
                     jsonObject.put("dueinAmount", syamount);

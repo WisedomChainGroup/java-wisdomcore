@@ -432,7 +432,7 @@ public class TransactionCheck {
                     return apiResult;
                 } else {
                     if (transaction.height > 40000) {
-                        int muls = (int) (nowincub % totalrate);
+                        long muls = (long) (nowincub % totalrate);
                         if (muls != 0) {//数据不对
                             long syamount = muls;
                             if (syamount != amount) {
