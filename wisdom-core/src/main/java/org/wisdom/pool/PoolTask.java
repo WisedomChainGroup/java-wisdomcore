@@ -36,30 +36,30 @@ public class PoolTask {
         leveldb.addPoolDb("PendingPool", pendingjson);
     }
 
-    //pendingnonce修正
-    @Scheduled(fixedDelay = 60000 * 1)
-    public void correctionPtNonce(){
-        Map<String, PendingNonce> nowmap=peningTransPool.getPtnonce();
-        List<String> stringList=new ArrayList<>();
-        for(Map.Entry<String, PendingNonce> entry:nowmap.entrySet()){
-            List<TransPool> transPoolList=peningTransPool.getAllFromState(entry.getKey());
-            if(transPoolList.size()==0){
-                stringList.add(entry.getKey());
-                continue;
-            }
-            boolean result=transPoolList.stream().allMatch(t->checkPendingPool(t));
-            if(result){
-                stringList.add(entry.getKey());
-            }
-        }
-        peningTransPool.updatePtNonce(stringList);
-    }
+//    //pendingnonce修正
+//    @Scheduled(fixedDelay = 60000 * 1)
+//    public void correctionPtNonce(){
+//        Map<String, PendingNonce> nowmap=peningTransPool.getPtnonce();
+//        List<String> stringList=new ArrayList<>();
+//        for(Map.Entry<String, PendingNonce> entry:nowmap.entrySet()){
+//            List<TransPool> transPoolList=peningTransPool.getAllFromState(entry.getKey());
+//            if(transPoolList.size()==0){
+//                stringList.add(entry.getKey());
+//                continue;
+//            }
+//            boolean result=transPoolList.stream().allMatch(t->checkPendingPool(t));
+//            if(result){
+//                stringList.add(entry.getKey());
+//            }
+//        }
+//        peningTransPool.updatePtNonce(stringList);
+//    }
 
-    public boolean checkPendingPool(TransPool transPool){
-        Transaction transaction=transPool.getTransaction();
-        if(transaction.type==9 || transaction.type==10 || transaction.type==11 || transaction.type==12){
-            return false;
-        }
-        return true;
-    }
+//    public boolean checkPendingPool(TransPool transPool){
+//        Transaction transaction=transPool.getTransaction();
+//        if(transaction.type==9 || transaction.type==10 || transaction.type==11 || transaction.type==12){
+//            return false;
+//        }
+//        return true;
+//    }
 }

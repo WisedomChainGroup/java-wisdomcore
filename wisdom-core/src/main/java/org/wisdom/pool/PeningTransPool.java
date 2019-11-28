@@ -59,13 +59,11 @@ public class PeningTransPool {
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
             if (ptpool.containsKey(fromhash)) {
                 TreeMap<Long, TransPool> map = ptpool.get(fromhash);
-                if(map.lastKey()>=transaction.nonce){
-                    logger.info("PendingPool reject Nonce small transaction , tx="+Hex.encodeHexString(transaction.getHash()));
-                    continue;
+                if(!map.containsKey(transaction.nonce)){//Pending Can't cover
+                    map.put(transaction.nonce, transPool);
+                    ptpool.put(fromhash, map);
+                    updateNonce(transaction.type, transaction.nonce, fromhash);
                 }
-                map.put(transaction.nonce, transPool);
-                ptpool.put(fromhash, map);
-                updateNonce(transaction.type, transaction.nonce, fromhash);
             } else {
                 TreeMap<Long, TransPool> map = new TreeMap<>();
                 map.put(transaction.nonce, transPool);
