@@ -17,6 +17,7 @@ public class TestController {
     @RequestMapping(value="/cheackTxlist",method = RequestMethod.GET)
     public Object cheackTxList(@RequestParam(value = "message") String message){
         List<String> strings=new ArrayList<>();
+        message = message.replace("\"", "");
         try{
            String[] list= message.trim().replaceAll("\r|\n", "").split(",");
             for(int x=0;x<list.length;x++){
