@@ -236,6 +236,13 @@ public class TransactionCheck {
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
                     }
+                    if (type == 0x03) {
+                        if (transaction.amount != 0) {
+                            apiResult.setCode(5000);
+                            apiResult.setMessage("the amount of deposit must be zero");
+                            return apiResult;
+                        }
+                    }
                 } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
@@ -548,7 +555,7 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
-        if(transaction.type!=Transaction.Type.VOTE.ordinal()){
+        if (transaction.type != Transaction.Type.VOTE.ordinal()) {
             apiResult.setCode(5000);
             apiResult.setMessage("The type of withdrawal is not a vote");
             return apiResult;
@@ -583,8 +590,8 @@ public class TransactionCheck {
 
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
-        if (payload.length == 0){
-            return APIResult.newFailResult(5000,"recall mortgage payload cannot null");
+        if (payload.length == 0) {
+            return APIResult.newFailResult(5000, "recall mortgage payload cannot null");
         }
         if (payload.length != 32) {//抵押事务哈希
             apiResult.setCode(5000);
@@ -603,7 +610,7 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to get mortgage transaction");
             return apiResult;
         }
-        if(transaction.type!=Transaction.Type.MORTGAGE.ordinal()){
+        if (transaction.type != Transaction.Type.MORTGAGE.ordinal()) {
             apiResult.setCode(5000);
             apiResult.setMessage("The type of withdrawal is not mortgage");
             return apiResult;
@@ -641,7 +648,7 @@ public class TransactionCheck {
         }
         APIResult apiResult = TransactionVerify(t, account, incubator);
         if (apiResult.getCode() == 5000) {
-            logger.info("Queued to Pending, memory pool check error, tx:"+t.getHashHexString()+", "+apiResult.getMessage());
+            logger.info("Queued to Pending, memory pool check error, tx:" + t.getHashHexString() + ", " + apiResult.getMessage());
             return false;
         }
         return true;

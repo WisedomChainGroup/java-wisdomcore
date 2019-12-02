@@ -128,7 +128,7 @@ public class HashUtil {
     }
 
     /**
-     * The way to calculate new address inside ethereum for }
+     * The way to calculate new address inside for }
      * sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code)))[12:]
      *
      * @param senderAddr - creating address
