@@ -24,7 +24,7 @@ subprojects {
 
     def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
 
-    group = 'org.ethereum'
+    group = 'org.wisdom'
 
     version = config.versionNumber + ("master" == gitCurBranch() ? "-RELEASE" : "-SNAPSHOT")
 
@@ -37,6 +37,6 @@ subprojects {
 
     repositories {
         jcenter()
-        maven { url "https://dl.bintray.com/ethereum/maven/" }
+        maven { url "http://maven.aliyun.com/nexus/content/groups/public/" }
     }
 }

@@ -72,57 +72,6 @@ task runTransactionTestTool(type: JavaExec){
     }
 }
 
-task runRopsten(type: JavaExec) {
-    main = mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    jvmArgs = applicationDefaultJvmArgs + '-Dethereumj.conf.res=ropsten.conf'
-}
-
-task runTest(type: JavaExec) {
-    main = mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    jvmArgs = applicationDefaultJvmArgs + '-Dethereumj.conf.res=test.conf'
-}
-
-/**
- *  This is TCK test command line option,
- *  to run the test:
- *     gradle tckRun -PfilePath=[ file path]
- *      e.g: gradle tckRun -PfilePath=E:\temp\test-case.json
- */
-task tckRun(type: JavaExec) {
-
-    if (project.hasProperty("filePath")) {
-        args = ["filerun", "$filePath"]
-        jvmArgs = ["-Xss4M"]
-    }
-
-    if (project.hasProperty("content")) {
-        args = ["content", "$content"]
-        jvmArgs = ["-Xss4M"]
-    }
-
-    main = "org.ethereum.tck.RunTck"
-    classpath = sourceSets.test.runtimeClasspath
-}
-
-task runCoreUser(type: JavaExec) {
-    main = mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    if (System.getProperty('ethereumj.conf.file') != null) {
-        def confPathProperty = "-Dethereumj.conf.file=" + System.getProperty('ethereumj.conf.file')
-        jvmArgs = applicationDefaultJvmArgs + confPathProperty
-    }
-    if (System.getProperty('spring.datasource.password') != null) {
-        def dbpassword = "-Dspring.datasource.password=" + System.getProperty('spring.datasource.password')
-        jvmArgs = jvmArgs + dbpassword
-    }
-    if (System.getProperty('spring.datasource.username') != null) {
-        def dbusername = "-Dspring.datasource.username=" + System.getProperty('spring.datasource.username')
-        jvmArgs = jvmArgs + dbusername
-    }
-}
-
 // bash src/main/docker/core_v2/build-docker.sh -t test
 task buildDockerJdk(type: Docker) {
     push = false
@@ -435,31 +384,10 @@ artifactoryPublish.onlyIf {
                     branchName.startsWith('stage'))
 }
 
-bintray {
-    user = bintrayUsername
-    key = bintrayPassword
-
-    configurations = ['archives']
-
-    dryRun = false //Whether to run this as dry-run, without deploying
-    publish = true //If version should be auto published after an upload
-    pkg {
-        userOrg = 'ethereum' //An optional organization name when the repo belongs to one of the user's orgs
-        repo = 'maven'
-        name = 'org.ethereum'
-    }
-}
-
 bintrayUpload.onlyIf {
     // comment 'false' and uncomment the next line to publish next release
     (!pullRequest || pullRequest == 'false') && !project.version.endsWith('-SNAPSHOT')
 //     false
-}
-
-install {
-    repositories.mavenInstaller {
-        customizePom(pom, project)
-    }
 }
 
 tasks.processResources.doLast() {
@@ -475,73 +403,6 @@ task publish {
     description = "Publishes snapshots to oss.jfrog.org and releases to Bintray/JCenter"
     dependsOn artifactoryPublish, bintrayUpload
 }
-
-def customizePom(pom, gradleProject) {
-    pom.whenConfigured { generatedPom ->
-        // eliminate test-scoped dependencies (no need in maven central poms)
-        generatedPom.dependencies.removeAll { dep ->
-            dep.scope == "test"
-        }
-
-        // sort to make pom dependencies order consistent to ease comparison of older poms
-        generatedPom.dependencies = generatedPom.dependencies.sort { dep ->
-            "$dep.scope:$dep.groupId:$dep.artifactId"
-        }
-
-        // add all items necessary for maven central publication
-        generatedPom.project {
-            name = "ethereumj"
-            description = "Java implementation of the Ethereum protocol"
-            url = "https://github.com/ethereum/ethereumj"
-            organization {
-                name = "Ethereum"
-                url = "https://ethereum.org"
-            }
-            licenses {
-                license {
-                    name "GNU Lesser General Public License v3.0"
-                    url "https://www.gnu.org/licenses/lgpl-3.0.en.html"
-                    distribution "repo"
-                }
-            }
-            scm {
-                url = "https://github.com/ethereum/ethereumj"
-                connection = "scm:git:git://github.com/ethereum/ethereumj"
-                developerConnection = "scm:git:git://github.com/ethereum/ethereumj"
-            }
-            developers {
-                developer {
-                    id = "rmandeleil"
-                    name = "Roman Mandeleil"
-                    email = "roman.mandeleil@gmail.com"
-                }
-
-                developer {
-                    id = "Nashatyrev"
-                    name = "Anton Nashatyrev"
-                    email = "Anton.nashatyrev@gmail.com"
-                }
-
-                developer {
-                    id = "zilm13"
-                    name = "Dmitry Shmatko"
-                    email = "zilm@zilm.net"
-                }
-
-                developer {
-                    id = "mkalinin"
-                    name = "Mikhail Kalinin"
-                    email = "noblesse.knight@gmail.com"
-                }
-            }
-            issueManagement {
-                system = "GitHub Issues"
-                url = "https://github.com/ethereum/ethereumj/issues"
-            }
-        }
-    }
-}
-
 
 def gitCommitHash() {
     def process = "git rev-parse --short HEAD".execute()
@@ -561,39 +422,7 @@ def gitCurBranch() {
     return process.text.trim()
 }
 
-/**
- * This method is used to prepare local Ethereum Github tests for EthereumJ tests
- *
- * These tests  are designed for all Ethereum clients and
- * maintained by Ethereum Foundation/Community.
- * EthereumJ executes all of them but by default downloads every
- * single file using internet connection.
- * Alternatively you could use local repo to run tests from it.
- *
- * Common usage:
- * 1) Local run:
- *  a. Clone Ethereum tests repo (https://github.com/ethereum/tests)
- *    to some local directory
- *  b. Create `test-user.conf` file in test resources directory.
- *    This file is under `.gitignore`, so it's your local file only.
- *    You could override any EthereumJ configuration in it, but
- *    for using local Ethereum tests repo you need following line:
- *    GitHubTests.testPath=/some/path/with/Ethereum/tests/repo
- *  c. Run `./gradlew test` task.
- * 2) CI run:
- *  a. Clone Ethereum tests repo (https://github.com/ethereum/tests)
- *    to some local directory
- *  b. Run `test` task with following parameter:
- *    -DGitHubTests.testPath=/some/path/with/Ethereum/tests/repo
- *
- * In both cases this method will get commit hash from
- * `src/test/resources/github-tests.prop` and checkout local repo
- * to specific commit. So, EthereumJ tests will run common
- * Ethereum client tests using local copy of repository.
- *
- * Repo with tests is changed often and EthereumJ is guaranteed
- * to pass only tests from specific commit.
- */
+
 import org.ajoberstar.grgit.Grgit
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
