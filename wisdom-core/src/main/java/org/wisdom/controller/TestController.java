@@ -21,7 +21,7 @@ public class TestController {
         try{
            String[] list= message.trim().replaceAll("\r|\n", "").split(",");
             for(int x=0;x<list.length;x++){
-                byte[] hash=Hex.decodeHex(list[0].toCharArray());
+                byte[] hash=Hex.decodeHex(list[x].toCharArray());
                 int s=tmpl.queryForObject("select count(*) from transaction t where t.tx_hash=?", new Object[]{hash}, Integer.class);
                 if(s==0){
                     strings.add(list[x]);
