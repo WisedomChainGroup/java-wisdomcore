@@ -181,6 +181,14 @@ public class PoolController {
         return APIResult.newFailResult(2000,"SUCCESS",json);
     }
 
+    @RequestMapping(value="/getPoolInfo",method = RequestMethod.GET)
+    public Object getPoolInfo(){
+        JSONObject json = new JSONObject();
+        json.put("QueuePool", PoolJson(adoptTransPool.getAllFull(),0));
+        json.put("PendPool",PoolJson(peningTransPool.getAll(),1));
+        return APIResult.newFailResult(2000,"SUCCESS",json);
+    }
+
     @RequestMapping(value="/getPtNonce",method = RequestMethod.GET)
     public Object getPtNonce(@RequestParam("address") String address){
         try{
@@ -233,5 +241,37 @@ public class PoolController {
         }catch (Exception e){
             return APIResult.newFailResult(5000,"Address error");
         }
+    }
+
+    public static JSONArray PoolJson(List<TransPool> pool,int state){
+        JSONArray jsonArray = new JSONArray();
+        String type="AdoptTransPool";
+        if(state==1){
+            type="PendingTransPool";
+        }
+        for(TransPool transPool:pool){
+            Transaction transaction=transPool.getTransaction();
+            JSONObject json = new JSONObject();
+            json.put("pool",type);
+            json.put("traninfo",Hex.encodeHexString(transaction.toRPCBytes()));
+            json.put("tranhash",Hex.encodeHexString(transaction.getHash()));
+            json.put("type",transaction.type);
+            json.put("nonce",transaction.nonce);
+            json.put("fromhash", Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from))));
+            json.put("amount",transaction.amount);
+            json.put("fee",transaction.getFee());
+            json.put("to",Hex.encodeHexString(transaction.to));
+            if(transaction.payload==null){
+                json.put("payload",null);
+            }else{
+                json.put("payload",Hex.encodeHexString(transaction.payload));
+            }
+            json.put("state",transPool.getState());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = new Date(transPool.getDatetime());
+            json.put("datatime",sdf.format(date));
+            jsonArray.add(json);
+        }
+        return jsonArray;
     }
 }
