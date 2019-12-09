@@ -52,4 +52,8 @@ public class Asset implements AnalysisContract{
     public byte[] RLPserialization() {
         return new byte[0];
     }
+
+    public Asset copy(){
+        return new Asset(code,offering,totalamount,createuser,owner,allowincrease);
+    }
 }

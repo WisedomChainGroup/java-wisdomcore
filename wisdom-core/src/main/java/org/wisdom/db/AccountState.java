@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import org.wisdom.contract.Asset;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
 
@@ -14,11 +15,23 @@ public class AccountState {
     private Account account;
     private Map<String, Incubator> interestMap;
     private Map<String, Incubator> ShareMap;
+    private Asset Asset;//合约代币
+    private int type;//1是普通地址，0是合约地址
+    private Map<String, Long> ContractMap;//合约代币
 
     public AccountState() {
-        account = new Account();
-        interestMap = new HashMap<>();
-        ShareMap = new HashMap<>();
+        this.account = new Account();
+        this.interestMap = new HashMap<>();
+        this.ShareMap = new HashMap<>();
+        this.type = 1;
+        this.ContractMap = new HashMap<>();
+    }
+
+    public AccountState(Asset Asset) {
+        this.type = 0;
+        this.Asset = Asset;
+        this.account = new Account();
+        account.setPubkeyHash(new byte[20]);//合约hash
     }
 
     public AccountState(byte[] pubkeyHash) {
@@ -26,11 +39,13 @@ public class AccountState {
         account.setPubkeyHash(pubkeyHash);
     }
 
-
-    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap) {
+    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, Map<String, Long> contractMap) {
         this.account = account;
         this.interestMap = interestMap;
-        ShareMap = shareMap;
+        this.ShareMap = shareMap;
+        this.ContractMap = contractMap;
+        this.type = 1;
+
     }
 
     public Account getAccount() {
@@ -57,9 +72,28 @@ public class AccountState {
         ShareMap = shareMap;
     }
 
-    // 账户地址
-    public String takeAddress() {
-        return null;
+    public org.wisdom.contract.Asset getAsset() {
+        return Asset;
+    }
+
+    public void setAsset(org.wisdom.contract.Asset asset) {
+        Asset = asset;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public Map<String, Long> getContractMap() {
+        return ContractMap;
+    }
+
+    public void setContractMap(Map<String, Long> contractMap) {
+        ContractMap = contractMap;
     }
 
     @Override
@@ -77,15 +111,24 @@ public class AccountState {
 
     public AccountState copy() {
         AccountState accountState = new AccountState();
-        accountState.setAccount(account.copy());
-        accountState.setInterestMap(new HashMap<>());
-        for (String k : interestMap.keySet()) {
-            accountState.getInterestMap().put(k, interestMap.get(k).copy());
+        if (type == 1) {
+            accountState.setAccount(account.copy());
+            accountState.setInterestMap(new HashMap<>());
+            for (String k : interestMap.keySet()) {
+                accountState.getInterestMap().put(k, interestMap.get(k).copy());
+            }
+            accountState.setShareMap(new HashMap<>());
+            for (String k : getShareMap().keySet()) {
+                accountState.getShareMap().put(k, ShareMap.get(k).copy());
+            }
+            accountState.setContractMap(new HashMap<>());
+            for (String k : getContractMap().keySet()) {
+                accountState.getContractMap().put(k, ContractMap.get(k));
+            }
+        } else {
+            accountState.setAsset(Asset.copy());
         }
-        accountState.setShareMap(new HashMap<>());
-        for (String k : getShareMap().keySet()) {
-            accountState.getShareMap().put(k, ShareMap.get(k).copy());
-        }
+        accountState.setType(type);
         return accountState;
     }
 }
