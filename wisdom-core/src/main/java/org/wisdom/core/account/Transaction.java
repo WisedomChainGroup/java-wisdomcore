@@ -80,7 +80,8 @@ public class Transaction {
             100000, 50000, 50000,
             50000, 50000, 50000,
             100000, 100000, 100000,
-            100000, 20000, 20000, 20000
+            100000, 20000, 20000, 20000,
+            100000, 100000
     };
 
     public Transaction() {
@@ -109,7 +110,8 @@ public class Transaction {
         DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
         TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
         INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-        EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
+        EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE,
+        DEPLOY_CONTRACT, CALL_CONTRACT
     }
 
     public static final Type[] TYPES_TABLE = new Type[]{
