@@ -17,7 +17,7 @@ public class AccountState {
     private Map<String, Incubator> ShareMap;
     private Asset Asset;//合约代币
     private int type;//1是普通地址，0是合约地址
-    private Map<String, Long> ContractMap;//合约代币
+    private Map<String, byte[]> ContractMap;//合约数据
 
     public AccountState() {
         this.account = new Account();
@@ -39,7 +39,7 @@ public class AccountState {
         account.setPubkeyHash(pubkeyHash);
     }
 
-    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, Map<String, Long> contractMap) {
+    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, Map<String, byte[]> contractMap) {
         this.account = account;
         this.interestMap = interestMap;
         this.ShareMap = shareMap;
@@ -88,11 +88,11 @@ public class AccountState {
         this.type = type;
     }
 
-    public Map<String, Long> getContractMap() {
+    public Map<String, byte[]> getContractMap() {
         return ContractMap;
     }
 
-    public void setContractMap(Map<String, Long> contractMap) {
+    public void setContractMap(Map<String, byte[]> contractMap) {
         ContractMap = contractMap;
     }
 
