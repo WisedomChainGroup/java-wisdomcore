@@ -106,7 +106,9 @@ public class CommandServiceImpl implements CommandService {
                 apiResult.setMessage("The node memory is full, please try again later");
                 return apiResult;
             }
-            adoptTransPool.add(Collections.singletonList(tran));
+            if (tran.getFee() >= configuration.getMin_procedurefee()) {
+                adoptTransPool.add(Collections.singletonList(tran));
+            }
             apiResult.setData(tran);
         } catch (Exception e) {
             apiResult.setCode(5000);

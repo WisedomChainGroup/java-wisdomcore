@@ -109,7 +109,7 @@ public class TransactionCheck {
                 return apiResult;
             }
             //fee
-            if ((gasPrice * gas) < configuration.getMin_procedurefee()) {
+            if ((gasPrice * gas) < Transaction.minFee) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Less than minimum handling charge");
                 return apiResult;
@@ -126,6 +126,12 @@ public class TransactionCheck {
             if (amount == 0 && (type[0] == Transaction.Type.VOTE.ordinal() || type[0] == Transaction.Type.MORTGAGE.ordinal())) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The amount cannot be zero");
+                return apiResult;
+            }
+            if (amount != 0 && (type[0] == Transaction.Type.DEPOSIT.ordinal() ||
+                    type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal() || type[0] == Transaction.Type.CALL_CONTRACT.ordinal())) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("The amount must be zero");
                 return apiResult;
             }
             tranlast = ByteUtil.bytearraycopy(tranlast, 8, tranlast.length - 8);
@@ -149,13 +155,13 @@ public class TransactionCheck {
                 return apiResult;
             }
             //toaddress
-            if (type[0] == 0x03) {//存证
+            if (type[0] == 0x03 || type[0] == 0x07) {//存证、部署合约
                 if (!Arrays.equals(new byte[20], topubkeyhash)) {
                     apiResult.setCode(5000);
-                    apiResult.setMessage("The depository transaction to is not empty");
+                    apiResult.setMessage("The to is not empty");
                     return apiResult;
                 }
-            } else {//非存证
+            } else {
                 boolean verifyto = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte) 0x00)) == 0);
                 if (!verifyto) {
                     apiResult.setCode(5000);
@@ -230,18 +236,12 @@ public class TransactionCheck {
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
                     }
-                } else if (type == 0x03 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x0d || type == 0x0f) {
+                } else if (type == 0x03 || type == 0x0a || type == 0x0b || type == 0x0c
+                        || type == 0x0d || type == 0x0f || type == 0x07 || type == 0x08) {
                     if (transaction.getFee() > nowbalance) {
                         apiResult.setCode(5000);
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
-                    }
-                    if (type == 0x03) {
-                        if (transaction.amount != 0) {
-                            apiResult.setCode(5000);
-                            apiResult.setMessage("the amount of deposit must be zero");
-                            return apiResult;
-                        }
                     }
                 } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
@@ -286,6 +286,12 @@ public class TransactionCheck {
             case 0x03://存证
                 apiResult = CheckDeposit(payload);
                 break;
+            case 0x07://部署合约
+                apiResult = CheckDeployContract(payload);
+                break;
+            case 0x08://调用合约
+                apiResult = CheckCallContract(payload, topubkeyhash);
+                break;
             case 0x0c://提取本金
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
                 break;
@@ -296,6 +302,16 @@ public class TransactionCheck {
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
                 break;
         }
+        return apiResult;
+    }
+
+    private APIResult CheckCallContract(byte[] bytes, byte[] payload) {
+        APIResult apiResult = new APIResult();
+        return apiResult;
+    }
+
+    private APIResult CheckDeployContract(byte[] payload) {
+        APIResult apiResult = new APIResult();
         return apiResult;
     }
 

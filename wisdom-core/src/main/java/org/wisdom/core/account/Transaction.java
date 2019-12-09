@@ -80,8 +80,7 @@ public class Transaction {
             100000, 50000, 50000,
             50000, 50000, 50000,
             100000, 100000, 100000,
-            100000, 20000, 20000, 20000,
-            100000, 100000
+            100000, 20000, 20000, 20000
     };
 
     public Transaction() {
@@ -105,19 +104,20 @@ public class Transaction {
 
     public static final int TYPE_MAX = 16;
 
+    public static final int minFee = 200000;
+
     public enum Type {
         COINBASE, TRANSFER, VOTE,
         DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
-        TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
+        TRANSFER_NORMAL_MULTISIG, DEPLOY_CONTRACT, CALL_CONTRACT,
         INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-        EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE,
-        DEPLOY_CONTRACT, CALL_CONTRACT
+        EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
     }
 
     public static final Type[] TYPES_TABLE = new Type[]{
             Type.COINBASE, Type.TRANSFER, Type.VOTE,
             Type.DEPOSIT, Type.TRANSFER_MULTISIG_MULTISIG, Type.TRANSFER_MULTISIG_NORMAL,
-            Type.TRANSFER_NORMAL_MULTISIG, Type.ASSET_DEFINE, Type.ATOMIC_EXCHANGE,
+            Type.TRANSFER_NORMAL_MULTISIG, Type.DEPLOY_CONTRACT, Type.CALL_CONTRACT,
             Type.INCUBATE, Type.EXTRACT_INTEREST, Type.EXTRACT_SHARING_PROFIT,
             Type.EXTRACT_COST, Type.EXIT_VOTE, Type.MORTGAGE, Type.EXIT_MORTGAGE
     };
