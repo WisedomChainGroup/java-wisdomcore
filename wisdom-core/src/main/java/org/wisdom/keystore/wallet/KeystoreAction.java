@@ -207,43 +207,6 @@ public class KeystoreAction {
         return privateKey;
     }
 
-    public static boolean isAddress(String address){
-        if (address.length() != 46 || !address.startsWith("WX")){
-            return false;
-        }
-        String ad = new String(address);
-        address = address.substring(2,address.length()).toLowerCase();
-        String standardAddress = "";
-        String[] resString = address.split("");
-        byte[] check = new byte[address.length()];
-        for (int j=0;j<address.length();j++){
-            if(Utils.isInteger(resString[j])){
-                check[j] = Byte.parseByte(resString[j]);
-            }else{
-                check[j] = 0;
-            }
-        }
-        String bstr=Hex.encodeHexString(SHA3Utility.keccak256(check));
-        char[] b = bstr.toCharArray();
-        char[] a = address.toCharArray();
-        for(int i=0;i<a.length;i++)
-            if (Character.isDigit(a[i])) {
-                standardAddress = standardAddress + a[i];
-            } else {
-                if (Integer.parseInt(String.valueOf(a[i]), 16) - Integer.parseInt(String.valueOf(b[i]), 16) > 8) {
-                    standardAddress=standardAddress+String.valueOf(a[i]).toUpperCase();
-                }else{
-                    standardAddress = standardAddress + a[i];
-                }
-            }
-        standardAddress = new String( "WX"+standardAddress);
-
-        if(standardAddress.equals(ad)){
-            return true;
-        }else{
-            return false;
-        }
-    }
     public static String prikeyToPubkey(String prikey) throws DecoderException {
         Ed25519PrivateKey eprik = new Ed25519PrivateKey(Hex.decodeHex(prikey.toCharArray()));
         Ed25519PublicKey epuk = eprik.generatePublicKey();
@@ -277,12 +240,7 @@ public class KeystoreAction {
     public static String pubkeyToAddress(byte[] pubkey,byte numb){
         byte[] pub256 = SHA3Utility.keccak256(pubkey);
         byte[] r1 = RipemdUtility.ripemd160(pub256);
-        byte[] r2 = ByteUtil.prepend(r1,numb);
-        byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(r1));
-        byte[] b4 = ByteUtil.bytearraycopy(r3,0,4);
-        byte[] b5 = ByteUtil.byteMerger(r2,b4);
-        String s6 = Base58Utility.encode(b5);
-        return s6 ;
+        return pubkeyHashToAddress(r1,numb);
     }
 
     /**
@@ -297,7 +255,7 @@ public class KeystoreAction {
         byte[] b4 = ByteUtil.bytearraycopy(r3,0,4);
         byte[] b5 = ByteUtil.byteMerger(r2,b4);
         String s6 = Base58Utility.encode(b5);
-        return s6 ;
+        return "WX"+s6 ;
     }
 
 
@@ -309,7 +267,12 @@ public class KeystoreAction {
      * @return
      */
     public static byte[] addressToPubkeyHash(String address){
-        byte[] r5 = Base58Utility.decode(address);
+        byte[] r5 = {};
+        if(address.startsWith("1")){
+            r5 = Base58Utility.decode(address);
+        }else{
+            r5 = Base58Utility.decode(address.substring(2));
+        }
         byte[] r2 = ByteUtil.bytearraycopy(r5,0,21);
         byte[] r1 = ByteUtil.bytearraycopy(r2,1,20);
         return r1;
@@ -320,22 +283,22 @@ public class KeystoreAction {
      * @return
      */
     public static int verifyAddress(String address){
-        byte[] r5 = Base58Utility.decode(address);
-//        ResultSupport ar = new ResultSupport();
-        if(!address.startsWith("1")){//地址不是以"1"开头
+        if (!address.startsWith("1") && !address.startsWith("WX")){
             return  -1;
         }
-        byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(KeystoreAction.addressToPubkeyHash(address)));
+        byte[] r5 = {};
+        if(address.startsWith("1")){
+            r5 = Base58Utility.decode(address);
+        }else{
+            r5 = Base58Utility.decode(address.substring(2));
+        }
+        byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(addressToPubkeyHash(address)));
         byte[] b4 = ByteUtil.bytearraycopy(r3,0,4);
         byte[] _b4 = ByteUtil.bytearraycopy(r5,r5.length-4,4);
-        if(Arrays.equals(b4,_b4)){//正确
+        if(Arrays.equals(b4,_b4)){
             return  0;
-        }else {//地址格式错误
+        }else {
             return  -2;
         }
-    }
-
-    public static void main(String[] args){
-
     }
 }
