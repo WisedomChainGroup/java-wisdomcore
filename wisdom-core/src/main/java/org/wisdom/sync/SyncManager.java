@@ -218,7 +218,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             }
             Result resCheckPointRule = checkPointRule.validateBlock(b);
             if (!resCheckPointRule.isSuccess()) {
-                logger.error("invalid block received reason = " + res.getMessage());
+                logger.error("invalid block received reason = " + resCheckPointRule.getMessage());
                 continue;
             }
             validBlocks.add(b);
