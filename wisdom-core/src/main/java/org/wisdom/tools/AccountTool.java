@@ -11,7 +11,7 @@ import org.wisdom.util.Address;
 public class AccountTool {
     public static void main(String[] args){
         for(int i = 0; i < 10; i++){
-            KeyPair keyPair = Ed25519.GenerateKeyPair();
+            KeyPair keyPair = Ed25519.generateKeyPair();
             System.out.println("private key = " + Hex.encodeHexString(keyPair.getPrivateKey().getEncoded()));
             System.out.println("public key = " + Hex.encodeHexString(keyPair.getPublicKey().getEncoded()));
             System.out.println("public key hash = " + Hex.encodeHexString(Address.publicKeyToHash(keyPair.getPublicKey().getEncoded())));

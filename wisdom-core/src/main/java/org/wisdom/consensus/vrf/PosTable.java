@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author sal 1564319846@qq.com
  * pos table
  */
-public class PosTable implements State {
+public class PosTable implements State<PosTable> {
 
     // for testing
     public AtomicLong counter;
@@ -45,25 +45,25 @@ public class PosTable implements State {
         this.updateBlock(blockChain.getGenesis());
     }
 
-    public State updateBlock(Block block) {
+    public PosTable updateBlock(Block block) {
         this.counter.incrementAndGet();
         System.out.println(block.nHeight);
         return this;
     }
 
-    public State copy() {
+    public PosTable copy() {
         PosTable newPosTable = new PosTable();
         newPosTable.counter = new AtomicLong(this.counter.get());
         return newPosTable;
     }
 
     @Override
-    public State updateTransaction(Transaction tx) {
+    public PosTable updateTransaction(Transaction tx) {
         return null;
     }
 
     // update blocks
-    public State updateBlocks(List<Block> blocks) {
+    public PosTable updateBlocks(List<Block> blocks) {
         for (Block b : blocks) {
             this.updateBlock(b);
         }

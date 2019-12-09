@@ -47,6 +47,8 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static java.util.stream.Collectors.toList;
+
 @Service
 public class HatchServiceImpl implements HatchService {
 
@@ -203,6 +205,80 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
+    public Object getVote(int height) {
+        try {
+            List<Map<String, Object>> list = accountDB.selectlistVote(height, 2);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                String coinAddress = map.get("coinAddress").toString();
+                byte[] frompubkey = Hex.decodeHex(coinAddress.toCharArray());
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00));
+                String toAddress=map.get("toAddress").toString();
+                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
+                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00));
+                jsonArray.add(map);
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getCancelVote(int height) {
+        try {
+            List<Map<String, Object>> list = accountDB.selectlistCancelVote(height, 13);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                String coinAddress = map.get("coinAddress").toString();
+                byte[] frompubkey = Hex.decodeHex(coinAddress.toCharArray());
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00));
+                String toAddress=map.get("toAddress").toString();
+                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
+                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00));
+                jsonArray.add(map);
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getMortgage(int height) {
+        try {
+            List<Map<String, Object>> list = accountDB.selectlistMortgage(height, 14);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                String toAddress=map.get("coinAddress").toString();
+                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00));
+                jsonArray.add(map);
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getCancelMortgage(int height) {
+        try {
+            List<Map<String, Object>> list = accountDB.selectlistCancelMortgage(height, 15);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                String toAddress=map.get("coinAddress").toString();
+                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00));
+                jsonArray.add(map);
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
     public Object getNowInterest(String tranhash) {
         try {
             byte[] trhash = Hex.decodeHex(tranhash.toCharArray());
@@ -225,7 +301,7 @@ public class HatchServiceImpl implements HatchService {
             //当前最高高度
             long maxhieght = wisdomBlockChain.getCurrentTotalWeight();
             long differheight = maxhieght - incubator.getLast_blockheight_interest();
-            int differdays = (int) (differheight / configuration.getDay_count());
+            int differdays = (int) (differheight / configuration.getDay_count(maxhieght));
             if (differdays == 0) {
                 return APIResult.newFailResult(5000, "Interest less than one day");
             }
@@ -239,7 +315,7 @@ public class HatchServiceImpl implements HatchService {
                 jsonObject.put("dueinAmount", incubator.getInterest_amount());
                 jsonObject.put("capitalAmount", incubator.getInterest_amount());
             } else {
-                int muls = (int) (incubator.getInterest_amount() % dayrate.longValue());
+                long muls = (long) (incubator.getInterest_amount() % dayrate.longValue());
                 if (muls != 0) {
                     long syamount = muls;
                     jsonObject.put("dueinAmount", syamount);
@@ -289,7 +365,7 @@ public class HatchServiceImpl implements HatchService {
             //当前最高高度
             long maxhieght = wisdomBlockChain.getCurrentTotalWeight();
             long differheight = maxhieght - incubator.getLast_blockheight_share();
-            int differdays = (int) (differheight / configuration.getDay_count());
+            int differdays = (int) (differheight / configuration.getDay_count(maxhieght));
             if (differdays == 0) {
                 return APIResult.newFailResult(5000, "Interest less than one day");
             }
@@ -305,7 +381,7 @@ public class HatchServiceImpl implements HatchService {
                 jsonObject.put("dueinAmount", incubator.getShare_amount());
                 jsonObject.put("capitalAmount", incubator.getShare_amount());
             } else {
-                int muls = (int) (incubator.getShare_amount() % dayrate.longValue());
+                long muls = (long) (incubator.getShare_amount() % dayrate.longValue());
                 if (muls != 0) {
                     long syamount = muls;
                     jsonObject.put("dueinAmount", syamount);
@@ -375,13 +451,8 @@ public class HatchServiceImpl implements HatchService {
                         list.add(maps);
                     }
                 }
-                Collections.sort(list, new Comparator<Map<String, Object>>() {
-                    public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-                        Integer name1 = Integer.valueOf(o1.get("height").toString());
-                        Integer name2 = Integer.valueOf(o2.get("height").toString());
-                        return name2.compareTo(name1);
-                    }
-                });
+                list=list.stream().sorted((p1, p2) -> Integer.valueOf(p1.get("height").toString()) - Integer.valueOf(p2.get("height").toString()))
+                        .collect(toList());
                 return APIResult.newFailResult(2000, "SUCCESS", list);
             } else {
                 return APIResult.newFailResult(5000, "Address check error");

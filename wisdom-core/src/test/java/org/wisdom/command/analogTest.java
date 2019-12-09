@@ -21,7 +21,7 @@ public class analogTest {
 
     public static byte[] analogdate() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
@@ -132,7 +132,7 @@ public class analogTest {
 
     public static byte[] analogdate2() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
@@ -229,7 +229,7 @@ public class analogTest {
 
     public static byte[] analogdate3() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
@@ -323,19 +323,19 @@ public class analogTest {
 
     public static byte[] analogdate4(byte types) {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
         byte[] pubkey = publickey.getEncoded();
 
-        Ed25519KeyPair pripubkey2 = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey2 = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey2 = pripubkey2.getPrivateKey();
         Ed25519PublicKey publickey2 = pripubkey2.getPublicKey();
         byte[] privkey2 = privatekey2.getEncoded();
         byte[] pubkey2 = publickey2.getEncoded();
 
-        Ed25519KeyPair pripubkey3 = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey3 = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey3 = pripubkey3.getPrivateKey();
         Ed25519PublicKey publickey3 = pripubkey3.getPublicKey();
         byte[] privkey3 = privatekey3.getEncoded();
@@ -612,7 +612,7 @@ public class analogTest {
 
     public static byte[] analogdate5() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
@@ -762,7 +762,7 @@ public class analogTest {
 
     public static byte[] analogdate6() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
@@ -913,7 +913,7 @@ public class analogTest {
 
     public static byte[] analogdate7() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();
@@ -1028,7 +1028,7 @@ public class analogTest {
 
     public static byte[] analogdate8() {
         //模拟数据
-        Ed25519KeyPair pripubkey = Ed25519.GenerateKeyPair();
+        Ed25519KeyPair pripubkey = Ed25519.generateKeyPair();
         Ed25519PrivateKey privatekey = pripubkey.getPrivateKey();
         Ed25519PublicKey publickey = pripubkey.getPublicKey();
         byte[] privkey = privatekey.getEncoded();

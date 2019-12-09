@@ -18,7 +18,61 @@
 
 package org.wisdom.keystore.wallet;
 
+import com.google.common.primitives.Bytes;
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.crypto.ed25519.Ed25519;
+import org.wisdom.crypto.ed25519.Ed25519KeyPair;
+import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
+import org.wisdom.crypto.ed25519.Ed25519PublicKey;
+import org.wisdom.keystore.account.Address;
+import org.wisdom.keystore.crypto.*;
+import org.wisdom.keystore.util.Utils;
+
+import java.security.SecureRandom;
+
 public class Keystore {
+
+    public static Keystore newInstance(String password) throws Exception {
+        if (password.length() > 20 || password.length() < 8) {
+            throw new Exception("请输入8-20位密码");
+        } else {
+            Ed25519KeyPair keyPair = Ed25519.generateKeyPair();
+            Ed25519PublicKey publicKey = keyPair.getPublicKey();
+            String s = new String(keyPair.getPrivateKey().getEncoded());
+            byte[] salt = new byte[saltLength];
+            byte[] iv = new byte[ivLength];
+            SecureRandom random = new SecureRandom();
+            random.nextBytes(iv);
+            SecureRandom sr = new SecureRandom();
+            sr.nextBytes(salt);
+            ArgonManage argon2id = new ArgonManage(ArgonManage.Type.ARGON2id, salt);
+            AESManage aes = new AESManage(iv);
+
+            byte[] derivedKey = argon2id.hash(password.getBytes());
+            byte[] cipherPrivKey = aes.encrypt(derivedKey, keyPair.getPrivateKey().getEncoded());
+            byte[] mac = SHA3Utility.keccak256(Bytes.concat(
+                    derivedKey, cipherPrivKey
+                    )
+            );
+
+            Crypto crypto = new Crypto(
+                    AESManage.cipher, Hex.encodeHexString(cipherPrivKey),
+                    new Cipherparams(
+                            Hex.encodeHexString(iv)
+                    )
+            );
+            Kdfparams kdfparams = new Kdfparams(ArgonManage.memoryCost, ArgonManage.timeCost, ArgonManage.parallelism, Hex.encodeHexString(salt));
+
+            org.wisdom.keystore.account.Address ads = new Address(publicKey);
+            ArgonManage params = new ArgonManage(salt);
+            Keystore ks = new Keystore(ads.getAddress(), crypto, Utils.generateUUID(),
+                    defaultVersion, Hex.encodeHexString(mac), argon2id.kdf(), kdfparams
+            );
+            return ks;
+        }
+    }
+
+
     public String address;
     public Crypto crypto;
     public Kdfparams kdfparams;
@@ -31,8 +85,7 @@ public class Keystore {
     private static final String defaultVersion = "1";
 
 
-
-    public Keystore(String address, Crypto crypto, String id, String version, String mac, String kdf,Kdfparams kdfparams) {
+    public Keystore(String address, Crypto crypto, String id, String version, String mac, String kdf, Kdfparams kdfparams) {
         this.address = address;
         this.crypto = crypto;
         this.id = id;
@@ -42,6 +95,7 @@ public class Keystore {
         this.kdfparams = kdfparams;
 
     }
+
     public Keystore() {
     }
 

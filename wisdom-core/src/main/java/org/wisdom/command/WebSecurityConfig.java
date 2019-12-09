@@ -29,9 +29,13 @@ public class WebSecurityConfig extends WebMvcConfigurerAdapter {
     @Autowired
     RpcInterceptor rpcInterceptor;
 
+    @Autowired
+    LocalRpcInterceptor localRpcInterceptor;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rpcInterceptor).addPathPatterns("/WisdomCore/*");
+        registry.addInterceptor(localRpcInterceptor).addPathPatterns("/**").excludePathPatterns("/consensus/blocks","/consensus/status","/consensus/status","/consensus/blocks","/WisdomCore/*");
         super.addInterceptors(registry);
     }
 }

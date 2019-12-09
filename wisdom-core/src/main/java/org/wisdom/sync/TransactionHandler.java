@@ -1,5 +1,6 @@
 package org.wisdom.sync;
 
+import com.google.protobuf.AbstractMessage;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -8,20 +9,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.p2p.Context;
-import org.wisdom.p2p.PeerServer;
-import org.wisdom.p2p.Plugin;
-import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.p2p.*;
 import org.wisdom.service.CommandService;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 @Component
 public class TransactionHandler implements Plugin {
     private PeerServer server;
-    private static final int CACHE_SIZE = 64;
+    private static final int CACHE_SIZE = 256;
     private ConcurrentMap<String, Boolean> transactionCache;
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionHandler.class);
@@ -38,17 +37,23 @@ public class TransactionHandler implements Plugin {
             return;
         }
         WisdomOuterClass.Transactions txs = (WisdomOuterClass.Transactions) context.getPayload().getBody();
+        String key = Hex.encodeHexString(Utils.getTransactionsHash(txs.getTransactionsList()));
+        if (transactionCache.containsKey(key)) {
+            return;
+        }
+        transactionCache.put(key, true);
         txs.getTransactionsList()
                 .stream()
                 .map(Utils::parseTransaction)
                 .forEach(t -> {
-            byte[] traninfo = t.toRPCBytes();
-            APIResult apiResult=commandService.verifyTransfer(traninfo);
-            if(apiResult.getCode() == 5000){
-                logger.info("transaction Check failure,TxHash="+Hex.encodeHexString(t.getHash())+",message:"+apiResult.getMessage());
-            }
-        });
-//        context.relay();
+                    transactionCache.put(t.getHashHexString(), true);
+                    byte[] traninfo = t.toRPCBytes();
+                    APIResult apiResult = commandService.verifyTransfer(traninfo);
+                    if (apiResult.getCode() == 5000) {
+                        logger.info("transaction Check failure,TxHash=" + Hex.encodeHexString(t.getHash()) + ",message:" + apiResult.getMessage());
+                    }
+                });
+        context.relay();
     }
 
     @Override
@@ -57,11 +62,31 @@ public class TransactionHandler implements Plugin {
     }
 
     public void broadcastTransactions(List<Transaction> txs) {
-        Optional.ofNullable(server)
-                .ifPresent(s -> {
-                    WisdomOuterClass.Transactions.Builder builder = WisdomOuterClass.Transactions.newBuilder();
-                    txs.stream().map(Utils::encodeTransaction).forEach(builder::addTransactions);
-                    s.broadcast(builder.build());
-                });
+        if (server == null) {
+            return;
+        }
+
+        List<WisdomOuterClass.Transaction> encoded = txs.stream()
+                .map(Utils::encodeTransaction).collect(Collectors.toList());
+
+        WisdomOuterClass.Transactions msg = WisdomOuterClass.Transactions.newBuilder().addAllTransactions(encoded).build();
+
+        List<WisdomOuterClass.Transactions> divided = Util.split(msg);
+
+        divided.stream()
+                .filter(o -> {
+                    String k = Hex.encodeHexString(
+                            Utils.getTransactionsHash(o.getTransactionsList())
+                    );
+                    if (!transactionCache.containsKey(k)) {
+                        transactionCache.put(k, true);
+                        return true;
+                    }
+                    return false;
+                })
+                .forEach(o ->
+                        server.broadcast(o)
+                );
     }
 }
+

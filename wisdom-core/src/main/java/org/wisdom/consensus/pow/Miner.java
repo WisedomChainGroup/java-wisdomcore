@@ -91,13 +91,17 @@ public class Miner implements ApplicationListener {
 
     @Autowired
     private CheckPointRule checkPointRule;
+    
+    @Autowired
+    private EconomicModel economicModel;
+
 
     public Miner() {
     }
 
     private Transaction createCoinBase(long height) throws Exception {
         Transaction tx = Transaction.createEmpty();
-        tx.amount = EconomicModel.getConsensusRewardAtHeight(height);
+        tx.amount = economicModel.getConsensusRewardAtHeight(height);
         tx.to = Hex.decodeHex(consensusConfig.getMinerPubKeyHash().toCharArray());
         return tx;
     }
@@ -110,12 +114,12 @@ public class Miner implements ApplicationListener {
 
         // merkle state root
         block.nHeight = parent.nHeight + 1;
-        TargetState targetState = (TargetState) stateDB.getTargetStateFactory().getInstance(block);
+        TargetState targetState = stateDB.getTargetStateFactory().getInstance(block);
         block.nBits = BigEndian.encodeUint256(targetState.getTarget());
         block.nNonce = new byte[Block.HASH_SIZE];
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
-        ValidatorState validatorState = (ValidatorState) stateDB.getValidatorStateFactory().getInstance(parent);
+        ValidatorState validatorState = stateDB.getValidatorStateFactory().getInstance(parent);
         long nonce = validatorState.
                 getNonceFromPublicKeyHash(block.body.get(0).to);
 

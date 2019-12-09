@@ -34,6 +34,9 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
     @Autowired
     private StateDB stateDB;
 
+    @Autowired
+    private EconomicModel economicModel;
+
     public CoinbaseRule() {
     }
 
@@ -69,7 +72,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
 
         // check amount = consensus amount + fees
-        if (coinbase.amount != EconomicModel.getConsensusRewardAtHeight(block.nHeight) + fees) {
+        if (coinbase.amount != economicModel.getConsensusRewardAtHeight(block.nHeight) + fees) {
             return Result.Error("amount not equals to consensus reward plus fees");
         }
         return Result.SUCCESS;

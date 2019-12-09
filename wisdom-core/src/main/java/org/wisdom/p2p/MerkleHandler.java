@@ -116,7 +116,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         List<TreeNode> treeNodes = Utils.parseTreeNodes(getMerkleTransactions.getTreeNodesList());
         byte[] blockHash = getMerkleTransactions.getBlockHash().toByteArray();
         List<WisdomOuterClass.MerkleTransaction> wms = getMerkleTransactions(blockHash, treeNodes);
-        Object resp = WisdomOuterClass.MerkleTransactions.newBuilder()
+        WisdomOuterClass.MerkleTransactions resp = WisdomOuterClass.MerkleTransactions.newBuilder()
                 .addAllMerketTrans(wms)
                 .setBlockHash(getMerkleTransactions.getBlockHash())
                 .addAllTreeNodes(getMerkleTransactions.getTreeNodesList())
@@ -223,7 +223,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         }
         if (parentNodes.get(0).getLevel() > 1) {
             List<WisdomOuterClass.TreeNode> tns = Utils.encodeTreeNodes(treeNodes);
-            Object resp = WisdomOuterClass.TreeNodes.newBuilder()
+            WisdomOuterClass.TreeNodes resp = WisdomOuterClass.TreeNodes.newBuilder()
                     .addAllTreeNodes(tns)
                     .addAllParentNodes(getTreeNodes.getParentNodesList())
                     .setBlockHash(getTreeNodes.getBlockHash())

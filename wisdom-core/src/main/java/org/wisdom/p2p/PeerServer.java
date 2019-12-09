@@ -1,33 +1,26 @@
 package org.wisdom.p2p;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import com.google.protobuf.AbstractMessage;
+import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.codec.binary.Hex;
-import org.omg.CORBA.TIMEOUT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.core.BlocksCache;
 import org.wisdom.sync.SyncManager;
 import org.wisdom.sync.TransactionHandler;
 
 import javax.annotation.PostConstruct;
 import java.net.InetAddress;
-import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 /**
  * @author sal 1564319846@qq.com
@@ -36,11 +29,11 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "grpc")
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
+
     private static final int HALF_RATE = 60;
 
     private static final int MAX_PEERS_PER_PING = 6;
 
-    private static final int RPC_TIMEOUT = 5;
 
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Lookup LOOKUP = WisdomOuterClass.Lookup.newBuilder().build();
@@ -49,9 +42,10 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private Server server;
     private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
     private static final int MAX_TTL = 8;
-    private AtomicLong nonce;
     private List<Plugin> pluginList;
-    private PeersCacheWrapper peersCache;
+
+    @Autowired
+    private PeersStorage peersCache;
 
     @Autowired
     private MessageFilter filter;
@@ -71,18 +65,18 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     @Autowired
     private MerkleHandler merkleHandler;
 
+    @Autowired
+    private GRPCClient gRPCClient;
+
+    @Value("${p2p.enable-message-log}")
+    private boolean enableMessageLog;
+
     @Value("${p2p.enable-discovery}")
     private boolean enableDiscovery;
 
     public PeerServer(
-            @Value("${p2p.address}") String self,
-            @Value("${p2p.bootstraps}") String bootstraps,
-            @Value("${p2p.trustedpeers}") String trusted,
-            @Value("${p2p.enable-discovery}") boolean enableDiscovery
     ) throws Exception {
-        nonce = new AtomicLong();
         pluginList = new ArrayList<>();
-        this.peersCache = new PeersCacheWrapper(self, bootstraps, trusted, enableDiscovery);
     }
 
     public PeerServer use(Plugin plugin) {
@@ -101,6 +95,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 .use(transactionHandler)
                 .use(pmgr)
                 .use(merkleHandler);
+        gRPCClient.withSelf(peersCache.getSelf());
         startListening();
     }
 
@@ -116,13 +111,16 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         for (Plugin p : pluginList) {
             p.onStart(this);
         }
+        if(!enableMessageLog){
+            java.util.logging.Logger.getLogger("io.grpc").setLevel(Level.OFF);
+        }
         this.server = ServerBuilder.forPort(peersCache.getSelf().port).addService(this).build().start();
     }
 
     @Scheduled(fixedRate = HALF_RATE * 1000)
     public void resolve() {
         peersCache.getUnresolved().forEach(h -> {
-            dial(h.getHost(), h.getPort(), PING);
+            dialWithTTL(h.getHost(), h.getPort(), 1, PING);
         });
     }
 
@@ -134,11 +132,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
         peersCache.half();
 
-        for(Peer p: peersCache.getPeers(MAX_PEERS_PER_PING)){
+        for (Peer p : peersCache.getPeers(MAX_PEERS_PER_PING)) {
             dial(p, PING); // keep alive
         }
 
-        if(peersCache.isFull()){
+        if (peersCache.isFull() || !enableDiscovery) {
             return;
         }
 
@@ -152,11 +150,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         }
     }
 
-    public List<Peer> getBootstraps(){
+    public List<Peer> getBootstraps() {
         return peersCache.getBootstraps();
     }
 
-    public PeersCache getPeersCache(){
+    public PeersCache getPeersCache() {
         return peersCache;
     }
 
@@ -167,9 +165,9 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private WisdomOuterClass.Message onMessage(WisdomOuterClass.Message message) {
         try {
             Payload payload = new Payload(message);
-            if(peersCache.getBlocked().contains(payload.getRemote())){
+            if (peersCache.getBlocked().contains(payload.getRemote())) {
                 logger.error("the remote had been blocked");
-                return buildMessage(1, NOTHING);
+                return gRPCClient.buildMessage(1, NOTHING);
             }
             Context ctx = new Context();
             ctx.payload = payload;
@@ -195,13 +193,13 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 relay(payload);
             }
             if (ctx.response != null) {
-                return buildMessage(1, ctx.response);
+                return gRPCClient.buildMessage(1, ctx.response);
             }
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("fail to parse message");
         }
-        return buildMessage(1, NOTHING);
+        return gRPCClient.buildMessage(1, NOTHING);
     }
 
     @Override
@@ -211,83 +209,38 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         responseObserver.onCompleted();
     }
 
-    private void grpcCall(String host, int port, WisdomOuterClass.Message msg) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(host, port
-        ).usePlaintext().build();
-
-        try {
-            ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
-        }catch (Exception e){
-            logger.error("http2 timeout");
-            return;
-        }
-
-        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch);
-        stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
-            @Override
-            public void onNext(WisdomOuterClass.Message value) {
-                onMessage(value);
+    private void dialWithTTL(Peer peer, long ttl, AbstractMessage msg) {
+        gRPCClient.dialAsyncWithTTL(peer.host, peer.port, ttl, msg, (m, e) -> {
+            if (m != null) {
+                onMessage(m);
+//                return;
             }
+//            e.printStackTrace();
+//            logger.error("cannot connect to " + peer.toString());
+//            if (!enableDiscovery) {
+//                return;
+//            }
+//            peersCache.half(peer);
+        });
+    }
 
-            @Override
-            public void onError(Throwable t) {
-//                t.printStackTrace();
-                ch.shutdown();
-            }
-
-            @Override
-            public void onCompleted() {
-                ch.shutdown();
+    private void dialWithTTL(String host, int port, long ttl, AbstractMessage msg) {
+        gRPCClient.dialAsyncWithTTL(host, port, ttl, msg, (m, e) -> {
+            if (m != null) {
+                onMessage(m);
+//                e.printStackTrace();
+//                logger.error("cannot connect to " + host + ":" + port);
             }
         });
     }
 
-    private void grpcCall(Peer peer, WisdomOuterClass.Message msg) {
-        ManagedChannel ch = ManagedChannelBuilder.forAddress(peer.host, peer.port
-            ).usePlaintext().build(); // without setting up any ssl
-
-        try {
-            ch.awaitTermination(RPC_TIMEOUT, TimeUnit.SECONDS);
-        }catch (Exception e){
-            logger.error("http2 timeout");
-            return;
-        }
-
-        WisdomGrpc.WisdomStub stub = WisdomGrpc.newStub(
-                ch);
-        stub.entry(msg, new StreamObserver<WisdomOuterClass.Message>() {
-            @Override
-            public void onNext(WisdomOuterClass.Message value) {
-                onMessage(value);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-//                t.printStackTrace();
-                ch.shutdown();
-                peersCache.half(peer);
-            }
-
-            @Override
-            public void onCompleted() {
-                ch.shutdown();
-//                logger.info("send message " + msg.getCode().name() + " success content = " + msg.toString());
-            }
-        });
+    public void dial(Peer p, AbstractMessage msg) {
+        dialWithTTL(p, 1, msg);
     }
 
-    public void dial(String host, int port, Object msg) {
-        grpcCall(host, port, buildMessage(MAX_TTL, msg));
-    }
-
-    public void dial(Peer p, Object msg) {
-        grpcCall(p, buildMessage(1, msg));
-    }
-
-    public void broadcast(Object msg) {
+    public void broadcast(AbstractMessage msg) {
         for (Peer p : getPeers()) {
-            grpcCall(p, buildMessage(MAX_TTL, msg));
+            dialWithTTL(p, MAX_TTL, msg);
         }
     }
 
@@ -300,7 +253,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
                 continue;
             }
             try {
-                grpcCall(p, buildMessage(payload.getTtl() - 1, payload.getBody()));
+                dialWithTTL(p, payload.getTtl() - 1, payload.getBody());
             } catch (Exception e) {
                 logger.error("parse body fail");
             }
@@ -315,84 +268,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return peersCache.hasPeer(peer);
     }
 
-    private WisdomOuterClass.Message buildMessage(long ttl, Object msg) {
-        WisdomOuterClass.Message.Builder builder = WisdomOuterClass.Message.newBuilder();
-        builder.setCreatedAt(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build());
-        builder.setRemotePeer(peersCache.getSelf().toString());
-        builder.setTtl(ttl);
-        builder.setNonce(nonce.getAndIncrement());
-        if (msg instanceof WisdomOuterClass.Nothing) {
-            builder.setCode(WisdomOuterClass.Code.NOTHING);
-            return sign(builder.setBody(((WisdomOuterClass.Nothing) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Ping) {
-            builder.setCode(WisdomOuterClass.Code.PING);
-            return sign(builder.setBody(((WisdomOuterClass.Ping) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Pong) {
-            builder.setCode(WisdomOuterClass.Code.PONG);
-            return sign(builder.setBody(((WisdomOuterClass.Pong) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Lookup) {
-            builder.setCode(WisdomOuterClass.Code.LOOK_UP);
-            return sign(builder.setBody(((WisdomOuterClass.Lookup) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Peers) {
-            builder.setCode(WisdomOuterClass.Code.PEERS);
-            return sign(builder.setBody(((WisdomOuterClass.Peers) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.GetStatus) {
-            builder.setCode(WisdomOuterClass.Code.GET_STATUS);
-            return sign(builder.setBody(((WisdomOuterClass.GetStatus) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Status) {
-            builder.setCode(WisdomOuterClass.Code.STATUS);
-            return sign(builder.setBody(((WisdomOuterClass.Status) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.GetBlocks) {
-            builder.setCode(WisdomOuterClass.Code.GET_BLOCKS);
-            return sign(builder.setBody(((WisdomOuterClass.GetBlocks) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Blocks) {
-            builder.setCode(WisdomOuterClass.Code.BLOCKS);
-            return sign(builder.setBody(((WisdomOuterClass.Blocks) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Proposal) {
-            builder.setCode(WisdomOuterClass.Code.PROPOSAL);
-            return sign(builder.setBody(((WisdomOuterClass.Proposal) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.Transactions) {
-            builder.setCode(WisdomOuterClass.Code.TRANSACTIONS);
-            return sign(builder.setBody(((WisdomOuterClass.Transactions) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.GetTreeNodes) {
-            builder.setCode(WisdomOuterClass.Code.GET_TREE_NODES);
-            return sign(builder.setBody(((WisdomOuterClass.GetTreeNodes) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.TreeNodes) {
-            builder.setCode(WisdomOuterClass.Code.TREE_NODES);
-            return sign(builder.setBody(((WisdomOuterClass.TreeNodes) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.GetMerkleTransactions) {
-            builder.setCode(WisdomOuterClass.Code.GET_MERKELE_TRANSACTIONS);
-            return sign(builder.setBody(((WisdomOuterClass.GetMerkleTransactions) msg).toByteString())).build();
-        }
-        if (msg instanceof WisdomOuterClass.MerkleTransactions) {
-            builder.setCode(WisdomOuterClass.Code.MERKLE_TRANSACTIONS);
-            return sign(builder.setBody(((WisdomOuterClass.MerkleTransactions) msg).toByteString())).build();
-        }
-        logger.error("cannot deduce message type " + msg.getClass().toString());
-        builder.setCode(WisdomOuterClass.Code.NOTHING).setBody(WisdomOuterClass.Nothing.newBuilder().build().toByteString());
-        return sign(builder).build();
-    }
-
-    private WisdomOuterClass.Message.Builder sign(WisdomOuterClass.Message.Builder builder) {
-        return builder.setSignature(
-                ByteString.copyFrom(
-                        peersCache.getSelf().privateKey.sign(Util.getRawForSign(builder.build()))
-                )
-        );
-    }
 
     public String getNodePubKey() {
         return Peer.PROTOCOL_NAME + "://" +
@@ -414,7 +289,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         return getSelf().port;
     }
 
-    void pend(Peer peer){
+    void pend(Peer peer) {
         this.peersCache.pend(peer);
     }
 }

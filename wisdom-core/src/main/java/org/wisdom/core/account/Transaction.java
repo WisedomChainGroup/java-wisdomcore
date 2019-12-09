@@ -31,6 +31,7 @@ import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.tools.TransactionTestTool;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
@@ -43,6 +44,28 @@ import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public class Transaction {
+
+    public static Integer getTypeFromInput(String s) {
+        // 默认是转账
+        if (s == null || s.equals("")) {
+            return null;
+        }
+
+        for (Transaction.Type t : Transaction.TYPES_TABLE) {
+            if (t.toString().equals(s.toUpperCase())) {
+                return t.ordinal();
+            }
+        }
+        try {
+            int type = Integer.parseInt(s);
+            if (type < 0 || type >= Type.values().length) {
+                return null;
+            }
+            return type;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     public static final int DEFAULT_TRANSACTION_VERSION = 1;
 
@@ -75,7 +98,7 @@ public class Transaction {
         this.signature = signature;
     }
 
-    public Transaction copy(){
+    public Transaction copy() {
         return new Transaction(version, type, nonce, from, gasPrice, amount, payload, to, signature);
     }
 
@@ -363,13 +386,13 @@ public class Transaction {
         // payload
 //        int type = transaction.type;
         long payloadLength = BigEndian.decodeUint32(reader.read(4));
-        if (payloadLength == 0){
+        if (payloadLength == 0) {
             return transaction;
         }
 //        if (type == 0x09 || type == 0x0a || type == 0x0b || type == 0x0c || type == 0x03 || type == 0x0d || type == 0x0f) {//孵化器、提取利息、提取分享、提取本金、存证、撤回投票
 //            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
 //        }
-        transaction.payload = reader.read((int)payloadLength);
+        transaction.payload = reader.read((int) payloadLength);
         return transaction;
     }
 

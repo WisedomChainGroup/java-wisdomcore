@@ -12,10 +12,10 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>./logs/ethereum.log</file>
+        <file>./logs/wisdomcore.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- rollover daily -->
-            <fileNamePattern>./logs/ethereum-%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <fileNamePattern>./logs/wisdomcore-%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
             <!-- each file should be at most 100MB, keep 60 days worth of history, but at most 20GB -->
             <maxFileSize>100MB</maxFileSize>
             <maxHistory>60</maxHistory>

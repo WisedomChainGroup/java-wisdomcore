@@ -43,7 +43,7 @@ public class TransactionMapper implements RowMapper<Transaction> {
         tx.to = rs.getBytes("to");
         tx.height = rs.getLong("height");
         tx.blockHash = rs.getBytes("block_hash");
-        if(Start.enableAssertion){
+        if(Start.ENABLE_ASSERTION){
             Assert.isTrue(Arrays.equals(tx.getHash(), rs.getBytes("tx_hash")), "transaction in database had been modified");
             Assert.isTrue(tx.blockHash != null && tx.blockHash.length == 32, "block hash not found");
         }

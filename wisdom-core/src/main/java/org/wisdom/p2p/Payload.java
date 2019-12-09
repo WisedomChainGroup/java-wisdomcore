@@ -1,5 +1,6 @@
 package org.wisdom.p2p;
 
+import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class Payload {
@@ -10,7 +11,7 @@ public class Payload {
     private long nonce;
     private byte[] signature;
 
-    private Object body;
+    private AbstractMessage body;
 
     private WisdomOuterClass.Message message;
 
@@ -29,7 +30,7 @@ public class Payload {
         parseBody();
     }
 
-    public Object getBody() {
+    public AbstractMessage getBody() {
         return body;
     }
 

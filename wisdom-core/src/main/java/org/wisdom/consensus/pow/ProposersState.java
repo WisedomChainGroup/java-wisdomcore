@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.EraLinkedStateFactory;
@@ -17,6 +18,7 @@ import org.wisdom.core.state.State;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 投票事务
@@ -26,28 +28,54 @@ import java.util.stream.Collectors;
  * 2019-10-11 增加投票衰减功能
  */
 @Component
-public class ProposersState implements State {
+public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    private static final int MAXIMUM_PROPOSERS = 15;
+    private static final int MAXIMUM_PROPOSERS = getenv("MAXIMUM_PROPOSERS", 15);
+    public static final int COMMUNITY_MINER_JOINS_HEIGHT = getenv("COMMUNITY_MINER_JOINS_HEIGHT", 522215);
 
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
-    private static final long ATTENUATION_ERAS = 2160;
+    private static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
+
+    private static int getenv(String key, int defaultValue) {
+        String v = System.getenv(key);
+        if (v == null || v.equals("")) return defaultValue;
+        return Integer.parseInt(v);
+    }
+
+    private static long getenv(String key, long defaultValue) {
+        String v = System.getenv(key);
+        if (v == null || v.equals("")) return defaultValue;
+        return Long.parseLong(v);
+    }
+
+
+    public static class Vote {
+        public PublicKeyHash from;
+        public long amount;
+        public long accumulated;
+
+        public Vote(PublicKeyHash from, long amount, long accumulated) {
+            this.from = from;
+            this.amount = amount;
+            this.accumulated = accumulated;
+        }
+    }
 
     public static class Proposer {
         public long mortgage;
 
         // transaction hash -> votes
         @JsonIgnore
-        private Map<String, Long> receivedVotes;
+        private Map<String, Vote> receivedVotes;
 
         @JsonIgnore
         // transaction hash -> count
         private Map<String, Long> erasCounter;
 
         @JsonIgnore
-        private long votesCache;
+        private Long votesCache;
 
         public String publicKeyHash;
 
@@ -56,7 +84,7 @@ public class ProposersState implements State {
             erasCounter = new HashMap<>();
         }
 
-        Proposer(long mortgage, String publicKeyHash, Map<String, Long> receivedVotes, Map<String, Long> erasCounter) {
+        Proposer(long mortgage, String publicKeyHash, Map<String, Vote> receivedVotes, Map<String, Long> erasCounter) {
             this.mortgage = mortgage;
             this.publicKeyHash = publicKeyHash;
             this.receivedVotes = receivedVotes;
@@ -67,44 +95,63 @@ public class ProposersState implements State {
             return new Proposer(mortgage, publicKeyHash, new HashMap<>(receivedVotes), new HashMap<>(erasCounter));
         }
 
-        public long getVotes() {
-            if(votesCache != 0){
+        private void clearVotesCache() {
+            votesCache = null;
+        }
+
+        public long getAmount() {
+            if (votesCache != null) {
                 return votesCache;
             }
-            this.votesCache = receivedVotes.values().stream().reduce(Long::sum).orElse(0L);
+            this.votesCache = receivedVotes.values().stream().map(v -> v.amount).reduce(Long::sum).orElse(0L);
             return this.votesCache;
         }
 
-        void increaseEraCounters(){
+        public long getAccumulated() {
+            return receivedVotes.values().stream().map(v -> v.accumulated).reduce(Long::sum).orElse(0L);
+        }
+
+        public Map<String, Vote> getReceivedVotes() {
+            return receivedVotes;
+        }
+
+        void increaseEraCounters() {
             erasCounter.replaceAll((k, v) -> v + 1);
         }
 
-        void attenuation(){
-            for(String k: erasCounter.keySet()){
-                if(erasCounter.get(k) < ATTENUATION_ERAS){
+        void attenuation() {
+            clearVotesCache();
+            for (String k : erasCounter.keySet()) {
+                if (erasCounter.get(k) < ATTENUATION_ERAS) {
                     continue;
                 }
                 erasCounter.put(k, 0L);
-                receivedVotes.put(k,
-                        new BigFraction(receivedVotes.get(k), 1L)
+                Vote v = receivedVotes.get(k);
+                Vote v2 = new Vote(v.from, v.amount, new BigFraction(receivedVotes.get(k).accumulated, 1L)
                         .multiply(ATTENUATION_COEFFICIENT)
-                        .longValue()
-                );
+                        .longValue());
+                receivedVotes.put(k, v2);
             }
+
         }
 
-        void updateTransaction(Transaction tx){
+        void updateTransaction(Transaction tx) {
             switch (Transaction.TYPES_TABLE[tx.type]) {
                 // 投票
                 case VOTE: {
-                    receivedVotes.put(tx.getHashHexString(), tx.amount);
+                    receivedVotes.put(tx.getHashHexString(), new Vote(PublicKeyHash.fromPublicKey(tx.from), tx.amount, tx.amount));
                     erasCounter.put(tx.getHashHexString(), 0L);
+                    clearVotesCache();
                     return;
                 }
                 // 撤回投票
                 case EXIT_VOTE: {
-                    receivedVotes.remove(tx.getHashHexString());
-                    erasCounter.remove(tx.getHashHexString());
+                    if (Start.ENABLE_ASSERTION) {
+                        Assert.isTrue(receivedVotes.containsKey(Hex.encodeHexString(tx.payload)), "the exit vote has voted");
+                    }
+                    receivedVotes.remove(Hex.encodeHexString(tx.payload));
+                    erasCounter.remove(Hex.encodeHexString(tx.payload));
+                    clearVotesCache();
                     return;
                 }
                 // 抵押
@@ -127,8 +174,8 @@ public class ProposersState implements State {
         return all;
     }
 
-    public Set<String> getBlockList() {
-        return blockList;
+    public Stream<Proposer> getBlockList() {
+        return blockList.stream().map(x -> all.get(x));
     }
 
     private Map<String, Proposer> all;
@@ -137,6 +184,10 @@ public class ProposersState implements State {
     private int allowMinersJoinEra;
     private int blockInterval;
     private List<Proposer> candidatesCache;
+
+    private void clearCandidatesCache() {
+        candidatesCache = null;
+    }
 
     @Autowired
     public ProposersState(
@@ -157,7 +208,7 @@ public class ProposersState implements State {
     }
 
     public List<Proposer> getCandidates() {
-        if(this.candidatesCache != null){
+        if (this.candidatesCache != null) {
             return candidatesCache;
         }
         this.candidatesCache = getAll().values()
@@ -175,7 +226,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateBlock(Block block) {
+    public ProposersState updateBlock(Block block) {
         for (Transaction t : block.body) {
             updateTransaction(t);
         }
@@ -183,8 +234,8 @@ public class ProposersState implements State {
     }
 
     private static int compareProposer(Proposer x, Proposer y) {
-        if (x.getVotes() != y.getVotes()) {
-            return Long.compare(x.getVotes(), y.getVotes());
+        if (x.getAccumulated() != y.getAccumulated()) {
+            return Long.compare(x.getAccumulated(), y.getAccumulated());
         }
         if (x.mortgage != y.mortgage) {
             return Long.compare(x.mortgage, y.mortgage);
@@ -193,8 +244,10 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateBlocks(List<Block> blocks) {
-        for(Proposer p: all.values()){
+    public ProposersState updateBlocks(List<Block> blocks) {
+        clearCandidatesCache();
+
+        for (Proposer p : all.values()) {
             p.increaseEraCounters();
             p.attenuation();
         }
@@ -205,7 +258,7 @@ public class ProposersState implements State {
         // 统计出块数量
         int[] proposals = new int[proposers.size()];
         for (Block b : blocks) {
-            if (Start.enableAssertion){
+            if (Start.ENABLE_ASSERTION) {
                 Assert.isTrue(b.body != null && b.body.size() > 0, "empty block body");
             }
             updateBlock(b);
@@ -222,6 +275,12 @@ public class ProposersState implements State {
             }
             logger.info("block the proposer " + proposers.get(i));
             blockList.add(proposers.get(i));
+        }
+        // delete all block list after community miner joins
+        if (blocks.stream().anyMatch(b -> b.getnHeight() >= COMMUNITY_MINER_JOINS_HEIGHT
+                && blocks.stream().anyMatch(x -> x.getnHeight() < COMMUNITY_MINER_JOINS_HEIGHT))
+        ) {
+            blockList.clear();
         }
         // 重新生成 proposers
         proposers = all.values().stream()
@@ -243,7 +302,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State updateTransaction(Transaction transaction) {
+    public ProposersState updateTransaction(Transaction transaction) {
         Proposer p = all.get(Hex.encodeHexString(transaction.to));
         if (p == null) {
             p = new Proposer();
@@ -255,7 +314,7 @@ public class ProposersState implements State {
     }
 
     @Override
-    public State copy() {
+    public ProposersState copy() {
         ProposersState state = new ProposersState(this.allowMinersJoinEra, this.blockInterval);
         state.all = new HashMap<>();
         for (String key : all.keySet()) {
@@ -268,5 +327,11 @@ public class ProposersState implements State {
         }
         state.proposers = new ArrayList<>(proposers);
         return state;
+    }
+
+    public Optional<Long> getAccumulatedByTransactionHash(byte[] transactionHash) {
+        String txHash = Hex.encodeHexString(transactionHash);
+        return all.values().stream().filter(x -> x.receivedVotes.containsKey(txHash))
+                .map(x -> x.receivedVotes.get(txHash)).findFirst().map(x -> x.accumulated);
     }
 }

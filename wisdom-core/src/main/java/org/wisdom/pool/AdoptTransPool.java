@@ -11,6 +11,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.pool.TransPool;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -280,3 +281,4 @@ public class AdoptTransPool {
         }
     }*/
 }
+

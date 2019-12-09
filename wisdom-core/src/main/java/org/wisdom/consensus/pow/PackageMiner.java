@@ -55,7 +55,7 @@ public class PackageMiner {
                 boolean state = false;
                 TransPool transPool = entry1.getValue();
                 Transaction transaction = transPool.getTransaction();
-                if (size > Block.MAX_BLOCK_SIZE) {
+                if (size > Block.MAX_BLOCK_SIZE || (size + transaction.size()) > Block.MAX_BLOCK_SIZE) {
                     exit = true;
                     break;
                 }
@@ -65,11 +65,16 @@ public class PackageMiner {
                 }
                 // 没有获取到 AccountState
                 if (!accountStateMap.containsKey(publicKeyHash)) {
-                    continue;
+                    break;
                 }
                 AccountState accountState = accountStateMap.get(publicKeyHash);
                 Account fromaccount = accountState.getAccount();
 
+                // nonce是否合法
+                if (fromaccount.getNonce() >= transaction.nonce) {
+                    removemap.put(new String(entry.getKey()), transaction.nonce);
+                    continue;
+                }
                 switch (transaction.type) {
                     case 1://转账
                     case 2:////投票

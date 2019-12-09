@@ -337,10 +337,10 @@ public class MerkleRule implements BlockRule {
             long dayinterset = ratebig.multiply(amounbig).longValue();
             long lastheight = incubator.getLast_blockheight_interest();
             if (dayinterset > tran.amount) {
-                lastheight += configuration.getDay_count();
+                lastheight += configuration.getDay_count(nowheight);
             } else {
                 int extractday = (int) (tran.amount / dayinterset);
-                long extractheight = extractday * configuration.getDay_count();
+                long extractheight = extractday * configuration.getDay_count(nowheight);
                 lastheight += extractheight;
             }
             long lastinterset = incubator.getInterest_amount();
@@ -356,10 +356,10 @@ public class MerkleRule implements BlockRule {
             long dayinterset = onemul.multiply(bl).longValue();
             long lastheight = incubator.getLast_blockheight_share();
             if (dayinterset > tran.amount) {
-                lastheight += configuration.getDay_count();
+                lastheight += configuration.getDay_count(nowheight);
             } else {
                 int extractday = (int) (tran.amount / dayinterset);
-                long extractheight = extractday * configuration.getDay_count();
+                long extractheight = extractday * configuration.getDay_count(nowheight);
                 lastheight += extractheight;
             }
             long lastshare = incubator.getShare_amount();

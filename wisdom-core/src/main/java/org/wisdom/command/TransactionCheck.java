@@ -15,11 +15,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with the java-wisdomcore. If not, see <http://www.gnu.org/licenses/>.
  */
-
 package org.wisdom.command;
 
-import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -239,6 +236,13 @@ public class TransactionCheck {
                         apiResult.setMessage("Not sufficient funds");
                         return apiResult;
                     }
+                    if (type == 0x03) {
+                        if (transaction.amount != 0) {
+                            apiResult.setCode(5000);
+                            apiResult.setMessage("the amount of deposit must be zero");
+                            return apiResult;
+                        }
+                    }
                 } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
                     if ((tranbalance + transaction.getFee()) > nowbalance) {
                         apiResult.setCode(5000);
@@ -435,7 +439,7 @@ public class TransactionCheck {
                     return apiResult;
                 } else {
                     if (transaction.height > 40000) {
-                        int muls = (int) (nowincub % totalrate);
+                        long muls = (long) (nowincub % totalrate);
                         if (muls != 0) {//数据不对
                             long syamount = muls;
                             if (syamount != amount) {
@@ -464,8 +468,8 @@ public class TransactionCheck {
                     apiResult.setMessage("Cannot extract, still less than a day");
                     return apiResult;
                 }
-                int blockcount = mul * configuration.getDay_count();
                 long nowheight = stateDB.getBestBlock().nHeight;
+                int blockcount = mul * configuration.getDay_count(nowheight);
                 if ((inheight + blockcount) > nowheight) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("In excess of the amount available");
@@ -551,6 +555,11 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
+        if (transaction.type != Transaction.Type.VOTE.ordinal()) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The type of withdrawal is not a vote");
+            return apiResult;
+        }
         byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
         if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to, topubkeyhash)) {
             apiResult.setCode(5000);
@@ -581,8 +590,8 @@ public class TransactionCheck {
 
     private APIResult CheckRecallMortgage(long amount, byte[] payload, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
-        if (payload.length == 0){
-            return APIResult.newFailResult(5000,"recall mortgage payload cannot null");
+        if (payload.length == 0) {
+            return APIResult.newFailResult(5000, "recall mortgage payload cannot null");
         }
         if (payload.length != 32) {//抵押事务哈希
             apiResult.setCode(5000);
@@ -599,6 +608,11 @@ public class TransactionCheck {
         if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
+            return apiResult;
+        }
+        if (transaction.type != Transaction.Type.MORTGAGE.ordinal()) {
+            apiResult.setCode(5000);
+            apiResult.setMessage("The type of withdrawal is not mortgage");
             return apiResult;
         }
         if (!Arrays.equals(transaction.to, topubkeyhash)) {
@@ -634,9 +648,10 @@ public class TransactionCheck {
         }
         APIResult apiResult = TransactionVerify(t, account, incubator);
         if (apiResult.getCode() == 5000) {
-            logger.info("Queued to Pending, memory pool check error, tx:"+t.getHashHexString()+", "+apiResult.getMessage());
+            logger.info("Queued to Pending, memory pool check error, tx:" + t.getHashHexString() + ", " + apiResult.getMessage());
             return false;
         }
         return true;
     }
 }
+

@@ -130,5 +130,4 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
             return trigger.nextExecutionTime(triggerContext);
         });
     }
-
 }

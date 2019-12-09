@@ -8,7 +8,6 @@ import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
@@ -62,20 +61,20 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                     List<TransPool> list = entry.getValue();
                     for (TransPool transPool : list) {
                         Transaction transaction = transPool.getTransaction();
-                        if (pendingNonce.getNonce() < transaction.nonce) {
-                            Incubator incubator=null;
-                            if(transaction.type==0x0a || transaction.type==0x0b || transaction.type==0x0c){
-                                incubator=incubatorDB.selectIncubator(transaction.payload);
+//                        if (pendingNonce.getNonce() < transaction.nonce) {
+//                        }
+                        Incubator incubator=null;
+                        if(transaction.type==0x0a || transaction.type==0x0b || transaction.type==0x0c){
+                            incubator=incubatorDB.selectIncubator(transaction.payload);
+                        }
+                        if (transactionCheck.checkoutPool(transaction,incubator)) {
+                            //超过pending上限
+                            if (index > configuration.getMaxpending()) {
+                                state = true;
+                                break;
                             }
-                            if (transactionCheck.checkoutPool(transaction,incubator)) {
-                                //超过pending上限
-                                if (index > configuration.getMaxpending()) {
-                                    state = true;
-                                    break;
-                                }
-                                newlist.add(transPool);
-                                index++;
-                            }
+                            newlist.add(transPool);
+                            index++;
                         }
                         maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
                     }
@@ -93,4 +92,5 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
         });
     }
 }
+
 

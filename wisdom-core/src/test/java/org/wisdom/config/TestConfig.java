@@ -85,6 +85,6 @@ public class TestConfig {
     @Bean
     @Scope("prototype")
     public KeyPair getKeyPair() {
-        return Ed25519.GenerateKeyPair();
+        return Ed25519.generateKeyPair();
     }
 }

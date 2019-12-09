@@ -20,7 +20,10 @@ package org.wisdom.keystore.wallet;
 
 public class Kdfparams {
 
-    public Kdfparams(int memoryCost,int timeCost,int parallelism,String salt){
+    public Kdfparams() {
+    }
+
+    public Kdfparams(int memoryCost, int timeCost, int parallelism, String salt){
         this.memoryCost = memoryCost;
         this.timeCost = timeCost;
         this.parallelism = parallelism;

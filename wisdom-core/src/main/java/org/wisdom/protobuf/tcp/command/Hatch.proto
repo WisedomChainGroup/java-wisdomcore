@@ -1,5 +1,5 @@
 syntax = "proto3";
-package org.ethereum.protobuf.tcp.command;
+package org.wisdom.protobuf.tcp.command;
 option java_outer_classname = "HatchModel";
 option optimize_for = SPEED;
 

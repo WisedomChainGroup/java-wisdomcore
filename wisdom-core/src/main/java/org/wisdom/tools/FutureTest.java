@@ -1,28 +1,43 @@
 package org.wisdom.tools;
 
+import org.apache.commons.codec.binary.Hex;
+
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
 
 public class FutureTest {
 
     public static final Executor executor = command -> new Thread(command).start();
 
-    public static CompletableFuture newFuture(){
+    public static CompletableFuture<Boolean> newFailedFuture() {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException e) {
-                throw new IllegalStateException(e);
+                throw new RuntimeException(e.getMessage());
             }
-            System.out.println("Result of the asynchronous computation");
+            throw new RuntimeException("error");
+        }, executor);
+    }
+
+    public static CompletableFuture<Boolean> newSuccessfulFuture() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+                return true;
+            }
             return true;
         }, executor);
     }
 
-    public static void main(String[] args){
-        CompletableFuture[] futures = new CompletableFuture[1000];
-        for(int i = 0; i < futures.length; i++){
-            futures[i] = newFuture();
-        }
-        CompletableFuture.allOf(futures).join();
+    public static void main(String[] args) throws Exception {
+//        newSuccessfulFuture().thenRunAsync(() -> System.out.println("======================"));
+        newFailedFuture().handleAsync((x, e) -> {
+            if (e != null){
+                System.out.println("============================");
+            }
+            return false;
+        });
     }
 }

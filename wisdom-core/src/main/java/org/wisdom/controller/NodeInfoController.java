@@ -7,20 +7,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
-import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeerServer;
-import org.wisdom.p2p.PeersManager;
 import org.wisdom.util.Address;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
 public class NodeInfoController {
@@ -65,7 +66,7 @@ public class NodeInfoController {
         return APIResult.newFailResult(2000, "SUCCESS", info);
     }
 
-    public static Map<String, Object> getPeerInfo(Peer peer){
+    public static Map<String, Object> getPeerInfo(Peer peer) {
         Map<String, Object> res = new HashMap<>();
         res.put(peer.toString(), peer.score);
         return res;
@@ -102,41 +103,34 @@ public class NodeInfoController {
         } else {
             res.put("enableMinerJoins", false);
         }
-        ProposersState proposersState = (ProposersState) stateDB.getProposersFactory().getInstance(best);
+        ProposersState proposersState = stateDB.getProposersFactory().getInstance(best);
         res.put("proposers", proposersState.getProposers().stream().map(p -> p.publicKeyHash).toArray());
-        res.put("blockList", proposersState.getBlockList());
-        res.put("votes", proposersState.getCandidates().stream().map(c -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("publicKeyHash", c.publicKeyHash);
-            m.put("votes", c.getVotes());
-            m.put("mortgage", c.mortgage);
-            return m;
-        }).toArray());
+        res.put("blockList", proposersState.getBlockList().map(this::toProposer));
+        res.put("votes", proposersState.getCandidates().stream().map(this::toProposer).toArray());
         return res;
     }
 
-    @GetMapping(value = "/account/{account}", produces = "application/json")
-    public Object getVotes(@PathVariable("account") String account) {
+    private Map<String, Object> toProposer(ProposersState.Proposer p){
+        Map<String, Object> m = new HashMap<>();
+        m.put("publicKeyHash", p.publicKeyHash);
+        m.put("amount", p.getAmount());
+        m.put("mortgage", p.mortgage);
+        m.put("accumulated", p.getAccumulated());
+        return m;
+    }
+
+    @GetMapping(value = "/account/{account}", produces = APPLICATION_JSON_VALUE)
+    public Object getAccount(@PathVariable("account") String account) {
         Block best = stateDB.getBestBlock();
-        byte[] publicKeyHash = null;
-        try {
-            publicKeyHash = Hex.decodeHex(account);
-            if (publicKeyHash.length == Transaction.PUBLIC_KEY_SIZE) {
-                publicKeyHash = Address.publicKeyToHash(publicKeyHash);
-            }
-        } catch (Exception e) {
-            publicKeyHash = Address.addressToPublicKeyHash(account);
-        }
-        if (publicKeyHash == null) {
+        Optional<PublicKeyHash> publicKeyHash = PublicKeyHash.fromHex(account);
+        if (!publicKeyHash.isPresent()) {
             return "invalid account";
         }
-        AccountState state = stateDB.getAccount(best.getHash(), publicKeyHash);
+        AccountState state = stateDB.getAccount(best.getHash(), publicKeyHash.get().getPublicKeyHash());
         if (state == null) {
             return "database error";
         }
-
         state.getAccount().setBlockHeight(best.nHeight);
-
         return encodeDecoder.encode(new Account(
                 state.getAccount().getPubkeyHash(),
                 state.getAccount().getNonce(),
@@ -145,6 +139,53 @@ public class NodeInfoController {
                 state.getAccount().getMortgage(),
                 state.getAccount().getVote()
         ));
+    }
+
+    public static class Vote{
+        public String address;
+        public long amount;
+        public long accumulated;
+
+        public Vote() {
+        }
+
+        public Vote(String address, long amount, long accumulated) {
+            this.address = address;
+            this.amount = amount;
+            this.accumulated = accumulated;
+        }
+    }
+
+    @GetMapping(value = "/votes/{account}", produces = APPLICATION_JSON_VALUE)
+    public Object getVotes(@PathVariable("account") String account) {
+        Block best = stateDB.getBestBlock();
+        Optional<PublicKeyHash> o = PublicKeyHash.fromHex(account);
+        if (!o.isPresent()) {
+            return "invalid account";
+        }
+        PublicKeyHash publicKeyHash = o.get();
+        ProposersState state = stateDB.getProposersFactory().getInstance(best);
+        return state.getAll().get(publicKeyHash.getHex()).getReceivedVotes()
+                .values().stream()
+                .map(x -> new Vote(x.from.getAddress(), x.amount, x.accumulated))
+                .collect(Collectors.groupingBy(
+                        x -> x.address,
+                        Collectors.reducing(new Vote(), (x, y) -> {
+                            if (x.address == null) return y;
+                            if (y.address == null) return x;
+                            return new Vote(x.address, x.amount + y.amount, x.accumulated + y.accumulated);
+                        })
+                )).values();
+    }
+
+    @GetMapping(value = "/getAccumulatedByTransactionHash/{transactionHash}", produces = APPLICATION_JSON_VALUE)
+    public Object getAccumulatedByAddress(@PathVariable("transactionHash") String transactionHash) throws Exception{
+        Block best = stateDB.getBestBlock();
+        ProposersState state = stateDB.getProposersFactory().getInstance(best);
+        Map<String, Object> res = new HashMap<>();
+        res.put("transactionHash", transactionHash);
+        res.put("accumulated", state.getAccumulatedByTransactionHash(Hex.decodeHex(transactionHash)).orElse(0L));
+        return res;
     }
 
     private static class Account {

@@ -21,10 +21,6 @@ package org.wisdom.keystore.wallet;
 import com.google.common.primitives.Bytes;
 import com.google.gson.Gson;
 import org.apache.commons.codec.DecoderException;
-import org.apache.commons.io.IOUtils;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileUrlResource;
-import org.springframework.core.io.Resource;
 import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.apache.commons.codec.binary.Hex;
@@ -39,9 +35,6 @@ import org.json.simple.JSONArray;
 import net.sf.json.JSONObject;
 import org.wisdom.keystore.account.Address;
 import org.wisdom.keystore.crypto.*;
-import org.wisdom.keystore.util.Base58Utility;
-import org.wisdom.keystore.util.Utils;
-import org.wisdom.util.ByteUtil;
 
 
 import java.io.*;
@@ -66,6 +59,7 @@ public class KeystoreAction {
         Gson gson = new Gson();
         return gson.toJson(keystore);
     }
+
     public static Keystore fromPassword(String password) throws Exception{
         if (password.length()>20 || password.length()<8){
             throw new Exception("请输入8-20位密码");
