@@ -17,6 +17,7 @@ buildscript {
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
             }
         }
+        jcenter()
         mavenCentral()
     }
     dependencies {
