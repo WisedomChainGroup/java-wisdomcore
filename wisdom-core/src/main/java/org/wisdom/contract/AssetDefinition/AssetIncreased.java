@@ -1,10 +1,14 @@
-package org.wisdom.contract;
+package org.wisdom.contract.AssetDefinition;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.tdf.rlp.RLP;
+import org.tdf.rlp.RLPDeserializer;
+import org.tdf.rlp.RLPElement;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
 import java.util.List;
@@ -13,11 +17,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Transfer implements AnalysisContract{
-
-    private byte[] from;
-    private byte[] to;
-    private long value;
+public class AssetIncreased implements AnalysisContract {
+    @RLP(0)
+    private long amount;
 
     @Override
     public APIResult FormatCheck(List<AccountState> accountStateList) {
@@ -32,7 +34,8 @@ public class Transfer implements AnalysisContract{
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         try{
-
+            AssetIncreased assetIncreased = RLPDeserializer.deserialize(payload, AssetIncreased.class);
+            this.amount= assetIncreased.amount;
         }catch (Exception e){
             return false;
         }
@@ -41,6 +44,6 @@ public class Transfer implements AnalysisContract{
 
     @Override
     public byte[] RLPserialization() {
-        return new byte[0];
+        return RLPElement.encode(AssetIncreased.builder().amount(this.amount).build()).getEncoded();
     }
 }

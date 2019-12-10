@@ -1,8 +1,8 @@
 package org.wisdom.db;
 
-import org.wisdom.contract.Asset;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
+import org.wisdom.util.ByteArrayMap;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,23 +15,17 @@ public class AccountState {
     private Account account;
     private Map<String, Incubator> interestMap;
     private Map<String, Incubator> ShareMap;
-    private Asset Asset;//合约代币
-    private int type;//1是普通地址，0是合约地址
-    private Map<String, byte[]> ContractMap;//合约数据
+    private int type;//0是普通地址,1是合约代币，2是多重签名
+    private byte[] Contract;//合约RLP
+    private Map<byte[],Long> TokensMap;
 
     public AccountState() {
         this.account = new Account();
         this.interestMap = new HashMap<>();
         this.ShareMap = new HashMap<>();
         this.type = 1;
-        this.ContractMap = new HashMap<>();
-    }
-
-    public AccountState(Asset Asset) {
-        this.type = 0;
-        this.Asset = Asset;
-        this.account = new Account();
-        account.setPubkeyHash(new byte[20]);//合约hash
+        this.Contract = new byte[0];
+        this.TokensMap = new ByteArrayMap<Long>();
     }
 
     public AccountState(byte[] pubkeyHash) {
@@ -39,13 +33,13 @@ public class AccountState {
         account.setPubkeyHash(pubkeyHash);
     }
 
-    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, Map<String, byte[]> contractMap) {
+    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, int type, byte[] Contract, ByteArrayMap<Long> TokensMap) {
         this.account = account;
         this.interestMap = interestMap;
         this.ShareMap = shareMap;
-        this.ContractMap = contractMap;
         this.type = 1;
-
+        this.Contract = Contract;
+        this.TokensMap = TokensMap;
     }
 
     public Account getAccount() {
@@ -72,14 +66,6 @@ public class AccountState {
         ShareMap = shareMap;
     }
 
-    public org.wisdom.contract.Asset getAsset() {
-        return Asset;
-    }
-
-    public void setAsset(org.wisdom.contract.Asset asset) {
-        Asset = asset;
-    }
-
     public int getType() {
         return type;
     }
@@ -88,12 +74,20 @@ public class AccountState {
         this.type = type;
     }
 
-    public Map<String, byte[]> getContractMap() {
-        return ContractMap;
+    public byte[] getContract() {
+        return Contract;
     }
 
-    public void setContractMap(Map<String, byte[]> contractMap) {
-        ContractMap = contractMap;
+    public void setContract(byte[] contract) {
+        Contract = contract;
+    }
+
+    public Map<byte[], Long> getTokensMap() {
+        return TokensMap;
+    }
+
+    public void setTokensMap(Map<byte[], Long> tokensMap) {
+        TokensMap = tokensMap;
     }
 
     @Override
@@ -111,24 +105,19 @@ public class AccountState {
 
     public AccountState copy() {
         AccountState accountState = new AccountState();
-        if (type == 1) {
-            accountState.setAccount(account.copy());
-            accountState.setInterestMap(new HashMap<>());
-            for (String k : interestMap.keySet()) {
-                accountState.getInterestMap().put(k, interestMap.get(k).copy());
-            }
-            accountState.setShareMap(new HashMap<>());
-            for (String k : getShareMap().keySet()) {
-                accountState.getShareMap().put(k, ShareMap.get(k).copy());
-            }
-            accountState.setContractMap(new HashMap<>());
-            for (String k : getContractMap().keySet()) {
-                accountState.getContractMap().put(k, ContractMap.get(k));
-            }
-        } else {
-            accountState.setAsset(Asset.copy());
+        accountState.setAccount(account.copy());
+        accountState.setInterestMap(new HashMap<>());
+        for (String k : interestMap.keySet()) {
+            accountState.getInterestMap().put(k, interestMap.get(k).copy());
+        }
+        accountState.setShareMap(new HashMap<>());
+        for (String k : getShareMap().keySet()) {
+            accountState.getShareMap().put(k, ShareMap.get(k).copy());
         }
         accountState.setType(type);
+        accountState.setContract(Contract);
+        accountState.setTokensMap(new HashMap<>());
+        accountState.setTokensMap(new ByteArrayMap(TokensMap));
         return accountState;
     }
 }
