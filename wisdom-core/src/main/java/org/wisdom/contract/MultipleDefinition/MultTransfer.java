@@ -1,21 +1,14 @@
-package org.wisdom.contract;
+package org.wisdom.contract.MultipleDefinition;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Increased implements AnalysisContract{
+public class MultTransfer implements AnalysisContract {
 
-    private long amount;
+//    private
 
     @Override
     public APIResult FormatCheck(List<AccountState> accountStateList) {
@@ -29,12 +22,7 @@ public class Increased implements AnalysisContract{
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        try{
-
-        }catch (Exception e){
-            return false;
-        }
-        return true;
+        return false;
     }
 
     @Override

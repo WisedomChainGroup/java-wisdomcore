@@ -1,10 +1,14 @@
-package org.wisdom.contract;
+package org.wisdom.contract.AssetDefinition;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.tdf.rlp.RLP;
+import org.tdf.rlp.RLPDeserializer;
+import org.tdf.rlp.RLPElement;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
 import java.util.List;
@@ -13,8 +17,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Changeowner implements AnalysisContract{
-
+public class AssetChangeowner implements AnalysisContract {
+    @RLP(0)
     private byte[] newowner;
 
     @Override
@@ -30,7 +34,8 @@ public class Changeowner implements AnalysisContract{
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         try{
-
+            AssetChangeowner assetChangeowner = RLPDeserializer.deserialize(payload, AssetChangeowner.class);
+            this.newowner= assetChangeowner.getNewowner();
         }catch (Exception e){
             return false;
         }
@@ -39,6 +44,6 @@ public class Changeowner implements AnalysisContract{
 
     @Override
     public byte[] RLPserialization() {
-        return new byte[0];
+        return RLPElement.encode(AssetChangeowner.builder().newowner(this.newowner).build()).getEncoded();
     }
 }
