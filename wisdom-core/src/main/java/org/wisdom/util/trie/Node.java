@@ -3,6 +3,7 @@ package org.wisdom.util.trie;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import org.bouncycastle.util.encoders.Hex;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPItem;
@@ -20,6 +21,8 @@ import org.wisdom.util.FastByteComparisons;
 class Node {
     private static final int BRANCH_SIZE = 17;
     private static final int MAX_KEY_SIZE = 32;
+
+    @Getter(AccessLevel.PACKAGE)
     private boolean dirty;
 
     private void setDirty() {
@@ -30,6 +33,7 @@ class Node {
     private RLPList rlp;
 
     // if hash is not null, resolve rlp encoded from db
+    @Getter(AccessLevel.PACKAGE)
     private byte[] hash;
 
     // for lazy load, read only
@@ -47,21 +51,28 @@ class Node {
     // the first element is trie key and the second element is value(leaf node) or child node(extension node)
     private Object[] children;
 
-    // create root node from database and reference
-    static Node fromEncoded(byte[] encoded, Store<byte[], byte[]> cache) {
-        return fromEncoded(RLPElement.fromEncoded(encoded), cache);
+    static Node fromRootHash(byte[] hash, Store<byte[], byte[]> readOnlyCache){
+        return builder()
+                .hash(hash)
+                .readOnlyCache(readOnlyCache)
+                .build();
     }
 
     // create root node from database and reference
-    static Node fromEncoded(RLPElement rlp, Store<byte[], byte[]> cache) {
+    static Node fromEncoded(byte[] encoded, Store<byte[], byte[]> readOnlyCache) {
+        return fromEncoded(RLPElement.fromEncoded(encoded), readOnlyCache);
+    }
+
+    // create root node from database and reference
+    static Node fromEncoded(RLPElement rlp, Store<byte[], byte[]> readOnlyCache) {
         if (rlp.isList())
             return Node.builder()
                     .rlp(rlp.getAsList())
-                    .readOnlyCache(cache)
+                    .readOnlyCache(readOnlyCache)
                     .build();
         return Node.builder()
                 .hash(rlp.getAsItem().get())
-                .readOnlyCache(cache)
+                .readOnlyCache(readOnlyCache)
                 .build();
     }
 
@@ -87,14 +98,13 @@ class Node {
     // encode and commit root node to store
     // return rlp encoded
     // if encodeAndCommit is call at root node, force hash is set to true
-    RLPElement encodeAndCommit(
+    RLPElement commit(
             HashFunction function,
             Store<byte[], byte[]> cache,
             boolean forceHash,
-            // if this set to true, the previous value will be deleted
-            boolean delete
+            boolean dirty
     ) {
-        if (!dirty) return hash != null ? RLPItem.fromBytes(hash) : rlp;
+        if (!this.dirty) return hash != null ? RLPItem.fromBytes(hash) : rlp;
         Type type = getType();
         switch (type) {
             case LEAF: {
@@ -106,7 +116,7 @@ class Node {
             case EXTENSION: {
                 rlp = RLPList.createEmpty(2);
                 rlp.add(RLPItem.fromBytes(getKey().toPacked(false)));
-                rlp.add(getExtension().encodeAndCommit(function, cache, false, delete));
+                rlp.add(getExtension().commit(function, cache, false, dirty));
                 break;
             }
             default: {
@@ -117,13 +127,13 @@ class Node {
                         rlp.add(RLPItem.NULL);
                         continue;
                     }
-                    rlp.add(child.encodeAndCommit(function, cache, false, delete));
+                    rlp.add(child.commit(function, cache, false, dirty));
                 }
                 rlp.add(RLPItem.fromBytes(getValue()));
             }
         }
-        if(delete) dispose(cache);
-        dirty = false;
+        dispose(cache);
+        this.dirty = dirty;
         byte[] raw = rlp.getEncoded();
 
         // if encoded size is great than or equals, store node to db and return a hash reference

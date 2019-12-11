@@ -1,8 +1,13 @@
 package org.wisdom.util.trie;
 
-public interface Trie<V> extends Store<byte[], V> {
-    // commit and generate a snap shot
+
+public interface Trie<K, V> extends Store<K, V> {
+    // get root hash of current trie, this method will not commit to db
     byte[] getRootHash();
-    Trie<V> rollback(byte[] rootHash);
-    void flush();
+    // commit current trie to db and return the root hash
+    byte[] commit();
+    // if has modification not sync to db, the trie is dirty
+    boolean isDirty();
+    // move to another root hash
+    Trie<K, V> moveTo(byte[] rootHash);
 }

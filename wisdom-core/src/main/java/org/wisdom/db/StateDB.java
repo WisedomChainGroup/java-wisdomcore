@@ -236,6 +236,11 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     if (a.nHeight != b.nHeight) {
                         return Long.compare(a.nHeight, b.nHeight);
                     }
+                    long f1 = a.body.stream().map(x -> x.getFee()).reduce(0L, Long::sum);
+                    long f2 = a.body.stream().map(x -> x.getFee()).reduce(0L, Long::sum);
+                    if(f1 != f2){
+                        return (int) (f1 - f2);
+                    }
                     // pow 更小的占优势
                     return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
                             .compareTo(
