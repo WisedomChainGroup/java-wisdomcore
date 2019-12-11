@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Asset implements AnalysisContract {
 
-    public enum Rule{
+    public enum AssetRule{
         changeowner,transfer,increased
     }
 

@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -311,8 +312,29 @@ public class TransactionCheck {
     }
 
     private APIResult CheckDeployContract(byte[] payload) {
-        APIResult apiResult = new APIResult();
-        return apiResult;
+        byte type=payload[0];
+        byte[] data=ByteUtil.bytearraycopy(payload,1,payload.length-1);
+        switch (type){
+            case 0://代币
+               return ChechAsset(data);
+            case 1://多重签名
+
+                return null;
+            default:
+                return APIResult.newFailed("Invalid rules");
+        }
+    }
+
+    private APIResult ChechAsset(byte[] data){
+        Asset asset=new Asset();
+        if(asset.RLPdeserialization(data)){
+            //2 Accountstate
+        }
+        return APIResult.newFailed("Invalid Assets rules");
+    }
+
+    private APIResult ChechMultiple(){
+        return null;
     }
 
 

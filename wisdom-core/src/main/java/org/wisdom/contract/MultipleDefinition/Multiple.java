@@ -18,6 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Multiple implements AnalysisContract {
+
     @RLP(0)
     private byte[] assetHash;
     @RLP(1)
@@ -56,6 +57,11 @@ public class Multiple implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPElement.encode(Multiple.builder()).getEncoded();
+        return RLPElement.encode(Multiple.builder()
+                            .assetHash(this.assetHash)
+                            .min(this.min)
+                            .max(this.max)
+                            .pubList(this.pubList)
+                            .amount(this.amount).build()).getEncoded();
     }
 }
