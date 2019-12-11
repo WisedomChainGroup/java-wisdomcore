@@ -283,7 +283,7 @@ public class KeystoreAction {
      * @return
      */
     public static int verifyAddress(String address){
-        if (!address.startsWith("1") && !address.startsWith("WX")){
+        if (!address.startsWith("1") && !address.startsWith("WX") && !address.startsWith("WR")){
             return  -1;
         }
         byte[] r5 = {};
