@@ -8,6 +8,7 @@ import org.wisdom.db.Leveldb;
 import org.wisdom.encoding.JSONEncodeDecoder;
 
 import javax.annotation.PostConstruct;
+import java.util.Optional;
 
 @Repository
 public class PeersStorage extends PeersCacheWrapper {
@@ -31,19 +32,22 @@ public class PeersStorage extends PeersCacheWrapper {
     }
 
     @PostConstruct
-    public void init() throws Exception{
-        byte[] peers = leveldb.read(LEVELDB_KEY);
-        if (peers == null || peers.length == 0) {
-            return;
-        }
-        for (String s : codec.decode(peers, String[].class)) {
-            super.keepPeer(Peer.newPeer(s));
-        }
+    public void init(){
+        Optional<byte[]> peers = leveldb.get(LEVELDB_KEY);
+        peers.ifPresent(peer->{
+            for (String s : codec.decode(peer, String[].class)) {
+                try {
+                    super.keepPeer(Peer.newPeer(s));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @Scheduled(fixedDelay = FLUSH_RATE)
     public void flush(){
-        leveldb.write(LEVELDB_KEY, codec.encode(
+        leveldb.put(LEVELDB_KEY, codec.encode(
                 super.getPeers().stream()
                 .map(Peer::toString)
                 .toArray()

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Component
@@ -29,11 +30,11 @@ public class PoolTask {
             queuedlist.add(transPool.getTransaction());
         }
         String queuedjson = JSON.toJSONString(queuedlist, true);
-        leveldb.addPoolDb("QueuedPool", queuedjson);
+        leveldb.put("QueuedPool".getBytes(StandardCharsets.UTF_8),queuedjson.getBytes(StandardCharsets.UTF_8));
 
         List<TransPool> transPoolList = peningTransPool.getAllstate();
         String pendingjson = JSON.toJSONString(transPoolList, true);
-        leveldb.addPoolDb("PendingPool", pendingjson);
+        leveldb.put("PendingPool".getBytes(StandardCharsets.UTF_8), pendingjson.getBytes(StandardCharsets.UTF_8));
     }
 
 //    //pendingnonce修正

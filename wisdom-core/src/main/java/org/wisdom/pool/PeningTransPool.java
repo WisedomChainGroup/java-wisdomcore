@@ -14,6 +14,7 @@ import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,12 +41,12 @@ public class PeningTransPool {
         ptpool = new ConcurrentHashMap<>();
         ptnonce = new ConcurrentHashMap<>();
         try {
-            String dbdata = leveldb.readPoolDb("PendingPool");
-            if (dbdata != null && !dbdata.equals("")) {
-                List<TransPool> transPoolList = JSON.parseObject(dbdata, new TypeReference<ArrayList<TransPool>>() {
+            Optional<byte[]> dbdata = leveldb.get("PendingPool".getBytes(StandardCharsets.UTF_8));
+            dbdata.ifPresent(value->{
+                List<TransPool> transPoolList = JSON.parseObject(new String(value), new TypeReference<ArrayList<TransPool>>() {
                 });
                 add(transPoolList);
-            }
+            });
         } catch (Exception e) {
             ptpool = new ConcurrentHashMap<>();
             ptnonce = new ConcurrentHashMap<>();

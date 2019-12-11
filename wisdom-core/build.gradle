@@ -294,8 +294,7 @@ dependencies {
     compile 'io.grpc:grpc-stub:1.24.0'
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
     compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.7'
-    // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb-api
-    compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.7'
+    compile "org.ethereum:leveldbjni-all:1.18.3"
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'

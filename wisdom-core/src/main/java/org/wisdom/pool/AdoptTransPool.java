@@ -11,8 +11,8 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.db.Leveldb;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.pool.TransPool;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,12 +31,12 @@ public class AdoptTransPool {
     public AdoptTransPool() {
         atpool = new ConcurrentHashMap<>();
         try {
-            String dbdata = leveldb.readPoolDb("QueuedPool");
-            if (dbdata != null && !dbdata.equals("")) {
-                List<Transaction> list = JSON.parseObject(dbdata, new TypeReference<ArrayList<Transaction>>() {
+            Optional<byte[]> dbdata  = leveldb.get("QueuedPool".getBytes(StandardCharsets.UTF_8));
+            dbdata.ifPresent(value->{
+                List<Transaction> list = JSON.parseObject(new String(value), new TypeReference<ArrayList<Transaction>>() {
                 });
                 add(list);
-            }
+            });
         } catch (Exception e) {
             atpool = new ConcurrentHashMap<>();
         }
