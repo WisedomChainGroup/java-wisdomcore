@@ -1,8 +1,12 @@
 package org.wisdom.db;
 
+import org.tdf.rlp.RLP;
+import org.tdf.rlp.RLPDecoding;
+import org.tdf.rlp.RLPEncoding;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.util.ByteArrayMap;
+import org.wisdom.util.MapRLPUtil;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,20 +16,26 @@ import java.util.Map;
  * 包含了账户的所有信息，包括余额，孵化的金额等，提供深拷贝方法
  */
 public class AccountState {
+    @RLP(0)
     private Account account;
+    @RLP(1)
+    @RLPEncoding(MapRLPUtil.IncubMapEncoderDecoder.class)
+    @RLPDecoding(MapRLPUtil.IncubMapEncoderDecoder.class)
     private Map<String, Incubator> interestMap;
+    @RLP(2)
+    @RLPEncoding(MapRLPUtil.IncubMapEncoderDecoder.class)
+    @RLPDecoding(MapRLPUtil.IncubMapEncoderDecoder.class)
     private Map<String, Incubator> ShareMap;
+    @RLP(3)
     private int type;//0是普通地址,1是合约代币，2是多重签名
+    @RLP(4)
     private byte[] Contract;//合约RLP
-    private Map<byte[],Long> TokensMap;
+    @RLP(5)
+    @RLPEncoding(MapRLPUtil.TokenMapEncoderDecoder.class)
+    @RLPDecoding(MapRLPUtil.TokenMapEncoderDecoder.class)
+    private ByteArrayMap<Long> TokensMap;
 
     public AccountState() {
-        this.account = new Account();
-        this.interestMap = new HashMap<>();
-        this.ShareMap = new HashMap<>();
-        this.type = 1;
-        this.Contract = new byte[0];
-        this.TokensMap = new ByteArrayMap<Long>();
     }
 
     public AccountState(byte[] pubkeyHash) {
@@ -37,7 +47,7 @@ public class AccountState {
         this.account = account;
         this.interestMap = interestMap;
         this.ShareMap = shareMap;
-        this.type = 1;
+        this.type = type;
         this.Contract = Contract;
         this.TokensMap = TokensMap;
     }
@@ -86,7 +96,7 @@ public class AccountState {
         return TokensMap;
     }
 
-    public void setTokensMap(Map<byte[], Long> tokensMap) {
+    public void setTokensMap(ByteArrayMap<Long> tokensMap) {
         TokensMap = tokensMap;
     }
 
@@ -116,7 +126,6 @@ public class AccountState {
         }
         accountState.setType(type);
         accountState.setContract(Contract);
-        accountState.setTokensMap(new HashMap<>());
         accountState.setTokensMap(new ByteArrayMap(TokensMap));
         return accountState;
     }

@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDeserializer;
 import org.tdf.rlp.RLPElement;
-import org.wisdom.ApiResult.APIResult;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
@@ -29,11 +28,6 @@ public class Multiple implements AnalysisContract {
     private List<byte[]> pubList;//公钥hash
     @RLP(4)
     private long amount;
-
-    @Override
-    public APIResult FormatCheck(List<AccountState> accountStateList) {
-        return null;
-    }
 
     @Override
     public List<AccountState> update(List<AccountState> accountStateList) {

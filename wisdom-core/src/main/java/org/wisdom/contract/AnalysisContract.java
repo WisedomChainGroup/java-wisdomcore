@@ -5,13 +5,8 @@ import org.wisdom.db.AccountState;
 
 import java.util.List;
 
-public interface AnalysisContract {
-
-    APIResult FormatCheck(List<AccountState> accountStateList);
-
+public interface AnalysisContract extends RLPBeanInterface {
+    
     List<AccountState> update(List<AccountState> accountStateList);
 
-    boolean RLPdeserialization(byte[] payload);
-
-    byte[] RLPserialization();
 }

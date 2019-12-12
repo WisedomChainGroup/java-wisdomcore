@@ -4,7 +4,6 @@ import lombok.*;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDeserializer;
 import org.tdf.rlp.RLPElement;
-import org.wisdom.ApiResult.APIResult;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
@@ -31,11 +30,6 @@ public class Asset implements AnalysisContract {
     private byte[] owner;
     @RLP(5)
     private int allowincrease;
-
-    @Override
-    public APIResult FormatCheck(List<AccountState> accountStateList) {
-        return null;
-    }
 
     @Override
     public List<AccountState> update(List<AccountState> accountStateList) {

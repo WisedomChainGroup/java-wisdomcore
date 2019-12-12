@@ -32,15 +32,15 @@ public class PeersStorage extends PeersCacheWrapper {
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         Optional<byte[]> peers = leveldb.get(LEVELDB_KEY);
         peers.ifPresent(peer->{
-            for (String s : codec.decode(peer, String[].class)) {
-                try {
+            try {
+                for (String s : codec.decode(peer, String[].class)) {
                     super.keepPeer(Peer.newPeer(s));
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
+            }catch (Exception e){
+                e.printStackTrace();
             }
         });
     }

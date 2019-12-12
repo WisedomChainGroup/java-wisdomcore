@@ -24,7 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.contract.AssetCode;
 import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -44,6 +46,8 @@ import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class TransactionCheck {
@@ -66,6 +70,9 @@ public class TransactionCheck {
 
     @Autowired
     RateTable rateTable;
+
+    @Autowired
+    AssetCode assetCode;
 
     public APIResult TransactionFormatCheck(byte[] transfer) {
         APIResult apiResult = new APIResult();
@@ -288,7 +295,7 @@ public class TransactionCheck {
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x07://部署合约
-                apiResult = CheckDeployContract(payload);
+                apiResult = CheckDeployContract(payload,frompubhash);
                 break;
             case 0x08://调用合约
                 apiResult = CheckCallContract(payload, topubkeyhash);
@@ -311,30 +318,65 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckDeployContract(byte[] payload) {
+    private APIResult CheckDeployContract(byte[] payload, byte[] frompubhash) {
         byte type=payload[0];
         byte[] data=ByteUtil.bytearraycopy(payload,1,payload.length-1);
         switch (type){
             case 0://代币
-               return ChechAsset(data);
+               return CheckAsset(data,frompubhash);
             case 1://多重签名
-
-                return null;
+                return CheckMultiple(data);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
     }
 
-    private APIResult ChechAsset(byte[] data){
+    private APIResult CheckAsset(byte[] data, byte[] frompubhash){
         Asset asset=new Asset();
+        APIResult apiResult = new APIResult();
         if(asset.RLPdeserialization(data)){
-            //2 Accountstate
+            //校验
+            Pattern pattern2 = Pattern.compile("[A-Z]*");
+            Matcher matcher2 = pattern2.matcher(asset.getCode());
+            if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher2.matches()  && !asset.getCode().equals("WDC")){
+                if (assetCode.isContainsKey(asset.getCode())){
+                    return APIResult.newFailed("Assets code is exist");
+                }
+                if (asset.getOffering()>0 && asset.getTotalamount()>0){
+                    if(asset.getOffering() != asset.getTotalamount()){
+                        return APIResult.newFailed("Offering and totalamount must be the same");
+                    }
+                }else {
+                    return APIResult.newFailed("Offering or totalamount can not be Zero");
+                }
+                if(asset.getCreateuser().length>0 && asset.getOwner().length>0){
+                    if(!Arrays.equals(frompubhash, asset.getCreateuser())){
+                        return APIResult.newFailed("Create and from are different");
+                    }
+                }else{
+                    return APIResult.newFailed("Create or owner can not be null");
+                }
+                if(asset.getAllowincrease() != 0 || asset.getAllowincrease() != 1){
+                    return APIResult.newFailed("Allowincrease error");
+                }
+            }else{
+                return APIResult.newFailed("Assets format error");
+            }
+            apiResult.setCode(2000);
+            apiResult.setMessage("SUCCESS");
+            return apiResult;
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult ChechMultiple(){
-        return null;
+    private APIResult CheckMultiple(byte[] data){
+        Multiple multiple=new Multiple();
+        if(multiple.RLPdeserialization(data)){
+            //校验
+
+
+        }
+        return APIResult.newFailed("Invalid Assets rules");
     }
 
 

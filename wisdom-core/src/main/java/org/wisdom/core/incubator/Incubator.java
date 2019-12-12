@@ -19,20 +19,32 @@
 package org.wisdom.core.incubator;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.util.ByteUtil;
 
 public class Incubator {
+    @RLP(0)
     private byte[] id;
+    @RLP(1)
     private byte[] share_pubkeyhash;
+    @RLP(2)
     private byte[] pubkeyhash;
+    @RLP(3)
     private byte[] txid_issue;
+    @RLP(4)
     private long height;
+    @RLP(5)
     private long cost;
+    @RLP(6)
     private long interest_amount;
+    @RLP(7)
     private long share_amount;
+    @RLP(8)
     private long last_blockheight_interest;
+    @RLP(9)
     private long last_blockheight_share;
+    @RLP(10)
     private int days;
 
     public Incubator(){}
