@@ -24,7 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.contract.AssetCode;
 import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
@@ -66,6 +68,9 @@ public class TransactionCheck {
 
     @Autowired
     RateTable rateTable;
+
+    @Autowired
+    AssetCode assetCode;
 
     public APIResult TransactionFormatCheck(byte[] transfer) {
         APIResult apiResult = new APIResult();
@@ -288,7 +293,7 @@ public class TransactionCheck {
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x07://部署合约
-                apiResult = CheckDeployContract(payload);
+                apiResult = CheckDeployContract(payload,frompubhash);
                 break;
             case 0x08://调用合约
                 apiResult = CheckCallContract(payload, topubkeyhash);
@@ -311,30 +316,33 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckDeployContract(byte[] payload) {
+    private APIResult CheckDeployContract(byte[] payload, byte[] frompubhash) {
         byte type=payload[0];
         byte[] data=ByteUtil.bytearraycopy(payload,1,payload.length-1);
         switch (type){
             case 0://代币
-               return ChechAsset(data);
+               return ChechAsset(data,frompubhash);
             case 1://多重签名
-
-                return null;
+                return ChechMultiple(data);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
     }
 
-    private APIResult ChechAsset(byte[] data){
+    private APIResult ChechAsset(byte[] data, byte[] frompubhash){
         Asset asset=new Asset();
         if(asset.RLPdeserialization(data)){
-            //2 Accountstate
+            //校验
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult ChechMultiple(){
-        return null;
+    private APIResult ChechMultiple(byte[] data){
+        Multiple multiple=new Multiple();
+        if(multiple.RLPdeserialization(data)){
+            //校验
+        }
+        return APIResult.newFailed("Invalid Assets rules");
     }
 
 

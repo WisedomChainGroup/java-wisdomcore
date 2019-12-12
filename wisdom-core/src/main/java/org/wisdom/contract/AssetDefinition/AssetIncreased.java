@@ -22,11 +22,6 @@ public class AssetIncreased implements AnalysisContract {
     private long amount;
 
     @Override
-    public APIResult FormatCheck(List<AccountState> accountStateList) {
-        return null;
-    }
-
-    @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
         return null;
     }

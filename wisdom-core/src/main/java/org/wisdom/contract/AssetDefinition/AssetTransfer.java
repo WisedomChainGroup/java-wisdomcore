@@ -26,11 +26,6 @@ public class AssetTransfer implements AnalysisContract {
     private long value;
 
     @Override
-    public APIResult FormatCheck(List<AccountState> accountStateList) {
-        return null;
-    }
-
-    @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
         return null;
     }

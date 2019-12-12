@@ -33,11 +33,6 @@ public class Asset implements AnalysisContract {
     private int allowincrease;
 
     @Override
-    public APIResult FormatCheck(List<AccountState> accountStateList) {
-        return null;
-    }
-
-    @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
         return null;
     }
