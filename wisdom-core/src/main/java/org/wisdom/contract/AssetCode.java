@@ -27,7 +27,7 @@ public class AssetCode {
         leveldb.put(AssetCode.getBytes(),RLPElement.encode(assetMap).getEncoded());
     }
 
-    private boolean isContainsKey(String code){
+    public boolean isContainsKey(String code){
         Optional<byte[]> value=leveldb.get(AssetCode.getBytes());
         value.ifPresent(bytes->{
             assetMap=RLPDeserializer.deserialize(bytes, MapRLPUtil.MapWrapper.class);
