@@ -41,7 +41,7 @@ public class BeanTest {
         byte[] Contract={0x00,0x01};
         byte[] key={0x00,0x01,0x02};
         Map<byte[],Long> sss= new HashMap<>();
-        ByteArrayMap<Long> maps=new ByteArrayMap(sss);
+        ByteArrayMap<Long> maps=new ByteArrayMap<>(sss);
         AccountState accountState=new AccountState(account,map,map,type,Contract,maps);
 
         byte[] bytes= RLPElement.encode(accountState).getEncoded();

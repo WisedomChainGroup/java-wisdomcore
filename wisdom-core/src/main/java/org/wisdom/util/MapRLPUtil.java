@@ -61,7 +61,7 @@ public class MapRLPUtil {
             RLPList list = RLPList.createEmpty(stringIncubatorMap.size() * 2);
             stringIncubatorMap.keySet().stream().sorted(String::compareTo).forEach(x ->{
                 list.add(RLPItem.fromString(x));
-                list.add(RLPItem.fromBytes(RLPElement.encode(stringIncubatorMap.get(x)).getEncoded()));
+                list.add(RLPElement.encode(stringIncubatorMap.get(x)));
             });
             return list;
         }
