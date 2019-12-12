@@ -46,6 +46,7 @@ import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -336,9 +337,9 @@ public class TransactionCheck {
         APIResult apiResult = new APIResult();
         if(asset.RLPdeserialization(data)){
             //校验
-            Pattern pattern2 = Pattern.compile("[A-Z]*");
-            Matcher matcher2 = pattern2.matcher(asset.getCode());
-            if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher2.matches()  && !asset.getCode().equals("WDC")){
+            Pattern pattern = Pattern.compile("[A-Z]*");
+            Matcher matcher = pattern.matcher(asset.getCode());
+            if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher.matches()  && !asset.getCode().equals("WDC")){
                 if (assetCode.isContainsKey(asset.getCode())){
                     return APIResult.newFailed("Assets code is exist");
                 }
@@ -347,7 +348,7 @@ public class TransactionCheck {
                         return APIResult.newFailed("Offering and totalamount must be the same");
                     }
                 }else {
-                    return APIResult.newFailed("Offering or totalamount can not be Zero");
+                    return APIResult.newFailed("Offering or totalamount can not be zero");
                 }
                 if(asset.getCreateuser().length>0 && asset.getOwner().length>0){
                     if(!Arrays.equals(frompubhash, asset.getCreateuser())){
@@ -373,8 +374,22 @@ public class TransactionCheck {
         Multiple multiple=new Multiple();
         if(multiple.RLPdeserialization(data)){
             //校验
-
-
+            if(multiple.getAssetHash().length != 20){
+                return APIResult.newFailed("AssetHash error");
+            }
+            if(multiple.getMin()>0 && multiple.getMax()>0){
+                if(multiple.getMin()>multiple.getMax()){
+                    return APIResult.newFailed("Min must be less than or equal to max");
+                }
+            }else{
+                return APIResult.newFailed("Min or max eror");
+            }
+            if(multiple.getPubList().size() != multiple.getMax()){
+                return APIResult.newFailed("PubkeyList does not match max");
+            }
+            if(multiple.getAmount()<=0){
+                return APIResult.newFailed("Amount must be greater than zero");
+            }
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
