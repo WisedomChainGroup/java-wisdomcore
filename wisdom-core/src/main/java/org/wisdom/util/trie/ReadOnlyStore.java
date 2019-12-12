@@ -32,7 +32,7 @@ public class ReadOnlyStore<K, V> implements Store<K, V>{
     }
 
     @Override
-    public boolean flush() {
+    public void flush() {
         throw new RuntimeException("the store is read only");
     }
 

@@ -80,7 +80,6 @@ public class MapStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public boolean flush() {
-        return false;
+    public void flush() {
     }
 }

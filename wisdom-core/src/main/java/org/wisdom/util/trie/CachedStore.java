@@ -1,10 +1,8 @@
 package org.wisdom.util.trie;
 
-import org.wisdom.util.ByteArraySet;
+import lombok.NonNull;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -12,57 +10,71 @@ import java.util.stream.Collectors;
  *
  * Created by Anton Nashatyrev on 21.10.2016.
  */
-public class CachedStore<V> implements Store<byte[], V>, Cloneable{
-    private Store<byte[], V> delegated;
+public abstract class CachedStore<K, V> implements Store<K, V>{
+    protected Store<K, V> delegated;
 
-    private Store<byte[], V> cache = new ByteArrayMapStore<>();
+    protected Store<K, V> cache;
 
-    private Set<byte[]> deleted = new ByteArraySet();
+    protected Store<K, V> deleted;
 
-    public CachedStore(Store<byte[], V> delegated) {
+    public CachedStore(Store<K, V> delegated) {
         this.delegated = delegated;
+        reset();
+    }
+
+    abstract Store<K, V> newCache();
+
+    abstract Store<K, V> newDeleted();
+
+    void reset(){
+        cache = newCache();
+        deleted = newDeleted();
     }
 
     @Override
-    public Optional<V> get(byte[] bytes) {
-        if(deleted.contains(bytes)) return Optional.empty();
-        Optional<V> o = cache.get(bytes);
+    public Optional<V> get(@NonNull K k) {
+        if(deleted.containsKey(k)) return Optional.empty();
+        Optional<V> o = cache.get(k);
         if(o.isPresent()) return o;
-        return delegated.get(bytes);
+        return delegated.get(k);
     }
 
     @Override
-    public void put(byte[] bytes, V v) {
-        deleted.remove(bytes);
-        cache.put(bytes, v);
+    public void put(@NonNull K k, @NonNull V v) {
+        deleted.remove(k);
+        cache.put(k, v);
     }
 
     @Override
-    public void putIfAbsent(byte[] bytes, V v) {
-        if(containsKey(bytes)) return;
-        put(bytes, v);
+    public void putIfAbsent(K k, V v) {
+        if(containsKey(k)) return;
+        put(k, v);
     }
 
     @Override
-    public void remove(byte[] bytes) {
-        cache.remove(bytes);
-        deleted.add(bytes);
+    public void remove(@NonNull K k) {
+        if(cache.containsKey(k)){
+            cache.remove(k);
+            return;
+        }
+        Optional<V> v = delegated.get(k);
+        if(!v.isPresent()) return;
+        deleted.put(k, v.get());
     }
 
     @Override
-    public boolean flush() {
-        if(cache.isEmpty() && deleted.isEmpty()) return false;
-        deleted.forEach(delegated::remove);
+    public void flush() {
+        if(cache.isEmpty() && deleted.isEmpty()) return ;
+        deleted.keySet().forEach(delegated::remove);
         cache.keySet().forEach(x -> delegated.put(x, cache.get(x).get()));
-        deleted = new ByteArraySet();
-        cache = new ByteArrayMapStore<>();
-        return delegated.flush();
+        reset();
+        delegated.flush();
     }
 
     @Override
-    public Set<byte[]> keySet() {
-        Set<byte[]> set  = delegated.keySet();
-        set.removeAll(deleted);
+    public Set<K> keySet() {
+        Set<K> set  = delegated.keySet();
+        set.removeAll(deleted.keySet());
         set.addAll(cache.keySet());
         return set;
     }
@@ -75,8 +87,8 @@ public class CachedStore<V> implements Store<byte[], V>, Cloneable{
     }
 
     @Override
-    public boolean containsKey(byte[] bytes) {
-        return !deleted.contains(bytes) && (cache.containsKey(bytes) || delegated.containsKey(bytes));
+    public boolean containsKey(K k) {
+        return !deleted.containsKey(k) && (cache.containsKey(k) || delegated.containsKey(k));
     }
 
     @Override
@@ -91,16 +103,8 @@ public class CachedStore<V> implements Store<byte[], V>, Cloneable{
 
     @Override
     public void clear() {
-        cache = new ByteArrayMapStore<>();
-        deleted = delegated.keySet();
-    }
-
-    @Override
-    public CachedStore<V> clone() {
-        CachedStore<V> s = new CachedStore<>(delegated);
-        s.deleted = new ByteArraySet(deleted);
-        s.cache = new ByteArrayMapStore<>(cache);
-        return s;
+        reset();
+        deleted = delegated;
     }
 
 }

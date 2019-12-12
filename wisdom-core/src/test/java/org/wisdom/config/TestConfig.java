@@ -74,7 +74,7 @@ public class TestConfig {
 
     @Bean
     public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) throws Exception {
-        return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx, "", true, blockChainOptional, true);
+        return null;
     }
 
     @Bean

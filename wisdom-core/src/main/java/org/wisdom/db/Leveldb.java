@@ -255,8 +255,7 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
     }
 
     @Override
-    public boolean flush() {
-        return false;
+    public void flush() {
     }
 
     @Override
