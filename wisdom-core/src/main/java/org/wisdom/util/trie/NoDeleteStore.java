@@ -6,12 +6,17 @@ import lombok.NonNull;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+/**
+ * no delete store will store deleted key-value pair to @see deleted
+ * when compact method called, clean the key-pari in @see deleted
+ */
 @AllArgsConstructor
 public class NoDeleteStore<K, V> implements Store<K, V>{
     private Store<K, V> delegate;
 
-    private Store<K, V> deleted;
+    private Store<K, V> removed;
 
     @Override
     public Optional<V> get(@NonNull K k) {
@@ -20,13 +25,14 @@ public class NoDeleteStore<K, V> implements Store<K, V>{
 
     @Override
     public void put(@NonNull K k, @NonNull V v) {
-        deleted.remove(k);
+        removed.remove(k);
         delegate.put(k, v);
     }
 
     @Override
     public void putIfAbsent(@NonNull K k, @NonNull V v) {
-        delegate.putIfAbsent(k, v);
+        if(delegate.containsKey(k)) return;
+        put(k, v);
     }
 
     @Override
@@ -35,13 +41,13 @@ public class NoDeleteStore<K, V> implements Store<K, V>{
         if(!o.isPresent()) return;
         // we not remove k, just add it to a cache
         // when flush() called, we remove k in the cache
-        deleted.put(k, o.get());
+        removed.put(k, o.get());
     }
 
     // flush all deleted to underlying db
     @Override
     public void flush() {
-        deleted.flush();
+        removed.flush();
         delegate.flush();
     }
 
@@ -72,7 +78,26 @@ public class NoDeleteStore<K, V> implements Store<K, V>{
 
     @Override
     public void clear() {
-        deleted.clear();
-        delegate.clear();
+        removed = delegate;
+    }
+
+    public void compact(){
+        if(removed == delegate){
+            delegate.clear();
+            return;
+        }
+        removed.keySet().forEach(delegate::remove);
+        removed.clear();
+    }
+
+    public void compact(Set<K> excludes){
+        removed.keySet().stream()
+                .filter(x -> !excludes.contains(x))
+                .collect(Collectors.toList())
+                .forEach(x -> {
+                    removed.remove(x);
+                    delegate.remove(x);
+                });
+
     }
 }

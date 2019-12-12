@@ -8,7 +8,14 @@ import org.bouncycastle.util.encoders.Hex;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPItem;
 import org.tdf.rlp.RLPList;
+import org.wisdom.keystore.crypto.Hash;
 import org.wisdom.util.FastByteComparisons;
+
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
+import static org.wisdom.util.trie.TrieKey.EMPTY;
+
 
 /**
  * patricia tree's node inspired by:
@@ -99,12 +106,12 @@ class Node {
     // return rlp encoded
     // if encodeAndCommit is call at root node, force hash is set to true
     RLPElement commit(
-            HashFunction function,
+            Function<byte[], byte[]> function,
             Store<byte[], byte[]> cache,
-            boolean forceHash,
-            boolean dirty
+            boolean forceHash
     ) {
-        if (!this.dirty) return hash != null ? RLPItem.fromBytes(hash) : rlp;
+        // if child node is dirty, the parent node must be dirty also
+        if (!dirty) return hash != null ? RLPItem.fromBytes(hash) : rlp;
         Type type = getType();
         switch (type) {
             case LEAF: {
@@ -116,7 +123,7 @@ class Node {
             case EXTENSION: {
                 rlp = RLPList.createEmpty(2);
                 rlp.add(RLPItem.fromBytes(getKey().toPacked(false)));
-                rlp.add(getExtension().commit(function, cache, false, dirty));
+                rlp.add(getExtension().commit(function, cache, false));
                 break;
             }
             default: {
@@ -127,13 +134,13 @@ class Node {
                         rlp.add(RLPItem.NULL);
                         continue;
                     }
-                    rlp.add(child.commit(function, cache, false, dirty));
+                    rlp.add(child.commit(function, cache, false));
                 }
                 rlp.add(RLPItem.fromBytes(getValue()));
             }
         }
         dispose(cache);
-        this.dirty = dirty;
+        dirty = false;
         byte[] raw = rlp.getEncoded();
 
         // if encoded size is great than or equals, store node to db and return a hash reference
@@ -245,7 +252,8 @@ class Node {
     }
 
     // deep-first scanning
-    void traverse(TrieKey init, ScannerAction action) {
+    void traverse(TrieKey init, BiConsumer<TrieKey, Node> action) {
+        parse();
         Type type = getType();
         if (type == Type.BRANCH) {
             action.accept(init, this);
@@ -515,7 +523,7 @@ class Node {
         Object o = children[index];
         children = new Object[2];
         if (o instanceof byte[]) {
-            children[0] = TrieKey.EMPTY;
+            children[0] = EMPTY;
             children[1] = o;
             return;
         }

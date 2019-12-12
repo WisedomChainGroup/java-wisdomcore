@@ -5,7 +5,7 @@ import lombok.Getter;
 import org.wisdom.util.ByteArraySet;
 
 @Getter(AccessLevel.PACKAGE)
-public class ScanValues implements ScannerAction{
+class ScanValues implements ScannerAction{
     private ByteArraySet bytes = new ByteArraySet();
 
     @Override

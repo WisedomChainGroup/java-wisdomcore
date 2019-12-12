@@ -4,8 +4,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.wisdom.util.ByteArraySet;
 
+import java.util.function.BiConsumer;
+
 @Getter(AccessLevel.PACKAGE)
-public class ScanKeySet implements ScannerAction {
+class ScanKeySet implements BiConsumer<TrieKey, Node> {
     private ByteArraySet bytes = new ByteArraySet();
 
     @Override

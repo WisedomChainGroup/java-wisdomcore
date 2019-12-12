@@ -2,26 +2,29 @@ package org.wisdom.util.trie;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.NonNull;
 import org.tdf.rlp.RLPItem;
+import org.wisdom.util.FastByteComparisons;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
 // enhanced radix tree
-@Builder(access = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class TrieImpl<K, V> implements Trie<K, V> {
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
+    private final byte[] nullHash;
+
     private Node root;
 
-    HashFunction function;
+    Function<byte[], byte[]> function;
 
     MemoryCachedStore<byte[]> cache;
 
@@ -29,18 +32,20 @@ public class TrieImpl<K, V> implements Trie<K, V> {
 
     Codec<V, byte[]> vCodec;
 
-    private TrieImpl() {
-    }
 
-    public TrieImpl(HashFunction function,
+    public static <K, V> TrieImpl<K, V> newInstance(Function<byte[], byte[]> hashFunction,
                     Store<byte[], byte[]> store,
                     Codec<K, byte[]> kCodec,
                     Codec<V, byte[]> vCodec
     ) {
-        this.function = function;
-        this.cache = new MemoryCachedStore<>(store);
-        this.kCodec = kCodec;
-        this.vCodec = vCodec;
+        return new TrieImpl<>(
+                hashFunction.apply(RLPItem.NULL.getEncoded()),
+                null,
+                hashFunction,
+                new MemoryCachedStore<>(store),
+                kCodec,
+                vCodec
+        );
     }
 
     @Override
@@ -54,20 +59,19 @@ public class TrieImpl<K, V> implements Trie<K, V> {
     @Override
     public void put(@NonNull K k, @NonNull V val) {
         putBytes(kCodec.getEncoder().apply(k), vCodec.getEncoder().apply(val));
-        commit();
     }
 
-    private void putBytes(byte[] bytes, byte[] bytes2) {
-        if (bytes == null || bytes.length == 0) throw new IllegalArgumentException("key cannot be null");
-        if (bytes2 == null || bytes2.length == 0) {
-            removeBytes(bytes);
+    private void putBytes(byte[] key, byte[] value) {
+        if (key == null || key.length == 0) throw new IllegalArgumentException("key cannot be null");
+        if (value == null || value.length == 0) {
+            removeBytes(key);
             return;
         }
         if (root == null) {
-            root = Node.newLeaf(TrieKey.fromNormal(bytes), bytes2);
+            root = Node.newLeaf(TrieKey.fromNormal(key), value);
             return;
         }
-        root.insert(TrieKey.fromNormal(bytes), bytes2, cache);
+        root.insert(TrieKey.fromNormal(key), value, cache);
     }
 
     @Override
@@ -79,15 +83,12 @@ public class TrieImpl<K, V> implements Trie<K, V> {
     @Override
     public void remove(@NonNull K k) {
         byte[] data = kCodec.getEncoder().apply(k);
-        if (data == null || data.length == 0) throw new IllegalArgumentException("key cannot be null");
-        if (root == null) return;
-        root = root.delete(TrieKey.fromNormal(data), cache);
-        commit();
+        removeBytes(data);
     }
 
     private void removeBytes(byte[] data) {
-        if (root == null) return;
         if (data == null || data.length == 0) throw new IllegalArgumentException("key cannot be null");
+        if (root == null) return;
         root = root.delete(TrieKey.fromNormal(data), cache);
     }
 
@@ -134,32 +135,67 @@ public class TrieImpl<K, V> implements Trie<K, V> {
     }
 
 
-    public byte[] getRootHash() {
-        if (root == null) return function.apply(RLPItem.NULL.getEncoded());
-        if (root.isDirty() || root.getHash() == null) throw new RuntimeException("root is dirty");
-        return root.getHash();
-    }
-
-    private void commit() {
-        if (root == null) return;
-        this.root.commit(function, cache, true, false);
+    public byte[] commit() {
+        if (root == null) return nullHash;
+        if (!root.isDirty()) return root.getHash();
+        byte[] hash = this.root.commit(function, cache, true).getAsItem().get();
+        if (root.isDirty() || root.getHash() == null)
+            throw new RuntimeException("unexpected error: still dirty after commit");
+        return hash;
     }
 
     @Override
     public void flush() {
-        this.cache.flush();
-    }
-
-    public boolean isDirty() {
-        return root != null && root.isDirty();
+        commit();
+        cache.flush();
     }
 
     @Override
-    public TrieImpl<K, V> moveTo(byte[] rootHash) {
+    public TrieImpl<K, V> revert(@NonNull byte[] rootHash, Store<byte[], byte[]> store) {
+        if(FastByteComparisons.equal(rootHash, nullHash))
+            return new TrieImpl<>(nullHash, null, function, new MemoryCachedStore<>(store), kCodec, vCodec);
+        if(!store.containsKey(rootHash)) throw new RuntimeException("rollback failed, root hash not exists");
+        return new TrieImpl<>(
+                nullHash,
+                Node.fromRootHash(rootHash, new ReadOnlyStore<>(store)),
+                function, new MemoryCachedStore<>(store), kCodec, vCodec
+        );
+    }
+
+    // for tests only
+    TrieImpl<K, V> createSnapshot() {
+        commit();
         MemoryCachedStore<byte[]> cloned = cache.clone();
         return new TrieImpl<>(
-                Node.fromEncoded(rootHash, new ReadOnlyStore<>(cloned)),
+                nullHash,
+                Node.fromRootHash(commit(), new ReadOnlyStore<>(cloned)),
                 function, cloned, kCodec, vCodec
         );
+    }
+
+    @Override
+    public void traverse(BiConsumer<TrieKey, Node> action) {
+        commit();
+        if(root == null) return;
+        root.traverse(TrieKey.EMPTY, action);
+    }
+
+    @Override
+    public Set<byte[]> dump() {
+        Dump dump = new Dump();
+        traverse(dump);
+        return dump.getKeys();
+    }
+
+    @Override
+    public byte[] getRootHash() throws RuntimeException {
+        if(root == null) return nullHash;
+        if(root.isDirty() || root.getHash() == null) throw new RuntimeException("the trie is dirty or root hash is null");
+        return root.getHash();
+    }
+
+    @Override
+    public boolean isDirty() {
+        return root != null && root.isDirty();
     }
 }

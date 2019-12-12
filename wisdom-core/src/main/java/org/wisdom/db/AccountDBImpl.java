@@ -21,7 +21,7 @@ public class AccountDBImpl implements AccountDB {
     public Optional<AccountState> getAccount(byte[] blockHash, byte[] publicKeyHash) {
         byte[] root = rootStore.get(blockHash)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
-        Trie<byte[], AccountState> trie = stateTrie.moveTo(root);
+        Trie<byte[], AccountState> trie = stateTrie.revert(root, rootStore);
         return trie.get(publicKeyHash);
     }
 
@@ -29,7 +29,7 @@ public class AccountDBImpl implements AccountDB {
     public Map<byte[], AccountState> getAccounts(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
         byte[] root = rootStore.get(blockHash)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
-        Trie<byte[], AccountState> trie = stateTrie.moveTo(root);
+        Trie<byte[], AccountState> trie = stateTrie.revert(root, rootStore);
         ByteArrayMap<AccountState> m = new ByteArrayMap<>();
         publicKeyHashes.forEach(x -> {
             Optional<AccountState> account = trie.get(x);
@@ -44,7 +44,7 @@ public class AccountDBImpl implements AccountDB {
         byte[] root = rootStore.get(blockHash)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
         if (rootStore.containsKey(blockHash)) return rootStore.get(blockHash).get();
-        Trie<byte[], AccountState> trie = stateTrie.moveTo(root);
+        Trie<byte[], AccountState> trie = stateTrie.revert(root, rootStore);
         for (AccountState state : accounts) {
             trie.put(state.getAccount().getPubkeyHash(), state);
         }
@@ -57,7 +57,7 @@ public class AccountDBImpl implements AccountDB {
     public void confirm(Block block, Collection<AccountState> confirmed) {
         byte[] root = rootStore.get(block.hashPrevBlock)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(block.hashPrevBlock) + " not synced"));
-        Trie<byte[], AccountState> parentTrie = stateTrie.moveTo(root);
+        Trie<byte[], AccountState> parentTrie = stateTrie.revert(root, rootStore);
         for(AccountState state: confirmed){
             parentTrie.put(state.getAccount().getPubkeyHash(), state);
         }

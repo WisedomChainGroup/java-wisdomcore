@@ -1,5 +1,6 @@
 package org.wisdom.util.trie;
 
-public interface ScannerAction {
-    void accept(TrieKey path, Node node);
+import java.util.function.BiConsumer;
+
+public interface ScannerAction extends BiConsumer<TrieKey, Node> {
 }
