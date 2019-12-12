@@ -4,7 +4,6 @@ import lombok.*;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDeserializer;
 import org.tdf.rlp.RLPElement;
-import org.wisdom.ApiResult.APIResult;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 

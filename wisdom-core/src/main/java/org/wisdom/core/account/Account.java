@@ -19,24 +19,26 @@
 package org.wisdom.core.account;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.util.ByteUtil;
 
 public class Account {
+    @RLP(0)
     private byte[] id;
-
+    @RLP(1)
     private long blockHeight;
-
+    @RLP(2)
     private byte[] pubkeyHash;
-
+    @RLP(3)
     private long nonce;
-
+    @RLP(4)
     private long balance;
-
+    @RLP(5)
     private long incubatecost;
-
+    @RLP(6)
     private long mortgage;
-
+    @RLP(7)
     private long vote;
 
     public Account() {
