@@ -250,3 +250,12 @@ ENABLE_CODE_ASSERTION=true # enable code assertion for easy debug
 ```shell script
 python start.py --env=local.env
 ```
+
+## 7. Use spring boot actuator 
+### check health
+ * METHOD: GET
+ * URL: http://ip:port/wisdom/health
+### shutdown application
+ * METHOD: POST
+ * URL: http://ip:port/wisdom/shutdown
+ * HEADER: token (JWT TOKEN)
