@@ -6,16 +6,17 @@ import org.tdf.rlp.RLPEncoding;
 import org.wisdom.util.ByteArrayMap;
 import org.wisdom.util.MapRLPUtil;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class ValidatorState {
 
     @RLP(0)
-    @RLPEncoding(MapRLPUtil.NonceMapEncoderDecoder.class)
-    @RLPDecoding(MapRLPUtil.NonceMapEncoderDecoder.class)
-    private ByteArrayMap<Long> nonce;
+    @RLPEncoding(MapRLPUtil.ByteArrayLongMapEncoder.class)
+    @RLPDecoding(MapRLPUtil.ByteArrayLongMapDecoder.class)
+    private Map<byte[], Long> nonce;
 
-    public ByteArrayMap<Long> getNonce() {
+    public Map<byte[], Long> getNonce() {
         return nonce;
     }
 

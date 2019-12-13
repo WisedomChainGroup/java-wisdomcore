@@ -31,9 +31,9 @@ public class AccountState {
     @RLP(4)
     private byte[] Contract;//合约RLP
     @RLP(5)
-    @RLPEncoding(MapRLPUtil.TokenMapEncoderDecoder.class)
-    @RLPDecoding(MapRLPUtil.TokenMapEncoderDecoder.class)
-    private ByteArrayMap<Long> TokensMap;
+    @RLPEncoding(MapRLPUtil.ByteArrayLongMapEncoder.class)
+    @RLPDecoding(MapRLPUtil.ByteArrayLongMapDecoder.class)
+    private Map<byte[], Long> TokensMap;
 
     public AccountState() {
     }
@@ -43,7 +43,7 @@ public class AccountState {
         account.setPubkeyHash(pubkeyHash);
     }
 
-    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, int type, byte[] Contract, ByteArrayMap<Long> TokensMap) {
+    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, int type, byte[] Contract, Map<byte[], Long> TokensMap) {
         this.account = account;
         this.interestMap = interestMap;
         this.ShareMap = shareMap;
@@ -96,7 +96,7 @@ public class AccountState {
         return TokensMap;
     }
 
-    public void setTokensMap(ByteArrayMap<Long> tokensMap) {
+    public void setTokensMap(Map<byte[], Long> tokensMap) {
         TokensMap = tokensMap;
     }
 
