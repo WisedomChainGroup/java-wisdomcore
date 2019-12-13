@@ -34,13 +34,9 @@ public class Leveldb implements DatabaseStore {
     private ReadWriteLock resetDbLock = new ReentrantReadWriteLock();
 
     public Leveldb(String directory,
-                    String name,
-                   int maxfiles) {
+                    String name) {
         this.directory = directory;
         this.name = name;
-        init(DBSettings.newInstance()
-                .withMaxOpenFiles(maxfiles)
-                .withMaxThreads(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
     }
 
     @Override

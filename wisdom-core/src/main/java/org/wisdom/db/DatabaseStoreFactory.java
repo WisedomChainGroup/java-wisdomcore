@@ -17,12 +17,18 @@ public class DatabaseStoreFactory {
 
     private int maxFiles;
 
+    private String type;
+
     private final Map<String, DatabaseStore> stores = new HashMap<>();
 
-    public DatabaseStoreFactory(@Value("${wisdom.database.directory}") String directory,
-                                @Value("${max-open-files}") int maxFiles) {
+    public DatabaseStoreFactory(
+            @Value("${wisdom.database.directory}") String directory,
+            @Value("${max-open-files}") int maxFiles,
+            @Value("${wisdom.database.type}") String type
+    ) {
         this.directory = directory;
         this.maxFiles = maxFiles;
+        this.type = type == null ? "" : type;
     }
 
     public DatabaseStore create(String name, boolean reset) {
@@ -31,13 +37,13 @@ public class DatabaseStoreFactory {
         }
 
         DatabaseStore store;
-        switch (name.trim().toLowerCase()) {
+        switch (type.trim().toLowerCase()) {
             case "memory":
                 store = new MemoryDatabaseStore(name);
                 break;
             case "leveldb":
             default:
-                store = new Leveldb(directory, name, maxFiles);
+                store = new Leveldb(directory, name);
                 break;
         }
         store.init(DBSettings.newInstance()
