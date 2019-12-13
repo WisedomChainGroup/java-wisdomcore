@@ -42,6 +42,10 @@ apply plugin: 'propdeps-maven'
 apply plugin: 'com.jfrog.artifactory-upload'
 apply plugin: 'docker'
 
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
 processResources{
     exclude('genesis/wisdom-genesis-generator.json')
 }

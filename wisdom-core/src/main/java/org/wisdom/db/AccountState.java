@@ -126,7 +126,7 @@ public class AccountState {
         }
         accountState.setType(type);
         accountState.setContract(Contract);
-        accountState.setTokensMap(new ByteArrayMap(TokensMap));
+        accountState.setTokensMap(new ByteArrayMap<>(TokensMap));
         return accountState;
     }
 }

@@ -141,12 +141,12 @@ public class TrieImpl<K, V> implements Trie<K, V> {
         byte[] hash = this.root.commit(function, cache, true).asBytes();
         if (root.isDirty() || root.getHash() == null)
             throw new RuntimeException("unexpected error: still dirty after commit");
+        flush();
         return hash;
     }
 
     @Override
     public void flush() {
-        commit();
         cache.flush();
     }
 
