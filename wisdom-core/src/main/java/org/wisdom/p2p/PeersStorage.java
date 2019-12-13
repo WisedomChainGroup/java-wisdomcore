@@ -4,8 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.store.Store;
 
 import javax.annotation.PostConstruct;
 import java.util.Optional;
@@ -16,8 +17,7 @@ public class PeersStorage extends PeersCacheWrapper {
 
     private static final long FLUSH_RATE = 60 * 1000;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> db;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -26,14 +26,16 @@ public class PeersStorage extends PeersCacheWrapper {
             @Value("${p2p.address}") String self,
             @Value("${p2p.bootstraps}") String bootstraps,
             @Value("${p2p.trustedpeers}") String trusted,
-            @Value("${p2p.enable-discovery}") boolean enableDiscovery
+            @Value("${p2p.enable-discovery}") boolean enableDiscovery,
+            DatabaseStoreFactory factory
     ) throws Exception {
         super(self, bootstraps, trusted, enableDiscovery);
+        this.db = factory.create("peers", false);
     }
 
     @PostConstruct
     public void init() {
-        Optional<byte[]> peers = leveldb.get(LEVELDB_KEY);
+        Optional<byte[]> peers = db.get(LEVELDB_KEY);
         peers.ifPresent(peer->{
             try {
                 for (String s : codec.decode(peer, String[].class)) {
@@ -47,7 +49,7 @@ public class PeersStorage extends PeersCacheWrapper {
 
     @Scheduled(fixedDelay = FLUSH_RATE)
     public void flush(){
-        leveldb.put(LEVELDB_KEY, codec.encode(
+        db.put(LEVELDB_KEY, codec.encode(
                 super.getPeers().stream()
                 .map(Peer::toString)
                 .toArray()

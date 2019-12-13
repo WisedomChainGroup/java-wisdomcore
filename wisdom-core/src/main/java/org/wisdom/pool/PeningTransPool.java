@@ -10,9 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.store.Store;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -29,15 +30,15 @@ public class PeningTransPool {
     @Autowired
     WisdomBlockChain wisdomBlockChain;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> leveldb;
 
     // publicKeyHash -> nonce -> transaction
     private Map<String, TreeMap<Long, TransPool>> ptpool;
 
     private Map<String, PendingNonce> ptnonce;
 
-    public PeningTransPool() {
+    public PeningTransPool(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
         ptpool = new ConcurrentHashMap<>();
         ptnonce = new ConcurrentHashMap<>();
         try {

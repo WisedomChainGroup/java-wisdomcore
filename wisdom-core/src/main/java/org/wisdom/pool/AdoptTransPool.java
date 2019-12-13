@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.store.Store;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -22,13 +23,13 @@ public class AdoptTransPool {
     @Autowired
     Configuration configuration;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> leveldb;
 
     // publicKeyHash -> Strings.concat(publicKeyHash, nonce) -> transaction
     private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
 
-    public AdoptTransPool() {
+    public AdoptTransPool(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
         atpool = new ConcurrentHashMap<>();
         try {
             Optional<byte[]> dbdata  = leveldb.get("QueuedPool".getBytes(StandardCharsets.UTF_8));

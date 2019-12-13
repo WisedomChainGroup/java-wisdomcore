@@ -1,9 +1,9 @@
 package org.wisdom.contract;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tdf.rlp.*;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
+import org.wisdom.store.Store;
 import org.wisdom.util.MapRLPUtil;
 
 import java.util.Map;
@@ -15,8 +15,12 @@ public class AssetCode {
     private static final String AssetCode="assetcode";
     private MapRLPUtil.MapWrapper assetMap=new MapRLPUtil.MapWrapper();
 
-    @Autowired
-    private Leveldb leveldb;
+
+    private Store<byte[], byte[]> leveldb;
+
+    public AssetCode(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
+    }
 
     private void add(String code){
         Optional<byte[]> value=leveldb.get(AssetCode.getBytes());

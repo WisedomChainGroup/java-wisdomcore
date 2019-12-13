@@ -3,8 +3,6 @@ package org.wisdom.db;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.iq80.leveldb.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.wisdom.store.DatabaseStore;
 import org.wisdom.util.ByteArraySet;
 import org.wisdom.util.FileUtil;
@@ -20,7 +18,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
 @Slf4j
-@Component
 public class Leveldb implements DatabaseStore {
 
     // sub directory under database directory
@@ -36,20 +33,14 @@ public class Leveldb implements DatabaseStore {
 
     private ReadWriteLock resetDbLock = new ReentrantReadWriteLock();
 
-    public Leveldb(@Value("${wisdom.database.directory}") String directory,
-                    @Value("${wisdom.database.name}") String name,
-                   @Value("${max-open-files}") int maxfiles) {
+    public Leveldb(String directory,
+                    String name,
+                   int maxfiles) {
         this.directory = directory;
         this.name = name;
         init(DBSettings.newInstance()
                 .withMaxOpenFiles(maxfiles)
                 .withMaxThreads(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
-    }
-
-
-    @Override
-    public void init() {
-        init(DBSettings.DEFAULT);
     }
 
     @Override
@@ -161,7 +152,7 @@ public class Leveldb implements DatabaseStore {
     }
 
     @Override
-    public byte[] prefixLookup(byte[] key, int prefixBytes) {
+    public Optional<byte[]> prefixLookup(byte[] key, int prefixBytes) {
         throw new RuntimeException("LevelDbDataSource.prefixLookup() is not supported");
     }
 

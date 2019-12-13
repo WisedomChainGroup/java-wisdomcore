@@ -3,11 +3,11 @@ package org.wisdom.db;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.wisdom.util.trie.DatabaseStore;
+import org.wisdom.store.DatabaseStore;
 
 import javax.annotation.PreDestroy;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -17,7 +17,7 @@ public class DatabaseStoreFactory {
 
     private int maxFiles;
 
-    private static final List<DatabaseStore> STORES_LIST = new ArrayList<>();
+    private final Map<String, DatabaseStore> stores = new HashMap<>();
 
     public DatabaseStoreFactory(@Value("${wisdom.database.directory}") String directory,
                                 @Value("${max-open-files}") int maxFiles) {
@@ -26,18 +26,24 @@ public class DatabaseStoreFactory {
     }
 
     public DatabaseStore create(String name, boolean reset) {
-        DatabaseStore store = null;
+        if(stores.containsKey(name)) {
+            return stores.get(name);
+        }
+
+        DatabaseStore store;
         switch (name.trim().toLowerCase()) {
-            case "storedb":
-                // store = new MemoryDatabaseStore();
+            case "memory":
+                store = new MemoryDatabaseStore(name);
                 break;
-            case "rootdb":
-            case "deletedb":
+            case "leveldb":
             default:
                 store = new Leveldb(directory, name, maxFiles);
                 break;
         }
-        STORES_LIST.add(store);
+        store.init(DBSettings.newInstance()
+                .withMaxOpenFiles(maxFiles)
+                .withMaxThreads(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
+        stores.put(name, store);
         if (reset) {
             store.clear();
         }
@@ -46,7 +52,7 @@ public class DatabaseStoreFactory {
 
     @PreDestroy
     public void destroy() {
-        STORES_LIST.forEach(DatabaseStore::close);
+        stores.values().forEach(DatabaseStore::close);
     }
 
 }

@@ -5,7 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
+import org.wisdom.store.Store;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -19,8 +20,11 @@ public class PoolTask {
     @Autowired
     PeningTransPool peningTransPool;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> leveldb;
+
+    public PoolTask(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
+    }
 
     @Scheduled(cron = "0 0/10 * * * ?")
     public void updatedbPool() {

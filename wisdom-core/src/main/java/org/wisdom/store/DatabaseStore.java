@@ -2,14 +2,11 @@ package org.wisdom.store;
 
 import org.wisdom.db.DBSettings;
 
+import java.util.Optional;
 import java.util.Set;
 
 public interface DatabaseStore extends BatchStore<byte[], byte[]> {
-    /**
-     * Initializes DB (open table, connection, etc)
-     * with default {@link DBSettings#DEFAULT}
-     */
-    void init();
+    String getName();
 
     /**
      * Initializes DB (open table, connection, etc)
@@ -36,7 +33,7 @@ public interface DatabaseStore extends BatchStore<byte[], byte[]> {
      * @return first value picked by prefix lookup over DB or null if there is no match
      * @throws RuntimeException if operation is not supported
      */
-    byte[] prefixLookup(byte[] key, int prefixBytes);
+    Optional<byte[]> prefixLookup(byte[] key, int prefixBytes);
 
 
     /**

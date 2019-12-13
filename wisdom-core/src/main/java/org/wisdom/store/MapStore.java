@@ -11,6 +11,11 @@ import java.util.*;
  */
 public class MapStore<K, V> implements Store<K, V> {
     private Map<K, V> map;
+
+    protected Map<K, V> getMap(){
+        return map;
+    }
+
     private void assertKeyIsNotByteArray(K k){
         if((k instanceof byte[]) && !(map instanceof ByteArrayMap))
             throw new RuntimeException("please use ByteArrayMapStore instead of plain MapStore since byte array is mutable");
