@@ -1,4 +1,4 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
 
 import java.util.Map;
 

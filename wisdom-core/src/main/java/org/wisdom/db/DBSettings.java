@@ -1,4 +1,4 @@
-package org.wisdom.util.trie;
+package org.wisdom.db;
 
 public class DBSettings {
 

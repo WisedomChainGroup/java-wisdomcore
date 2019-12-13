@@ -1,12 +1,13 @@
 package org.wisdom.db;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.iq80.leveldb.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.wisdom.store.DatabaseStore;
+import org.wisdom.util.ByteArraySet;
 import org.wisdom.util.FileUtil;
-import org.wisdom.util.trie.DBSettings;
-import org.wisdom.util.trie.DatabaseStore;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,12 +21,14 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
 @Slf4j
 @Component
-public class Leveldb implements DatabaseStore<byte[],byte[]>{
+public class Leveldb implements DatabaseStore {
 
-    // subdirectory
-    private String name;
-    // parent directory
-    private String directory;
+    // sub directory under database directory
+    @Getter
+    private final String name;
+    // database directory
+    @Getter
+    private final String directory;
 
     private DB db;
     private DBSettings dbSettings;
@@ -41,14 +44,6 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
         init(DBSettings.newInstance()
                 .withMaxOpenFiles(maxfiles)
                 .withMaxThreads(Math.max(1, Runtime.getRuntime().availableProcessors() / 2)));
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
     }
 
 
@@ -117,7 +112,7 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
 
     @Override
     public boolean isAlive() {
-        return false;
+        return alive;
     }
 
     @Override
@@ -140,11 +135,11 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
     }
 
     @Override
-    public Set<byte[]> keys() throws RuntimeException {
+    public Set<byte[]> keySet() throws RuntimeException {
         resetDbLock.readLock().lock();
         try {
             try (DBIterator iterator = db.iterator()) {
-                Set<byte[]> result = new HashSet<>();
+                Set<byte[]> result = new ByteArraySet();
                 for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
                     result.add(iterator.peekNext().getKey());
                 }
@@ -159,7 +154,7 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
     }
 
     @Override
-    public void reset() {
+    public void clear() {
         close();
         FileUtil.recursiveDelete(getPath().toString());
         init(dbSettings);
@@ -171,7 +166,7 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
     }
 
     @Override
-    public void putAll(Map rows) {
+    public void putAll(Map<byte[], byte[]> rows) {
         resetDbLock.readLock().lock();
         try {
             try {
@@ -235,9 +230,7 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
     public void putIfAbsent(byte[] key, byte[] value) {
         resetDbLock.readLock().lock();
         try {
-            if (db.get(key) != null) {
-                return;
-            }
+            if(containsKey(key)) return;
             db.put(key, value);
         } finally {
             resetDbLock.readLock().unlock();
@@ -259,40 +252,13 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
     }
 
     @Override
-    public Set keySet() {
-        resetDbLock.readLock().lock();
-        try {
-            try (DBIterator iterator = db.iterator()) {
-                Set<byte[]> result = new HashSet<>();
-                for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
-                    result.add(iterator.peekNext().getKey());
-                }
-                return result;
-            } catch (IOException e) {
-                log.error("Unexpected", e);
-                throw new RuntimeException(e);
-            }
-        } finally {
-            resetDbLock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public Collection values() {
-        resetDbLock.readLock().lock();
-        try {
-            DBIterator iterator = db.iterator();
-            List<byte[]> result = new ArrayList<>();
-            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
-                result.add(iterator.peekNext().getValue());
-            }
-            return result;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        } finally {
-            resetDbLock.readLock().unlock();
-        }
+    public Collection<byte[]> values() {
+        Set<byte[]> ret = new ByteArraySet();
+        keySet().stream().map(this::get)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(ret::add);
+        return ret;
     }
 
     @Override
@@ -307,20 +273,7 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
 
     @Override
     public int size() {
-        resetDbLock.readLock().lock();
-        int res = 0;
-        try {
-            DBIterator iterator = db.iterator();
-            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
-                res++;
-            }
-            return res;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        } finally {
-            resetDbLock.readLock().unlock();
-        }
+        return keySet().size();
     }
 
     @Override
@@ -333,16 +286,10 @@ public class Leveldb implements DatabaseStore<byte[],byte[]>{
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
-            return true;
+            throw new RuntimeException(e);
         } finally {
             resetDbLock.readLock().unlock();
         }
-    }
-
-    @Override
-    public void clear() {
-        reset();
     }
 
     private Path getPath() {

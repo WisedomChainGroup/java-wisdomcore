@@ -1,4 +1,4 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
 import lombok.NonNull;
 
 import java.util.*;
@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
  *
  * Created by Anton Nashatyrev on 21.10.2016.
  */
-public abstract class CachedStore<K, V> implements Store<K, V>{
+public abstract class CachedStore<K, V> implements Store<K, V> {
     protected Store<K, V> delegated;
 
     protected Store<K, V> cache;

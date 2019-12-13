@@ -1,8 +1,10 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
+
+import org.wisdom.db.DBSettings;
 
 import java.util.Set;
 
-public interface DatabaseStore<K, V> extends BatchStore<K, V>{
+public interface DatabaseStore extends BatchStore<byte[], byte[]> {
     /**
      * Initializes DB (open table, connection, etc)
      * with default {@link DBSettings#DEFAULT}
@@ -26,17 +28,6 @@ public interface DatabaseStore<K, V> extends BatchStore<K, V>{
     void close();
 
     /**
-     * @return DB keys if this option is available
-     * @throws RuntimeException if the method is not supported
-     */
-    Set<byte[]> keys() throws RuntimeException;
-
-    /**
-     * Closes database, destroys its data and finally runs init()
-     */
-    void reset();
-
-    /**
      * If supported, retrieves a value using a key prefix.
      * Prefix extraction is meant to be done on the implementing side.<br>
      *
@@ -45,5 +36,19 @@ public interface DatabaseStore<K, V> extends BatchStore<K, V>{
      * @return first value picked by prefix lookup over DB or null if there is no match
      * @throws RuntimeException if operation is not supported
      */
-    V prefixLookup(byte[] key, int prefixBytes);
+    byte[] prefixLookup(byte[] key, int prefixBytes);
+
+
+    /**
+     * @return DB keys if this option is available
+     * @throws RuntimeException if the method is not supported
+     */
+    @Override
+    Set<byte[]> keySet();
+
+    /**
+     * Closes database, destroys its data and finally runs init()
+     */
+    @Override
+    void clear();
 }

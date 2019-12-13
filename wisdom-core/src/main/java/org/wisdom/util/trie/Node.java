@@ -8,7 +8,7 @@ import org.bouncycastle.util.encoders.Hex;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPItem;
 import org.tdf.rlp.RLPList;
-import org.wisdom.keystore.crypto.Hash;
+import org.wisdom.store.Store;
 import org.wisdom.util.FastByteComparisons;
 
 import java.util.function.BiConsumer;

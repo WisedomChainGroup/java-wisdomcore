@@ -4,6 +4,9 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.tdf.rlp.RLPItem;
+import org.wisdom.store.MemoryCachedStore;
+import org.wisdom.store.ReadOnlyStore;
+import org.wisdom.store.Store;
 import org.wisdom.util.FastByteComparisons;
 
 import java.util.Collection;
@@ -26,6 +29,7 @@ public class TrieImpl<K, V> implements Trie<K, V> {
 
     Function<byte[], byte[]> function;
 
+    // use memory cached store to keep atomic
     MemoryCachedStore<byte[]> cache;
 
     Codec<K, byte[]> kCodec;

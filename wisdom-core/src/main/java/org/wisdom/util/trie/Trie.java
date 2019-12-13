@@ -1,6 +1,8 @@
 package org.wisdom.util.trie;
 
 
+import org.wisdom.store.Store;
+
 import java.util.Set;
 import java.util.function.BiConsumer;
 

@@ -1,4 +1,4 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
 
 public class MemoryCachedStore<V> extends CachedStore<byte[], V> implements Cloneable{
     public MemoryCachedStore(Store<byte[], V> delegated) {

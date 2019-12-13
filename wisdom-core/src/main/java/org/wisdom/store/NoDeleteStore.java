@@ -1,4 +1,4 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
 
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  * when compact method called, clean the key-pari in @see deleted
  */
 @AllArgsConstructor
-public class NoDeleteStore<K, V> implements Store<K, V>{
+public class NoDeleteStore<K, V> implements Store<K, V> {
     private Store<K, V> delegate;
 
     private Store<K, V> removed;

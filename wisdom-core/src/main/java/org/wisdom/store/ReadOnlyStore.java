@@ -1,10 +1,10 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
 
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-public class ReadOnlyStore<K, V> implements Store<K, V>{
+public class ReadOnlyStore<K, V> implements Store<K, V> {
     private Store<K, V> delegate;
 
     public ReadOnlyStore(Store<K, V> delegate) {

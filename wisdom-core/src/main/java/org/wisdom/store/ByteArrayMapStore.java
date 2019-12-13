@@ -1,7 +1,8 @@
-package org.wisdom.util.trie;
+package org.wisdom.store;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.wisdom.util.ByteArrayMap;
+import org.wisdom.util.trie.ExceptionUtil;
 
 import java.util.Map;
 

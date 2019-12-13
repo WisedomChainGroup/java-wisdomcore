@@ -5,6 +5,8 @@ import org.springframework.stereotype.Component;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.store.NoDeleteStore;
+import org.wisdom.store.Store;
 import org.wisdom.util.ByteArrayMap;
 import org.wisdom.util.trie.*;
 
