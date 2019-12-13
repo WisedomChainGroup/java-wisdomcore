@@ -67,26 +67,25 @@ public class MapRLPUtil {
         }
     }
 
-    public static class LongMapEncoderDecoder implements RLPEncoder<Map<String, Long>>, RLPDecoder<Map<String, Long>>{
+    public static class LongMapEncoderDecoder implements RLPEncoder<ByteArrayMap<Long>>, RLPDecoder<ByteArrayMap<Long>>{
 
         @Override
-        public Map<String, Long> decode(RLPElement rlpElement) {
-            RLPElement list = rlpElement;
-            Map<String,Long> map=new HashMap<>(list.size() / 2);
-            for(int i = 0; i < list.size(); i += 2){
-                map.put(list.get(i).asString(), list.get(i + 1).as(Long.class));
+        public ByteArrayMap<Long> decode(RLPElement rlpElement) {
+            ByteArrayMap<Long> map=new ByteArrayMap<>();
+            for(int i = 0; i < rlpElement.size(); i += 2){
+                map.put(rlpElement.get(i).getEncoded(),rlpElement.get(i + 1).asLong());
             }
             return map;
         }
 
         @Override
-        public RLPElement encode(Map<String, Long> stringLongMap) {
-            RLPList list = RLPList.createEmpty(stringLongMap.size() * 2);
-            stringLongMap.keySet().stream().sorted(String::compareTo).forEach(x ->{
-                list.add(RLPItem.fromString(x));
-                list.add(RLPElement.readRLPTree(stringLongMap.get(x)));
+        public RLPElement encode(ByteArrayMap<Long> longByteArrayMap) {
+            RLPList list = RLPList.createEmpty(longByteArrayMap.size() * 2);
+            longByteArrayMap.keySet().stream().forEach(x->{
+                list.add(RLPItem.fromBytes(x));
+                list.add(RLPItem.fromLong(longByteArrayMap.get(x)));
             });
-            return null;
+            return list;
         }
     }
 

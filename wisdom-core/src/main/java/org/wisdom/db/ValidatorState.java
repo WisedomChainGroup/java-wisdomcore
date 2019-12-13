@@ -3,9 +3,9 @@ package org.wisdom.db;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDecoding;
 import org.tdf.rlp.RLPEncoding;
+import org.wisdom.util.ByteArrayMap;
 import org.wisdom.util.MapRLPUtil;
 
-import java.util.Map;
 import java.util.Objects;
 
 public class ValidatorState {
@@ -13,13 +13,13 @@ public class ValidatorState {
     @RLP(0)
     @RLPEncoding(MapRLPUtil.LongMapEncoderDecoder.class)
     @RLPDecoding(MapRLPUtil.LongMapEncoderDecoder.class)
-    private Map<String, Long> nonce;
+    private ByteArrayMap<Long> nonce;
 
-    public Map<String, Long> getNonce() {
+    public ByteArrayMap<Long> getNonce() {
         return nonce;
     }
 
-    public void setNonce(Map<String, Long> nonce) {
+    public void setNonce(ByteArrayMap<Long> nonce) {
         this.nonce = nonce;
     }
 
