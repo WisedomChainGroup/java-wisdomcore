@@ -2,6 +2,7 @@ package org.wisdom.util.trie;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NonNull;
 import org.tdf.rlp.RLPItem;
 import org.wisdom.store.MemoryCachedStore;
@@ -145,7 +146,6 @@ public class TrieImpl<K, V> implements Trie<K, V> {
         byte[] hash = this.root.commit(function, cache, true).asBytes();
         if (root.isDirty() || root.getHash() == null)
             throw new RuntimeException("unexpected error: still dirty after commit");
-        flush();
         return hash;
     }
 

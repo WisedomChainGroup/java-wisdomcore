@@ -1,6 +1,8 @@
 package org.wisdom.store;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NonNull;
 
 import java.util.Collection;
@@ -14,8 +16,10 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 public class NoDeleteStore<K, V> implements Store<K, V> {
+    @Getter(AccessLevel.PROTECTED)
     private Store<K, V> delegate;
 
+    @Getter(AccessLevel.PROTECTED)
     private Store<K, V> removed;
 
     @Override
