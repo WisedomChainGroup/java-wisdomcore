@@ -138,7 +138,7 @@ public class TrieImpl<K, V> implements Trie<K, V> {
     public byte[] commit() {
         if (root == null) return nullHash;
         if (!root.isDirty()) return root.getHash();
-        byte[] hash = this.root.commit(function, cache, true).getAsItem().get();
+        byte[] hash = this.root.commit(function, cache, true).asBytes();
         if (root.isDirty() || root.getHash() == null)
             throw new RuntimeException("unexpected error: still dirty after commit");
         return hash;

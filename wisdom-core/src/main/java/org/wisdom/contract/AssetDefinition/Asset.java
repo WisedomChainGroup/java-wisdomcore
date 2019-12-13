@@ -2,7 +2,7 @@ package org.wisdom.contract.AssetDefinition;
 
 import lombok.*;
 import org.tdf.rlp.RLP;
-import org.tdf.rlp.RLPDeserializer;
+import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
@@ -39,7 +39,7 @@ public class Asset implements AnalysisContract {
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         try{
-            Asset asset= RLPDeserializer.deserialize(payload,Asset.class);
+            Asset asset= RLPElement.fromEncoded(payload).as(Asset.class);
             this.code=asset.getCode();
             this.offering=asset.getOffering();
             this.totalamount=asset.getTotalamount();
@@ -54,14 +54,14 @@ public class Asset implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPElement.encode(new Asset(
+        return RLPCodec.encode(new Asset(
                                         this.getCode(),
                                         this.getOffering(),
                                         this.getTotalamount(),
                                         this.getCreateuser(),
                                         this.getOwner(),
                                         this.getAllowincrease()
-                                )).getEncoded();
+                                ));
     }
 
     public Asset copy(){

@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
-import org.tdf.rlp.RLPDeserializer;
+import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
@@ -37,7 +37,7 @@ public class Multiple implements AnalysisContract {
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         try{
-            Multiple multiple= RLPDeserializer.deserialize(payload,Multiple.class);
+            Multiple multiple= RLPCodec.decode(payload,Multiple.class);
             this.assetHash=multiple.getAssetHash();
             this.min=multiple.getMin();
             this.max=multiple.getMax();
@@ -51,11 +51,11 @@ public class Multiple implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPElement.encode(Multiple.builder()
+        return RLPCodec.encode(Multiple.builder()
                             .assetHash(this.assetHash)
                             .min(this.min)
                             .max(this.max)
                             .pubList(this.pubList)
-                            .amount(this.amount).build()).getEncoded();
+                            .amount(this.amount).build());
     }
 }

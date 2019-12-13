@@ -1,7 +1,7 @@
 package org.wisdom.bean;
 
 import org.junit.Test;
-import org.tdf.rlp.RLPDeserializer;
+import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
@@ -45,9 +45,9 @@ public class BeanTest {
         ByteArrayMap<Long> maps=new ByteArrayMap<>(sss);
         AccountState accountState=new AccountState(account,map,map,type,Contract,maps);
 
-        byte[] bytes= RLPElement.encode(accountState).getEncoded();
+        byte[] bytes= RLPCodec.encode(accountState);
 
-        AccountState accountStates= RLPDeserializer.deserialize(bytes,AccountState.class);
+        AccountState accountStates= RLPCodec.decode(bytes,AccountState.class);
         assert accountStates.equals(accountState);
 
     }

@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
-import org.tdf.rlp.RLPDeserializer;
+import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
@@ -32,7 +32,7 @@ public class AssetTransfer implements AnalysisContract {
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         try{
-            AssetTransfer assetTransfer = RLPDeserializer.deserialize(payload, AssetTransfer.class);
+            AssetTransfer assetTransfer = RLPCodec.decode(payload, AssetTransfer.class);
             this.from= assetTransfer.getFrom();
             this.to= assetTransfer.getTo();
             this.value= assetTransfer.getValue();
@@ -44,9 +44,9 @@ public class AssetTransfer implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPElement.encode(AssetTransfer.builder()
+        return RLPCodec.encode(AssetTransfer.builder()
                                         .from(this.from)
                                         .to(this.to)
-                                        .value(this.value).build()).getEncoded();
+                                        .value(this.value).build());
     }
 }

@@ -72,13 +72,13 @@ class Node {
 
     // create root node from database and reference
     static Node fromEncoded(RLPElement rlp, Store<byte[], byte[]> readOnlyCache) {
-        if (rlp.isList())
+        if (rlp.isRLPList())
             return Node.builder()
-                    .rlp(rlp.getAsList())
+                    .rlp(rlp.asRLPList())
                     .readOnlyCache(readOnlyCache)
                     .build();
         return Node.builder()
-                .hash(rlp.getAsItem().get())
+                .hash(rlp.asBytes())
                 .readOnlyCache(readOnlyCache)
                 .build();
     }
@@ -156,7 +156,7 @@ class Node {
     // get actual rlp encoding in the cache
     private void resolve() {
         if (rlp != null || hash == null) return;
-        rlp = readOnlyCache.get(hash).map(RLPElement::fromEncoded).map(RLPElement::getAsList)
+        rlp = readOnlyCache.get(hash).map(RLPElement::fromEncoded).map(RLPElement::asRLPList)
                 .orElseThrow(() -> new RuntimeException("rlp encoding not found in cache"));
     }
 
@@ -167,12 +167,12 @@ class Node {
         resolve();
         if (rlp.size() == 2) {
             children = new Object[2];
-            byte[] packed = rlp.get(0).getAsItem().get();
+            byte[] packed = rlp.get(0).asBytes();
             TrieKey key = TrieKey.fromPacked(packed);
             children[0] = key;
             boolean terminal = TrieKey.isTerminal(packed);
             if (terminal) {
-                children[1] = rlp.get(1).getAsItem().get();
+                children[1] = rlp.get(1).asBytes();
                 return;
             }
             children[1] = fromEncoded(rlp.get(1), readOnlyCache);
@@ -183,9 +183,9 @@ class Node {
             if (rlp.get(i).isNull()) continue;
             children[i] = fromEncoded(rlp.get(i), readOnlyCache);
         }
-        RLPItem item = rlp.get(BRANCH_SIZE - 1).getAsItem();
+        RLPItem item = rlp.get(BRANCH_SIZE - 1).asRLPItem();
         if (item.isNull()) return;
-        children[BRANCH_SIZE - 1] = item.get();
+        children[BRANCH_SIZE - 1] = item.asBytes();
     }
 
     // clean key-value in database

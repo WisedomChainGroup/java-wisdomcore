@@ -5,8 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
-import org.tdf.rlp.RLPDeserializer;
-import org.tdf.rlp.RLPElement;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
@@ -38,7 +37,7 @@ public class MultTransfer implements AnalysisContract {
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         try{
-            MultTransfer multTransfer= RLPDeserializer.deserialize(payload,MultTransfer.class);
+            MultTransfer multTransfer= RLPCodec.decode(payload,MultTransfer.class);
             this.origin=multTransfer.getOrigin();
             this.dest=multTransfer.getDest();
             this.pubhash=multTransfer.getPubhash();
@@ -53,12 +52,12 @@ public class MultTransfer implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPElement.encode(MultTransfer.builder()
+        return RLPCodec.encode(MultTransfer.builder()
                 .origin(this.origin)
                 .dest(this.dest)
                 .pubhash(this.pubhash)
                 .signaturesList(this.signaturesList)
                 .to(this.to)
-                .value(this.value).build()).getEncoded();
+                .value(this.value).build());
     }
 }

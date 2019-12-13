@@ -25,10 +25,10 @@ public class MapRLPUtil {
     public static class MapEncoderDecoder implements RLPEncoder<Map<String, String>>, RLPDecoder<Map<String, String>> {
         @Override
         public Map<String, String> decode(RLPElement element) {
-            RLPList list = element.getAsList();
+            RLPList list = element.asRLPList();
             Map<String, String> map = new HashMap<>(list.size() / 2);
             for (int i = 0; i < list.size(); i += 2) {
-                map.put(list.get(i).getAsItem().getString(), list.get(i + 1).getAsItem().getString());
+                map.put(list.get(i).asString(), list.get(i + 1).asString());
             }
             return map;
         }
@@ -48,10 +48,10 @@ public class MapRLPUtil {
 
         @Override
         public Map<String, Incubator> decode(RLPElement rlpElement) {
-            RLPList list = rlpElement.getAsList();
+            RLPElement list = rlpElement;
             Map<String,Incubator> map=new HashMap<>(list.size() / 2);
             for(int i = 0; i < list.size(); i += 2){
-                map.put(list.get(i).getAsItem().getString(),RLPDeserializer.deserialize(list.get(i + 1).getEncoded(),Incubator.class));
+                map.put(list.get(i).asString(), list.get(i + 1).as(Incubator.class));
             }
             return map;
         }
@@ -61,7 +61,7 @@ public class MapRLPUtil {
             RLPList list = RLPList.createEmpty(stringIncubatorMap.size() * 2);
             stringIncubatorMap.keySet().stream().sorted(String::compareTo).forEach(x ->{
                 list.add(RLPItem.fromString(x));
-                list.add(RLPElement.encode(stringIncubatorMap.get(x)));
+                list.add(RLPElement.readRLPTree(stringIncubatorMap.get(x)));
             });
             return list;
         }
@@ -71,10 +71,10 @@ public class MapRLPUtil {
 
         @Override
         public ByteArrayMap<Long> decode(RLPElement rlpElement) {
-            RLPList list = rlpElement.getAsList();
-            ByteArrayMap<Long> map=new ByteArrayMap<Long>();
+            RLPElement list = rlpElement;
+            ByteArrayMap<Long> map=new ByteArrayMap<>();
             for(int i = 0; i < list.size(); i += 2){
-                map.put(list.get(i).getAsItem().getEncoded(),list.get(i + 1).getAsItem().getLong());
+                map.put(list.get(i).getEncoded(),list.get(i + 1).asLong());
             }
             return map;
         }

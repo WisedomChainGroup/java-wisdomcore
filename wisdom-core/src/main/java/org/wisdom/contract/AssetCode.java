@@ -21,16 +21,16 @@ public class AssetCode {
     private void add(String code){
         Optional<byte[]> value=leveldb.get(AssetCode.getBytes());
         value.ifPresent(bytes->{
-            assetMap=RLPDeserializer.deserialize(bytes, MapRLPUtil.MapWrapper.class);
+            assetMap= RLPCodec.decode(bytes, MapRLPUtil.MapWrapper.class);
             assetMap.map.put(code,"");
         });
-        leveldb.put(AssetCode.getBytes(),RLPElement.encode(assetMap).getEncoded());
+        leveldb.put(AssetCode.getBytes(),RLPCodec.encode(assetMap));
     }
 
     public boolean isContainsKey(String code){
         Optional<byte[]> value=leveldb.get(AssetCode.getBytes());
         value.ifPresent(bytes->{
-            assetMap=RLPDeserializer.deserialize(bytes, MapRLPUtil.MapWrapper.class);
+            assetMap=RLPCodec.decode(bytes, MapRLPUtil.MapWrapper.class);
         });
         if(assetMap.map.containsKey(code)){
             return true;
@@ -42,7 +42,7 @@ public class AssetCode {
         Optional<byte[]> value=leveldb.get(AssetCode.getBytes());
         Map<String, String> maps=null;
         value.ifPresent(bytes->{
-            assetMap=RLPDeserializer.deserialize(bytes, MapRLPUtil.MapWrapper.class);
+            assetMap=RLPCodec.decode(bytes, MapRLPUtil.MapWrapper.class);
             maps.putAll(assetMap.map);
         });
         return maps;
