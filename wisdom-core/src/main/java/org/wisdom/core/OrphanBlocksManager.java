@@ -18,6 +18,8 @@
 
 package org.wisdom.core;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.wisdom.core.event.NewBlockEvent;
@@ -26,8 +28,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.Leveldb;
 import org.wisdom.db.StateDB;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -122,4 +128,26 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     public List<Block> getOrphans(){
         return orphans.getAll();
     }
+
+
+    @Autowired
+    private Leveldb leveldb;
+
+    @PreDestroy
+    public void saveOrphanBlocks() {
+        List<Block> list = getOrphans();
+        String json = JSON.toJSONString(list, true);
+        leveldb.addPoolDb("OrphanBlocksPool", json);
+    }
+
+    @PostConstruct
+    public void loadOrphanBlocks() {
+        String json = leveldb.readPoolDb("OrphanBlocksPool");
+        if (json != null && !json.equals("")) {
+            List<Block> blocks = JSON.parseObject(json, new TypeReference<ArrayList<Block>>() {
+            });
+            blocks.forEach(this::addBlock);
+        }
+    }
+
 }
