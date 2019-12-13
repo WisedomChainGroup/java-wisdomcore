@@ -67,7 +67,7 @@ public class MapRLPUtil {
         }
     }
 
-    public static class LongMapEncoderDecoder implements RLPEncoder<ByteArrayMap<Long>>, RLPDecoder<ByteArrayMap<Long>>{
+    public static class NonceMapEncoderDecoder implements RLPEncoder<ByteArrayMap<Long>>, RLPDecoder<ByteArrayMap<Long>>{
 
         @Override
         public ByteArrayMap<Long> decode(RLPElement rlpElement) {

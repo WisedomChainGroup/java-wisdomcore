@@ -11,8 +11,8 @@ import java.util.Objects;
 public class ValidatorState {
 
     @RLP(0)
-    @RLPEncoding(MapRLPUtil.LongMapEncoderDecoder.class)
-    @RLPDecoding(MapRLPUtil.LongMapEncoderDecoder.class)
+    @RLPEncoding(MapRLPUtil.NonceMapEncoderDecoder.class)
+    @RLPDecoding(MapRLPUtil.NonceMapEncoderDecoder.class)
     private ByteArrayMap<Long> nonce;
 
     public ByteArrayMap<Long> getNonce() {
