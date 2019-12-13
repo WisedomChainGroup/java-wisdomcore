@@ -26,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.util.ByteArrayMap;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
