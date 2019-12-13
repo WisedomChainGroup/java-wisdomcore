@@ -18,14 +18,14 @@ public abstract class CachedStore<K, V> implements Store<K, V>{
 
     public CachedStore(Store<K, V> delegated) {
         this.delegated = delegated;
-        reset();
+        clearCache();
     }
 
     abstract Store<K, V> newCache();
 
     abstract Store<K, V> newDeleted();
 
-    void reset(){
+    void clearCache(){
         cache = newCache();
         deleted = newDeleted();
     }
@@ -58,12 +58,15 @@ public abstract class CachedStore<K, V> implements Store<K, V>{
         deleted.put(k, v.get());
     }
 
+    /**
+     * flush cache to underlying database
+     */
     @Override
     public void flush() {
         if(cache.isEmpty() && deleted.isEmpty()) return ;
         deleted.keySet().forEach(delegated::remove);
         cache.keySet().forEach(x -> delegated.put(x, cache.get(x).get()));
-        reset();
+        clearCache();
         delegated.flush();
     }
 
@@ -99,7 +102,7 @@ public abstract class CachedStore<K, V> implements Store<K, V>{
 
     @Override
     public void clear() {
-        reset();
+        clearCache();
         deleted = delegated;
     }
 

@@ -14,7 +14,7 @@ public interface Trie<K, V> extends Store<K, V> {
     Trie<K, V> revert(byte[] rootHash, Store<byte[], byte[]> store) throws RuntimeException;
 
     // build a new trie and get the root hash of this trie
-    // you could rollback to this Trie later by move to the root hash generated
+    // you could rollback to this Trie later by revert to the root hash generated
     byte[] commit();
 
     void traverse(BiConsumer<TrieKey, Node> action);
@@ -29,4 +29,11 @@ public interface Trie<K, V> extends Store<K, V> {
 
     // return true is root node is not null and root node is dirty
     boolean isDirty();
+
+    /**
+     * if flush is called, the cache of this trie will flushed to underlying database
+     * you will also lose ability of revert to previous version
+     * use @see NoDeleteStore to avoid remove operation when flush is called
+     */
+    void flush();
 }
