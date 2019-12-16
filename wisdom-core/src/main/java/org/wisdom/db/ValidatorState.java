@@ -24,6 +24,13 @@ public class ValidatorState {
         this.nonce = nonce;
     }
 
+    public ValidatorState() {
+    }
+
+    public ValidatorState(Map<byte[], Long> nonce) {
+        this.nonce = nonce;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -23,6 +23,9 @@ import org.tdf.rlp.RLP;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.util.ByteUtil;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public class Account {
     @RLP(0)
     private byte[] id;
@@ -125,4 +128,19 @@ public class Account {
     public Account copy() {
         return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Account account = (Account) o;
+        return blockHeight == account.blockHeight &&
+                nonce == account.nonce &&
+                balance == account.balance &&
+                incubatecost == account.incubatecost &&
+                mortgage == account.mortgage &&
+                vote == account.vote &&
+                Arrays.equals(pubkeyHash, account.pubkeyHash);
+    }
+
 }
