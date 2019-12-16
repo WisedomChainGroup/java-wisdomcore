@@ -1,5 +1,6 @@
 package org.wisdom.consensus.pow;
 
+import lombok.*;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,8 +48,7 @@ public class PackageMiner {
         int size = block.size();
         boolean exit = false;
         for (Map.Entry<String, TreeMap<Long, TransPool>> entry : maps.entrySet()) {
-            byte[] key = Hex.decodeHex(entry.getKey().toCharArray());
-            String publicKeyHash = Hex.encodeHexString(key);
+            String publicKeyHash = entry.getKey();
 
             TreeMap<Long, TransPool> treeMap = entry.getValue();
             for (Map.Entry<Long, TransPool> entry1 : treeMap.entrySet()) {
@@ -72,29 +72,32 @@ public class PackageMiner {
 
                 // nonce是否合法
                 if (fromaccount.getNonce() >= transaction.nonce) {
-                    removemap.put(new String(entry.getKey()), transaction.nonce);
+                    removemap.put(publicKeyHash,transaction.nonce);
                     continue;
                 }
                 switch (transaction.type) {
                     case 1://转账
-                    case 2:////投票
+                    case 2://投票
+                    case 13://撤回投票
                         String tohash = Hex.encodeHexString(transaction.to);
                         Account toaccount;
-                        AccountState toaccountState = new AccountState();
+                        AccountState toaccountState;
                         if (accountStateMap.containsKey(tohash)) {
                             toaccountState = accountStateMap.get(tohash);
-                            toaccount = toaccountState.getAccount();
                         } else {
-                            toaccount = new Account(0, transaction.to, 0, 0, 0, 0, 0);
+                            toaccountState = stateDB.getAccount(parenthash, transaction.to);
                         }
+                        toaccount = toaccountState.getAccount();
                         Map<String, Account> accountList = null;
                         if (transaction.type == 1) {
                             accountList = updateTransfer(fromaccount, toaccount, transaction);
                         } else if (transaction.type == 2) {
                             accountList = updateVote(fromaccount, toaccount, transaction);
+                        } else {
+                            accountList = UpdateCancelVote(fromaccount, toaccount, transaction);
                         }
                         if (accountList == null) {
-                            removemap.put(new String(entry.getKey()), transaction.nonce);
+                            removemap.put(new String(publicKeyHash), transaction.nonce);
                             state = true;
                             break;
                         }
@@ -106,30 +109,6 @@ public class PackageMiner {
                             accountStateMap.put(tohash, accountState);
                         }
                         break;
-                    case 13://撤回投票
-                        Account votetoaccount;
-                        AccountState tovoteaccountState;
-                        if (accountStateMap.containsKey(Hex.encodeHexString(transaction.to))) {
-                            tovoteaccountState = accountStateMap.get(Hex.encodeHexString(transaction.to));
-                            votetoaccount = tovoteaccountState.getAccount();
-                        } else {
-                            tovoteaccountState = stateDB.getAccount(parenthash, transaction.to);
-                            votetoaccount = tovoteaccountState.getAccount();
-                        }
-                        Map<String, Account> cancelaccountList = UpdateCancelVote(fromaccount, votetoaccount, transaction);
-                        if (cancelaccountList == null) {
-                            removemap.put(new String(entry.getKey()), transaction.nonce);
-                            state = true;
-                            break;
-                        }
-                        if (cancelaccountList.containsKey("fromaccount")) {
-                            accountState.setAccount(cancelaccountList.get("fromaccount"));
-                            accountStateMap.put(publicKeyHash, accountState);
-                        } else if (cancelaccountList.containsKey("toaccount")) {
-                            tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
-                            accountStateMap.put(Hex.encodeHexString(transaction.to), accountState);
-                        }
-                        break;
                     case 3://存证事务,只需要扣除手续费
                     case 9://孵化事务
                     case 10://提取利息
@@ -139,38 +118,19 @@ public class PackageMiner {
                     case 15://撤回抵押
                         Account account = UpdateOtherAccount(fromaccount, transaction);
                         if (account == null) {
-                            removemap.put(new String(entry.getKey()), transaction.nonce);
+                            removemap.put(new String(publicKeyHash), transaction.nonce);
                             state = true;
                             break;
                         }
                         accountState.setAccount(account);
-
-                        Map<String, Incubator> map = null;
-                        if (transaction.type == 10) {
-                            map = accountState.getInterestMap();
-                            Incubator incubator = UpdateIncubtor(map, transaction, block.nHeight);
-                            if (incubator.getInterest_amount() < 0 || incubator.getLast_blockheight_interest() > block.nHeight) {
-                                removemap.put(new String(entry.getKey()), transaction.nonce);
-                                break;
-                            }
-                            map.put(Hex.encodeHexString(transaction.payload), incubator);
-                            accountState.setInterestMap(map);
-                        } else if (transaction.type == 11) {
-                            map = accountState.getShareMap();
-                            Incubator incubator = UpdateIncubtor(map, transaction, block.nHeight);
-                            if (incubator.getShare_amount() < 0 || incubator.getLast_blockheight_share() > block.nHeight) {
-                                removemap.put(new String(entry.getKey()), transaction.nonce);
-                                break;
-                            }
-                            map.put(Hex.encodeHexString(transaction.payload), incubator);
-                            accountState.setShareMap(map);
-                        } else if (transaction.type == 12) {
-                            map = accountState.getInterestMap();
-                            Incubator incubator = UpdateIncubtor(map, transaction, block.nHeight);
-                            map.put(Hex.encodeHexString(transaction.payload), incubator);
-                            accountState.setInterestMap(map);
+                        //校验type 10、11、12事务
+                        VerifyHatch verifyHatch=updateHatch(accountState,transaction,block.nHeight);
+                        if(!verifyHatch.state){
+                            removemap.put(new String(publicKeyHash), transaction.nonce);
+                            state = true;
+                            break;
                         }
-                        accountStateMap.put(publicKeyHash, accountState);
+                        accountStateMap.put(publicKeyHash, verifyHatch.getAccountState());
                         break;
                 }
                 if (state) {
@@ -363,5 +323,49 @@ public class PackageMiner {
             incubator = merkleRule.UpdateCostIncubator(incubator, hieght);
         }
         return incubator;
+    }
+
+    public VerifyHatch updateHatch(AccountState accountState,Transaction transaction,long nHeight) {
+        VerifyHatch verifyHatch=new VerifyHatch();
+        Map<String, Incubator> map = null;
+        if (transaction.type == 10) {
+            map = accountState.getInterestMap();
+            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            if (incubator.getInterest_amount() < 0 || incubator.getLast_blockheight_interest() > nHeight) {
+                verifyHatch.setState(false);
+                return verifyHatch;
+            }
+            map.put(Hex.encodeHexString(transaction.payload), incubator);
+            accountState.setInterestMap(map);
+        } else if (transaction.type == 11) {
+            map = accountState.getShareMap();
+            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            if (incubator.getShare_amount() < 0 || incubator.getLast_blockheight_share() > nHeight) {
+                verifyHatch.setState(false);
+                return verifyHatch;
+            }
+            map.put(Hex.encodeHexString(transaction.payload), incubator);
+            accountState.setShareMap(map);
+        } else if (transaction.type == 12) {
+            map = accountState.getInterestMap();
+            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            if(incubator.getInterest_amount() !=0 ){
+                verifyHatch.setState(false);
+                return verifyHatch;
+            }
+            map.put(Hex.encodeHexString(transaction.payload), incubator);
+            accountState.setInterestMap(map);
+        }
+        verifyHatch.setAccountState(accountState);
+        return verifyHatch;
+    }
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    public class VerifyHatch{
+        private AccountState accountState;
+        private boolean state;
     }
 }
