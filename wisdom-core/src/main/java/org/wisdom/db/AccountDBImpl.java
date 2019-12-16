@@ -2,7 +2,11 @@ package org.wisdom.db;
 
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.tdf.rlp.RLPCodec;
+import org.tdf.rlp.RLPEncoder;
+import org.tdf.rlp.RLPItem;
+import org.wisdom.Start;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.crypto.HashUtil;
@@ -13,12 +17,12 @@ import org.wisdom.util.ByteArrayMap;
 import org.wisdom.util.trie.*;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Component
 public class AccountDBImpl implements AccountDB {
+    private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
+
     private static final String TRIE = "trie";
 
     private static final String DELETED = "deleted";
@@ -29,15 +33,17 @@ public class AccountDBImpl implements AccountDB {
 
     private static final byte[] LAST_SYNCED_HEIGHT = "last-confirmed".getBytes(StandardCharsets.US_ASCII);
 
+    // mark whether the state of the block had been stored
+    // block hash -> dummy
     private Store<byte[], byte[]> statusStore;
 
     // block hash -> state root
     private Store<byte[], byte[]> rootStore;
 
-    // removed key in trie store -> dummy
+    // removed key in trie store -> dummy, for cleaning up when data replicated too much
     private Store<byte[], byte[]> deleted;
 
-    // trie store
+    // store actual data of trie
     private Store<byte[], byte[]> trieStore;
 
     private NoDeleteStore<byte[], byte[]> noDeleteStore;
@@ -53,7 +59,7 @@ public class AccountDBImpl implements AccountDB {
             DatabaseStoreFactory factory,
             Block genesis,
             WisdomBlockChain bc
-    ){
+    ) {
         trieStore = factory.create(TRIE, false);
         deleted = factory.create(DELETED, false);
         rootStore = factory.create(STATE_ROOTS, false);
@@ -70,10 +76,26 @@ public class AccountDBImpl implements AccountDB {
         nullHash = stateTrie.getRootHash();
         // put parent hash of genesis map to null hash
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
+
+        // query for had been written
+        long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).map(RLPCodec::decodeLong).orElse(-1L);
+
+        Block last = bc.getCanonicalBlock(lastSyncedHeight);
+        int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
+        while (true) {
+            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
+            int size = blocks.size();
+
+
+            // sync trie here
+            if (size < blocksPerUpdate) {
+                break;
+            }
+        }
     }
 
     // sync state trie to best block
-    private void sync(){
+    private void sync() {
         long lastSynced = statusStore.get(LAST_SYNCED_HEIGHT)
                 .map(bc::getBlock).map(Block::getnHeight).orElse(0L);
 
