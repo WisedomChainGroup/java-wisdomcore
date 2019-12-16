@@ -34,7 +34,7 @@ public class AccountDBImpl implements AccountDB {
     private static final byte[] LAST_SYNCED_HEIGHT = "last-confirmed".getBytes(StandardCharsets.US_ASCII);
 
     // mark whether the state of the block had been stored
-    // block hash -> dummy
+    // block hash -> long
     private Store<byte[], byte[]> statusStore;
 
     // block hash -> state root
