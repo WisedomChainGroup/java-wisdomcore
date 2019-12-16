@@ -2,11 +2,9 @@ package org.wisdom.db;
 
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDecoding;
-import org.tdf.rlp.RLPEncoding;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.util.ByteArrayMap;
-import org.wisdom.util.MapRLPUtil;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,20 +17,15 @@ public class AccountState {
     @RLP(0)
     private Account account;
     @RLP(1)
-    @RLPEncoding(MapRLPUtil.IncubMapEncoderDecoder.class)
-    @RLPDecoding(MapRLPUtil.IncubMapEncoderDecoder.class)
     private Map<String, Incubator> interestMap;
     @RLP(2)
-    @RLPEncoding(MapRLPUtil.IncubMapEncoderDecoder.class)
-    @RLPDecoding(MapRLPUtil.IncubMapEncoderDecoder.class)
     private Map<String, Incubator> ShareMap;
     @RLP(3)
     private int type;//0是普通地址,1是合约代币，2是多重签名
     @RLP(4)
     private byte[] Contract;//合约RLP
     @RLP(5)
-    @RLPEncoding(MapRLPUtil.ByteArrayLongMapEncoder.class)
-    @RLPDecoding(MapRLPUtil.ByteArrayLongMapDecoder.class)
+    @RLPDecoding(as = ByteArrayMap.class)
     private Map<byte[], Long> TokensMap;
 
     public AccountState() {
