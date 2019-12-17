@@ -7,6 +7,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -30,6 +31,12 @@ public class PeningTransPool {
 
     @Autowired
     private Leveldb leveldb;
+
+    @Value("${wisdom.ceo.trace}")
+    private boolean type;
+
+    @Autowired
+    TraceCeoAddress traceCeoAddress;
 
     // publicKeyHash -> nonce -> transaction
     private Map<String, TreeMap<Long, TransPool>> ptpool;
@@ -70,6 +77,14 @@ public class PeningTransPool {
                 ptpool.put(fromhash, map);
                 updateNonce(transaction.type, transaction.nonce, fromhash);
             }
+        }
+        //ceo地址跟踪
+        if(type){
+            pools.stream().forEach(p->{
+                Transaction transaction = p.getTransaction();
+                String from = Hex.encodeHexString(transaction.from);
+                traceCeoAddress.addPend(from,transaction.nonce);
+            });
         }
     }
 
