@@ -286,8 +286,8 @@ public class ProposersState implements State<ProposersState> {
         proposers = all.values().stream()
                 // 过滤掉黑名单中节点
                 .filter(p -> !blockList.contains(p.publicKeyHash))
-                // 过滤掉抵押数量不足的节点
-                .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE)
+                // 过滤掉抵押数量不足和投票为零的账户
+                .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE && p.getAccumulated() > 0)
                 // 按照 投票，抵押，字典从大到小排序
                 .sorted((x, y) -> -compareProposer(x, y))
                 .limit(MAXIMUM_PROPOSERS)
