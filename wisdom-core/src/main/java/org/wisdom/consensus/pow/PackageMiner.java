@@ -214,6 +214,7 @@ public class PackageMiner {
             return null;
         }
         fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
         map.put("fromaccount", fromaccount);
         return map;
     }
@@ -237,6 +238,7 @@ public class PackageMiner {
             return null;
         }
         fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
         map.put("fromaccount", fromaccount);
         return map;
     }
@@ -253,6 +255,7 @@ public class PackageMiner {
             return null;
         }
         fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
         map.put("fromaccount", fromaccount);
         return map;
     }
@@ -274,6 +277,7 @@ public class PackageMiner {
             return null;
         }
         fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
         map.put("fromaccount", fromaccount);
         return map;
     }
@@ -302,6 +306,7 @@ public class PackageMiner {
             return null;
         }
         fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
         map.put("fromaccount", fromaccount);
         return map;
     }
@@ -359,6 +364,7 @@ public class PackageMiner {
             return null;
         }
         fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
         return fromaccount;
     }
 
