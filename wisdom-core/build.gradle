@@ -290,7 +290,6 @@ dependencies {
     compile group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.10.5'
 
     compile fileTree(dir:'libs',include:['*.jar'])
-    compile 'org.springframework.shell:spring-shell-starter:2.0.0.RELEASE'
     compile "org.springframework.boot:spring-boot-starter-actuator:${springbootVersion}"
     compile "org.springframework.boot:spring-boot-starter-security:${springbootVersion}"
 }
