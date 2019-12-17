@@ -320,7 +320,6 @@ public class Block {
         nTime = genesis.timestamp;
         // init initial pow target
         nBits = Hex.decodeHex(genesis.nBits.toCharArray());
-
         // add coin base
         for (Genesis.InitAmount el : genesis.alloc.initAmount) {
             Transaction tx = Transaction.createEmpty();

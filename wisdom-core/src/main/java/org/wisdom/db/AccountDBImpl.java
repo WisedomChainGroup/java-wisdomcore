@@ -1,15 +1,21 @@
 package org.wisdom.db;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
+
 import org.tdf.rlp.RLPCodec;
-import org.tdf.rlp.RLPEncoder;
-import org.tdf.rlp.RLPItem;
-import org.wisdom.Start;
+
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
+
+import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.HashUtil;
+
 import org.wisdom.store.NoDeleteByteArrayStore;
 import org.wisdom.store.NoDeleteStore;
 import org.wisdom.store.Store;
@@ -55,11 +61,14 @@ public class AccountDBImpl implements AccountDB {
 
     private WisdomBlockChain bc;
 
+    @Autowired
+    AccountStateUpdater accountStateUpdater;
+
     public AccountDBImpl(
             DatabaseStoreFactory factory,
             Block genesis,
             WisdomBlockChain bc
-    ) {
+    ) throws InvalidProtocolBufferException, DecoderException {
         trieStore = factory.create(TRIE, false);
         deleted = factory.create(DELETED, false);
         rootStore = factory.create(STATE_ROOTS, false);
@@ -85,8 +94,11 @@ public class AccountDBImpl implements AccountDB {
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
-
-
+            Map<byte[], AccountState> accounts = new HashMap<>();
+            for (Block block : blocks) {
+                accounts = accountStateUpdater.updateAll(accounts, block);
+                statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), accounts.values()));
+            }
             // sync trie here
             if (size < blocksPerUpdate) {
                 break;
