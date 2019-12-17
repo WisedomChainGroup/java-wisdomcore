@@ -376,7 +376,7 @@ public class PackageMiner {
     public boolean updateWaitCount(String publicKeyHash,long nonce){
         if(waitCount.IsExist(publicKeyHash,nonce)){
             if(waitCount.updateNonce(publicKeyHash)){
-                return true;//满足100个区块等待，可以加入
+                return true;//单个节点最长旷工数量的7个区块，可以加入
             }
         }else{
             waitCount.add(publicKeyHash,nonce);

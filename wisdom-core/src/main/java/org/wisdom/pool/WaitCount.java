@@ -31,12 +31,12 @@ public class WaitCount {
             WaitNonce waitNonce=waitMap.get(pubhash);
             int waitcount=waitNonce.getWaitcount();
             waitcount++;
-            if(waitcount<=100){
+            if(waitcount<=7){
                 waitNonce.setWaitcount(waitcount);
                 waitMap.put(pubhash,waitNonce);
                 return false;
             }
-            //满足100个区块，删除
+            //满足单个节点最长旷工数量的7个区块，删除
             waitMap.remove(pubhash);
             return true;
         }
