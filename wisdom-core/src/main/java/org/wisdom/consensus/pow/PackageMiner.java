@@ -14,6 +14,7 @@ import org.wisdom.db.AccountState;
 import org.wisdom.db.StateDB;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
+import org.wisdom.pool.WaitCount;
 
 import java.util.*;
 
@@ -33,6 +34,9 @@ public class PackageMiner {
 
     @Autowired
     MerkleRule merkleRule;
+
+    @Autowired
+    WaitCount waitCount;
 
 
     public List<Transaction> TransferCheck(byte[] parenthash, long height, Block block) throws DecoderException {
@@ -74,6 +78,10 @@ public class PackageMiner {
                 if (fromaccount.getNonce() >= transaction.nonce) {
                     removemap.put(new String(entry.getKey()), transaction.nonce);
                     continue;
+                }
+                //nonce是否跳号
+                if(fromaccount.getNonce()+1 != transaction.nonce){
+                    if(!updateWaitCount(publicKeyHash,transaction.nonce)) break;
                 }
                 switch (transaction.type) {
                     case 1://转账
@@ -363,5 +371,16 @@ public class PackageMiner {
             incubator = merkleRule.UpdateCostIncubator(incubator, hieght);
         }
         return incubator;
+    }
+
+    public boolean updateWaitCount(String publicKeyHash,long nonce){
+        if(waitCount.IsExist(publicKeyHash,nonce)){
+            if(waitCount.updateNonce(publicKeyHash)){
+                return true;//满足100个区块等待，可以加入
+            }
+        }else{
+            waitCount.add(publicKeyHash,nonce);
+        }
+        return false;
     }
 }
