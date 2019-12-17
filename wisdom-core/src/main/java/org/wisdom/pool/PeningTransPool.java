@@ -61,6 +61,7 @@ public class PeningTransPool {
 
     public void add(List<TransPool> pools) {
         for (TransPool transPool : pools) {
+            boolean state=false;
             Transaction transaction = transPool.getTransaction();
             byte[] from = transaction.from;
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
@@ -70,22 +71,24 @@ public class PeningTransPool {
                     map.put(transaction.nonce, transPool);
                     ptpool.put(fromhash, map);
                     updateNonce(transaction.type, transaction.nonce, fromhash);
+                    state=true;
                 }
             } else {
                 TreeMap<Long, TransPool> map = new TreeMap<>();
                 map.put(transaction.nonce, transPool);
                 ptpool.put(fromhash, map);
                 updateNonce(transaction.type, transaction.nonce, fromhash);
+                state=true;
+            }
+            //ceo地址跟踪
+            if(state){
+                if(type){
+                    String fromstring = Hex.encodeHexString(transaction.from);
+                    traceCeoAddress.addPend(fromstring,transaction.nonce);
+                }
             }
         }
-        //ceo地址跟踪
-        if(type){
-            pools.stream().forEach(p->{
-                Transaction transaction = p.getTransaction();
-                String from = Hex.encodeHexString(transaction.from);
-                traceCeoAddress.addPend(from,transaction.nonce);
-            });
-        }
+
     }
 
     public void updatePtNone(String key, PendingNonce pendingNonce) {
