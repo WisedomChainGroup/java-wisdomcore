@@ -7,7 +7,6 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.util.ByteArrayMap;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -17,9 +16,11 @@ public class AccountState {
     @RLP(0)
     private Account account;
     @RLP(1)
-    private Map<String, Incubator> interestMap;
+    @RLPDecoding(as = ByteArrayMap.class)
+    private Map<byte[], Incubator> interestMap;
     @RLP(2)
-    private Map<String, Incubator> ShareMap;
+    @RLPDecoding(as = ByteArrayMap.class)
+    private Map<byte[], Incubator> ShareMap;
     @RLP(3)
     private int type;//0是普通地址,1是合约代币，2是多重签名
     @RLP(4)
@@ -36,7 +37,7 @@ public class AccountState {
         account.setPubkeyHash(pubkeyHash);
     }
 
-    public AccountState(Account account, Map<String, Incubator> interestMap, Map<String, Incubator> shareMap, int type, byte[] Contract, Map<byte[], Long> TokensMap) {
+    public AccountState(Account account, Map<byte[], Incubator> interestMap, Map<byte[], Incubator> shareMap, int type, byte[] Contract, Map<byte[], Long> TokensMap) {
         this.account = account;
         this.interestMap = interestMap;
         this.ShareMap = shareMap;
@@ -53,19 +54,19 @@ public class AccountState {
         this.account = account;
     }
 
-    public Map<String, Incubator> getInterestMap() {
+    public Map<byte[], Incubator> getInterestMap() {
         return interestMap;
     }
 
-    public void setInterestMap(Map<String, Incubator> interestMap) {
+    public void setInterestMap(Map<byte[], Incubator> interestMap) {
         this.interestMap = interestMap;
     }
 
-    public Map<String, Incubator> getShareMap() {
+    public Map<byte[], Incubator> getShareMap() {
         return ShareMap;
     }
 
-    public void setShareMap(Map<String, Incubator> shareMap) {
+    public void setShareMap(Map<byte[], Incubator> shareMap) {
         ShareMap = shareMap;
     }
 
@@ -109,14 +110,8 @@ public class AccountState {
     public AccountState copy() {
         AccountState accountState = new AccountState();
         accountState.setAccount(account.copy());
-        accountState.setInterestMap(new HashMap<>());
-        for (String k : interestMap.keySet()) {
-            accountState.getInterestMap().put(k, interestMap.get(k).copy());
-        }
-        accountState.setShareMap(new HashMap<>());
-        for (String k : getShareMap().keySet()) {
-            accountState.getShareMap().put(k, ShareMap.get(k).copy());
-        }
+        accountState.setInterestMap(new ByteArrayMap<>(interestMap));
+        accountState.setShareMap(new ByteArrayMap<>(ShareMap));
         accountState.setType(type);
         accountState.setContract(Contract);
         accountState.setTokensMap(new ByteArrayMap<>(TokensMap));

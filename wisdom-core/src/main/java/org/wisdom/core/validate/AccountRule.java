@@ -161,7 +161,7 @@ public class AccountRule implements BlockRule {
                         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from ");
                     }
                     Account account = accountState.getAccount();
-                    Map<String, Incubator> interestMap = null;
+                    Map<byte[], Incubator> interestMap = null;
                     if (tx.type == 0x0a || tx.type == 0x0c) {
                         interestMap = accountState.getInterestMap();
                     } else if (tx.type == 0x0b) {
@@ -248,21 +248,21 @@ public class AccountRule implements BlockRule {
                         }
                         accountState.setAccount(otheraccount);
 
-                        Map<String, Incubator> maps = null;
+                        Map<byte[], Incubator> maps = null;
                         if (tx.type == 10) {
                             maps = accountState.getInterestMap();
                             Incubator incubator = packageMiner.UpdateIncubtor(maps, tx, block.nHeight);
-                            maps.put(Hex.encodeHexString(tx.payload), incubator);
+                            maps.put(tx.payload, incubator);
                             accountState.setInterestMap(maps);
                         } else if (tx.type == 11) {
                             maps = accountState.getShareMap();
                             Incubator incubator = packageMiner.UpdateIncubtor(maps, tx, block.nHeight);
-                            maps.put(Hex.encodeHexString(tx.payload), incubator);
+                            maps.put(tx.payload, incubator);
                             accountState.setShareMap(maps);
                         } else if (tx.type == 12) {
                             maps = accountState.getInterestMap();
                             Incubator incubator = packageMiner.UpdateIncubtor(maps, tx, block.nHeight);
-                            maps.put(Hex.encodeHexString(tx.payload), incubator);
+                            maps.put(tx.payload, incubator);
                             accountState.setInterestMap(maps);
                         }
                         map.put(publichash, accountState);

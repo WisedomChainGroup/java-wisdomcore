@@ -34,8 +34,9 @@ public class BeanTest {
         incubator.setCost(50000000000L);
         incubator.setDays(120);
         incubator.setHeight(1400);
-        Map<String,Incubator> map=new HashMap<>();
-        map.put("1111",incubator);
+        byte[] s1={0x00,0x01};
+        Map<byte[],Incubator> map=new HashMap<>();
+        map.put(s1,incubator);
 
         int type=1;
         byte[] Contract={0x00,0x01};

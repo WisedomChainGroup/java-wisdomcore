@@ -314,7 +314,7 @@ public class PackageMiner {
         return fromaccount;
     }
 
-    public Incubator UpdateIncubtor(Map<String, Incubator> map, Transaction transaction, long hieght) {
+    public Incubator UpdateIncubtor(Map<byte[], Incubator> map, Transaction transaction, long hieght) {
         Incubator incubator = map.get(Hex.encodeHexString(transaction.payload));
         if (transaction.type == 10 || transaction.type == 11) {
             incubator = merkleRule.UpdateExtIncuator(transaction, hieght, incubator);
@@ -327,7 +327,7 @@ public class PackageMiner {
 
     public VerifyHatch updateHatch(AccountState accountState,Transaction transaction,long nHeight) {
         VerifyHatch verifyHatch=new VerifyHatch();
-        Map<String, Incubator> map = null;
+        Map<byte[], Incubator> map = null;
         if (transaction.type == 10) {
             map = accountState.getInterestMap();
             Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
@@ -335,7 +335,7 @@ public class PackageMiner {
                 verifyHatch.setState(false);
                 return verifyHatch;
             }
-            map.put(Hex.encodeHexString(transaction.payload), incubator);
+            map.put(transaction.payload, incubator);
             accountState.setInterestMap(map);
         } else if (transaction.type == 11) {
             map = accountState.getShareMap();
@@ -344,7 +344,7 @@ public class PackageMiner {
                 verifyHatch.setState(false);
                 return verifyHatch;
             }
-            map.put(Hex.encodeHexString(transaction.payload), incubator);
+            map.put(transaction.payload, incubator);
             accountState.setShareMap(map);
         } else if (transaction.type == 12) {
             map = accountState.getInterestMap();
@@ -353,7 +353,7 @@ public class PackageMiner {
                 verifyHatch.setState(false);
                 return verifyHatch;
             }
-            map.put(Hex.encodeHexString(transaction.payload), incubator);
+            map.put(transaction.payload, incubator);
             accountState.setInterestMap(map);
         }
         verifyHatch.setAccountState(accountState);
