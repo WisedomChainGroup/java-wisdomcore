@@ -24,7 +24,23 @@ bash $PROJECT_ROOT/../gradlew copyDependencies
 
 # copy dependencies to tempory directory
 cp $PROJECT_ROOT/build/libs/lib/*.jar $CUR/build
-cp $PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator.json $CUR/build
+
+if [ -f "$PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator.json" ]; then
+ cp $PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator.json $CUR/build
+fi
+
+if [ -f "$PROJECT_ROOT/src/main/resources/genesis/validators.json" ]; then
+ cp $PROJECT_ROOT/src/main/resources/genesis/validators.json $CUR/build
+fi
+
+if [ -f "$PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator-test.json" ]; then
+ cp $PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator-test.json $CUR/build
+fi
+
+if [ -f "$PROJECT_ROOT/src/main/resources/genesis/validators-test.json" ]; then
+ cp $PROJECT_ROOT/src/main/resources/genesis/validators-test.json $CUR/build
+fi
+
 SUFFIX=:$TAG
 if [[ $SUFFIX == ':' ]]; then
   SUFFIX=''
