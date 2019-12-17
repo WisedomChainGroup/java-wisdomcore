@@ -236,6 +236,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     if (a.nHeight != b.nHeight) {
                         return Long.compare(a.nHeight, b.nHeight);
                     }
+                    if (a.body.get(0).amount != b.body.get(0).amount) {
+                        return (int) (a.body.get(0).amount - b.body.get(0).amount);
+                    }
                     // pow 更小的占优势
                     return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
                             .compareTo(
@@ -661,18 +664,18 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    public long AverageFee(){
-        List<Block> list=getBestChain(10);
-        List<Transaction> transactionList=new ArrayList<>();
-        list.stream().map(m->m.body).filter(f->f!=null).forEach(f->transactionList.addAll(f));
-        Set<Long> longSet=transactionList.stream()
-                .filter(transaction -> transaction.type!=Transaction.Type.COINBASE.ordinal())
+    public long AverageFee() {
+        List<Block> list = getBestChain(10);
+        List<Transaction> transactionList = new ArrayList<>();
+        list.stream().map(m -> m.body).filter(f -> f != null).forEach(f -> transactionList.addAll(f));
+        Set<Long> longSet = transactionList.stream()
+                .filter(transaction -> transaction.type != Transaction.Type.COINBASE.ordinal())
                 .map(Transaction::getFee).collect(toSet());
-        if(longSet.size()==0){
+        if (longSet.size() == 0) {
             return 0;
         }
-        long total=longSet.stream().reduce(Long::sum).orElse(0L);
-        return total/longSet.size();
+        long total = longSet.stream().reduce(Long::sum).orElse(0L);
+        return total / longSet.size();
     }
 
     // get the best chain of forkdb
@@ -681,7 +684,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         try {
             List<Block> blocks = blocksCache.getAllForks().get(0);
             if (blocks.size() >= limit) return blocks.subList(0, limit);
-            long toFetch = limit- blocks.size();
+            long toFetch = limit - blocks.size();
             List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
             fetched.addAll(blocks);
             return fetched;
@@ -709,12 +712,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             if (best.size() >= 10) {
                 best = best.subList(0, 10);
                 BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - best.get(0).nTime) / (9.0));
-                return bd.setScale(2,BigDecimal.ROUND_HALF_UP).doubleValue();
+                return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
             }
             long toFetch = 10 - best.size();
             List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
             BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0));
-            return bd.setScale(2,BigDecimal.ROUND_HALF_UP).doubleValue();
+            return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
         } finally {
             readWriteLock.readLock().unlock();
         }
