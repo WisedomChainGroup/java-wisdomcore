@@ -150,7 +150,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     @PostConstruct
     public void loadOrphanBlocks() {
         String json = leveldb.get("OrphanBlocksPool").orElse("");
-        if (json != null && !json.equals("")) {
+        if (!json.equals("")) {
             List<Block> blocks = JSON.parseObject(json, new TypeReference<ArrayList<Block>>() {
             });
             blocks.forEach(this::addBlock);
