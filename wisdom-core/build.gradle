@@ -27,6 +27,7 @@ buildscript {
         classpath 'com.typesafe:config:1.2.1'
         classpath('se.transmode.gradle:gradle-docker:1.2')
     }
+
 }
 
 plugins {
@@ -320,6 +321,8 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     compile fileTree(dir:'libs',include:['*.jar'])
+    compile "org.springframework.boot:spring-boot-starter-actuator:${springbootVersion}"
+    compile "org.springframework.boot:spring-boot-starter-security:${springbootVersion}"
 }
 
 

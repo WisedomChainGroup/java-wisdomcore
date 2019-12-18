@@ -41,6 +41,7 @@ sampleDB*
 node_modules
 
 # Local configuration
+local
 **/user.conf
 **/test-user.conf
 **/out.log

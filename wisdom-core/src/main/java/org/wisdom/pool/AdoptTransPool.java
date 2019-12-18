@@ -5,6 +5,7 @@ import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections.map.LinkedMap;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
 import org.wisdom.command.Configuration;
@@ -24,6 +25,12 @@ public class AdoptTransPool {
     Configuration configuration;
 
     private Store<byte[], byte[]> leveldb;
+
+    @Value("${wisdom.ceo.trace}")
+    private boolean type;
+
+    @Autowired
+    TraceCeoAddress traceCeoAddress;
 
     // publicKeyHash -> Strings.concat(publicKeyHash, nonce) -> transaction
     private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
@@ -67,6 +74,13 @@ public class AdoptTransPool {
                     atpool.put(from, map);
                 }
             }
+        }
+        //ceo地址跟踪
+        if(type){
+            txs.stream().forEach(t->{
+                String from = Hex.encodeHexString(t.from);
+                traceCeoAddress.addQueued(from,t.nonce);
+            });
         }
     }
 
