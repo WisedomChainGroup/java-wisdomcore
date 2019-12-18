@@ -275,7 +275,7 @@ public class PeningTransPool {
                     map.put(t.nonce, transPool);
                     ptpool.put(fromhash, map);
                     if (type == 2) {//2 进db
-                        if (t.type != 1 && t.type != 2 && t.type != 13) {//排除转账、投票、撤回投票
+                        if (t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
                             //ptnonce
                             nonceupdate(fromhash, t.nonce);
                         }
@@ -294,10 +294,10 @@ public class PeningTransPool {
     }
 
     public void updateNonce(int type, long nonce, String fromhash) {
-        if (type == 1) {//转账
-            ptnonce.put(fromhash, new PendingNonce(nonce, 2));
-        } else {
+        if ( type == 9 || type == 10 || type == 11 || type == 12 ) {//孵化、提取利息、提取分享、提取本金，单nonce
             ptnonce.put(fromhash, new PendingNonce(nonce, 0));
+        } else {
+            ptnonce.put(fromhash, new PendingNonce(nonce, 2));
         }
     }
 
