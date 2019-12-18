@@ -3,7 +3,9 @@ package org.wisdom.db;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.wisdom.store.DatabaseStore;
+import org.tdf.common.store.DBSettings;
+import org.tdf.common.store.DatabaseStore;
+import org.tdf.common.store.MemoryDatabaseStore;
 
 import javax.annotation.PreDestroy;
 import java.util.HashMap;
@@ -39,7 +41,7 @@ public class DatabaseStoreFactory {
         DatabaseStore store;
         switch (type.trim().toLowerCase()) {
             case "memory":
-                store = new MemoryDatabaseStore(name);
+                store = new MemoryDatabaseStore();
                 break;
             case "leveldb":
             default:

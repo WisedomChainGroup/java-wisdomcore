@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
+import org.tdf.common.store.Store;
 import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.store.Store;
 
 import javax.annotation.PostConstruct;
 import java.util.Optional;
