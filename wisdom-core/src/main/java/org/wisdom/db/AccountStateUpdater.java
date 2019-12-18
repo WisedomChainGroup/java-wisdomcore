@@ -2,10 +2,14 @@ package org.wisdom.db;
 
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
+import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.util.ByteArrayMap;
 import org.wisdom.util.ByteArraySet;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,6 +37,23 @@ public class AccountStateUpdater {
     }
 
     public AccountState updateOne(Transaction transaction, AccountState accountState) {
+        switch (transaction.type){
+            case 0x00://coinbase
+                return UpdateCoinbase(transaction,accountState);
+            case 0x01://TRANSFER
+            case 0x02://VOTE
+            case 0x03://DEPOSIT
+            case 0x07://
+            case 0x08://
+            case 0x09://INCUBATE
+            case 0x0a://EXTRACT_INTEREST
+            case 0x0b://EXTRACT_SHARING_PROFIT
+            case 0x0c://EXTRACT_COST
+            case 0x0d://MORTGAGE
+            case 0x0e://EXIT_MORTGAGE
+
+        }
+
         return null;
     }
 
@@ -45,5 +66,40 @@ public class AccountStateUpdater {
         block.body.stream().map(this::getRelatedAccounts)
                 .forEach(ret::addAll);
         return ret;
+    }
+
+    public AccountState UpdateCoinbase(Transaction tx, AccountState accountState){
+        Account account=accountState.getAccount();
+        if(!Arrays.equals(tx.to, account.getPubkeyHash())){
+            return accountState;
+        }
+        long balance=account.getBalance();
+        balance+=tx.amount;
+        account.setBalance(balance);
+        account.setBlockHeight(tx.height);
+        accountState.setAccount(account);
+        return accountState;
+    }
+
+    public AccountState UpdateTransfer(Transaction tx, AccountState accountState){
+        Account account = accountState.getAccount();
+        long balance;
+        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance -= tx.amount;
+            balance -= tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            balance = account.getBalance();
+            balance += tx.amount;
+            account.setBalance(balance);
+            account.setBlockHeight(tx.height);
+            accountState.setAccount(account);
+        }
+        return accountState;
     }
 }
