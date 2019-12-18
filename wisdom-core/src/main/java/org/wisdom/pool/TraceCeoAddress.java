@@ -1,6 +1,7 @@
 package org.wisdom.pool;
 
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -12,14 +13,20 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class TraceCeoAddress {
 
 //    private final String CeoFrom = "ca33fead17d601b83e220927703a703c6d1ea1c9697375fabf0bf307f003f999";
-    private final String CeoFrom = "833fd9fda2273787fbbdb789374e1fd8f431c6062383428eb3b0030f58a3a11f";
+    private String CeoFrom;
 
     private TreeSet<NonceInfo> treeSetQueued;
     private TreeSet<NonceInfo> treeSetPend;
 
     private ReadWriteLock readWriteLock=new ReentrantReadWriteLock();
 
-    public TraceCeoAddress() {
+    public TraceCeoAddress(@Value("${wisdom.ceo.trace}") boolean type,@Value("${wisdom.trace.address}") String CeoFrom) {
+        if(type){
+            if(CeoFrom==null || CeoFrom.equals("") || CeoFrom==""){
+                throw new RuntimeException("The trace address cannot be empty");
+            }
+        }
+        this.CeoFrom=CeoFrom;
         treeSetQueued = new TreeSet<>();
         treeSetPend = new TreeSet<>();
     }
