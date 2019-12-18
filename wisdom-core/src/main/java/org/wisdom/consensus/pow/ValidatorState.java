@@ -18,13 +18,13 @@
 
 package org.wisdom.consensus.pow;
 
+import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.State;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.wisdom.util.ByteArrayMap;
 
 import java.util.List;
 import java.util.Map;

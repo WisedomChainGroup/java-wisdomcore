@@ -12,6 +12,7 @@ import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.trie.TrieImpl;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLPCodec;
 
 import org.wisdom.core.Block;
@@ -20,7 +21,6 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.crypto.HashUtil;
 
 import org.wisdom.store.NoDeleteByteArrayStore;
-import org.wisdom.util.ByteArrayMap;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;

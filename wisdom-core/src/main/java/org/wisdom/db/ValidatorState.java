@@ -1,8 +1,8 @@
 package org.wisdom.db;
 
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDecoding;
-import org.wisdom.util.ByteArrayMap;
 
 import java.util.Map;
 import java.util.Objects;

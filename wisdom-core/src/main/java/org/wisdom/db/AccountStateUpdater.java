@@ -1,13 +1,13 @@
 package org.wisdom.db;
 
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.ByteArraySet;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.util.ByteArrayMap;
-import org.wisdom.util.ByteArraySet;
 
 import java.util.Arrays;
 import java.util.Map;

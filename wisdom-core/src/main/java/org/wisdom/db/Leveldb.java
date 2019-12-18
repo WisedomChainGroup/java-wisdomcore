@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.iq80.leveldb.*;
 import org.tdf.common.store.DBSettings;
 import org.tdf.common.store.DatabaseStore;
-import org.wisdom.util.ByteArraySet;
+import org.tdf.common.util.ByteArraySet;
 import org.wisdom.util.FileUtil;
 
 import java.io.IOException;
