@@ -3,8 +3,9 @@ package org.wisdom.db;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.iq80.leveldb.*;
-import org.wisdom.store.DatabaseStore;
-import org.wisdom.util.ByteArraySet;
+import org.tdf.common.store.DBSettings;
+import org.tdf.common.store.DatabaseStore;
+import org.tdf.common.util.ByteArraySet;
 import org.wisdom.util.FileUtil;
 
 import java.io.IOException;

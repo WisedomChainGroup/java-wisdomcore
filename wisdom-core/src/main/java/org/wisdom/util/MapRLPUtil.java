@@ -1,5 +1,7 @@
 package org.wisdom.util;
 
+import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.FastByteComparisons;
 import org.tdf.rlp.*;
 import org.wisdom.core.incubator.Incubator;
 

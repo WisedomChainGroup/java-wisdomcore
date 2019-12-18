@@ -1,9 +1,9 @@
 package org.wisdom.contract;
 
 import org.springframework.stereotype.Component;
+import org.tdf.common.store.Store;
 import org.tdf.rlp.*;
 import org.wisdom.db.DatabaseStoreFactory;
-import org.wisdom.store.Store;
 import org.wisdom.util.MapRLPUtil;
 
 import java.util.Map;
