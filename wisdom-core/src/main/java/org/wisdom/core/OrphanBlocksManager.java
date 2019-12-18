@@ -22,13 +22,16 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.tdf.common.serialize.Codecs;
+import org.tdf.common.store.Store;
+import org.tdf.common.store.StoreWrapper;
 import org.wisdom.core.event.NewBlockEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.db.StateDB;
 
 import javax.annotation.PostConstruct;
@@ -57,6 +60,13 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(OrphanBlocksManager.class);
 
+    private Store<String, String> leveldb;
+
+    public OrphanBlocksManager(DatabaseStoreFactory factory){
+        leveldb = new StoreWrapper<>(
+                factory.create("orphans", false)
+                , Codecs.STRING, Codecs.STRING);
+    }
 
     public OrphanBlocksManager() {
         this.orphans = new BlocksCacheWrapper();
@@ -130,19 +140,16 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
 
-    @Autowired
-    private Leveldb leveldb;
-
     @PreDestroy
     public void saveOrphanBlocks() {
         List<Block> list = getOrphans();
         String json = JSON.toJSONString(list, true);
-        leveldb.addPoolDb("OrphanBlocksPool", json);
+        leveldb.put("OrphanBlocksPool", json);
     }
 
     @PostConstruct
     public void loadOrphanBlocks() {
-        String json = leveldb.readPoolDb("OrphanBlocksPool");
+        String json = leveldb.get("OrphanBlocksPool").orElse("");
         if (json != null && !json.equals("")) {
             List<Block> blocks = JSON.parseObject(json, new TypeReference<ArrayList<Block>>() {
             });
