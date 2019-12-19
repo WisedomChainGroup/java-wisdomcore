@@ -59,10 +59,12 @@ public class AccountDBImpl implements AccountDB {
     // trie to revert
     private Trie<byte[], AccountState> stateTrie;
 
+    @Autowired
     private WisdomBlockChain bc;
 
     @Autowired
-    AccountStateUpdater accountStateUpdater;
+    private AccountStateUpdater accountStateUpdater;
+
 
     public AccountDBImpl(
             DatabaseStoreFactory factory,
@@ -85,6 +87,8 @@ public class AccountDBImpl implements AccountDB {
         nullHash = stateTrie.getRootHash();
         // put parent hash of genesis map to null hash
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
+
+        sync();
     }
 
     // sync state trie to best block
@@ -97,9 +101,17 @@ public class AccountDBImpl implements AccountDB {
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
-            Map<byte[], AccountState> accounts = new HashMap<>();
+
             for (Block block : blocks) {
-                accounts = accountStateUpdater.updateAll(accounts, block);
+                // get all related accounts
+                Set<byte[]> all = accountStateUpdater.getRelatedAccounts(block);
+                final Map<byte[], AccountState> accounts = new ByteArrayMap<>();
+                        all.stream()
+                                .map(x -> getAccount(block.hashPrevBlock, x)
+                                        .orElse(accountStateUpdater.createEmpty(x)))
+                                .forEach(x -> accounts.put(x.getAccount().getPubkeyHash(), x));
+
+                Map<byte[], AccountState> updated = accountStateUpdater.updateAll(accounts, block);
                 statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), accounts.values()));
             }
             // sync trie here
