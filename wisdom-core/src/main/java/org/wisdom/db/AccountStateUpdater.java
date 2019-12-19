@@ -399,4 +399,9 @@ public class AccountStateUpdater {
         accountState.setAccount(account);
         return accountState;
     }
+
+    // 构造一个数据全为空的账户
+    public AccountState createEmpty(byte[] publicKeyHash){
+        return null;
+    }
 }
