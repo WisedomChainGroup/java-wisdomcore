@@ -33,8 +33,12 @@ public class AccountState {
     }
 
     public AccountState(byte[] pubkeyHash) {
-        this();
-        account.setPubkeyHash(pubkeyHash);
+        this.account=new Account(0,pubkeyHash,0,0,0,0,0);
+        this.interestMap=new ByteArrayMap<>();
+        this.ShareMap=new ByteArrayMap<>();
+        this.type=0;//默认普通地址
+        this.Contract=new byte[0];
+        this.TokensMap=new ByteArrayMap<>();
     }
 
     public AccountState(Account account, Map<byte[], Incubator> interestMap, Map<byte[], Incubator> shareMap, int type, byte[] Contract, Map<byte[], Long> TokensMap) {

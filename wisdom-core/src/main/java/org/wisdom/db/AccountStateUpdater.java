@@ -402,6 +402,6 @@ public class AccountStateUpdater {
 
     // 构造一个数据全为空的账户
     public AccountState createEmpty(byte[] publicKeyHash){
-        return null;
+        return new AccountState(publicKeyHash);
     }
 }
