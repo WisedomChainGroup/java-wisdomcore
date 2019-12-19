@@ -109,14 +109,15 @@ public class AccountDB {
     }
 
     public int insertaccount(Account account) {
-        try {
-            String sql = "insert into account values(?,?,?,?,?,?,?)";
-            return tmpl.update(sql, new Object[]{account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage()});
-        } catch (Exception e) {
-            logger.error("FATAL DEAD LOCK !!!!!!!!!!!!!!!!!!!!!");
-            e.printStackTrace();
-            return 0;
-        }
+//        try {
+//            String sql = "insert into account values(?,?,?,?,?,?,?)";
+//            return tmpl.update(sql, new Object[]{account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce(), account.getBalance(), account.getIncubatecost(), account.getMortgage()});
+//        } catch (Exception e) {
+//            logger.error("FATAL DEAD LOCK !!!!!!!!!!!!!!!!!!!!!");
+//            e.printStackTrace();
+//            return 0;
+//        }
+        return 0;
     }
 
     public long getHeightBalance(byte[] pubkeyhash, int height) {

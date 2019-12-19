@@ -64,12 +64,12 @@ public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
             List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
             List<Object[]> accountobject = new ArrayList<>();
             List<Object[]> incubatorobjct = new ArrayList<>();
-            for (Account account : accountList) {
-                accountobject.add(new Object[]{
-                        account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce()
-                        , account.getBalance(), account.getIncubatecost(), account.getMortgage(), account.getVote()
-                });
-            }
+//            for (Account account : accountList) {
+//                accountobject.add(new Object[]{
+//                        account.getId(), account.getBlockHeight(), account.getPubkeyHash(), account.getNonce()
+//                        , account.getBalance(), account.getIncubatecost(), account.getMortgage(), account.getVote()
+//                });
+//            }
             accountDB.insertAccountList(accountobject);
             for (Incubator incubator : incubatorList) {
                 incubatorobjct.add(new Object[]{
