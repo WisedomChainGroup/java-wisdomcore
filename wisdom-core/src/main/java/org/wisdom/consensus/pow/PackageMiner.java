@@ -119,35 +119,6 @@ public class PackageMiner {
                             newMap.put(tohash, accountState);
                         }
                         break;
-                    case 13://撤回投票
-                        if(stateDB.hasPayload(block.hashPrevBlock, EXIT_VOTE.ordinal(), transaction.payload)){
-                            removemap.put(new String(entry.getKey()), transaction.nonce);
-                            state = true;
-                            break;
-                        }
-                        Account votetoaccount;
-                        AccountState tovoteaccountState;
-                        if (accountStateMap.containsKey(Hex.encodeHexString(transaction.to))) {
-                            tovoteaccountState = accountStateMap.get(Hex.encodeHexString(transaction.to));
-                            votetoaccount = tovoteaccountState.getAccount();
-                        } else {
-                            tovoteaccountState = stateDB.getAccount(parenthash, transaction.to);
-                            votetoaccount = tovoteaccountState.getAccount();
-                        }
-                        Map<String, Account> cancelaccountList = UpdateCancelVote(fromaccount, votetoaccount, transaction);
-                        if (cancelaccountList == null) {
-                            removemap.put(new String(entry.getKey()), transaction.nonce);
-                            state = true;
-                            break;
-                        }
-                        if (cancelaccountList.containsKey("fromaccount")) {
-                            accountState.setAccount(cancelaccountList.get("fromaccount"));
-                            newMap.put(publicKeyHash, accountState);
-                        } else if (cancelaccountList.containsKey("toaccount")) {
-                            tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
-                            newMap.put(Hex.encodeHexString(transaction.to), accountState);
-                        }
-                        break;
                     case 3://存证事务,只需要扣除手续费
                     case 9://孵化事务
                     case 10://提取利息
