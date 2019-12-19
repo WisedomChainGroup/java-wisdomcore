@@ -59,18 +59,20 @@ public class AccountDBImpl implements AccountDB {
     // trie to revert
     private Trie<byte[], AccountState> stateTrie;
 
-    @Autowired
     private WisdomBlockChain bc;
 
-    @Autowired
     private AccountStateUpdater accountStateUpdater;
 
 
     public AccountDBImpl(
             DatabaseStoreFactory factory,
             Block genesis,
-            WisdomBlockChain bc
+            WisdomBlockChain bc,
+            AccountStateUpdater accountStateUpdater
     ) throws InvalidProtocolBufferException, DecoderException {
+        this.bc = bc;
+        this.accountStateUpdater = accountStateUpdater;
+        
         trieStore = factory.create(TRIE, false);
         deleted = factory.create(DELETED, false);
         rootStore = factory.create(STATE_ROOTS, false);
