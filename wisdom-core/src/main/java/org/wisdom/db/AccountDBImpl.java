@@ -85,7 +85,10 @@ public class AccountDBImpl implements AccountDB {
         nullHash = stateTrie.getRootHash();
         // put parent hash of genesis map to null hash
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
+    }
 
+    // sync state trie to best block
+    private void sync() {
         // query for had been written
         long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).map(RLPCodec::decodeLong).orElse(-1L);
 
@@ -104,13 +107,6 @@ public class AccountDBImpl implements AccountDB {
                 break;
             }
         }
-    }
-
-    // sync state trie to best block
-    private void sync() {
-        long lastSynced = statusStore.get(LAST_SYNCED_HEIGHT)
-                .map(bc::getBlock).map(Block::getnHeight).orElse(0L);
-
     }
 
     @Override

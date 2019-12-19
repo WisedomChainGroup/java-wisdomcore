@@ -66,6 +66,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         leveldb = new StoreWrapper<>(
                 factory.create("orphans", false)
                 , Codecs.STRING, Codecs.STRING);
+        loadOrphanBlocks();
     }
 
     public OrphanBlocksManager() {
@@ -147,7 +148,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         leveldb.put("OrphanBlocksPool", json);
     }
 
-    @PostConstruct
     public void loadOrphanBlocks() {
         String json = leveldb.get("OrphanBlocksPool").orElse("");
         if (!json.equals("")) {
