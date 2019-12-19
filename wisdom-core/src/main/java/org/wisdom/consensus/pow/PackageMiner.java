@@ -19,6 +19,9 @@ import org.wisdom.pool.WaitCount;
 
 import java.util.*;
 
+import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
+import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
+
 //打包时选择事务
 //校验转账事务和其他事务的余额,都更新AccountState
 @Component
@@ -71,18 +74,17 @@ public class PackageMiner {
                 if (!accountStateMap.containsKey(publicKeyHash)) {
                     break;
                 }
+                Map<String, AccountState> newMap=new HashMap<>();
                 AccountState accountState = accountStateMap.get(publicKeyHash);
                 Account fromaccount = accountState.getAccount();
+                long nowNonce=fromaccount.getNonce();
 
                 // nonce是否合法
                 if (fromaccount.getNonce() >= transaction.nonce) {
-                    removemap.put(publicKeyHash,transaction.nonce);
+                    removemap.put(new String(entry.getKey()), transaction.nonce);
                     continue;
                 }
-                //nonce是否跳号
-                if(fromaccount.getNonce()+1 != transaction.nonce){
-                    if(!updateWaitCount(publicKeyHash,transaction.nonce)) break;
-                }
+                //判断撤回抵押和撤回投票
                 switch (transaction.type) {
                     case 1://转账
                     case 2://投票
@@ -111,10 +113,39 @@ public class PackageMiner {
                         }
                         if (accountList.containsKey("fromaccount")) {
                             accountState.setAccount(accountList.get("fromaccount"));
-                            accountStateMap.put(publicKeyHash, accountState);
+                            newMap.put(publicKeyHash, accountState);
                         } else if (accountList.containsKey("toaccount")) {
                             toaccountState.setAccount(accountList.get("toaccount"));
-                            accountStateMap.put(tohash, accountState);
+                            newMap.put(tohash, accountState);
+                        }
+                        break;
+                    case 13://撤回投票
+                        if(stateDB.hasPayload(block.hashPrevBlock, EXIT_VOTE.ordinal(), transaction.payload)){
+                            removemap.put(new String(entry.getKey()), transaction.nonce);
+                            state = true;
+                            break;
+                        }
+                        Account votetoaccount;
+                        AccountState tovoteaccountState;
+                        if (accountStateMap.containsKey(Hex.encodeHexString(transaction.to))) {
+                            tovoteaccountState = accountStateMap.get(Hex.encodeHexString(transaction.to));
+                            votetoaccount = tovoteaccountState.getAccount();
+                        } else {
+                            tovoteaccountState = stateDB.getAccount(parenthash, transaction.to);
+                            votetoaccount = tovoteaccountState.getAccount();
+                        }
+                        Map<String, Account> cancelaccountList = UpdateCancelVote(fromaccount, votetoaccount, transaction);
+                        if (cancelaccountList == null) {
+                            removemap.put(new String(entry.getKey()), transaction.nonce);
+                            state = true;
+                            break;
+                        }
+                        if (cancelaccountList.containsKey("fromaccount")) {
+                            accountState.setAccount(cancelaccountList.get("fromaccount"));
+                            newMap.put(publicKeyHash, accountState);
+                        } else if (cancelaccountList.containsKey("toaccount")) {
+                            tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
+                            newMap.put(Hex.encodeHexString(transaction.to), accountState);
                         }
                         break;
                     case 3://存证事务,只需要扣除手续费
@@ -124,6 +155,20 @@ public class PackageMiner {
                     case 12://本金
                     case 14://抵押
                     case 15://撤回抵押
+                        if(transaction.type == 12){
+                            if (stateDB.hasPayload(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), transaction.payload)) {
+                                removemap.put(new String(entry.getKey()), transaction.nonce);
+                                state = true;
+                                break;
+                            }
+                        }
+                        if(transaction.type == 15){
+                            if (stateDB.hasPayload(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), transaction.payload)) {
+                                removemap.put(new String(entry.getKey()), transaction.nonce);
+                                state = true;
+                                break;
+                            }
+                        }
                         Account account = UpdateOtherAccount(fromaccount, transaction);
                         if (account == null) {
                             removemap.put(new String(publicKeyHash), transaction.nonce);
@@ -138,12 +183,18 @@ public class PackageMiner {
                             state = true;
                             break;
                         }
-                        accountStateMap.put(publicKeyHash, verifyHatch.getAccountState());
+                        newMap.put(publicKeyHash, accountState);
                         break;
                 }
                 if (state) {
                     continue;
                 }
+                //nonce是否跳号
+                if(nowNonce+1 != transaction.nonce){
+                    if(!updateWaitCount(publicKeyHash,transaction.nonce)) break;
+                }
+                //更新缓存
+                accountStateMap.putAll(newMap);
                 transaction.height = height;
                 size += transaction.size();
                 notWrittern.add(transaction);
