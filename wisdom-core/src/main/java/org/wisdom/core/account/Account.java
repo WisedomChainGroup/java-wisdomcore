@@ -18,30 +18,24 @@
 
 package org.wisdom.core.account;
 
-import org.apache.commons.codec.binary.Hex;
 import org.tdf.rlp.RLP;
-import org.wisdom.encoding.BigEndian;
-import org.wisdom.util.ByteUtil;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 public class Account {
     @RLP(0)
-    private byte[] id;
-    @RLP(1)
     private long blockHeight;
-    @RLP(2)
+    @RLP(1)
     private byte[] pubkeyHash;
-    @RLP(3)
+    @RLP(2)
     private long nonce;
-    @RLP(4)
+    @RLP(3)
     private long balance;
-    @RLP(5)
+    @RLP(4)
     private long incubatecost;
-    @RLP(6)
+    @RLP(5)
     private long mortgage;
-    @RLP(7)
+    @RLP(6)
     private long vote;
 
     public Account() {
@@ -55,18 +49,6 @@ public class Account {
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
         this.vote = vote;
-    }
-
-    public String getIdHexString() {
-        return Hex.encodeHexString(getId());
-    }
-
-    public byte[] getId() {
-        return ByteUtil.merge(pubkeyHash, BigEndian.encodeUint32(blockHeight));
-    }
-
-    public void setId(byte[] id) {
-        this.id = id;
     }
 
     public long getBlockHeight() {
