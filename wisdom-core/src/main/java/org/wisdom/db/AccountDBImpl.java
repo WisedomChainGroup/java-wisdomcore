@@ -112,7 +112,7 @@ public class AccountDBImpl implements AccountDB {
                                 .forEach(x -> accounts.put(x.getAccount().getPubkeyHash(), x));
 
                 Map<byte[], AccountState> updated = accountStateUpdater.updateAll(accounts, block);
-                statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), accounts.values()));
+                statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), updated.values()));
             }
             // sync trie here
             if (size < blocksPerUpdate) {
