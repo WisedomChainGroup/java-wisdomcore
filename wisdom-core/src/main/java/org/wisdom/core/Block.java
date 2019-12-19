@@ -125,7 +125,7 @@ public class Block {
     public static byte[] calculateMerkleState(List<Account> accounts) {
         List<String> hashes = new ArrayList<>();
         for (Account account : accounts) {
-            hashes.add(account.getIdHexString());
+//            hashes.add(account.getIdHexString());
         }
         if (hashes.size() > 0) {
             try {

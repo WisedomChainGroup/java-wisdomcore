@@ -1,8 +1,8 @@
 package org.wisdom.bean;
 
 import org.junit.Test;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLPCodec;
-import org.tdf.rlp.RLPElement;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.crypto.ed25519.Ed25519;
@@ -12,7 +12,6 @@ import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.db.AccountState;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.util.ByteArrayMap;
 
 import java.util.HashMap;
 import java.util.Map;
