@@ -4,7 +4,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import org.tdf.common.serialize.Codec;
@@ -13,20 +12,27 @@ import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.trie.TrieImpl;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 
+import org.wisdom.core.account.Account;
+import org.wisdom.core.account.AccountDB;
 import org.wisdom.crypto.HashUtil;
 
 import org.wisdom.store.NoDeleteByteArrayStore;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Component
-public class AccountDBImpl implements AccountDB {
+public class AccountStateDBImpl implements AccountStateDB {
     private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
 
     private static final String TRIE = "trie";
@@ -44,7 +50,7 @@ public class AccountDBImpl implements AccountDB {
     private Store<byte[], byte[]> statusStore;
 
     // block hash -> state root
-    private Store<byte[], byte[]> rootStore;
+    private Store<byte[], byte[]> rootStore; /////
 
     // removed key in trie store -> dummy, for cleaning up when data replicated too much
     private Store<byte[], byte[]> deleted;
@@ -52,7 +58,9 @@ public class AccountDBImpl implements AccountDB {
     // store actual data of trie
     private Store<byte[], byte[]> trieStore;
 
-    private NoDeleteStore<byte[], byte[]> noDeleteStore;
+    private NoDeleteStore<byte[], byte[]> noDeleteStore; /////
+
+    private Map<Long, byte[]> heights = new TreeMap<>();
 
     private byte[] nullHash;
 
@@ -63,16 +71,20 @@ public class AccountDBImpl implements AccountDB {
 
     private AccountStateUpdater accountStateUpdater;
 
+    private List<Map<byte[], AccountState>> data = new ArrayList<>();
 
-    public AccountDBImpl(
+    private AccountDB accountDB;
+
+    public AccountStateDBImpl(
             DatabaseStoreFactory factory,
             Block genesis,
             WisdomBlockChain bc,
-            AccountStateUpdater accountStateUpdater
+            AccountStateUpdater accountStateUpdater,
+            AccountDB accountDB
     ) throws InvalidProtocolBufferException, DecoderException {
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
-        
+        this.accountDB = accountDB;
         trieStore = factory.create(TRIE, false);
         deleted = factory.create(DELETED, false);
         rootStore = factory.create(STATE_ROOTS, false);
@@ -91,6 +103,22 @@ public class AccountDBImpl implements AccountDB {
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
 
         sync();
+
+        for (long l : heights.keySet()) {
+            Trie<byte[], AccountState> trieTmp = stateTrie.revert(rootStore.get(heights.get(l)).get(), noDeleteStore);
+            List<Account> accounts = accountDB.getUpdatedAccounts(l);
+            for (Account account : accounts) {
+                AccountState state = trieTmp.get(account.getPubkeyHash()).get();
+                if (account.getBalance() != state.getAccount().getBalance()) {
+                    System.out.println("height = " + l);
+                    System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                    System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                    System.out.println("expected " + account.getBalance());
+                    System.out.println("received " + state.getAccount().getBalance());
+                    throw new RuntimeException("assertion failed");
+                }
+            }
+        }
     }
 
     // sync state trie to best block
@@ -98,28 +126,40 @@ public class AccountDBImpl implements AccountDB {
         // query for had been written
         long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).map(RLPCodec::decodeLong).orElse(-1L);
 
-        Block last = bc.getCanonicalBlock(lastSyncedHeight);
-        int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
+        int blocksPerUpdate = 30;
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getCanonicalBlocks(lastSyncedHeight + 1, blocksPerUpdate);
             int size = blocks.size();
 
             for (Block block : blocks) {
                 // get all related accounts
                 Set<byte[]> all = accountStateUpdater.getRelatedAccounts(block);
                 final Map<byte[], AccountState> accounts = new ByteArrayMap<>();
-                        all.stream()
-                                .map(x -> getAccount(block.hashPrevBlock, x)
-                                        .orElse(accountStateUpdater.createEmpty(x)))
-                                .forEach(x -> accounts.put(x.getAccount().getPubkeyHash(), x));
+                all.stream()
+                        .map(x -> getAccount(block.hashPrevBlock, x)
+                                .orElse(accountStateUpdater.createEmpty(x)))
+                        .forEach(x -> accounts.put(x.getAccount().getPubkeyHash(), x));
 
                 Map<byte[], AccountState> updated = accountStateUpdater.updateAll(accounts, block);
+                heights.put(block.nHeight, block.getHash());
                 statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), updated.values()));
+                List<Account> accountList = accountDB.getUpdatedAccounts(block.nHeight);
+                for(Account account: accountList){
+                    AccountState state = updated.get(account.getPubkeyHash());
+                    if(account.getBalance() != state.getAccount().getBalance()){
+                        System.out.println("height = " + block.nHeight);
+                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                        System.out.println("expected " + account.getBalance());
+                        System.out.println("received " + state.getAccount().getBalance());
+                        throw new RuntimeException("invalid update operation");
+                    }
+                }
             }
             // sync trie here
-            if (size < blocksPerUpdate) {
-                break;
-            }
+            break;
+
+//            lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
         }
     }
 
@@ -128,7 +168,22 @@ public class AccountDBImpl implements AccountDB {
         byte[] root = rootStore.get(blockHash)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
         Trie<byte[], AccountState> trie = stateTrie.revert(root, noDeleteStore);
-        return trie.get(publicKeyHash);
+        try {
+            return trie.get(publicKeyHash);
+        } catch (Exception e) {
+            File f = new File("C:\\Users\\Administrator\\dumps.tmp-2019-12-20");
+            try {
+                OutputStream out = new FileOutputStream(f);
+                out.write(RLPCodec.encode(data));
+                out.close();
+                System.out.println("====");
+                System.out.println(Hex.encodeHex(publicKeyHash));
+                System.out.println(Hex.encodeHex(trie.getRootHash()));
+            } catch (Exception ignored) {
+            }
+
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -161,6 +216,11 @@ public class AccountDBImpl implements AccountDB {
         for (AccountState state : accounts) {
             trie.put(state.getAccount().getPubkeyHash(), state);
         }
+        Map<byte[], AccountState> tmp = new ByteArrayMap<>();
+        accounts.forEach(a -> {
+            tmp.put(a.getAccount().getPubkeyHash(), a);
+        });
+        data.add(tmp);
         byte[] newRoot = trie.commit();
         trie.flush();
         rootStore.put(blockHash, newRoot);

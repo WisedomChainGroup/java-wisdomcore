@@ -55,6 +55,15 @@ public class AccountDB {
         }
     }
 
+    public List<Account> getUpdatedAccounts(long height) {
+        try {
+            String sql = "select * from account a where a.blockheight=?";
+            return tmpl.query(sql, new Object[]{height}, new BeanPropertyRowMapper<>(Account.class));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public Optional<Account> hasAccount(byte[] publicKeyHash) {
         try {
             String sql = "select * from account b where b.pubkeyhash=? order by b.blockheight desc LIMIT 1";

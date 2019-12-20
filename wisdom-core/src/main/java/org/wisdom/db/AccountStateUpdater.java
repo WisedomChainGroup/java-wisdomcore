@@ -53,6 +53,9 @@ public class AccountStateUpdater {
     }
 
     public AccountState updateOne(Transaction transaction, AccountState accountState) {
+        if(Hex.encodeHexString(accountState.getAccount().getPubkeyHash()).equals("0031ca7d6785f27dbe97bb53b7b419835bf22101")){
+            System.out.println("===");
+        }
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
@@ -148,6 +151,9 @@ public class AccountStateUpdater {
         }
         long balance = account.getBalance();
         balance += tx.amount;
+        if(balance < 0) {
+            System.out.println("math overflow");
+        }
         account.setBalance(balance);
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
@@ -262,6 +268,10 @@ public class AccountStateUpdater {
             accountState.setAccount(account);
         }
         return accountState;
+    }
+
+    public Map<byte[], AccountState> generateGenesisStates(){
+        return new ByteArrayMap<>();
     }
 
     private AccountState UpdateExtractInterest(Transaction tx, AccountState accountState) {
