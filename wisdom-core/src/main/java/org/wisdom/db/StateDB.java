@@ -183,7 +183,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     public void init() {
         readWriteLock.writeLock().lock();
         try {
-            initUnsafe();
+//            initUnsafe();
         } finally {
             readWriteLock.writeLock().unlock();
         }

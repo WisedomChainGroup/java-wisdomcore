@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
@@ -21,6 +22,7 @@ import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
+import org.wisdom.keystore.crypto.PublicKey;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -159,7 +161,7 @@ public class AccountStateUpdater {
         long balance = account.getBalance();
         balance += tx.amount;
         if(balance < 0) {
-            System.out.println("math overflow");
+            throw new RuntimeException("math overflow");
         }
         account.setBalance(balance);
         account.setBlockHeight(tx.height);
@@ -287,6 +289,9 @@ public class AccountStateUpdater {
         Map<byte[], AccountState> AccountStateMap=new HashMap<>();
         try{
             for(Transaction tx:block.body){
+                if(new PublicKeyHash(tx.to).getAddress().equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") || PublicKeyHash.fromPublicKey(tx.from).getAddress().equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba")){
+                    System.out.println("====");
+                }
                 if(tx.type == 0x09){
                     HatchReturned hatchReturned=HatchStates(AccountStateMap,tx,balance);
                     hatchReturned.getAccountStateList().forEach(s->{
@@ -307,6 +312,7 @@ public class AccountStateUpdater {
                     }
                 }
             }
+            // 1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba
             //孵化总地址
             AccountState totalState=createEmpty(totalpubhash);
             totalaccount.setBalance(balance);

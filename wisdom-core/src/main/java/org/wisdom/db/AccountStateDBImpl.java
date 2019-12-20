@@ -1,9 +1,11 @@
 package org.wisdom.db;
 
+import com.google.gson.internal.$Gson$Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import org.tdf.common.serialize.Codec;
@@ -23,6 +25,7 @@ import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.crypto.HashUtil;
 
+import org.wisdom.genesis.Genesis;
 import org.wisdom.store.NoDeleteByteArrayStore;
 
 import java.io.File;
@@ -80,11 +83,13 @@ public class AccountStateDBImpl implements AccountStateDB {
             Block genesis,
             WisdomBlockChain bc,
             AccountStateUpdater accountStateUpdater,
-            AccountDB accountDB
+            AccountDB accountDB,
+            Genesis genesisJSON
     ) throws InvalidProtocolBufferException, DecoderException {
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
         this.accountDB = accountDB;
+        this.genesis = genesisJSON;
         trieStore = factory.create(TRIE, false);
         deleted = factory.create(DELETED, false);
         rootStore = factory.create(STATE_ROOTS, false);
@@ -121,12 +126,14 @@ public class AccountStateDBImpl implements AccountStateDB {
         }
     }
 
+    Genesis genesis;
+
     // sync state trie to best block
     private void sync() {
         // query for had been written
         long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).map(RLPCodec::decodeLong).orElse(-1L);
 
-        int blocksPerUpdate = 30;
+        int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(lastSyncedHeight + 1, blocksPerUpdate);
             int size = blocks.size();
@@ -140,13 +147,19 @@ public class AccountStateDBImpl implements AccountStateDB {
                                 .orElse(accountStateUpdater.createEmpty(x)))
                         .forEach(x -> accounts.put(x.getAccount().getPubkeyHash(), x));
 
-                Map<byte[], AccountState> updated = accountStateUpdater.updateAll(accounts, block);
+                Map<byte[], AccountState> updated;
+                if (block.nHeight == 0) {
+                    updated = accountStateUpdater.generateGenesisStates(block, genesis);
+                } else {
+                    updated = accountStateUpdater.updateAll(accounts, block);
+                }
+
                 heights.put(block.nHeight, block.getHash());
                 statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), updated.values()));
                 List<Account> accountList = accountDB.getUpdatedAccounts(block.nHeight);
-                for(Account account: accountList){
+                for (Account account : accountList) {
                     AccountState state = updated.get(account.getPubkeyHash());
-                    if(account.getBalance() != state.getAccount().getBalance()){
+                    if (account.getBalance() != state.getAccount().getBalance()) {
                         System.out.println("height = " + block.nHeight);
                         System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
                         System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
@@ -157,9 +170,8 @@ public class AccountStateDBImpl implements AccountStateDB {
                 }
             }
             // sync trie here
-            break;
-
-//            lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
+            if(blocks.size() < blocksPerUpdate) break;
+            lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
         }
     }
 
