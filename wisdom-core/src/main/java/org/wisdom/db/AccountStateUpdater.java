@@ -1,6 +1,10 @@
 package org.wisdom.db;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,19 +12,22 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.command.IncubatorAddress;
+import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.encoding.BigEndian;
+import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.ByteUtil;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Component
 public class AccountStateUpdater {
@@ -270,8 +277,98 @@ public class AccountStateUpdater {
         return accountState;
     }
 
-    public Map<byte[], AccountState> generateGenesisStates(){
-        return new ByteArrayMap<>();
+    public Map<byte[], AccountState> generateGenesisStates(Block block, Genesis genesis) {
+        List<Genesis.IncubateAmount> incubateAmountList = genesis.alloc.incubateAmount;
+        Genesis.IncubateAmount incubateAmount = incubateAmountList.get(0);
+        String address = incubateAmount.address;
+        long balance = incubateAmount.balance * EconomicModel.WDC;
+        byte[] totalpubhash = KeystoreAction.addressToPubkeyHash(address);
+        Account totalaccount = new Account();
+        Map<byte[], AccountState> AccountStateMap=new HashMap<>();
+        try{
+            for(Transaction tx:block.body){
+                if(tx.type == 0x09){
+                    HatchReturned hatchReturned=HatchStates(AccountStateMap,tx,balance);
+                    hatchReturned.getAccountStateList().forEach(s->{
+                        AccountStateMap.put(s.getKey(),s);
+                    });
+                    balance=hatchReturned.getBalance();
+                }else{
+                    AccountState accountState=getMapAccountState(AccountStateMap,tx.to);
+                    Account account=accountState.getAccount();
+                    account.setNonce(1);
+                    account.setBalance(tx.amount);
+                    if(!Arrays.equals(account.getPubkeyHash(), totalpubhash)){
+                        accountState.setAccount(account);
+                        AccountStateMap.put(accountState.getKey(),accountState);
+                    }else{
+                        totalaccount=account;
+
+                    }
+                }
+            }
+            //孵化总地址
+            AccountState totalState=createEmpty(totalpubhash);
+            totalaccount.setBalance(balance);
+            totalState.setAccount(totalaccount);
+            AccountStateMap.put(totalState.getKey(),totalState);
+        }catch (Exception e){
+            return null;
+        }
+        return new ByteArrayMap<>(AccountStateMap);
+    }
+
+    private AccountState getMapAccountState(Map<byte[], AccountState> AccountStateMap,byte[] key){
+        if(AccountStateMap.containsKey(key)){
+            return AccountStateMap.get(key);
+        }else{
+            return createEmpty(key);
+        }
+    }
+
+    private HatchReturned HatchStates(Map<byte[], AccountState> AccountStateMap,Transaction tx,long balance) throws InvalidProtocolBufferException, DecoderException {
+        AccountState accountState=getMapAccountState(AccountStateMap,tx.to);
+        byte[] playload = tx.payload;
+        HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
+        byte[] txamount = payloadproto.getTxId().toByteArray();
+        long interestamount = BigEndian.decodeUint64(ByteUtil.bytearraycopy(txamount, 0, 8));
+        Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, interestamount, tx.height, payloadproto.getType());
+        Map<byte[],Incubator> incubatorMap= accountState.getInterestMap();
+        incubatorMap.put(incubator.getTxid_issue(),incubator);
+        accountState.setInterestMap(incubatorMap);
+        Account account=accountState.getAccount();
+        long incubatecost = account.getIncubatecost();
+        long nonce = account.getNonce();
+        incubatecost = incubatecost + tx.amount;
+        if(nonce<tx.nonce){
+            nonce = tx.nonce;
+        }
+        account.setIncubatecost(incubatecost);
+        account.setNonce(nonce);
+        accountState.setAccount(account);
+
+        //share
+        long shareamount = BigEndian.decodeUint64(ByteUtil.bytearraycopy(txamount, 8, 8));
+        String sharpub = payloadproto.getSharePubkeyHash();
+        byte[] share_pubkeyhash = null;
+        if(sharpub != null && sharpub != ""){
+            share_pubkeyhash = Hex.decodeHex(sharpub.toCharArray());
+        }
+        Incubator shareIncubator=new Incubator(share_pubkeyhash, tx.getHash(), tx.height, tx.amount,payloadproto.getType(), shareamount , tx.height);
+        AccountState Shareaccountstate=getMapAccountState(AccountStateMap,share_pubkeyhash);
+        Map<byte[],Incubator> shareMap=Shareaccountstate.getShareMap();
+        shareMap.put(shareIncubator.getTxid_issue(),shareIncubator);
+        Shareaccountstate.setShareMap(shareMap);
+        return new HatchReturned(Arrays.asList(accountState,Shareaccountstate),balance-interestamount-shareamount);
+    }
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    private class HatchReturned{
+        private List<AccountState> accountStateList;
+        private long balance;
     }
 
     private AccountState UpdateExtractInterest(Transaction tx, AccountState accountState) {

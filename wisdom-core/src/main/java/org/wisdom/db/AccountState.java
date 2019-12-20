@@ -121,4 +121,8 @@ public class AccountState {
         accountState.setTokensMap(new ByteArrayMap<>(TokensMap));
         return accountState;
     }
+
+    public byte[] getKey(){
+        return account.getPubkeyHash();
+    }
 }
