@@ -62,6 +62,15 @@ public class IncubatorDB {
         }
     }
 
+    public Incubator selectIncubator(byte[] pubkeyhash,long height) {
+        try {
+            String sql = "select * from incubator_state s where s.pubkeyhash=? and s.height=?  limit 1";
+            return tmpl.queryForObject(sql, new Object[]{pubkeyhash,height}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public List<Incubator> selectList(byte[] pubkeyhash){
         try {
             String sql = "select s.* from incubator_state s left join (\n" +

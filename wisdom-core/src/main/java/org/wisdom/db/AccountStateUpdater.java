@@ -62,9 +62,9 @@ public class AccountStateUpdater {
     }
 
     public AccountState updateOne(Transaction transaction, AccountState accountState,long height) {
-        if (height == 22912 && Hex.encodeHexString(accountState.getAccount().getPubkeyHash()).equals("c017fd8d81fb6e5bbe56dc549c33abcf4f397332")){
-            System.out.println();
-        }
+//        if (height == 15673 && Hex.encodeHexString(accountState.getAccount().getPubkeyHash()).equals("fa3ee6159007cd80ace9112ee2fcfdb03c582546")){
+//            System.out.println();
+//        }
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
