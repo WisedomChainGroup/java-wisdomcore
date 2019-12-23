@@ -62,9 +62,6 @@ public class AccountStateUpdater {
     }
 
     public AccountState updateOne(Transaction transaction, AccountState accountState) {
-        if(Hex.encodeHexString(accountState.getAccount().getPubkeyHash()).equals("0031ca7d6785f27dbe97bb53b7b419835bf22101")){
-            System.out.println("===");
-        }
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
@@ -88,7 +85,7 @@ public class AccountStateUpdater {
                 case 0x0c://EXTRACT_COST
                     return UpdateExtranctCost(transaction, accountState);
                 case 0x0d://EXIT_VOTE
-                    return UpdateVote(transaction, accountState);
+                    return UpdateCancelVote(transaction, accountState);
                 case 0x0e://MORTGAGE
                     return UpdateMortgage(transaction, accountState);
                 case 0x0f://EXTRACT_MORTGAGE
@@ -108,12 +105,12 @@ public class AccountStateUpdater {
             case 0x0a://EXTRACT_INTEREST
             case 0x0b://EXTRACT_SHARING_PROFIT
             case 0x0c://EXTRACT_COST
-            case 0x0d://EXIT_VOTE
             case 0x0e://MORTGAGE
             case 0x0f://EXTRACT_MORTGAGE
                 return getTransactionTo(transaction);
             case 0x01://TRANSFER
             case 0x02://VOTE
+            case 0x0d://EXIT_VOTE
                 return getTransactionFromTo(transaction);
             case 0x03://DEPOSIT
             case 0x07://DEPLOY_CONTRACT
@@ -126,6 +123,9 @@ public class AccountStateUpdater {
     private Set<byte[]> getTransactionTo(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
         bytes.add(tx.to);
+        if(tx.type==0x09){
+            bytes.add(IncubatorAddress.resultpubhash());
+        }
         return bytes;
     }
 
@@ -213,9 +213,9 @@ public class AccountStateUpdater {
         return accountState;
     }
 
-    private AccountState UpdateDeposit(Transaction tx, AccountState accountState) {
+    private AccountState UpdateDeposit(Transaction tx, AccountState accountState){
         Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
+        if (!Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
             return accountState;
         }
         long balance = account.getBalance();
@@ -266,9 +266,13 @@ public class AccountStateUpdater {
                 accountState.setShareMap(sharemaps);
             }
         }
+
         if (Arrays.equals(IncubatorAddress.resultpubhash(), account.getPubkeyHash())) {
             balance = account.getBalance();
-            balance -= tx.amount;
+            balance -= tx.getInterest(tx.height, rateTable, days);
+            if(sharpub != null && !sharpub.equals("")){
+                balance-=tx.getShare(tx.height, rateTable, days);
+            }
             long nonce = account.getNonce();
             nonce++;
             account.setBalance(balance);
@@ -286,12 +290,9 @@ public class AccountStateUpdater {
         long balance = incubateAmount.balance * EconomicModel.WDC;
         byte[] totalpubhash = KeystoreAction.addressToPubkeyHash(address);
         Account totalaccount = new Account();
-        Map<byte[], AccountState> AccountStateMap=new HashMap<>();
+        Map<byte[], AccountState> AccountStateMap=new ByteArrayMap();
         try{
             for(Transaction tx:block.body){
-                if(new PublicKeyHash(tx.to).getAddress().equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") || PublicKeyHash.fromPublicKey(tx.from).getAddress().equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba")){
-                    System.out.println("====");
-                }
                 if(tx.type == 0x09){
                     HatchReturned hatchReturned=HatchStates(AccountStateMap,tx,balance);
                     hatchReturned.getAccountStateList().forEach(s->{
@@ -379,7 +380,7 @@ public class AccountStateUpdater {
 
     private AccountState UpdateExtractInterest(Transaction tx, AccountState accountState) {
         Map<byte[], Incubator> map = accountState.getInterestMap();
-        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
             throw new RuntimeException("Update extract interest error,tx:" + tx.getHashHexString());
         }
@@ -404,7 +405,7 @@ public class AccountStateUpdater {
 
     private AccountState UpdateExtractShare(Transaction tx, AccountState accountState) {
         Map<byte[], Incubator> map = accountState.getShareMap();
-        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
             throw new RuntimeException("Update extract share error,tx:" + tx.getHashHexString());
         }
