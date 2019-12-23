@@ -56,12 +56,15 @@ public class AccountStateUpdater {
                     .peek(x -> {
                         if (x == null) throw new RuntimeException("unreachable here");
                     })
-                    .forEach(x -> this.updateOne(tx, x));
+                    .forEach(x -> this.updateOne(tx, x , block.getnHeight()));
         }
         return res;
     }
 
-    public AccountState updateOne(Transaction transaction, AccountState accountState) {
+    public AccountState updateOne(Transaction transaction, AccountState accountState,long height) {
+        if (height == 22912 && Hex.encodeHexString(accountState.getAccount().getPubkeyHash()).equals("c017fd8d81fb6e5bbe56dc549c33abcf4f397332")){
+            System.out.println();
+        }
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
@@ -293,6 +296,9 @@ public class AccountStateUpdater {
         Map<byte[], AccountState> AccountStateMap=new ByteArrayMap();
         try{
             for(Transaction tx:block.body){
+                   if (Hex.encodeHexString(tx.to).equals("fbdacd374729b74c594cf955dc207fbb1d203a10")){
+                       System.out.println();
+                   }
                 if(tx.type == 0x09){
                     HatchReturned hatchReturned=HatchStates(AccountStateMap,tx,balance);
                     hatchReturned.getAccountStateList().forEach(s->{
@@ -430,7 +436,7 @@ public class AccountStateUpdater {
 
     private AccountState UpdateExtranctCost(Transaction tx, AccountState accountState) {
         Map<byte[], Incubator> map = accountState.getInterestMap();
-        Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
+        Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
             throw new RuntimeException("Update extract cost error,tx:" + tx.getHashHexString());
         }
