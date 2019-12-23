@@ -142,7 +142,7 @@ public class PackageMiner {
                             newMap.put(publicKeyHash, accountState);
                         } else if (cancelaccountList.containsKey("toaccount")) {
                             tovoteaccountState.setAccount(cancelaccountList.get("toaccount"));
-                            newMap.put(Hex.encodeHexString(transaction.to), accountState);
+                            newMap.put(Hex.encodeHexString(transaction.to), tovoteaccountState);
                         }
                         break;
                     case 3://存证事务,只需要扣除手续费
