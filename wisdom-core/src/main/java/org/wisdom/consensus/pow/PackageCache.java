@@ -1,0 +1,485 @@
+package org.wisdom.consensus.pow;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.apache.commons.codec.binary.Hex;
+import org.wisdom.command.IncubatorAddress;
+import org.wisdom.core.Block;
+import org.wisdom.core.account.Account;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.RateTable;
+import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.StateDB;
+import org.wisdom.pool.PeningTransPool;
+import org.wisdom.pool.TransPool;
+import org.wisdom.pool.WaitCount;
+import org.wisdom.protobuf.tcp.command.HatchModel;
+
+import java.util.*;
+
+import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
+import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
+
+public class PackageCache {
+
+    private Map<String, AccountState> accountStateMap;
+
+    private IdentityHashMap<String, Long> removemap;
+
+    private Map<String, TreeMap<Long, TransPool>> maps;
+
+    private List<Transaction> transactionList;
+
+    private boolean exit;
+
+    private boolean state;
+
+    private int size;
+
+    private byte[] parenthash;
+
+    private Block block;
+
+    private long height;
+
+    private String publicKeyHash;
+
+    private Map<String, AccountState> newMap;
+
+    private StateDB stateDB;
+
+    private MerkleRule merkleRule;
+
+    private WaitCount waitCount;
+
+    private PeningTransPool peningTransPool;
+
+    private RateTable rateTable;
+
+    public PackageCache(){
+        this.removemap=new IdentityHashMap<>();
+        this.transactionList=new ArrayList<>();
+        this.exit=false;
+        this.state=false;
+    }
+
+    public void init(PeningTransPool peningTransPool, StateDB stateDB, MerkleRule merkleRule,
+                     WaitCount waitCount, RateTable rateTable, Map<String, AccountState> accountStateMap,
+                     Map<String, TreeMap<Long, TransPool>> maps, byte[] parenthash,
+                     Block block, long height,int size){
+        this.peningTransPool=peningTransPool;
+        this.stateDB=stateDB;
+        this.merkleRule=merkleRule;
+        this.waitCount=waitCount;
+        this.rateTable=rateTable;
+        this.accountStateMap= accountStateMap;
+        this.maps= maps;
+        this.parenthash= parenthash;
+        this.block= block;
+        this.height= height;
+        this.size=size;
+    }
+
+    public List<Transaction> getRightTransactions(){
+        for(Map.Entry<String, TreeMap<Long, TransPool>> entry : maps.entrySet()){
+            publicKeyHash = entry.getKey();
+            TreeMap<Long, TransPool> treeMap = entry.getValue();
+            for (Map.Entry<Long, TransPool> entry1 : treeMap.entrySet()) {
+                state=false;
+                TransPool transPool = entry1.getValue();
+                Transaction transaction = transPool.getTransaction();
+                //区块大小
+                if(CheckSize(transaction)){
+                    break;
+                }
+                //防止写入重复事务
+                if(CheckRepetition(transaction)){
+                    continue;
+                }
+                //没有获取到 AccountState
+                if(CheckMapRedo(publicKeyHash)){
+                    break;
+                }
+                newMap=new HashMap<>();
+                AccountState accountState = accountStateMap.get(publicKeyHash);
+                Account fromaccount = accountState.getAccount();
+                long nowNonce=fromaccount.getNonce();
+
+                // nonce是否合法
+                if (fromaccount.getNonce() >= transaction.nonce) {
+                    removemap.put(new String(entry.getKey()), transaction.nonce);
+                    continue;
+                }
+                switch(transaction.type){
+                    case 1://转账
+                    case 2://投票
+                    case 13://撤回投票
+                        CheckFirstKind(accountState,fromaccount,transaction,publicKeyHash);
+                        break;
+                    case 3://存证事务,只需要扣除手续费
+                    case 9://孵化事务
+                    case 10://提取利息
+                    case 11://提取分享
+                    case 12://本金
+                    case 14://抵押
+                    case 15://撤回抵押
+                        CheckOtherKind(accountState,fromaccount,transaction,publicKeyHash);
+                        break;
+                }
+                if(state){
+                    continue;
+                }
+                //nonce是否跳号
+                if(nowNonce+1 != transaction.nonce){
+                    if(!updateWaitCount(publicKeyHash,transaction.nonce)) break;
+                }
+                //更新缓存
+                accountStateMap.putAll(newMap);
+                transaction.height = height;
+                size += transaction.size();
+                transactionList.add(transaction);
+            }
+            if (exit) {//内循环退出
+                break;
+            }
+        }
+        //删除事务内存池事务
+        peningTransPool.remove(removemap);
+        return transactionList;
+    }
+
+    private boolean CheckSize(Transaction tx){
+        if(size > Block.MAX_BLOCK_SIZE || (size + tx.size()) > Block.MAX_BLOCK_SIZE){
+            exit=true;
+            return true;
+        }
+        return false;
+    }
+
+    private boolean CheckRepetition(Transaction tx){
+        if(stateDB.hasTransaction(parenthash, tx.getHash())){
+            return true;
+        }
+        return false;
+    }
+
+    private boolean CheckMapRedo(String publicKeyHash){
+        if(accountStateMap.containsKey(publicKeyHash)){
+           return false;
+        }
+        return true;
+    }
+
+    private AccountState getMapAccountState(Transaction tx){
+        String tohash = Hex.encodeHexString(tx.to);
+        if(accountStateMap.containsKey(tohash)){
+            return accountStateMap.get(tohash);
+        }else{
+            return stateDB.getAccount(parenthash,tx.to);
+        }
+    }
+
+    private AccountState getIncubatorTotal(){
+        String totalhash= IncubatorAddress.Hexpubhash();
+        if(accountStateMap.containsKey(totalhash)){
+            return accountStateMap.get(totalhash);
+        }else{
+            return stateDB.getAccount(parenthash,IncubatorAddress.resultpubhash());
+        }
+    }
+
+    private void CheckOtherKind(AccountState accountState,Account fromaccount,Transaction tx,String publicKeyHash){
+        if(tx.type == 12){
+            if (stateDB.hasPayload(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
+                AddRemoveMap(publicKeyHash,tx.nonce);
+                return;
+            }
+        }
+        if(tx.type == 15){
+            if (stateDB.hasPayload(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
+                AddRemoveMap(publicKeyHash,tx.nonce);
+                return;
+            }
+        }
+        Account account = UpdateOtherAccount(fromaccount, tx);
+        if (account == null) {
+            AddRemoveMap(publicKeyHash,tx.nonce);
+            return;
+        }
+        if(CheckIncubatorTotal(tx)){
+            AddRemoveMap(publicKeyHash,tx.nonce);
+            return;
+        }
+        accountState.setAccount(account);
+        //校验type 10、11、12事务
+        VerifyHatch verifyHatch=updateHatch(accountState,tx,block.nHeight);
+        if(!verifyHatch.state){
+            AddRemoveMap(publicKeyHash,tx.nonce);
+            return;
+        }
+        newMap.put(publicKeyHash, accountState);
+    }
+
+    private void AddRemoveMap(String key,long nonce){
+        removemap.put(new String(key), nonce);
+        state = true;
+    }
+
+    private boolean CheckIncubatorTotal(Transaction transaction){
+        if (transaction.type == 9) {//孵化总地址校验
+            try{
+                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
+                int days = payloadproto.getType();
+                String sharpub = payloadproto.getSharePubkeyHash();
+
+                AccountState totalaccountState=getIncubatorTotal();
+                Account account=totalaccountState.getAccount();
+                long balance=account.getBalance();
+
+                balance -= transaction.getInterest(height, rateTable, days);
+                if(sharpub != null && !sharpub.equals("")) {
+                    balance -= transaction.getShare(height, rateTable, days);
+                }
+                if(balance<0){
+                    return true;
+                }
+                account.setBalance(balance);
+                totalaccountState.setAccount(account);
+                newMap.put(IncubatorAddress.Hexpubhash(),totalaccountState);
+            }catch (Exception e){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void CheckFirstKind(AccountState accountState,Account fromaccount,Transaction tx,String publicKeyHash){
+        AccountState toaccountState=getMapAccountState(tx);
+        Account toaccount=toaccountState.getAccount();
+        List<Account> accountList = null;
+        if (tx.type == 1) {
+            accountList = updateTransfer(fromaccount, toaccount, tx);
+        } else if (tx.type == 2) {
+            accountList = updateVote(fromaccount, toaccount, tx);
+        } else {
+            if(stateDB.hasPayload(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)){
+                AddRemoveMap(publicKeyHash,tx.nonce);
+                return;
+            }
+            accountList = UpdateCancelVote(fromaccount, toaccount, tx);
+        }
+        if(accountList==null){
+            AddRemoveMap(publicKeyHash,tx.nonce);
+            return;
+        }
+        accountList.forEach(account->{
+            if(account.getKey().equals(publicKeyHash)){
+                accountState.setAccount(account);
+                newMap.put(publicKeyHash,accountState);
+            }else{
+                toaccountState.setAccount(account);
+                newMap.put(toaccount.getKey(),toaccountState);
+            }
+        });
+    }
+
+    public static List<Account> UpdateCancelVote(Account fromaccount, Account votetoccount, Transaction transaction) {
+        List<Account> list = new ArrayList<>();
+        long balance = fromaccount.getBalance();
+        balance -= transaction.getFee();
+        if (balance < 0) {
+            return null;
+        }
+        balance += transaction.amount;
+        //to-
+        long vote;
+        if (Arrays.equals(fromaccount.getPubkeyHash(), votetoccount.getPubkeyHash())) {//撤回自己投给自己的投票
+            vote = fromaccount.getVote();
+            vote -= transaction.amount;
+            fromaccount.setVote(vote);
+        } else {
+            vote = votetoccount.getVote();
+            vote -= transaction.amount;
+            votetoccount.setVote(vote);
+            list.add(votetoccount);
+        }
+        if (vote < 0) {
+            return null;
+        }
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
+        list.add(fromaccount);
+        return list;
+    }
+
+    public static List<Account> updateTransfer(Account fromaccount, Account toaccount, Transaction transaction) {
+        List<Account> list = new ArrayList<>();
+        long balance = fromaccount.getBalance();
+        balance -= transaction.amount;
+        balance -= transaction.getFee();
+        if (Arrays.equals(fromaccount.getPubkeyHash(), toaccount.getPubkeyHash())) {
+            balance += transaction.amount;
+        } else {
+            long tobalance = toaccount.getBalance();
+            tobalance += transaction.amount;
+            toaccount.setBalance(tobalance);
+            list.add(toaccount);
+        }
+        if (balance < 0) {
+            return null;
+        }
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
+        list.add(fromaccount);
+        return list;
+    }
+
+    public static List<Account> updateVote(Account fromaccount, Account toaccount, Transaction transaction) {
+        List<Account> list = new ArrayList<>();
+        long balance = fromaccount.getBalance();
+        balance -= transaction.amount;
+        balance -= transaction.getFee();
+        if (Arrays.equals(fromaccount.getPubkeyHash(), toaccount.getPubkeyHash())) {
+            long vote = fromaccount.getVote();
+            vote += transaction.amount;
+            fromaccount.setVote(vote);
+        } else {
+            long vote = toaccount.getVote();
+            vote += transaction.amount;
+            toaccount.setVote(vote);
+            list.add(toaccount);
+        }
+        if (balance < 0) {
+            return null;
+        }
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
+        list.add(fromaccount);
+        return list;
+    }
+
+    public Account UpdateOtherAccount(Account fromaccount, Transaction transaction) {
+        boolean state = false;
+        long balance = fromaccount.getBalance();
+        if (transaction.type == 3) {//存证事务,只需要扣除手续费
+            balance -= transaction.getFee();
+        } else if (transaction.type == 9) {//孵化事务
+            balance -= transaction.getFee();
+            balance -= transaction.amount;
+            long incubatecost = fromaccount.getIncubatecost();
+            incubatecost += transaction.amount;
+            fromaccount.setIncubatecost(incubatecost);
+        } else if (transaction.type == 10 || transaction.type == 11) {//提取利息、分享
+            balance -= transaction.getFee();
+            if (balance < 0) {
+                state = true;
+            }
+            balance += transaction.amount;
+        } else if (transaction.type == 12) {//本金
+            balance -= transaction.getFee();
+            if (balance < 0) {
+                state = true;
+            }
+            balance += transaction.amount;
+            long incubatecost = fromaccount.getIncubatecost();
+            incubatecost -= transaction.amount;
+            if (incubatecost < 0) {
+                state = true;
+            }
+            fromaccount.setIncubatecost(incubatecost);
+        } else if (transaction.type == 14) {//抵押
+            balance -= transaction.getFee();
+            balance -= transaction.amount;
+            long mortgage = fromaccount.getMortgage();
+            mortgage += transaction.amount;
+            fromaccount.setMortgage(mortgage);
+        } else if (transaction.type == 15) {//撤回抵押
+            balance -= transaction.getFee();
+            if (balance < 0) {
+                state = true;
+            }
+            balance += transaction.amount;
+            long mortgage = fromaccount.getMortgage();
+            mortgage -= transaction.amount;
+            if (mortgage < 0) {
+                state = true;
+            }
+            fromaccount.setMortgage(mortgage);
+        }
+        if (state || balance < 0) {
+            return null;
+        }
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(transaction.nonce);
+        return fromaccount;
+    }
+
+    public VerifyHatch updateHatch(AccountState accountState,Transaction transaction,long nHeight) {
+        VerifyHatch verifyHatch=new VerifyHatch();
+        Map<byte[], Incubator> map = null;
+        if (transaction.type == 10) {
+            map = accountState.getInterestMap();
+            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            if (incubator.getInterest_amount() < 0 || incubator.getLast_blockheight_interest() > nHeight) {
+                verifyHatch.setState(false);
+                return verifyHatch;
+            }
+            map.put(transaction.payload, incubator);
+            accountState.setInterestMap(map);
+        } else if (transaction.type == 11) {
+            map = accountState.getShareMap();
+            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            if (incubator.getShare_amount() < 0 || incubator.getLast_blockheight_share() > nHeight) {
+                verifyHatch.setState(false);
+                return verifyHatch;
+            }
+            map.put(transaction.payload, incubator);
+            accountState.setShareMap(map);
+        } else if (transaction.type == 12) {
+            map = accountState.getInterestMap();
+            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            if(incubator.getInterest_amount() !=0 ){
+                verifyHatch.setState(false);
+                return verifyHatch;
+            }
+            map.put(transaction.payload, incubator);
+            accountState.setInterestMap(map);
+        }
+        verifyHatch.setAccountState(accountState);
+        return verifyHatch;
+    }
+
+    public Incubator UpdateIncubtor(Map<byte[], Incubator> map, Transaction transaction, long hieght) {
+        Incubator incubator = map.get(Hex.encodeHexString(transaction.payload));
+        if (transaction.type == 10 || transaction.type == 11) {
+            incubator = merkleRule.UpdateExtIncuator(transaction, hieght, incubator);
+        }
+        if (transaction.type == 12) {
+            incubator = merkleRule.UpdateCostIncubator(incubator, hieght);
+        }
+        return incubator;
+    }
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    public class VerifyHatch {
+        public AccountState accountState;
+        public boolean state;
+    }
+    public boolean updateWaitCount(String publicKeyHash,long nonce){
+        if(waitCount.IsExist(publicKeyHash,nonce)){
+            if(waitCount.updateNonce(publicKeyHash)){
+                return true;//单个节点最长旷工数量的7个区块，可以加入
+            }
+        }else{
+            waitCount.add(publicKeyHash,nonce);
+        }
+        return false;
+    }
+}
