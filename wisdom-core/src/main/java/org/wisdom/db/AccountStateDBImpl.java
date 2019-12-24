@@ -27,11 +27,13 @@ import org.wisdom.core.WisdomBlockChain;
 
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.crypto.HashUtil;
 
 import org.wisdom.genesis.Genesis;
+import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.store.NoDeleteByteArrayStore;
 import org.wisdom.util.Address;
 
@@ -83,9 +85,6 @@ public class AccountStateDBImpl implements AccountStateDB {
 
     private AccountStateUpdater accountStateUpdater;
 
-    private AccountDB accountDB;
-
-    private IncubatorDB incubatorDB;
 
     public AccountStateDBImpl(
             DatabaseStoreFactory factory,
@@ -99,8 +98,6 @@ public class AccountStateDBImpl implements AccountStateDB {
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
         this.genesis = genesisJSON;
-        this.accountDB = accountDB;
-        this.incubatorDB = incubatorDB;
         trieStore = factory.create(TRIE, false);
         deleted = factory.create(DELETED, false);
         rootStore = factory.create(STATE_ROOTS, false);
@@ -119,7 +116,9 @@ public class AccountStateDBImpl implements AccountStateDB {
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
 
         sync();
-
+        if (!Start.ENABLE_ASSERTION) {
+            return;
+        }
         for (long l : heights.keySet()) {
             Trie<byte[], AccountState> trieTmp = stateTrie.revert(rootStore.get(heights.get(l)).get(), noDeleteStore);
             List<Account> accounts = accountDB.getUpdatedAccounts(l);
@@ -129,29 +128,68 @@ public class AccountStateDBImpl implements AccountStateDB {
                 if (incubator == null) {
                     continue;
                 }
-
-                if (incubator.getShare_pubkeyhash() ==null){
+                Transaction tx = bc.getTransaction(incubator.getTxid_issue());
+                HatchModel.Payload payloadProto = HatchModel.Payload.parseFrom(tx.payload);
+                int days = payloadProto.getType();
+                incubator.setDays(days);
+                Incubator interestIncubator = incubator.copy();
+                interestIncubator.setShare_pubkeyhash(null);
+                interestIncubator.setShare_amount(0);
+                interestIncubator.setLast_blockheight_share(0);
+                if (!state.getInterestMap().get(incubator.getTxid_issue()).equals(interestIncubator)) {
+                    throw new RuntimeException("invalid incubate cost update operation");
+                }
+                if (incubator.getShare_pubkeyhash() == null) {
                     continue;
                 }
-                trieTmp.keySet().forEach(
-                        x -> System.out.println("11--------------------"+Hex.encodeHexString(x))
-                );
-                System.out.println("=======================================");
-//                if (trieTmp.get(incubator.getShare_pubkeyhash()).isPresent()){
-//                    throw new RuntimeException("height"+l+"-"+Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-//                }
-                if (!trieTmp.get(incubator.getShare_pubkeyhash()).isPresent()){
-                    System.out.println("=======================================");
+                AccountState shareState = trieTmp.get(incubator.getShare_pubkeyhash()).get();
+                Incubator shareIncubator = incubator.copy();
+                shareIncubator.setPubkeyhash(null);
+                shareIncubator.setInterest_amount(0);
+                shareIncubator.setLast_blockheight_interest(0);
+                if (!shareState.getShareMap().get(incubator.getTxid_issue()).equals(shareIncubator)) {
+                    throw new RuntimeException("invalid share cost update operation");
                 }
-                AccountState state2 = trieTmp.get(incubator.getShare_pubkeyhash()).get();
 
-                if (!Address.publicKeyHashToAddress(account.getPubkeyHash()).equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") && state2.getShareMap().get(incubator.getTxid_issue()).equals(incubator)) {
-//                        System.out.println("height = " + l);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getIncubatecost());
-//                        System.out.println("received " + state.getAccount().getIncubatecost());
+                if (account.getBalance() != state.getAccount().getBalance()) {
+                    System.out.println("height = " + l);
+                    System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                    System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                    System.out.println("expected " + account.getBalance());
+                    System.out.println("received " + state.getAccount().getBalance());
+                    throw new RuntimeException("invalid update operation");
+                }
+                if (account.getVote() != state.getAccount().getVote()) {
+                    System.out.println("height = " + l);
+                    System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                    System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                    System.out.println("expected " + account.getVote());
+                    System.out.println("received " + state.getAccount().getVote());
+                    throw new RuntimeException("invalid vote update operation");
+                }
+                if (account.getMortgage() != state.getAccount().getMortgage()) {
+                    System.out.println("height = " + l);
+                    System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                    System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                    System.out.println("expected " + account.getMortgage());
+                    System.out.println("received " + state.getAccount().getMortgage());
+                    throw new RuntimeException("invalid mortgage update operation");
+                }
+                if (!Address.publicKeyHashToAddress(account.getPubkeyHash()).equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") && account.getIncubatecost() != state.getAccount().getIncubatecost()) {
+                    System.out.println("height = " + l);
+                    System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                    System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                    System.out.println("expected " + account.getIncubatecost());
+                    System.out.println("received " + state.getAccount().getIncubatecost());
                     throw new RuntimeException("invalid incubate cost update operation");
+                }
+                if (account.getNonce() != state.getAccount().getNonce()) {
+                    System.out.println("height = " + l);
+                    System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+                    System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+                    System.out.println("expected " + account.getNonce());
+                    System.out.println("received " + state.getAccount().getNonce());
+                    throw new RuntimeException("invalid nonce update operation");
                 }
             }
         }
@@ -185,51 +223,6 @@ public class AccountStateDBImpl implements AccountStateDB {
 
                 heights.put(block.nHeight, block.getHash());
                 statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), updated.values()));
-                List<Account> accountList = accountDB.getUpdatedAccounts(block.nHeight);
-                for (Account account : accountList) {
-                    AccountState state = updated.get(account.getPubkeyHash());
-
-//                    if (account.getBalance() != state.getAccount().getBalance()) {
-//                        System.out.println("height = " + block.nHeight);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getBalance());
-//                        System.out.println("received " + state.getAccount().getBalance());
-//                        throw new RuntimeException("invalid update operation");
-//                    }
-//                    if ( account.getVote() != state.getAccount().getVote()){
-//                        System.out.println("height = " + block.nHeight);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getVote());
-//                        System.out.println("received " + state.getAccount().getVote());
-//                        throw new RuntimeException("invalid vote update operation");
-//                    }
-//                    if ( account.getMortgage() != state.getAccount().getMortgage()){
-//                        System.out.println("height = " + block.nHeight);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getMortgage());
-//                        System.out.println("received " + state.getAccount().getMortgage());
-//                        throw new RuntimeException("invalid mortgage update operation");
-//                    }
-//                    if (!Address.publicKeyHashToAddress(account.getPubkeyHash()).equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") && account.getIncubatecost() != state.getAccount().getIncubatecost()){
-//                        System.out.println("height = " + block.nHeight);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getIncubatecost());
-//                        System.out.println("received " + state.getAccount().getIncubatecost());
-//                        throw new RuntimeException("invalid incubate cost update operation");
-//                    }
-//                    if ( account.getNonce() != state.getAccount().getNonce()){
-//                        System.out.println("height = " + block.nHeight);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getNonce());
-//                        System.out.println("received " + state.getAccount().getNonce());
-//                        throw new RuntimeException("invalid nonce update operation");
-//                    }
-                }
             }
             // sync trie here
             if (blocks.size() < blocksPerUpdate) break;

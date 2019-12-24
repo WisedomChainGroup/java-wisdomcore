@@ -23,6 +23,9 @@ import org.tdf.rlp.RLP;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.util.ByteUtil;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public class Incubator {
     @RLP(0)
     private byte[] id;
@@ -183,5 +186,32 @@ public class Incubator {
         incubator.setDays(days);
         incubator.setId(id);
         return incubator;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incubator incubator = (Incubator) o;
+        return height == incubator.height &&
+                cost == incubator.cost &&
+                interest_amount == incubator.interest_amount &&
+                share_amount == incubator.share_amount &&
+                last_blockheight_interest == incubator.last_blockheight_interest &&
+                last_blockheight_share == incubator.last_blockheight_share &&
+                days == incubator.days &&
+                Arrays.equals(share_pubkeyhash, incubator.share_pubkeyhash) &&
+                Arrays.equals(pubkeyhash, incubator.pubkeyhash) &&
+                Arrays.equals(txid_issue, incubator.txid_issue);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(height, cost, interest_amount, share_amount, last_blockheight_interest, last_blockheight_share, days);
+        result = 31 * result + Arrays.hashCode(id);
+        result = 31 * result + Arrays.hashCode(share_pubkeyhash);
+        result = 31 * result + Arrays.hashCode(pubkeyhash);
+        result = 31 * result + Arrays.hashCode(txid_issue);
+        return result;
     }
 }
