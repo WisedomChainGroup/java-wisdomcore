@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import org.tdf.common.serialize.Codec;
+import org.tdf.common.store.MemoryCachedStore;
 import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
@@ -273,7 +274,8 @@ public class AccountStateDBImpl implements AccountStateDB {
             throw new RuntimeException(Hex.encodeHexString(blockHash) + " has exists");
         byte[] root = rootStore.get(parentHash)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(parentHash) + " not exists"));
-        Trie<byte[], AccountState> trie = stateTrie.revert(root, noDeleteStore);
+        Store<byte[], byte[]> cache = new MemoryCachedStore<>(noDeleteStore);
+        Trie<byte[], AccountState> trie = stateTrie.revert(root, cache);
         for (AccountState state : accounts) {
             trie.put(state.getAccount().getPubkeyHash(), state);
         }
