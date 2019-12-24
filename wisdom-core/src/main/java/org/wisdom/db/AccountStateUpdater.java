@@ -128,6 +128,16 @@ public class AccountStateUpdater {
         bytes.add(tx.to);
         if(tx.type==0x09){
             bytes.add(IncubatorAddress.resultpubhash());
+            try{
+                //分享地址
+                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tx.payload);
+                String sharpub = payloadproto.getSharePubkeyHash();
+                if(sharpub != null && !sharpub.equals("")){
+                    bytes.add(Hex.decodeHex(sharpub.toCharArray()));
+                }
+            }catch (Exception e){
+                return bytes;
+            }
         }
         return bytes;
     }
