@@ -999,6 +999,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         long balance = account.getBalance();
         balance -= tx.getFee();
+        balance += tx.amount;
         long mortgage = account.getMortgage();
         mortgage -= tx.amount;
         account.setBalance(balance);

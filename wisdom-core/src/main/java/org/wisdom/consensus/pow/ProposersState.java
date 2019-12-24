@@ -34,6 +34,9 @@ public class ProposersState implements State<ProposersState> {
     private static final int MAXIMUM_PROPOSERS = getenv("MAXIMUM_PROPOSERS", 15);
     public static final int COMMUNITY_MINER_JOINS_HEIGHT = getenv("COMMUNITY_MINER_JOINS_HEIGHT", 522215);
 
+    @Value("${wisdom.wip-1217.height}")
+    private long WIP_12_17_HEIGHT;
+
     // 投票数每次衰减 10%
     private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
     private static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
@@ -283,13 +286,17 @@ public class ProposersState implements State<ProposersState> {
             blockList.clear();
         }
         // 重新生成 proposers
-        proposers = all.values().stream()
+        Stream<Proposer> proposers = all.values().stream()
                 // 过滤掉黑名单中节点
                 .filter(p -> !blockList.contains(p.publicKeyHash))
                 // 过滤掉抵押数量不足和投票为零的账户
-                .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE && p.getAccumulated() > 0)
-                // 按照 投票，抵押，字典从大到小排序
-                .sorted((x, y) -> -compareProposer(x, y))
+                .filter(p -> p.mortgage >= MINIMUM_PROPOSER_MORTGAGE);
+        if (blocks.get(0).getnHeight() > WIP_12_17_HEIGHT) {
+            proposers = proposers
+                    .filter(x -> x.getAccumulated() > 0);
+        }
+        // 按照 投票，抵押，字典从大到小排序
+        this.proposers = proposers.sorted((x, y) -> -compareProposer(x, y))
                 .limit(MAXIMUM_PROPOSERS)
                 .map(p -> p.publicKeyHash).collect(Collectors.toList());
 

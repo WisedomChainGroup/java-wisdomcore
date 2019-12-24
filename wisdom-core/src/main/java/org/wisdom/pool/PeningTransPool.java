@@ -7,6 +7,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -31,6 +32,12 @@ public class PeningTransPool {
     @Autowired
     private Leveldb leveldb;
 
+    @Value("${wisdom.ceo.trace}")
+    private boolean type;
+
+    @Autowired
+    TraceCeoAddress traceCeoAddress;
+
     // publicKeyHash -> nonce -> transaction
     private Map<String, TreeMap<Long, TransPool>> ptpool;
 
@@ -54,6 +61,7 @@ public class PeningTransPool {
 
     public void add(List<TransPool> pools) {
         for (TransPool transPool : pools) {
+            boolean state=false;
             Transaction transaction = transPool.getTransaction();
             byte[] from = transaction.from;
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
@@ -63,14 +71,24 @@ public class PeningTransPool {
                     map.put(transaction.nonce, transPool);
                     ptpool.put(fromhash, map);
                     updateNonce(transaction.type, transaction.nonce, fromhash);
+                    state=true;
                 }
             } else {
                 TreeMap<Long, TransPool> map = new TreeMap<>();
                 map.put(transaction.nonce, transPool);
                 ptpool.put(fromhash, map);
                 updateNonce(transaction.type, transaction.nonce, fromhash);
+                state=true;
+            }
+            //ceo地址跟踪
+            if(state){
+                if(type){
+                    String fromstring = Hex.encodeHexString(transaction.from);
+                    traceCeoAddress.addPend(fromstring,transaction.nonce);
+                }
             }
         }
+
     }
 
     public void updatePtNone(String key, PendingNonce pendingNonce) {
@@ -257,7 +275,7 @@ public class PeningTransPool {
                     map.put(t.nonce, transPool);
                     ptpool.put(fromhash, map);
                     if (type == 2) {//2 进db
-                        if (t.type != 1 && t.type != 2 && t.type != 13) {//排除转账、投票、撤回投票
+                        if (t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
                             //ptnonce
                             nonceupdate(fromhash, t.nonce);
                         }
@@ -276,10 +294,10 @@ public class PeningTransPool {
     }
 
     public void updateNonce(int type, long nonce, String fromhash) {
-        if (type == 1) {//转账
-            ptnonce.put(fromhash, new PendingNonce(nonce, 2));
-        } else {
+        if ( type == 9 || type == 10 || type == 11 || type == 12 ) {//孵化、提取利息、提取分享、提取本金，单nonce
             ptnonce.put(fromhash, new PendingNonce(nonce, 0));
+        } else {
+            ptnonce.put(fromhash, new PendingNonce(nonce, 2));
         }
     }
 

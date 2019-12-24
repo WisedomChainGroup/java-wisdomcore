@@ -15,10 +15,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
-import org.wisdom.pool.AdoptTransPool;
-import org.wisdom.pool.PendingNonce;
-import org.wisdom.pool.PeningTransPool;
-import org.wisdom.pool.TransPool;
+import org.wisdom.pool.*;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -34,6 +31,9 @@ public class PoolController {
 
     @Autowired
     PeningTransPool peningTransPool;
+
+    @Autowired
+    TraceCeoAddress traceCeoAddress;
 
     @RequestMapping(value="/getPoolAddress",method = RequestMethod.GET)
     public Object getPoolAddress(@RequestParam("address") String address){
@@ -241,6 +241,23 @@ public class PoolController {
         }catch (Exception e){
             return APIResult.newFailResult(5000,"Address error");
         }
+    }
+
+    @RequestMapping(value="/getTraceCeoAddress",method = RequestMethod.GET)
+    public Object getTraceCeoAddress(){
+        JSONObject json = new JSONObject();
+        TreeSet<TraceCeoAddress.NonceInfo> queudSet=traceCeoAddress.getTreeSetQueued();
+        TreeSet<TraceCeoAddress.NonceInfo> pendSet=traceCeoAddress.getTreeSetPend();
+        json.put("Queued",queudSet);
+        json.put("Pending",pendSet);
+        json.put("Queued Lack",traceCeoAddress.getNoContinuous(queudSet));
+        json.put("Pending Lack",traceCeoAddress.getNoContinuous(pendSet));
+        return json;
+    }
+
+    @RequestMapping(value="/CleanTrace",method = RequestMethod.GET)
+    public void CleanTrace(){
+        traceCeoAddress.clean();
     }
 
     public static JSONArray PoolJson(List<TransPool> pool,int state){
