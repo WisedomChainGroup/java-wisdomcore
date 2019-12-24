@@ -90,22 +90,22 @@ public class Start {
         if (!resource.exists()) {
             resource = new ClassPathResource(envFile);
         }
-        Map<String, Map<String, Map<String, String>>> map = new Yaml().loadAs(resource.getInputStream(), Map.class);
-        String genesis = map.get("env").get(envSelector).get("wisdom-consensus-genesis");
-        String validators = map.get("env").get(envSelector).get("miner-validators");
+        String genesis;
+        String validators;
+        try {
+            Map<String, Map<String, Map<String, String>>> map = new Yaml().loadAs(resource.getInputStream(), Map.class);
+            genesis = map.get("env").get(envSelector).get("wisdom-consensus-genesis");
+            validators = map.get("env").get(envSelector).get("miner-validators");
+        } catch (Exception e) {
+            genesis = optionalGenesis;
+            validators = optionalValidators;
+        }
         Env env = new Env();
-        if (StringUtil.isNullOrEmpty(genesis)){
-            env.setGenesis(optionalGenesis);
-        }else{
-            env.setGenesis(genesis);
-        }
-        if (StringUtil.isNullOrEmpty(validators)){
-            env.setValidatorsFile(optionalValidators);
-        }else {
-            env.setValidatorsFile(validators);
-        }
+        env.setGenesis(genesis);
+        env.setValidatorsFile(validators);
         return env;
     }
+
 
     @Bean
     public Genesis genesis(JSONEncodeDecoder codec, Env env)
