@@ -18,6 +18,7 @@
 
 package org.wisdom.core.account;
 
+import org.apache.commons.codec.binary.Hex;
 import org.tdf.rlp.RLP;
 
 import java.util.Arrays;
@@ -123,6 +124,10 @@ public class Account {
                 mortgage == account.mortgage &&
                 vote == account.vote &&
                 Arrays.equals(pubkeyHash, account.pubkeyHash);
+    }
+
+    public String getKey(){
+        return Hex.encodeHexString(this.pubkeyHash);
     }
 
 }

@@ -123,6 +123,9 @@ public class AccountState {
     }
 
     public byte[] getKey(){
-        return account.getPubkeyHash();
+        if(account!=null){
+            return account.getPubkeyHash();
+        }
+        return null;
     }
 }

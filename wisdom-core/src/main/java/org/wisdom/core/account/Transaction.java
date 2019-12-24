@@ -370,6 +370,11 @@ public class Transaction {
         return Arrays.concatenate(new byte[]{(byte) version}, getHash(), Arrays.copyOfRange(raw, 1, raw.length));
     }
 
+    @JsonIgnore
+    private int contractType;//合约类型 0:代币,1:多重签名
+    @JsonIgnore
+    private int methodType;//调用合约方法类型
+
     public static Transaction fromRPCBytes(byte[] msg) {
         Transaction transaction = new Transaction();
         BytesReader reader = new BytesReader(msg);
@@ -395,6 +400,12 @@ public class Transaction {
 //            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
 //        }
         transaction.payload = reader.read((int) payloadLength);
+        if(transaction.type == Type.DEPLOY_CONTRACT.ordinal()){//部署合约
+            transaction.contractType = transaction.payload[0];
+        }
+        if(transaction.type == Type.CALL_CONTRACT.ordinal()){//调用合约
+            transaction.methodType = transaction.payload[0];
+        }
         return transaction;
     }
 
