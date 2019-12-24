@@ -18,6 +18,7 @@
 
 package org.wisdom.command;
 
+import org.apache.commons.codec.binary.Hex;
 import org.wisdom.keystore.wallet.KeystoreAction;
 
 public class IncubatorAddress {
@@ -26,5 +27,9 @@ public class IncubatorAddress {
 
     public static byte[] resultpubhash() {
         return KeystoreAction.addressToPubkeyHash(address);
+    }
+
+    public static String Hexpubhash(){
+        return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address));
     }
 }
