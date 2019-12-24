@@ -119,6 +119,42 @@ public class AccountStateDBImpl implements AccountStateDB {
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
 
         sync();
+
+        for (long l : heights.keySet()) {
+            Trie<byte[], AccountState> trieTmp = stateTrie.revert(rootStore.get(heights.get(l)).get(), noDeleteStore);
+            List<Account> accounts = accountDB.getUpdatedAccounts(l);
+            for (Account account : accounts) {
+                AccountState state = trieTmp.get(account.getPubkeyHash()).get();
+                Incubator incubator = incubatorDB.selectIncubator(account.getPubkeyHash(), l);
+                if (incubator == null) {
+                    continue;
+                }
+
+                if (incubator.getShare_pubkeyhash() ==null){
+                    continue;
+                }
+                trieTmp.keySet().forEach(
+                        x -> System.out.println("11--------------------"+Hex.encodeHexString(x))
+                );
+                System.out.println("=======================================");
+//                if (trieTmp.get(incubator.getShare_pubkeyhash()).isPresent()){
+//                    throw new RuntimeException("height"+l+"-"+Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+//                }
+                if (!trieTmp.get(incubator.getShare_pubkeyhash()).isPresent()){
+                    System.out.println("=======================================");
+                }
+                AccountState state2 = trieTmp.get(incubator.getShare_pubkeyhash()).get();
+
+                if (!Address.publicKeyHashToAddress(account.getPubkeyHash()).equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") && state2.getShareMap().get(incubator.getTxid_issue()).equals(incubator)) {
+//                        System.out.println("height = " + l);
+//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
+//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
+//                        System.out.println("expected " + account.getIncubatecost());
+//                        System.out.println("received " + state.getAccount().getIncubatecost());
+                    throw new RuntimeException("invalid incubate cost update operation");
+                }
+            }
+        }
     }
 
     Genesis genesis;
@@ -152,23 +188,6 @@ public class AccountStateDBImpl implements AccountStateDB {
                 List<Account> accountList = accountDB.getUpdatedAccounts(block.nHeight);
                 for (Account account : accountList) {
                     AccountState state = updated.get(account.getPubkeyHash());
-                    Incubator incubator = incubatorDB.selectIncubator(account.getPubkeyHash(), block.getnHeight());
-                    if (incubator == null) {
-                        continue;
-                    }
-//                    incubator.setCost();
-                    Incubator incubator2 = state.getInterestMap().get(account.getPubkeyHash());
-                    if(state.getInterestMap().get(account.getPubkeyHash()).equals(incubator)){
-                        System.out.println();
-                    }
-                    if (!Address.publicKeyHashToAddress(account.getPubkeyHash()).equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") && state.getInterestMap().get(account.getPubkeyHash()).equals(incubator)) {
-//                        System.out.println("height = " + l);
-//                        System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
-//                        System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
-//                        System.out.println("expected " + account.getIncubatecost());
-//                        System.out.println("received " + state.getAccount().getIncubatecost());
-                        throw new RuntimeException("invalid incubate cost update operation");
-                    }
 
 //                    if (account.getBalance() != state.getAccount().getBalance()) {
 //                        System.out.println("height = " + block.nHeight);
