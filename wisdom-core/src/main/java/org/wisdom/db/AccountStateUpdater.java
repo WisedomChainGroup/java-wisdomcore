@@ -56,15 +56,12 @@ public class AccountStateUpdater {
                     .peek(x -> {
                         if (x == null) throw new RuntimeException("unreachable here");
                     })
-                    .forEach(x -> this.updateOne(tx, x , block.getnHeight()));
+                    .forEach(x -> this.updateOne(tx, x));
         }
         return res;
     }
 
-    public AccountState updateOne(Transaction transaction, AccountState accountState,long height) {
-//        if (height == 15673 && Hex.encodeHexString(accountState.getAccount().getPubkeyHash()).equals("fa3ee6159007cd80ace9112ee2fcfdb03c582546")){
-//            System.out.println();
-//        }
+    public AccountState updateOne(Transaction transaction, AccountState accountState) {
         try {
             switch (transaction.type) {
                 case 0x00://coinbase

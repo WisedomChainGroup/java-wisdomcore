@@ -116,40 +116,12 @@ public class AccountStateDBImpl implements AccountStateDB {
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
 
         sync();
-        if (!Start.ENABLE_ASSERTION) {
-            return;
-        }
+
         for (long l : heights.keySet()) {
             Trie<byte[], AccountState> trieTmp = stateTrie.revert(rootStore.get(heights.get(l)).get(), noDeleteStore);
             List<Account> accounts = accountDB.getUpdatedAccounts(l);
             for (Account account : accounts) {
                 AccountState state = trieTmp.get(account.getPubkeyHash()).get();
-                Incubator incubator = incubatorDB.selectIncubator(account.getPubkeyHash(), l);
-                if (incubator == null) {
-                    continue;
-                }
-                Transaction tx = bc.getTransaction(incubator.getTxid_issue());
-                HatchModel.Payload payloadProto = HatchModel.Payload.parseFrom(tx.payload);
-                int days = payloadProto.getType();
-                incubator.setDays(days);
-                Incubator interestIncubator = incubator.copy();
-                interestIncubator.setShare_pubkeyhash(null);
-                interestIncubator.setShare_amount(0);
-                interestIncubator.setLast_blockheight_share(0);
-                if (!state.getInterestMap().get(incubator.getTxid_issue()).equals(interestIncubator)) {
-                    throw new RuntimeException("invalid incubate cost update operation");
-                }
-                if (incubator.getShare_pubkeyhash() == null) {
-                    continue;
-                }
-                AccountState shareState = trieTmp.get(incubator.getShare_pubkeyhash()).get();
-                Incubator shareIncubator = incubator.copy();
-                shareIncubator.setPubkeyhash(null);
-                shareIncubator.setInterest_amount(0);
-                shareIncubator.setLast_blockheight_interest(0);
-                if (!shareState.getShareMap().get(incubator.getTxid_issue()).equals(shareIncubator)) {
-                    throw new RuntimeException("invalid share cost update operation");
-                }
 
                 if (account.getBalance() != state.getAccount().getBalance()) {
                     System.out.println("height = " + l);
@@ -175,7 +147,13 @@ public class AccountStateDBImpl implements AccountStateDB {
                     System.out.println("received " + state.getAccount().getMortgage());
                     throw new RuntimeException("invalid mortgage update operation");
                 }
-                if (!Address.publicKeyHashToAddress(account.getPubkeyHash()).equals("1PxgikfZGWW1L3eFJWpBrowjX5omFiy9ba") && account.getIncubatecost() != state.getAccount().getIncubatecost()) {
+                List<Genesis.IncubateAmount> incubateAmountsList = genesisJSON.alloc.incubateAmount;
+                for (Genesis.IncubateAmount incubateAmount : incubateAmountsList) {
+                    if (Address.publicKeyHashToAddress(account.getPubkeyHash()).equals(incubateAmount.address)) {
+                        return;
+                    }
+                }
+                if (account.getIncubatecost() != state.getAccount().getIncubatecost()) {
                     System.out.println("height = " + l);
                     System.out.println("public key hash = " + HexBytes.encode(account.getPubkeyHash()));
                     System.out.println("address = " + new PublicKeyHash(account.getPubkeyHash()).getAddress());
@@ -190,6 +168,33 @@ public class AccountStateDBImpl implements AccountStateDB {
                     System.out.println("expected " + account.getNonce());
                     System.out.println("received " + state.getAccount().getNonce());
                     throw new RuntimeException("invalid nonce update operation");
+                }
+
+                Incubator incubator = incubatorDB.selectIncubator(account.getPubkeyHash(), l);
+                if (incubator == null) {
+                    continue;
+                }
+                Transaction tx = bc.getTransaction(incubator.getTxid_issue());
+                HatchModel.Payload payloadProto = HatchModel.Payload.parseFrom(tx.payload);
+                int days = payloadProto.getType();
+                incubator.setDays(days);
+                Incubator interestIncubator = incubator.copy();
+                interestIncubator.setShare_pubkeyhash(null);
+                interestIncubator.setShare_amount(0);
+                interestIncubator.setLast_blockheight_share(0);
+                if (!state.getInterestMap().get(incubator.getTxid_issue()).equals(interestIncubator)) {
+                    throw new RuntimeException("invalid incubate cost update operation");
+                }
+                if (incubator.getShare_pubkeyhash() == null) {
+                    continue;
+                }
+                AccountState shareState = trieTmp.get(incubator.getShare_pubkeyhash()).get();
+                Incubator shareIncubator = incubator.copy();
+                shareIncubator.setPubkeyhash(null);
+                shareIncubator.setInterest_amount(0);
+                shareIncubator.setLast_blockheight_interest(0);
+                if (!shareState.getShareMap().get(incubator.getTxid_issue()).equals(shareIncubator)) {
+                    throw new RuntimeException("invalid share cost update operation");
                 }
             }
         }
