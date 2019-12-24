@@ -195,13 +195,16 @@ public class ProposersState implements State<ProposersState> {
     @Autowired
     public ProposersState(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
-            @Value("${wisdom.consensus.block-interval}") int blockInterval
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.wip-1217.height}")
+            long WIP_12_17_HEIGHT
     ) {
         all = new HashMap<>();
         blockList = new HashSet<>();
         proposers = new ArrayList<>();
         this.allowMinersJoinEra = allowMinersJoinEra;
         this.blockInterval = blockInterval;
+        this.WIP_12_17_HEIGHT = WIP_12_17_HEIGHT;
     }
 
     public List<Proposer> getProposers() {
@@ -322,7 +325,7 @@ public class ProposersState implements State<ProposersState> {
 
     @Override
     public ProposersState copy() {
-        ProposersState state = new ProposersState(this.allowMinersJoinEra, this.blockInterval);
+        ProposersState state = new ProposersState(this.allowMinersJoinEra, this.blockInterval, this.WIP_12_17_HEIGHT);
         state.all = new HashMap<>();
         for (String key : all.keySet()) {
             state.all.put(key, all.get(key).copy());
