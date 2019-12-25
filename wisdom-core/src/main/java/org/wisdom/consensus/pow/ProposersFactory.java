@@ -7,6 +7,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.wisdom.Env;
 import org.wisdom.core.Block;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.db.StateDB;
@@ -67,13 +68,13 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     public ProposersFactory(
             ProposersState genesisState,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
-            @Value("${miner.validators}") String validatorsFile
+            Env env
     ) throws Exception {
         super(StateDB.CACHE_SIZE, genesisState, blocksPerEra);
 
-        Resource resource = new FileSystemResource(validatorsFile);
+        Resource resource = new FileSystemResource(env.validatorsFile);
         if (!resource.exists()) {
-            resource = new ClassPathResource(validatorsFile);
+            resource = new ClassPathResource(env.validatorsFile);
         }
 
         initialProposers = Arrays.stream(

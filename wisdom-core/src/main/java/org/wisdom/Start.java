@@ -18,6 +18,7 @@
 
 package org.wisdom;
 
+
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +36,11 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.keystore.util.StringUtil;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.IOException;
+import java.util.Map;
 
 /**
  * @author Roman Mandeleil
@@ -76,11 +82,37 @@ public class Start {
     }
 
     @Bean
-    public Genesis genesis(JSONEncodeDecoder codec, @Value("${wisdom.consensus.genesis}") String genesis)
+    public Env env(@Value("${wisdom.env-config}") String envFile,
+                   @Value("${wisdom.env-selector}") String envSelector,
+                   @Value("${wisdom.consensus.genesis}") String optionalGenesis,
+                   @Value("${miner.validators}") String optionalValidators) throws IOException {
+        Resource resource = new FileSystemResource(envFile);
+        if (!resource.exists()) {
+            resource = new ClassPathResource(envFile);
+        }
+        String genesis;
+        String validators;
+        try {
+            Map<String, Map<String, Map<String, String>>> map = new Yaml().loadAs(resource.getInputStream(), Map.class);
+            genesis = map.get("env").get(envSelector).get("wisdom-consensus-genesis");
+            validators = map.get("env").get(envSelector).get("miner-validators");
+        } catch (Exception e) {
+            genesis = optionalGenesis;
+            validators = optionalValidators;
+        }
+        Env env = new Env();
+        env.setGenesis(genesis);
+        env.setValidatorsFile(validators);
+        return env;
+    }
+
+
+    @Bean
+    public Genesis genesis(JSONEncodeDecoder codec, Env env)
             throws Exception {
-        Resource resource = new FileSystemResource(genesis);
-        if (!resource.exists()){
-            resource = new ClassPathResource(genesis);
+        Resource resource = new FileSystemResource(env.genesis);
+        if (!resource.exists()) {
+            resource = new ClassPathResource(env.genesis);
         }
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
