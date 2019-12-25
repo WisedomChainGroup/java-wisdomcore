@@ -38,9 +38,6 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.store.NoDeleteByteArrayStore;
 import org.wisdom.util.Address;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
