@@ -347,6 +347,7 @@ public class AccountStateUpdater {
     }
 
     private HatchReturned HatchStates(Map<byte[], AccountState> AccountStateMap,Transaction tx,long balance) throws InvalidProtocolBufferException, DecoderException {
+        List<AccountState> accountStateList=new ArrayList<>();
         AccountState accountState=getMapAccountState(AccountStateMap,tx.to);
         byte[] playload = tx.payload;
         HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(playload);
@@ -367,19 +368,22 @@ public class AccountStateUpdater {
         account.setNonce(nonce);
         accountState.setAccount(account);
 
+        accountStateList.add(accountState);
+
         //share
         long shareamount = BigEndian.decodeUint64(ByteUtil.bytearraycopy(txamount, 8, 8));
         String sharpub = payloadproto.getSharePubkeyHash();
         byte[] share_pubkeyhash = null;
         if(sharpub != null && sharpub != ""){
             share_pubkeyhash = Hex.decodeHex(sharpub.toCharArray());
+            Incubator shareIncubator=new Incubator(share_pubkeyhash, tx.getHash(), tx.height, tx.amount,payloadproto.getType(), shareamount , tx.height);
+            AccountState Shareaccountstate=getMapAccountState(AccountStateMap,share_pubkeyhash);
+            Map<byte[],Incubator> shareMap=Shareaccountstate.getShareMap();
+            shareMap.put(shareIncubator.getTxid_issue(),shareIncubator);
+            Shareaccountstate.setShareMap(shareMap);
+            accountStateList.add(Shareaccountstate);
         }
-        Incubator shareIncubator=new Incubator(share_pubkeyhash, tx.getHash(), tx.height, tx.amount,payloadproto.getType(), shareamount , tx.height);
-        AccountState Shareaccountstate=getMapAccountState(AccountStateMap,share_pubkeyhash);
-        Map<byte[],Incubator> shareMap=Shareaccountstate.getShareMap();
-        shareMap.put(shareIncubator.getTxid_issue(),shareIncubator);
-        Shareaccountstate.setShareMap(shareMap);
-        return new HatchReturned(Arrays.asList(accountState,Shareaccountstate),balance-interestamount-shareamount);
+        return new HatchReturned(accountStateList,balance-interestamount-shareamount);
     }
 
     @NoArgsConstructor
