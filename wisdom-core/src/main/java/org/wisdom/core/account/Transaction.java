@@ -31,7 +31,6 @@ import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.protobuf.tcp.command.HatchModel;
-import org.wisdom.tools.TransactionTestTool;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
@@ -166,6 +165,9 @@ public class Transaction {
         res.amount = tx.getAmount();
         if (tx.getPayload() != null) {
             res.payload = tx.getPayload().toByteArray();
+            if(res.type == Type.DEPLOY_CONTRACT.ordinal() || res.type == Type.CALL_CONTRACT.ordinal()){
+                res.contractType=res.payload[0];
+            }
         }
         if (tx.getTo() != null) {
             res.to = tx.getTo().toByteArray();
@@ -371,9 +373,7 @@ public class Transaction {
     }
 
     @JsonIgnore
-    private int contractType;//合约类型 0:代币,1:多重签名
-    @JsonIgnore
-    private int methodType;//调用合约方法类型
+    private int contractType;//部署合约 0:代币,1:多重签名； 调用合约
 
     public static Transaction fromRPCBytes(byte[] msg) {
         Transaction transaction = new Transaction();
@@ -400,11 +400,8 @@ public class Transaction {
 //            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
 //        }
         transaction.payload = reader.read((int) payloadLength);
-        if(transaction.type == Type.DEPLOY_CONTRACT.ordinal()){//部署合约
+        if(transaction.type == Type.DEPLOY_CONTRACT.ordinal() || transaction.type == Type.CALL_CONTRACT.ordinal()){//部署合约和调用合约
             transaction.contractType = transaction.payload[0];
-        }
-        if(transaction.type == Type.CALL_CONTRACT.ordinal()){//调用合约
-            transaction.methodType = transaction.payload[0];
         }
         return transaction;
     }
