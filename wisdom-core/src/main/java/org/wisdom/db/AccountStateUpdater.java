@@ -14,6 +14,7 @@ import org.tdf.common.util.ByteArraySet;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -113,11 +114,27 @@ public class AccountStateUpdater {
             case 0x0d://EXIT_VOTE
                 return getTransactionFromTo(transaction);
             case 0x03://DEPOSIT
-            case 0x07://DEPLOY_CONTRACT
-            case 0x08://CALL_CONTRACT
                 return getTransactionFrom(transaction);
+            case 0x07://DEPLOY_CONTRACT
+                return getTransactionHash(transaction);
+            case 0x08://CALL_CONTRACT
+//                return getTransactionPayload(transaction);
         }
         return new ByteArraySet();
+    }
+
+    private Set<byte[]> getTransactionHash(Transaction tx) {
+        Set<byte[]> bytes = new ByteArraySet();
+        bytes.add(RipemdUtility.ripemd160(tx.getHash()));
+        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        bytes.add(fromhash);
+        if(tx.getContractType()==0){//代币
+            byte[] rlpbyte=ByteUtil.bytearrayridfirst(tx.payload);
+            Asset asset=new Asset();
+            asset.RLPdeserialization(rlpbyte);
+            bytes.add(RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())));
+        }
+        return bytes;
     }
 
     private Set<byte[]> getTransactionTo(Transaction tx) {
