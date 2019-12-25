@@ -283,4 +283,9 @@ public class Leveldb implements DatabaseStore {
     private Path getPath() {
         return Paths.get(directory, name);
     }
+
+    @Override
+    public Map<byte[], byte[]> asMap() {
+        return null;
+    }
 }
