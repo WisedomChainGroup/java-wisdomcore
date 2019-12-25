@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.DBSettings;
 import org.tdf.common.store.DatabaseStore;
+import org.tdf.common.store.LevelDb;
 import org.tdf.common.store.MemoryDatabaseStore;
 
 import javax.annotation.PreDestroy;
@@ -45,7 +46,7 @@ public class DatabaseStoreFactory {
                 break;
             case "leveldb":
             default:
-                store = new Leveldb(directory, name);
+                store = new LevelDb(directory, name);
                 break;
         }
         store.init(DBSettings.newInstance()

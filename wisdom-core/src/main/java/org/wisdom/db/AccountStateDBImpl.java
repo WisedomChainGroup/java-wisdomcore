@@ -38,9 +38,6 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.store.NoDeleteByteArrayStore;
 import org.wisdom.util.Address;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -73,10 +70,13 @@ public class AccountStateDBImpl implements AccountStateDB {
     // store actual data of trie
     private Store<byte[], byte[]> trieStore;
 
-    private NoDeleteStore<byte[], byte[]> noDeleteStore; /////
+    // compose deleted and trieStore as a no delete store
+    private NoDeleteStore<byte[], byte[]> noDeleteStore;
 
+    // map from height to block hash, tests only
     private Map<Long, byte[]> heights = new TreeMap<>();
 
+    // null root hash
     private byte[] nullHash;
 
     // trie to revert
@@ -109,7 +109,10 @@ public class AccountStateDBImpl implements AccountStateDB {
                 HashUtil::keccak256,
                 noDeleteStore,
                 Codec.identity(),
-                Codec.newInstance(RLPCodec::encode, (x) -> RLPCodec.decode(x, AccountState.class))
+                Codec.newInstance(
+                        RLPCodec::encode,
+                        x -> RLPCodec.decode(x, AccountState.class)
+                )
         );
 
         nullHash = stateTrie.getRootHash();
