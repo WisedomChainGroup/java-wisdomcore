@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
@@ -13,6 +14,12 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.db.StateDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
+
+import java.io.File;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
  * /internal/transaction/{} 包含未确认的事务
@@ -35,6 +42,10 @@ public class InternalController {
 
     @Autowired
     private OrphanBlocksManager manager;
+
+    private Double dumpStatus;
+
+    private Double restoreStatus;
 
     // 获取 forkdb 里面的事务
     @GetMapping(value = "/internal/transaction/{transactionHash}", produces = "application/json")
@@ -99,6 +110,96 @@ public class InternalController {
         }
     }
 
+    @GetMapping(value = "/internal/restore-dump")
+    public Object restoreDump(@RequestParam(value = "directory") String directory) {
+        if (restoreStatus != null) return "restoring... " + restoreStatus;
+        if (dumpStatus != null) return "dumping... " + dumpStatus;
+        restoreDB(directory);
+        return "start restoring... ";
+    }
+
+    @GetMapping(value = "/internal/restore-dump/status")
+    public Object restoreDumpStatus() {
+        if (restoreStatus != null) return "restoring... " + restoreStatus;
+        if (dumpStatus != null) return "dumping... " + dumpStatus;
+        return "no dump or restore task running";
+    }
+
+    @GetMapping(value = "/internal/dump")
+    public Object dump(@RequestParam(value = "directory") String directory) {
+        if (restoreStatus != null) return "restoring... " + restoreStatus;
+        if (dumpStatus != null) return "dumping... " + dumpStatus;
+        dumpDB(directory);
+        return "start dumping...";
+    }
+
+    @GetMapping(value = "/internal/dump/status")
+    public Object dumpStatus() {
+        if (restoreStatus != null) return "restoring... " + restoreStatus;
+        if (dumpStatus != null) return "dumping... " + dumpStatus;
+        return "no dump task running";
+    }
+
+    private Future<Void> restoreDB(String directory) {
+        File file = Paths.get(directory).toFile();
+        if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
+        File[] files = file.listFiles();
+        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
+        restoreStatus = 0.0;
+        int filesCount = files.length;
+        double p = 1.0 / filesCount;
+        Runnable task = () -> {
+            Arrays.stream(files)
+                    .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
+                    .forEach(f -> {
+                        try {
+                            Block[] blocks = RLPCodec.decode(Files.readAllBytes(f.toPath()), Block[].class);
+                            for (Block b : blocks) {
+                                stateDB.writeBlock(b);
+                            }
+                        } catch (Exception e) {
+                            restoreStatus = null;
+                            throw new RuntimeException(e);
+                        }
+                        restoreStatus += p;
+                    });
+            restoreStatus = null;
+        };
+        return CompletableFuture.runAsync(task);
+    }
+
+    private Future<Void> dumpDB(String directory) {
+        File file = Paths.get(directory).toFile();
+        if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
+        dumpStatus = 0.0;
+        int last = (int) bc.getLastConfirmedBlock().nHeight;
+        return CompletableFuture
+                .runAsync(() -> {
+                    int blocksPerDump = 100000;
+                    int start = 0;
+                    int i = 0;
+                    while (true) {
+                        List<Block> all = bc.getCanonicalBlocks(start, blocksPerDump);
+                        Path path =
+                                Paths.get(directory,
+                                        String.format("blocks-dump.%d.rlp", i)
+                                );
+                        try {
+                            Files.write(path, RLPCodec.encode(all), StandardOpenOption.WRITE);
+                        } catch (Exception e) {
+                            dumpStatus = null;
+                            throw new RuntimeException(e);
+                        }
+                        if (all.size() < blocksPerDump) break;
+                        start = (int) (all.get(all.size() - 1).nHeight + 1);
+                        dumpStatus = all.get(all.size() - 1).nHeight * 1.0 / last;
+                        i++;
+                    }
+                    dumpStatus = null;
+                });
+    }
+
+
     @GetMapping(value = "/internal/getTxrecordFromAddress", produces = "application/json")
     public Object getTransactionsByTo(
             @RequestParam(value = "from", required = false) String from,
@@ -118,7 +219,7 @@ public class InternalController {
         if (offset == null) {
             offset = 0;
         }
-        if (limit == null || limit <= 0 ) {
+        if (limit == null || limit <= 0) {
             limit = Integer.MAX_VALUE;
         }
 

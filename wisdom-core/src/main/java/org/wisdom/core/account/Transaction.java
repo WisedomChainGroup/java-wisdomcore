@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
@@ -205,32 +206,41 @@ public class Transaction {
         return hashCache;
     }
 
+    @RLP(0)
     public int version;
 
+    @RLP(1)
     @Min(0)
     @Max(TYPE_MAX)
     public int type;
 
+    @RLP(2)
     @Min(0)
     public long nonce;
 
+    @RLP(3)
     @NotNull
     @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE)
     public byte[] from;
 
+    @RLP(4)
     // unit brain
     @Min(0)
     public long gasPrice;
 
+    @RLP(5)
     @Min(0)
     public long amount;
 
+    @RLP(6)
     public byte[] payload;
 
+    @RLP(7)
     @NotNull
     @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE)
     public byte[] to;
 
+    @RLP(8)
     @NotNull
     @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE)
     public byte[] signature;

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
@@ -223,43 +224,52 @@ public class Block {
     }
 
     // block version 0 ~ 2^32-1
+    @RLP(0)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
     public long nVersion;
 
+    @RLP(1)
     // parent block hash
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashPrevBlock;
 
     // merkle root of transactions
+    @RLP(2)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashMerkleRoot;
 
+    @RLP(3)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashMerkleState;
 
+    @RLP(4)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashMerkleIncubate;
 
     // 32bit unsigned block number
+    @RLP(5)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
     public long nHeight;
 
     // 32bit unsigned unix epoch
+    @RLP(6)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
     public long nTime;
 
+    @RLP(7)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] nBits;
 
     // random value from proposer 256bit, next block's seed
+    @RLP(8)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] nNonce;
@@ -267,6 +277,7 @@ public class Block {
     @Size(max = MAX_NOTICE_LENGTH)
     public byte[] blockNotice;
 
+    @RLP(9)
     public List<Transaction> body;
 
     @JsonIgnore
