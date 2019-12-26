@@ -84,10 +84,10 @@ public class AccountRule implements BlockRule {
             }
             payloads.add(k);
         }
-        if(!validateIncubator){//交易所、默认模式
-            if(block.nHeight > 0){
-                CheckoutTransactions packageCheckOut=new CheckoutTransactions();
-                packageCheckOut.init(block,map,peningTransPool,stateDB,transactionCheck,whitelistTransaction,rateTable,merkleRule);
+        if (!validateIncubator) {//交易所、默认模式
+            if (block.nHeight > 0) {
+                CheckoutTransactions packageCheckOut = new CheckoutTransactions();
+                packageCheckOut.init(block, map, peningTransPool, stateDB, transactionCheck, whitelistTransaction, rateTable, merkleRule);
                 return packageCheckOut.CheckoutResult();
             }
         }

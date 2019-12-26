@@ -28,10 +28,10 @@ public class AssetIncreased implements AnalysisContract {
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         AssetIncreased assetIncreased = RLPElement.fromEncoded(payload).as(AssetIncreased.class);
-        if(assetIncreased==null){
+        if (assetIncreased == null) {
             return false;
         }
-        this.amount= assetIncreased.amount;
+        this.amount = assetIncreased.amount;
         return true;
     }
 
@@ -40,7 +40,7 @@ public class AssetIncreased implements AnalysisContract {
         return RLPCodec.encode(AssetIncreased.builder().amount(this.amount).build());
     }
 
-    public static AssetIncreased getAssetIncreased(byte[] Rlpbyte){
+    public static AssetIncreased getAssetIncreased(byte[] Rlpbyte) {
         return RLPElement.fromEncoded(Rlpbyte).as(AssetIncreased.class);
     }
 }

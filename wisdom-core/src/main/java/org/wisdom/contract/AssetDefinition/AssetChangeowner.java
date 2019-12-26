@@ -28,10 +28,10 @@ public class AssetChangeowner implements AnalysisContract {
     @Override
     public boolean RLPdeserialization(byte[] payload) {
         AssetChangeowner assetChangeowner = RLPCodec.decode(payload, AssetChangeowner.class);
-        if(assetChangeowner==null){
+        if (assetChangeowner == null) {
             return false;
         }
-        this.newowner= assetChangeowner.getNewowner();
+        this.newowner = assetChangeowner.getNewowner();
         return true;
     }
 
@@ -40,7 +40,7 @@ public class AssetChangeowner implements AnalysisContract {
         return RLPCodec.encode(AssetChangeowner.builder().newowner(this.newowner).build());
     }
 
-    public static AssetChangeowner getAssetChangeowner(byte[] Rlpbyte){
+    public static AssetChangeowner getAssetChangeowner(byte[] Rlpbyte) {
         return RLPCodec.decode(Rlpbyte, AssetChangeowner.class);
     }
 }

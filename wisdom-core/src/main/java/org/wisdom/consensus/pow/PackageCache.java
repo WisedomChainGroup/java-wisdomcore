@@ -44,6 +44,8 @@ public class PackageCache {
 
     private List<Transaction> transactionList;
 
+    private Set<String> AssetcodeSet;
+
     private boolean exit;
 
     private boolean state;
@@ -73,6 +75,7 @@ public class PackageCache {
     public PackageCache() {
         this.removemap = new IdentityHashMap<>();
         this.transactionList = new ArrayList<>();
+        this.AssetcodeSet = new HashSet<>();
         this.exit = false;
         this.state = false;
     }
@@ -169,20 +172,20 @@ public class PackageCache {
     }
 
     private void CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
-        long balance=fromaccount.getBalance();
-        balance-=tx.getFee();
-        if(balance<0){
+        long balance = fromaccount.getBalance();
+        balance -= tx.getFee();
+        if (balance < 0) {
             AddRemoveMap(publicKeyHash, tx.nonce);
             return;
         }
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tx.nonce);
         accountState.setAccount(fromaccount);
-        if(tx.getContractType()==0){//代币
+        if (tx.getContractType() == 0) {//代币
             AccountState assetaccountstate = getMapAccountState(tx);
             byte[] contract = assetaccountstate.getContract();
             Asset asset = Asset.getAsset(contract);
-            if (asset==null) {
+            if (asset == null) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 logger.error("Block packaging error, " + Hex.encodeHexString(tx.to) + ": asset definition RLP error");
                 return;
@@ -194,57 +197,57 @@ public class PackageCache {
                     return;
                 }
                 AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(ByteUtil.bytearrayridfirst(tx.payload));
-                if(Arrays.equals(owner,assetChangeowner.getNewowner())){
+                if (Arrays.equals(owner, assetChangeowner.getNewowner())) {
                     AddRemoveMap(publicKeyHash, tx.nonce);
                     return;
                 }
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
-                newMap.put(Hex.encodeHexString(tx.to),assetaccountstate);
+                newMap.put(Hex.encodeHexString(tx.to), assetaccountstate);
             } else if (tx.getMethodType() == 1) {//资产转账
-                AssetTransfer assetTransfer=AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
-                Map<byte[],Long> maps=accountState.getTokensMap();
-                long tokenbalance=maps.get(tx.to);
-                tokenbalance-=assetTransfer.getValue();
-                if(tokenbalance<0){
+                AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+                Map<byte[], Long> maps = accountState.getTokensMap();
+                long tokenbalance = maps.get(tx.to);
+                tokenbalance -= assetTransfer.getValue();
+                if (tokenbalance < 0) {
                     AddRemoveMap(publicKeyHash, tx.nonce);
                     return;
                 }
-                maps.put(tx.to,tokenbalance);
+                maps.put(tx.to, tokenbalance);
                 accountState.setTokensMap(maps);
 
                 //to
-                AccountState toaccountstate=getKeyAccounState(assetTransfer.getTo());
-                Map<byte[],Long> tomaps=toaccountstate.getTokensMap();
-                long tobalance=0;
-                if(tomaps.containsKey(tx.to)){
-                    tobalance=tomaps.get(tx.to);
+                AccountState toaccountstate = getKeyAccounState(assetTransfer.getTo());
+                Map<byte[], Long> tomaps = toaccountstate.getTokensMap();
+                long tobalance = 0;
+                if (tomaps.containsKey(tx.to)) {
+                    tobalance = tomaps.get(tx.to);
                 }
-                tobalance+=assetTransfer.getValue();
-                tomaps.put(tx.to,tobalance);
+                tobalance += assetTransfer.getValue();
+                tomaps.put(tx.to, tobalance);
                 toaccountstate.setTokensMap(tomaps);
-                newMap.put(Hex.encodeHexString(assetTransfer.getTo()),toaccountstate);
+                newMap.put(Hex.encodeHexString(assetTransfer.getTo()), toaccountstate);
             } else {//increased
-                if( asset.getAllowincrease()==0 || !Arrays.equals(asset.getOwner(),tx.from)
-                        || Arrays.equals(asset.getOwner(), new byte[32])){
+                if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
+                        || Arrays.equals(asset.getOwner(), new byte[32])) {
                     AddRemoveMap(publicKeyHash, tx.nonce);
                     return;
                 }
-                AssetIncreased assetIncreased=AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
-                long totalamount=asset.getTotalamount();
-                totalamount+=assetIncreased.getAmount();
+                AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
+                long totalamount = asset.getTotalamount();
+                totalamount += assetIncreased.getAmount();
                 asset.setTotalamount(totalamount);
                 assetaccountstate.setContract(asset.RLPserialization());
-                newMap.put(Hex.encodeHexString(tx.to),assetaccountstate);
+                newMap.put(Hex.encodeHexString(tx.to), assetaccountstate);
 
-                Map<byte[],Long> tokensmap=accountState.getTokensMap();
-                long tokensbalance=tokensmap.get(tx.to);
-                tokensbalance+=assetIncreased.getAmount();
-                tokensmap.put(tx.to,tokensbalance);
+                Map<byte[], Long> tokensmap = accountState.getTokensMap();
+                long tokensbalance = tokensmap.get(tx.to);
+                tokensbalance += assetIncreased.getAmount();
+                tokensmap.put(tx.to, tokensbalance);
                 accountState.setTokensMap(tokensmap);
             }
         }
-        newMap.put(publicKeyHash,accountState);
+        newMap.put(publicKeyHash, accountState);
     }
 
     private void CheckDeployContract(Transaction tx) {
@@ -255,10 +258,16 @@ public class PackageCache {
                 return;
             }
             //判断forkdb中是否有重复的代币合约code存在
-            if(stateDB.hasAssetCode(parenthash,DEPLOY_CONTRACT.ordinal(),asset.getCode())){
+            if (stateDB.hasAssetCode(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
+            //同一区块是否重复 Asset code
+            if (AssetcodeSet.contains(asset.getCode())) {
+                AddRemoveMap(publicKeyHash, tx.nonce);
+                return;
+            }
+            AssetcodeSet.add(asset.getCode());
         }
     }
 
@@ -284,8 +293,8 @@ public class PackageCache {
         return true;
     }
 
-    private AccountState getKeyAccounState(byte[] key){
-        String keyHex=Hex.encodeHexString(key);
+    private AccountState getKeyAccounState(byte[] key) {
+        String keyHex = Hex.encodeHexString(key);
         if (accountStateMap.containsKey(keyHex)) {
             return accountStateMap.get(keyHex);
         } else {

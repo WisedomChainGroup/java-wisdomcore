@@ -42,11 +42,11 @@ public class PackageMiner {
         if (accountStateMap.size() == 0) {
             return new ArrayList<>();
         }
-        PackageCache packageCache=new PackageCache();
-        packageCache.init(peningTransPool,stateDB,merkleRule,waitCount,rateTable,
-                accountStateMap,maps,parenthash,block,height,block.size());
-        List<Transaction> packageTransaction=packageCache.getRightTransactions();
-        if(packageTransaction==null){
+        PackageCache packageCache = new PackageCache();
+        packageCache.init(peningTransPool, stateDB, merkleRule, waitCount, rateTable,
+                accountStateMap, maps, parenthash, block, height, block.size());
+        List<Transaction> packageTransaction = packageCache.getRightTransactions();
+        if (packageTransaction == null) {
             return new ArrayList<>();
         }
         return packageTransaction;

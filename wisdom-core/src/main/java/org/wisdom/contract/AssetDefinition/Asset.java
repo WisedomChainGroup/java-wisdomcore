@@ -14,8 +14,8 @@ import java.util.List;
 @AllArgsConstructor
 public class Asset implements AnalysisContract {
 
-    public enum AssetRule{
-        changeowner,transfer,increased
+    public enum AssetRule {
+        changeowner, transfer, increased
     }
 
     @RLP(0)
@@ -38,37 +38,37 @@ public class Asset implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        Asset asset= RLPElement.fromEncoded(payload).as(Asset.class);
-        if(asset==null){
+        Asset asset = RLPElement.fromEncoded(payload).as(Asset.class);
+        if (asset == null) {
             return false;
         }
-        this.code=asset.getCode();
-        this.offering=asset.getOffering();
-        this.totalamount=asset.getTotalamount();
-        this.createuser=asset.getCreateuser();
-        this.owner=asset.getOwner();
-        this.allowincrease=asset.getAllowincrease();
+        this.code = asset.getCode();
+        this.offering = asset.getOffering();
+        this.totalamount = asset.getTotalamount();
+        this.createuser = asset.getCreateuser();
+        this.owner = asset.getOwner();
+        this.allowincrease = asset.getAllowincrease();
         return true;
     }
 
     @Override
     public byte[] RLPserialization() {
         return RLPCodec.encode(new Asset(
-                                        this.getCode(),
-                                        this.getOffering(),
-                                        this.getTotalamount(),
-                                        this.getCreateuser(),
-                                        this.getOwner(),
-                                        this.getAllowincrease()
-                                ));
+                this.getCode(),
+                this.getOffering(),
+                this.getTotalamount(),
+                this.getCreateuser(),
+                this.getOwner(),
+                this.getAllowincrease()
+        ));
     }
 
 
-    public Asset copy(){
-        return new Asset(code,offering,totalamount,createuser,owner,allowincrease);
+    public Asset copy() {
+        return new Asset(code, offering, totalamount, createuser, owner, allowincrease);
     }
 
-    public static Asset getAsset(byte[] Rlpbyte){
-        return  RLPElement.fromEncoded(Rlpbyte).as(Asset.class);
+    public static Asset getAsset(byte[] Rlpbyte) {
+        return RLPElement.fromEncoded(Rlpbyte).as(Asset.class);
     }
 }

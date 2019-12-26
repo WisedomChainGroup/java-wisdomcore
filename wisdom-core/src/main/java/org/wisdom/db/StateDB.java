@@ -422,17 +422,17 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    public boolean hasAssetCode(byte[] hash, int type, String code){
+    public boolean hasAssetCode(byte[] hash, int type, String code) {
         readWriteLock.readLock().lock();
-        try{
-            return hasAssetCodeUnsafe(hash,type,code);
-        }finally {
+        try {
+            return hasAssetCodeUnsafe(hash, type, code);
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     private boolean hasAssetCodeUnsafe(byte[] blockHash, int type, String code) {
-        if(Arrays.equals(latestConfirmed.getHash(), blockHash)){
+        if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
             return assetCode.isContainsKey(code);
         }
         Block b = blocksCache.getBlock(blockHash);
@@ -440,10 +440,10 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return true;
         }
         for (Transaction t : b.body) {
-            if(t.payload != null && t.type == type){
-                if(t.payload[0]==0){//代币
-                    Asset asset=Asset.getAsset(ByteUtil.bytearrayridfirst(t.payload));
-                    if(asset.getCode().equals(code)){
+            if (t.payload != null && t.type == type) {
+                if (t.payload[0] == 0) {//代币
+                    Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(t.payload));
+                    if (asset.getCode().equals(code)) {
                         return true;
                     }
                 }
