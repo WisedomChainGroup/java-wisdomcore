@@ -15,6 +15,8 @@ import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
+import org.wisdom.contract.AssetCode;
+import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
 import org.wisdom.core.WisdomBlockChain;
@@ -33,6 +35,7 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.ByteUtil;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
@@ -91,6 +94,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Autowired
     private Block genesis;
+
+    @Autowired
+    private AssetCode assetCode;
 
     public ValidatorStateFactory getValidatorStateFactory() {
         return validatorStateFactory;
@@ -414,6 +420,36 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         } finally {
             readWriteLock.readLock().unlock();
         }
+    }
+
+    public boolean hasAssetCode(byte[] hash, int type, String code){
+        readWriteLock.readLock().lock();
+        try{
+            return hasAssetCodeUnsafe(hash,type,code);
+        }finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private boolean hasAssetCodeUnsafe(byte[] blockHash, int type, String code) {
+        if(Arrays.equals(latestConfirmed.getHash(), blockHash)){
+            return assetCode.isContainsKey(code);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return true;
+        }
+        for (Transaction t : b.body) {
+            if(t.payload != null && t.type == type){
+                if(t.payload[0]==0){//代币
+                    Asset asset=Asset.getAsset(ByteUtil.bytearrayridfirst(t.payload));
+                    if(asset.getCode().equals(code)){
+                        return true;
+                    }
+                }
+            }
+        }
+        return hasAssetCodeUnsafe(b.hashPrevBlock, type, code);
     }
 
     private boolean hasPayloadUnsafe(byte[] blockHash, int type, byte[] payload) {

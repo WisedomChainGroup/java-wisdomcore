@@ -33,11 +33,11 @@ public class AssetCode {
 
     public boolean isContainsKey(String code){
         Optional<byte[]> value=leveldb.get(AssetCode.getBytes());
-        value.ifPresent(bytes->{
-            assetMap=RLPCodec.decode(bytes, MapRLPUtil.MapWrapper.class);
-        });
-        if(assetMap.map.containsKey(code)){
-            return true;
+        if(value.isPresent()){
+            assetMap=RLPCodec.decode(value.get(), MapRLPUtil.MapWrapper.class);
+            if(assetMap.map.containsKey(code)){
+                return true;
+            }
         }
         return false;
     }
