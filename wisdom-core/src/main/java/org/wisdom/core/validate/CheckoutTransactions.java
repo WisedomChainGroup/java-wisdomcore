@@ -26,6 +26,8 @@ import org.wisdom.util.ByteUtil;
 import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.*;
+import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.CHANGEOWNER;
+import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.TRANSFER;
 
 public class CheckoutTransactions {
 
@@ -152,7 +154,7 @@ public class CheckoutTransactions {
             AccountState assetaccountstate = getMapAccountState(tx);
             byte[] contract = assetaccountstate.getContract();
             Asset asset = Asset.getAsset(contract);
-            if (tx.getMethodType() == 0) {//更换所有者
+            if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//更换所有者
                 byte[] owner = asset.getOwner();
                 if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
                     peningTransPool.removeOne(publicKeyHash, tx.nonce);
@@ -162,7 +164,7 @@ public class CheckoutTransactions {
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
                 map.put(Hex.encodeHexString(tx.to), assetaccountstate);
-            } else if (tx.getMethodType() == 1) {//资产转账
+            } else if (tx.getMethodType() == TRANSFER.ordinal()) {//资产转账
                 AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
                 Map<byte[], Long> maps = accountState.getTokensMap();
                 long tokenbalance = maps.get(tx.to);

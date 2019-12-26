@@ -15,7 +15,7 @@ import java.util.List;
 public class Asset implements AnalysisContract {
 
     public enum AssetRule {
-        changeowner, transfer, increased
+        CHANGEOWNER, TRANSFER, INCREASED
     }
 
     @RLP(0)
