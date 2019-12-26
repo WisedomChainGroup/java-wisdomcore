@@ -38,17 +38,16 @@ public class Asset implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        try{
-            Asset asset= RLPElement.fromEncoded(payload).as(Asset.class);
-            this.code=asset.getCode();
-            this.offering=asset.getOffering();
-            this.totalamount=asset.getTotalamount();
-            this.createuser=asset.getCreateuser();
-            this.owner=asset.getOwner();
-            this.allowincrease=asset.getAllowincrease();
-        }catch (Exception e){
+        Asset asset= RLPElement.fromEncoded(payload).as(Asset.class);
+        if(asset==null){
             return false;
         }
+        this.code=asset.getCode();
+        this.offering=asset.getOffering();
+        this.totalamount=asset.getTotalamount();
+        this.createuser=asset.getCreateuser();
+        this.owner=asset.getOwner();
+        this.allowincrease=asset.getAllowincrease();
         return true;
     }
 
@@ -64,7 +63,12 @@ public class Asset implements AnalysisContract {
                                 ));
     }
 
+
     public Asset copy(){
         return new Asset(code,offering,totalamount,createuser,owner,allowincrease);
+    }
+
+    public static Asset getAsset(byte[] Rlpbyte){
+        return  RLPElement.fromEncoded(Rlpbyte).as(Asset.class);
     }
 }

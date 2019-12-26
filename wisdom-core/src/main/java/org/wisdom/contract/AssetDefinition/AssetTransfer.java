@@ -31,14 +31,13 @@ public class AssetTransfer implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        try{
-            AssetTransfer assetTransfer = RLPCodec.decode(payload, AssetTransfer.class);
-            this.from= assetTransfer.getFrom();
-            this.to= assetTransfer.getTo();
-            this.value= assetTransfer.getValue();
-        }catch (Exception e){
+        AssetTransfer assetTransfer = RLPCodec.decode(payload, AssetTransfer.class);
+        if(assetTransfer==null){
             return false;
         }
+        this.from= assetTransfer.getFrom();
+        this.to= assetTransfer.getTo();
+        this.value= assetTransfer.getValue();
         return true;
     }
 
@@ -48,5 +47,9 @@ public class AssetTransfer implements AnalysisContract {
                                         .from(this.from)
                                         .to(this.to)
                                         .value(this.value).build());
+    }
+
+    public static AssetTransfer getAssetTransfer(byte[] Rlpbyte){
+        return RLPCodec.decode(Rlpbyte, AssetTransfer.class);
     }
 }

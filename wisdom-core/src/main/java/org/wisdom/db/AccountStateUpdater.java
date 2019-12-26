@@ -11,10 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
-import org.wisdom.account.PublicKeyHash;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.AssetDefinition.AssetChangeowner;
+import org.wisdom.contract.AssetDefinition.AssetIncreased;
+import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -23,7 +25,6 @@ import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
-import org.wisdom.keystore.crypto.PublicKey;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -118,9 +119,29 @@ public class AccountStateUpdater {
             case 0x07://DEPLOY_CONTRACT
                 return getTransactionHash(transaction);
             case 0x08://CALL_CONTRACT
-//                return getTransactionPayload(transaction);
+                return getTransactionPayload(transaction);
         }
         return new ByteArraySet();
+    }
+
+    private Set<byte[]> getTransactionPayload(Transaction tx) {
+        Set<byte[]> bytes = new ByteArraySet();
+        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        bytes.add(fromhash);
+        if(tx.getContractType()==0){//代币
+            byte[] rlpbyte=ByteUtil.bytearrayridfirst(tx.payload);
+            switch (tx.getContractType()){
+                case 0://更换所有者
+                case 2://增发
+                    bytes.add(tx.to);
+                    break;
+                case 1://转发资产
+                    AssetTransfer assetTransfer=AssetTransfer.getAssetTransfer(rlpbyte);
+                    bytes.add(assetTransfer.getTo());
+                    break;
+            }
+        }
+        return bytes;
     }
 
     private Set<byte[]> getTransactionHash(Transaction tx) {
@@ -130,9 +151,10 @@ public class AccountStateUpdater {
         bytes.add(fromhash);
         if(tx.getContractType()==0){//代币
             byte[] rlpbyte=ByteUtil.bytearrayridfirst(tx.payload);
-            Asset asset=new Asset();
-            asset.RLPdeserialization(rlpbyte);
-            bytes.add(RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())));
+            Asset asset=Asset.getAsset(rlpbyte);
+            if(!Arrays.equals(fromhash,RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())))){
+                bytes.add(RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())));
+            }
         }
         return bytes;
     }
@@ -255,10 +277,114 @@ public class AccountStateUpdater {
     }
 
     private AccountState UpdateDeployContract(Transaction tx, AccountState accountState) {
+        Account account=accountState.getAccount();
+        if(tx.getContractType()==0) {//代币
+            byte[] rlpbyte=ByteUtil.bytearrayridfirst(tx.payload);
+            Asset asset=Asset.getAsset(rlpbyte);
+
+            byte[] fromhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+            if(Arrays.equals(fromhash, account.getPubkeyHash()) &&
+                    Arrays.equals(fromhash,RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner()))) ){//from和owner相同
+                long balance=account.getBalance();
+                balance-=tx.getFee();
+                account.setBalance(balance);
+                account.setNonce(tx.nonce);
+                account.setBlockHeight(tx.height);
+                accountState.setAccount(account);
+
+                Map<byte[], Long> tokensmap=accountState.getTokensMap();
+                tokensmap.put(RipemdUtility.ripemd160(tx.getHash()),asset.getTotalamount());
+                accountState.setTokensMap(tokensmap);
+            }
+            if(Arrays.equals(RipemdUtility.ripemd160(tx.getHash()),account.getPubkeyHash())){//合约hash
+                accountState.setType(1);
+                accountState.setContract(rlpbyte);
+            }
+            if(Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())),account.getPubkeyHash())){//owner
+                Map<byte[], Long> tokensmap=accountState.getTokensMap();
+                tokensmap.put(RipemdUtility.ripemd160(tx.getHash()),asset.getTotalamount());
+                accountState.setTokensMap(tokensmap);
+            }
+        }
         return accountState;
     }
 
     private AccountState UpdateCallContract(Transaction tx, AccountState accountState) {
+        Account account = accountState.getAccount();
+        byte[] rlpbyte=ByteUtil.bytearrayridfirst(tx.payload);
+        byte[] fromhash=RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        if(tx.getContractType()==0){//合约代币
+            switch (tx.getMethodType()){
+                case 0://更改所有者
+                    if(Arrays.equals(fromhash,account.getPubkeyHash())){//事务from
+                        long balance=account.getBalance();
+                        balance-=tx.getFee();
+                        account.setBalance(balance);
+                        account.setNonce(tx.nonce);
+                        account.setBlockHeight(tx.height);
+                        accountState.setAccount(account);
+                    }
+                    if(Arrays.equals(tx.to,account.getPubkeyHash())){//合约
+                        AssetChangeowner assetChangeowner=AssetChangeowner.getAssetChangeowner(rlpbyte);
+
+                        byte[] contract=accountState.getContract();
+                        Asset asset=Asset.getAsset(contract);
+                        asset.setOwner(assetChangeowner.getNewowner());
+                        accountState.setContract(asset.RLPserialization());
+                    }
+                    break;
+                case 1://转发资产
+                    AssetTransfer assetTransfer=AssetTransfer.getAssetTransfer(rlpbyte);
+                    if(Arrays.equals(fromhash,account.getPubkeyHash())){//事务from
+                        long balance=account.getBalance();
+                        balance-=tx.getFee();
+                        account.setBalance(balance);
+                        account.setNonce(tx.nonce);
+                        account.setBlockHeight(tx.height);
+                        accountState.setAccount(account);
+                    }
+                    if(Arrays.equals(fromhash,account.getPubkeyHash())){//合约from
+                        Map<byte[],Long> tokensmap=accountState.getTokensMap();
+                        long balance=tokensmap.get(tx.to);
+                        balance-=assetTransfer.getValue();
+                        tokensmap.put(tx.to,balance);
+                        accountState.setTokensMap(tokensmap);
+                    }
+                    if(Arrays.equals(assetTransfer.getTo(),account.getPubkeyHash())){//to
+                        Map<byte[],Long> tokensmap=accountState.getTokensMap();
+                        long balance=tokensmap.get(tx.to);
+                        balance+=assetTransfer.getValue();
+                        tokensmap.put(tx.to,balance);
+                        accountState.setTokensMap(tokensmap);
+                    }
+                    break;
+                case 2://增发
+                    AssetIncreased assetIncreased=AssetIncreased.getAssetIncreased(rlpbyte);
+                    if(Arrays.equals(fromhash,account.getPubkeyHash())) {//事务from
+                        long balance=account.getBalance();
+                        balance-=tx.getFee();
+                        account.setBalance(balance);
+                        account.setNonce(tx.nonce);
+                        account.setBlockHeight(tx.height);
+                        accountState.setAccount(account);
+
+                        Map<byte[],Long> tokensmap=accountState.getTokensMap();
+                        long tokenbalance=tokensmap.get(tx.to);
+                        tokenbalance+=assetIncreased.getAmount();
+                        tokensmap.put(tx.to,tokenbalance);
+                        accountState.setTokensMap(tokensmap);
+                    }
+                    if(Arrays.equals(tx.to,account.getPubkeyHash())){//合约
+                        byte[] contract=accountState.getContract();
+                        Asset asset=Asset.getAsset(contract);
+                        long totalbalance=asset.getTotalamount();
+                        totalbalance+=assetIncreased.getAmount();
+                        asset.setTotalamount(totalbalance);
+                        accountState.setContract(asset.RLPserialization());
+                    }
+                    break;
+            }
+        }
         return accountState;
     }
 
