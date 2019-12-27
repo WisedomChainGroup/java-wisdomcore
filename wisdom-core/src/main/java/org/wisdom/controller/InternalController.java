@@ -16,6 +16,8 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -176,23 +178,35 @@ public class InternalController {
         return CompletableFuture
                 .runAsync(() -> {
                     int blocksPerDump = 100000;
+                    int blocksPerDumpIndex = 100000;
                     int start = 0;
                     int i = 0;
                     while (true) {
-                        List<Block> all = bc.getCanonicalBlocks(start, blocksPerDump);
+
+                        List<Block> all = new ArrayList<>();
+                        do {
+                            List<Block> lists = bc.getCanonicalBlocks(start, 1000);
+                            all.addAll(lists);
+                            start += 1000;
+                        } while (start < blocksPerDumpIndex);
                         Path path =
                                 Paths.get(directory,
                                         String.format("blocks-dump.%d.rlp", i)
                                 );
                         try {
-                            Files.write(path, RLPCodec.encode(all), StandardOpenOption.WRITE);
+                            FileOutputStream out = new FileOutputStream(path.toFile());
+                            out.write(RLPCodec.encode(all));
+                            out.flush();
+                            out.close();
                         } catch (Exception e) {
                             dumpStatus = null;
                             throw new RuntimeException(e);
                         }
-                        if (all.size() < blocksPerDump) break;
-                        start = (int) (all.get(all.size() - 1).nHeight + 1);
+                        if (all.size() < blocksPerDump) {
+                            break;
+                        }
                         dumpStatus = all.get(all.size() - 1).nHeight * 1.0 / last;
+                        blocksPerDumpIndex += blocksPerDump;
                         i++;
                     }
                     dumpStatus = null;
