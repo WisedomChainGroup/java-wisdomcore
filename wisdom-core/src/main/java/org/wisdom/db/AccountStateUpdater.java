@@ -571,8 +571,7 @@ public class AccountStateUpdater {
         }
         incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
         map.put(tx.payload, incubator);
-        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
-        map.put(tx.payload, incubator);
+        accountState.setInterestMap(map);
 
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
