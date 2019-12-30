@@ -1,9 +1,16 @@
 package org.wisdom.bean;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.account.Account;
+import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.crypto.ed25519.Ed25519;
 import org.wisdom.crypto.ed25519.Ed25519KeyPair;
@@ -13,10 +20,16 @@ import org.wisdom.db.AccountState;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.*;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest
 public class BeanTest {
+
+    @Autowired
+    private AccountDB accountDB;
 
     @Test
     public void Test(){
@@ -49,6 +62,20 @@ public class BeanTest {
 
         AccountState accountStates= RLPCodec.decode(bytes,AccountState.class);
         assert accountStates.equals(accountState);
+
+    }
+
+    @Test
+    public void Test2() throws IOException {
+        FileInputStream in = new FileInputStream("C:\\Users\\Administrator\\Desktop\\accounts-dump.800000.rlp");
+        byte[][] bytesss= RLPCodec.decode(IOUtils.toByteArray(in), byte[][].class);
+        List<byte[]> list= Arrays.asList(bytesss);
+        for(byte[] b:list){
+            AccountState accountState=accountDB.getAccounstate(b,800000);
+            if(accountState==null){
+                System.out.println(Hex.encodeHexString(b));
+            }
+        }
 
     }
 }
