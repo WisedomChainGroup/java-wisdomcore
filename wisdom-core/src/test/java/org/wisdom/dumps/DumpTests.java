@@ -6,13 +6,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.util.ByteArraySet;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.AccountState;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +32,9 @@ import java.util.stream.Collectors;
 public class DumpTests {
     @Autowired
     private WisdomBlockChain wisdomBlockChain;
+
+    @Autowired
+    private AccountDB accountDB;
 
     private Double dumpStatus;
 
@@ -79,9 +85,11 @@ public class DumpTests {
     }
 
     @Test
-    public void dumpWorldAtHeight() throws Exception{
-        String blocksDirectory = "c:\\Users\\Sal\\Desktop\\dumps\\blocks";
-        int height = 800000;
+    public void createNewGenesis() throws Exception{
+        String blocksDirectory = "z:\\dumps\\blocks";
+        String genesisDirectory = "z:\\dumps\\accounts";
+        final Block[] newGenesis = {null};
+        int height = 800040;
         byte[] zeroPublicKey = new byte[32];
         byte[] zeroPublicKeyHash = new byte[20];
 
@@ -106,6 +114,9 @@ public class DumpTests {
                     }
                 })
                 .filter(b -> b.nHeight <= height)
+                .peek(b -> {
+                    if(b.nHeight == height) newGenesis[0] = b;
+                })
                 .flatMap(b -> b.body.stream())
                 .forEach(tx -> {
                     if(!Arrays.equals(zeroPublicKey, tx.from))
@@ -115,8 +126,24 @@ public class DumpTests {
                 });
 
         System.out.println(set.size());
-
+        assert newGenesis[0] != null;
+//        List<AccountState> states = set.stream()
+//                .map(x -> {
+//                    try{
+//                        return accountDB.getAccounstate(x, height);
+//                    }catch (Exception e){
+//                        e.printStackTrace();
+//                        System.out.println(HexBytes.encode(x));
+//                        return null;
+//                    }
+//                }).collect(Collectors.toList());
+//        Path path =
+//                Paths.get(genesisDirectory,
+//                        String.format("accounts-dump.%d.rlp", height)
+//                );
+//        Files.write(path, RLPCodec.encode(states), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
         restoreStatus = null;
 
     }
+
 }

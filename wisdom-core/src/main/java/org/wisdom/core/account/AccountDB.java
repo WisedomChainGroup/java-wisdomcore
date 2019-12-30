@@ -18,6 +18,7 @@
 
 package org.wisdom.core.account;
 
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tdf.common.util.ByteArrayMap;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Component
+@Setter
 public class AccountDB {
     public static final Logger logger = LoggerFactory.getLogger(AccountDB.class);
     @Autowired

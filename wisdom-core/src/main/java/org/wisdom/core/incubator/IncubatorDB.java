@@ -18,6 +18,7 @@
 
 package org.wisdom.core.incubator;
 
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@Setter
 public class IncubatorDB {
 
     @Autowired

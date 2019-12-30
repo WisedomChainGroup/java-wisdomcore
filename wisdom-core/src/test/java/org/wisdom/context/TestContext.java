@@ -15,6 +15,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.core.Block;
 import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 
@@ -53,5 +55,20 @@ public class TestContext {
     @Bean
     public JSONEncodeDecoder jsonEncodeDecoder(){
         return new JSONEncodeDecoder();
+    }
+
+    @Bean
+    public IncubatorDB incubatorDB(JdbcTemplate jdbcTemplate){
+        IncubatorDB incubatorDB = new IncubatorDB();
+        incubatorDB.setTmpl(jdbcTemplate);
+        return incubatorDB;
+    }
+
+    @Bean
+    public AccountDB accountDB(JdbcTemplate jdbcTemplate, IncubatorDB incubatorDB){
+        AccountDB db = new AccountDB();
+        db.setTmpl(jdbcTemplate);
+        db.setIncubatorDB(incubatorDB);
+        return db;
     }
 }
