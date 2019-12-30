@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: 'jdbc:postgresql://192.168.1.40:5433/postgres'
+    username: 'replica'
+    password: 'replica'
+    type: 'org.apache.commons.dbcp2.BasicDataSource'
+
+
+
+wisdom:
+  consensus:
+    genesis: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator.json'
+
+clear-data: 'false'
