@@ -9,6 +9,7 @@ import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
+import org.tdf.rlp.RLPList;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
@@ -88,10 +89,10 @@ public class DumpTests {
     @Test
     public void createNewGenesis() throws Exception{
         String blocksDirectory = "z:\\dumps\\blocks";
-        String genesisDirectory = "z:\\dumps\\accounts";
-        TimeUnit.SECONDS.sleep(5);
-        final Block[] newGenesis = {null};
+        String outputDirectory = "z:\\dumps\\accounts";
         int height = 800040;
+
+        final Block[] newGenesis = {null};
         byte[] zeroPublicKey = new byte[32];
         byte[] zeroPublicKeyHash = new byte[20];
 
@@ -100,9 +101,7 @@ public class DumpTests {
         if (!file.isDirectory()) throw new RuntimeException(blocksDirectory + " is not a valid directory");
         File[] files = file.listFiles();
         if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        restoreStatus = 0.0;
         int filesCount = files.length;
-        double p = 1.0 / filesCount;
         ByteArraySet set = new ByteArraySet();
 
         Arrays.stream(files)
@@ -121,10 +120,14 @@ public class DumpTests {
                 })
                 .flatMap(b -> b.body.stream())
                 .forEach(tx -> {
-                    if(!Arrays.equals(zeroPublicKey, tx.from))
-                        set.add(PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash());
-                    if(!Arrays.equals(zeroPublicKeyHash, tx.to))
+                    if(!Arrays.equals(zeroPublicKey, tx.from)){
+                        assert tx.from.length == 32 || tx.from.length == 20;
+                        set.add(tx.from.length == 32 ? PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash(): tx.from);
+                    }
+                    if(!Arrays.equals(zeroPublicKeyHash, tx.to)){
+                        assert tx.to.length == 20;
                         set.add(tx.to);
+                    }
                 });
         System.out.println(set.size());
         assert newGenesis[0] != null;
@@ -138,14 +141,34 @@ public class DumpTests {
                         return null;
                     }
                 }).collect(Collectors.toList());
-        set.forEach(x -> System.out.println(HexBytes.encode(x)));
         Path path =
-                Paths.get(genesisDirectory,
-                        String.format("accounts-dump.%d.rlp", height)
+                Paths.get(outputDirectory,
+                        String.format("genesis.%d.rlp", height)
                 );
-        Files.write(path, RLPCodec.encode(set), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
-        restoreStatus = null;
+        RLPElement newGenesisAccounts = RLPElement.readRLPTree(states);
+        RLPElement newGenesisData = RLPList.createEmpty(2);
+        newGenesisData.add(RLPElement.readRLPTree(newGenesis[0]));
+        newGenesisData.add(newGenesisAccounts);
 
+        Files.write(path, newGenesisData.getEncoded(),
+                StandardOpenOption.SYNC, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
     }
 
+    @Test
+    public void parse() throws Exception{
+        String genesisDirectory = "z:\\dumps\\accounts";
+        File file = Paths.get(genesisDirectory).toFile();
+        if (!file.isDirectory()) throw new RuntimeException(genesisDirectory + " is not a valid directory");
+        File[] files = file.listFiles();
+        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
+        File lastGenesis = Arrays.stream(files)
+                .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp"))
+                .sorted((x,y) -> (int) (Long.parseLong(y.getName().split("\\.")[1]) -  Long.parseLong(x.getName().split("\\.")[1])))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("unreachable"));
+        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(lastGenesis.toPath()));
+        Block genesis = el.get(0).as(Block.class);
+        AccountState[] genesisStates = el.get(1).as(AccountState[].class);
+
+    }
 }
