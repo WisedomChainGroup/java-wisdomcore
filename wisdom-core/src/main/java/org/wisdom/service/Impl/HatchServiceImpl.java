@@ -461,4 +461,27 @@ public class HatchServiceImpl implements HatchService {
             return APIResult.newFailResult(5000, "Exception error");
         }
     }
+
+    @Override
+    public Object getCoinBaseList(int height) {
+        try {
+            List<Map<String, Object>> list = accountDB.selectlistCoinBase(height);
+            int count=0;
+            Map<String, Object> maps=new HashMap<>();
+            for (Map<String, Object> map : list) {
+                if(Integer.valueOf(map.get("type").toString())==0){
+                    String toAddress=map.get("coinAddress").toString();
+                    byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
+                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00));
+                    maps.putAll(map);
+                    break;
+                }
+                count++;
+            }
+            maps.put("trancount",count);
+            return APIResult.newFailResult(2000, "SUCCESS", maps);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
 }
