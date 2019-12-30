@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.rlp.RLPCodec;
+import org.tdf.rlp.RLPElement;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestContext.class)
+// set SPRING_CONFIG_LOCATION=classpath:application-test.yml to run dump tasks
 public class DumpTests {
     @Autowired
     private WisdomBlockChain wisdomBlockChain;
@@ -71,11 +73,15 @@ public class DumpTests {
         dumpStatus = null;
     }
 
+    @Test
+    public void restoreDumps(){
+
+    }
 
     @Test
-    public void getAllPublicKeyHashes() throws Exception{
+    public void dumpWorldAtHeight() throws Exception{
         String blocksDirectory = "c:\\Users\\Sal\\Desktop\\dumps\\blocks";
-        int newGenesisHeight = 800000;
+        int height = 800000;
         byte[] zeroPublicKey = new byte[32];
         byte[] zeroPublicKeyHash = new byte[20];
 
@@ -91,22 +97,21 @@ public class DumpTests {
 
         Arrays.stream(files)
                 .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
-                .forEach(f -> {
-                    Block[] blocks;
-                    try {
-                        blocks = RLPCodec.decode(Files.readAllBytes(f.toPath()), Block[].class);
-                    } catch (IOException e) {
+                .flatMap(x -> {
+                    try{
+                        byte[] bytes = Files.readAllBytes(x.toPath());
+                        return Arrays.stream(RLPElement.fromEncoded(bytes).as(Block[].class));
+                    }catch (Exception e){
                         throw new RuntimeException(e);
                     }
-                    for (Block b : blocks) {
-                        if(b.getnHeight() > newGenesisHeight) break;
-                        for (Transaction tx : b.body) {
-                            if(!Arrays.equals(zeroPublicKey, tx.from))
-                                set.add(PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash());
-                            if(!Arrays.equals(zeroPublicKeyHash, tx.to))
-                                set.add(tx.to);
-                        }
-                    }
+                })
+                .filter(b -> b.nHeight <= height)
+                .flatMap(b -> b.body.stream())
+                .forEach(tx -> {
+                    if(!Arrays.equals(zeroPublicKey, tx.from))
+                        set.add(PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash());
+                    if(!Arrays.equals(zeroPublicKeyHash, tx.to))
+                        set.add(tx.to);
                 });
 
         System.out.println(set.size());
