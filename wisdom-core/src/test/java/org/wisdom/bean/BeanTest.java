@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLPCodec;
+import org.wisdom.context.TestContext;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.Incubator;
@@ -25,7 +26,8 @@ import java.io.IOException;
 import java.util.*;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(classes = TestContext.class)
+// SPRING_CONFIG_LOCATION=classpath:application-test.yml
 public class BeanTest {
 
     @Autowired
