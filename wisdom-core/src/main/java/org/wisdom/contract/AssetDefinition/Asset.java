@@ -31,7 +31,7 @@ public class Asset implements AnalysisContract {
     @RLP(5)
     private int allowincrease;
     @RLP(6)
-    private byte[] info;
+    private String info;
 
     @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
