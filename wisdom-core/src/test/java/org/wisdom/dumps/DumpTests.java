@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RunWith(SpringRunner.class)
@@ -88,6 +89,7 @@ public class DumpTests {
     public void createNewGenesis() throws Exception{
         String blocksDirectory = "z:\\dumps\\blocks";
         String genesisDirectory = "z:\\dumps\\accounts";
+        TimeUnit.SECONDS.sleep(5);
         final Block[] newGenesis = {null};
         int height = 800040;
         byte[] zeroPublicKey = new byte[32];
@@ -124,24 +126,24 @@ public class DumpTests {
                     if(!Arrays.equals(zeroPublicKeyHash, tx.to))
                         set.add(tx.to);
                 });
-
         System.out.println(set.size());
         assert newGenesis[0] != null;
-//        List<AccountState> states = set.stream()
-//                .map(x -> {
-//                    try{
-//                        return accountDB.getAccounstate(x, height);
-//                    }catch (Exception e){
-//                        e.printStackTrace();
-//                        System.out.println(HexBytes.encode(x));
-//                        return null;
-//                    }
-//                }).collect(Collectors.toList());
-//        Path path =
-//                Paths.get(genesisDirectory,
-//                        String.format("accounts-dump.%d.rlp", height)
-//                );
-//        Files.write(path, RLPCodec.encode(states), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
+        List<AccountState> states = set.stream()
+                .map(x -> {
+                    try{
+                        return accountDB.getAccounstate(x, height);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        System.out.println(HexBytes.encode(x));
+                        return null;
+                    }
+                }).collect(Collectors.toList());
+        set.forEach(x -> System.out.println(HexBytes.encode(x)));
+        Path path =
+                Paths.get(genesisDirectory,
+                        String.format("accounts-dump.%d.rlp", height)
+                );
+        Files.write(path, RLPCodec.encode(set), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
         restoreStatus = null;
 
     }
