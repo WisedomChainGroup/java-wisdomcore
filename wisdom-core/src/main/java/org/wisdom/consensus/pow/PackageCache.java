@@ -238,6 +238,10 @@ public class PackageCache {
                 AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
                 long totalamount = asset.getTotalamount();
                 totalamount += assetIncreased.getAmount();
+                if(totalamount<=0){
+                    AddRemoveMap(publicKeyHash, tx.nonce);
+                    return;
+                }
                 asset.setTotalamount(totalamount);
                 assetaccountstate.setContract(asset.RLPserialization());
                 newMap.put(Hex.encodeHexString(tx.to), assetaccountstate);

@@ -196,6 +196,10 @@ public class CheckoutTransactions {
                 AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
                 long totalamount = asset.getTotalamount();
                 totalamount += assetIncreased.getAmount();
+                if(totalamount<=0){
+                    peningTransPool.removeOne(publicKeyHash, tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Total asset issuance exceeded the maximum");
+                }
                 asset.setTotalamount(totalamount);
                 assetaccountstate.setContract(asset.RLPserialization());
                 map.put(Hex.encodeHexString(tx.to), assetaccountstate);

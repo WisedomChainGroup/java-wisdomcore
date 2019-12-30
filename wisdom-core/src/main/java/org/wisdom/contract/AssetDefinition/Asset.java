@@ -30,6 +30,8 @@ public class Asset implements AnalysisContract {
     private byte[] owner;
     @RLP(5)
     private int allowincrease;
+    @RLP(6)
+    private byte[] info;
 
     @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
@@ -48,6 +50,7 @@ public class Asset implements AnalysisContract {
         this.createuser = asset.getCreateuser();
         this.owner = asset.getOwner();
         this.allowincrease = asset.getAllowincrease();
+        this.info = asset.getInfo();
         return true;
     }
 
@@ -59,13 +62,13 @@ public class Asset implements AnalysisContract {
                 this.getTotalamount(),
                 this.getCreateuser(),
                 this.getOwner(),
-                this.getAllowincrease()
+                this.getAllowincrease(),
+                this.getInfo()
         ));
     }
 
-
     public Asset copy() {
-        return new Asset(code, offering, totalamount, createuser, owner, allowincrease);
+        return new Asset(code, offering, totalamount, createuser, owner, allowincrease,info);
     }
 
     public static Asset getAsset(byte[] Rlpbyte) {
