@@ -20,11 +20,15 @@ package org.wisdom.core.account;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tdf.common.util.ByteArrayMap;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.orm.TransactionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.wisdom.db.AccountState;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +39,9 @@ public class AccountDB {
     public static final Logger logger = LoggerFactory.getLogger(AccountDB.class);
     @Autowired
     private JdbcTemplate tmpl;
+
+    @Autowired
+    private IncubatorDB incubatorDB;
 
 /*    public Account selectaccount(byte[] pubkeyhash){
         try{
@@ -140,7 +147,7 @@ public class AccountDB {
         }
     }
 
-    public Account getHeightAccount(byte[] pubkeyhash, int height) {
+    public Account getHeightAccount(byte[] pubkeyhash, long height) {
         try {
             String sql = "select c.* from account c where c.pubkeyhash=? and c.blockheight=(\n" +
                     "select max(a.blockheight) from account a where a.pubkeyhash=? and a.blockheight<=?)";
@@ -385,5 +392,29 @@ public class AccountDB {
                     "where h.block_hash=? and type=?";
             return tmpl.queryForList(sql, new Object[]{blockhash, type});
         }
+    }
+
+    public AccountState getAccounstate(byte[] pubkeyHash,long height){
+        AccountState accountState=new AccountState(pubkeyHash);
+        Account account=getHeightAccount(pubkeyHash,height);
+        accountState.setAccount(account);
+
+        Map<byte[],Incubator> interestMap=new ByteArrayMap<>();
+        List<Incubator> incubatorList=incubatorDB.getList(pubkeyHash,height);
+        incubatorList.forEach(l->{
+                    interestMap.put(l.getTxid_issue(),new Incubator(pubkeyHash,l.getTxid_issue()
+                    ,l.getHeight(),l.getCost(),l.getInterest_amount(),l.getLast_blockheight_interest(),0));
+                }
+        );
+        accountState.setInterestMap(interestMap);
+
+        Map<byte[],Incubator> shareMap=new ByteArrayMap<>();
+        List<Incubator> shareList=incubatorDB.getShareList(pubkeyHash,height);
+        shareList.forEach(l->{
+                    shareMap.put(l.getTxid_issue(),new Incubator(pubkeyHash,l.getTxid_issue(),l.getHeight()
+                    ,l.getCost(),0,l.getShare_amount(),l.getLast_blockheight_share()));
+                });
+        accountState.setShareMap(shareMap);
+        return accountState;
     }
 }
