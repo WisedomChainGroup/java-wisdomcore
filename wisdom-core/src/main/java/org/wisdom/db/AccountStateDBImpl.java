@@ -101,7 +101,7 @@ public class AccountStateDBImpl implements AccountStateDB {
             Genesis genesisJSON,
             IncubatorDB incubatorDB,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis
-    ) throws InvalidProtocolBufferException, DecoderException {
+    ) throws Exception {
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
         this.genesis = genesisJSON;
@@ -125,7 +125,7 @@ public class AccountStateDBImpl implements AccountStateDB {
         // put parent hash of genesis map to null hash
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
         this.preBuiltGenesis = preBuiltGenesis;
-//        sync();
+        sync();
 
 //        for (long l : heights.keySet()) {
 //            Trie<byte[], AccountState> trieTmp = stateTrie.revert(rootStore.get(heights.get(l)).get(), noDeleteStore);
