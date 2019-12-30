@@ -9,6 +9,7 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import org.tdf.common.serialize.Codec;
@@ -21,6 +22,7 @@ import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 
+import org.tdf.rlp.RLPElement;
 import org.wisdom.Start;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
@@ -38,7 +40,10 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.store.NoDeleteByteArrayStore;
 import org.wisdom.util.Address;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 @Component
@@ -86,7 +91,7 @@ public class AccountStateDBImpl implements AccountStateDB {
 
     private AccountStateUpdater accountStateUpdater;
 
-
+    private String preBuiltGenesis;
     public AccountStateDBImpl(
             DatabaseStoreFactory factory,
             Block genesis,
@@ -94,7 +99,8 @@ public class AccountStateDBImpl implements AccountStateDB {
             AccountStateUpdater accountStateUpdater,
             AccountDB accountDB,
             Genesis genesisJSON,
-            IncubatorDB incubatorDB
+            IncubatorDB incubatorDB,
+            @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis
     ) throws InvalidProtocolBufferException, DecoderException {
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
@@ -118,7 +124,7 @@ public class AccountStateDBImpl implements AccountStateDB {
         nullHash = stateTrie.getRootHash();
         // put parent hash of genesis map to null hash
         rootStore.putIfAbsent(genesis.hashPrevBlock, nullHash);
-
+        this.preBuiltGenesis = preBuiltGenesis;
 //        sync();
 
 //        for (long l : heights.keySet()) {
@@ -207,9 +213,33 @@ public class AccountStateDBImpl implements AccountStateDB {
     Genesis genesis;
 
     // sync state trie to best block
-    private void sync() {
+    private void sync() throws Exception{
         // query for had been written
         long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).map(RLPCodec::decodeLong).orElse(-1L);
+
+        File file = Paths.get(preBuiltGenesis).toFile();
+        if (!file.isDirectory()) throw new RuntimeException(preBuiltGenesis + " is not a valid directory");
+        File[] files = file.listFiles();
+        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
+        File lastGenesis = Arrays.stream(files)
+                .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp"))
+                .sorted((x, y) -> (int) (Long.parseLong(y.getName().split("\\.")[1]) - Long.parseLong(x.getName().split("\\.")[1])))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("unreachable"));
+        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(lastGenesis.toPath()));
+        Block genesis = el.get(0).as(Block.class);
+
+        // put pre built genesis file
+        // TODO: hard code trie roots
+        if(genesis.nHeight > lastSyncedHeight){
+            Trie<byte[], AccountState> empty = stateTrie.empty();
+            Arrays.stream(el.get(1).as(AccountState[].class))
+                    .forEach(a -> empty.put(a.getAccount().getPubkeyHash(), a));
+            byte[] newRoot = empty.commit();
+            empty.flush();
+            rootStore.put(genesis.getHash(), newRoot);
+            sync();
+        }
 
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
@@ -225,7 +255,7 @@ public class AccountStateDBImpl implements AccountStateDB {
 
                 Map<byte[], AccountState> updated;
                 if (block.nHeight == 0) {
-                    updated = accountStateUpdater.generateGenesisStates(block, genesis);
+                    updated = accountStateUpdater.generateGenesisStates(block, this.genesis);
                 } else {
                     updated = accountStateUpdater.updateAll(accounts, block);
                 }
