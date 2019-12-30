@@ -140,6 +140,17 @@ public class AccountDB {
         }
     }
 
+    public Account getHeightAccount(byte[] pubkeyhash, int height) {
+        try {
+            String sql = "select c.* from account c where c.pubkeyhash=? and c.blockheight=(\n" +
+                    "select max(a.blockheight) from account a where a.pubkeyhash=? and a.blockheight<=?)";
+            return tmpl.queryForObject(sql, new Object[]{pubkeyhash, pubkeyhash, height},  new BeanPropertyRowMapper<>(Account.class));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public int[] insertAccountList(List<Object[]> Object) {
         try {
             String sql = "insert into account(id,blockheight,pubkeyhash,nonce,balance,incubatecost,mortgage,vote) VALUES(?,?,?,?,?,?,?,?) on conflict(id) do nothing";
