@@ -86,7 +86,6 @@ public class TriesSyncManager {
             empty.flush();
             accountStateTrie.getRootStore().put(genesis.getHash(), newRoot);
             lastSyncedHeight = genesis.nHeight;
-            statusStore.put(LAST_SYNCED_HEIGHT, lastSyncedHeight);
         }
 
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
@@ -101,5 +100,6 @@ public class TriesSyncManager {
             if (blocks.size() < blocksPerUpdate) break;
             lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
         }
+        statusStore.put(LAST_SYNCED_HEIGHT, lastSyncedHeight);
     }
 }

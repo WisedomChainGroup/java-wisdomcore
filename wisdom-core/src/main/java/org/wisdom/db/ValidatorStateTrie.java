@@ -7,12 +7,13 @@ import org.wisdom.core.Block;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
 public class ValidatorStateTrie extends AbstractStateTrie<Long>{
-    public ValidatorStateTrie(DatabaseStoreFactory factory) {
-        super(Long.class, factory, false, false);
+    public ValidatorStateTrie(Block genesis, DatabaseStoreFactory factory) {
+        super(genesis, Long.class, factory, false, false);
     }
 
     @Override
@@ -24,7 +25,7 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
     protected Map<byte[], Long> getUpdatedStates(Map<byte[], Long> beforeUpdates, Block block) {
         if(block.nHeight == 0) return Collections.emptyMap();
         Map<byte[], Long> updated = new ByteArrayMap<>(beforeUpdates);
-        long after = updated.get(block.body.get(0).to) + 1;
+        long after = Optional.ofNullable(updated.get(block.body.get(0).to)).map(x -> x + 1).orElse(1L);
         updated.put(block.body.get(0).to, after);
         return updated;
     }

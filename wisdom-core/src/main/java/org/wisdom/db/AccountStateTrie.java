@@ -52,7 +52,7 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
             IncubatorDB incubatorDB,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis
     ) throws Exception {
-        super(AccountState.class, factory, true, false);
+        super(genesis, AccountState.class, factory, true, false);
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
 
