@@ -4,13 +4,14 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.core.Block;
+import org.wisdom.genesis.Genesis;
 
 import java.util.*;
 
 @Component
 public class ValidatorStateTrie extends AbstractStateTrie<Long>{
-    public ValidatorStateTrie(Block genesis, DatabaseStoreFactory factory) {
-        super(genesis, Long.class, factory, false, false);
+    public ValidatorStateTrie(Block genesis, Genesis genesisJSON, DatabaseStoreFactory factory) {
+        super(genesis, genesisJSON, Long.class, factory, false, false);
     }
 
     @Override
@@ -32,7 +33,7 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
     }
 
     @Override
-    protected Map<byte[], Long> generateGenesisStates() {
+    protected Map<byte[], Long> generateGenesisStates(Block genesis, Genesis genesisJSON) {
         return Collections.emptyMap();
     }
 }

@@ -39,12 +39,14 @@ public class ForkedWisdomBlockChain {
 
     private TriesSyncManager triesSyncManager;
 
-    public ForkedWisdomBlockChain(WisdomBlockChain bc, TriesSyncManager triesSyncManager) {
+    public ForkedWisdomBlockChain(WisdomBlockChain bc, TriesSyncManager triesSyncManager) throws Exception{
         this.bc = bc;
         chainCache = new ChainCache<>();
         this.chainCache = chainCache
                 .withComparator((x, y) -> compareBlock(x.get(), y.get()));
         this.triesSyncManager = triesSyncManager;
+        this.triesSyncManager.setChain(this);
+        this.triesSyncManager.sync();
     }
 
     private void clearCurrentCache() {

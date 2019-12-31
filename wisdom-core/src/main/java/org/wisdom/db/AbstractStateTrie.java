@@ -5,6 +5,7 @@ import org.tdf.common.store.MemoryCachedStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.wisdom.core.Block;
+import org.wisdom.genesis.Genesis;
 
 import java.util.Map;
 import java.util.Set;
@@ -14,23 +15,12 @@ public abstract class AbstractStateTrie<T> extends StateTrieAdapter<T>{
     protected abstract Set<byte[]> getRelatedKeys(Block block);
 
     public AbstractStateTrie(
-            Block genesis, Class<T> clazz, DatabaseStoreFactory factory,
+            Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory,
             boolean logDeletes, boolean reset
     ) {
-        super(genesis, clazz, factory, logDeletes, reset);
+        super(genesis, genesisJSON, clazz, factory, logDeletes, reset);
     }
 
-    private byte[] commitInternal(byte[] root, byte[] blockHash, Map<byte[], T> data){
-        Store<byte[], byte[]> cache = new MemoryCachedStore<>(getTrieStore());
-        Trie<byte[], T> trie = getTrie().revert(root, cache);
-        for (Map.Entry<byte[], T> entry: data.entrySet()) {
-            trie.put(entry.getKey(), entry.getValue());
-        }
-        byte[] newRoot = trie.commit();
-        trie.flush();
-        getRootStore().put(blockHash, newRoot);
-        return newRoot;
-    }
 
     @Override
     public void commit(Block block) {

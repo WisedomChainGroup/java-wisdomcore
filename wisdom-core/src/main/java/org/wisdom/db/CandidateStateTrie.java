@@ -5,17 +5,19 @@ import org.tdf.common.util.ByteArraySet;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.genesis.Genesis;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 @Component
-public class CandidateStateTrie extends AbstractStateTrie<Candidate> {
+public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private CandidateUpdater candidateUpdater;
 
-    public CandidateStateTrie(Block genesis, DatabaseStoreFactory factory, CandidateUpdater candidateUpdater) {
-        super(genesis, Candidate.class, factory, false, false);
+    public CandidateStateTrie(Block genesis, Genesis genesisJSON, DatabaseStoreFactory factory, CandidateUpdater candidateUpdater) {
+        super(genesis, genesisJSON, Candidate.class, factory, false, false);
         this.candidateUpdater = candidateUpdater;
     }
 
@@ -25,20 +27,18 @@ public class CandidateStateTrie extends AbstractStateTrie<Candidate> {
     }
 
     @Override
-    protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, Block block) {
+    protected int getBlocksPerEra() {
+        return 0;
+    }
+
+    @Override
+    protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, Collection<Block> blocks) {
         return null;
     }
 
     @Override
-    protected Set<byte[]> getRelatedKeys(Block block) {
-        Set<byte[]> keys = new ByteArraySet();
-        block.body.stream()
-                .filter(this::isCandidateRelated)
-                .forEach(tx -> {
-                    keys.add(PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash());
-                    keys.add(tx.to);
-                });
-        return keys;
+    protected Set<byte[]> getRelatedKeys(Collection<Block> blocks) {
+        return null;
     }
 
     private boolean isCandidateRelated(Transaction tx) {
@@ -54,7 +54,7 @@ public class CandidateStateTrie extends AbstractStateTrie<Candidate> {
     }
 
     @Override
-    protected Map<byte[], Candidate> generateGenesisStates() {
+    protected Map<byte[], Candidate> generateGenesisStates(Block genesis, Genesis genesisJSON) {
         return Collections.emptyMap();
     }
 }

@@ -25,9 +25,6 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
 
     private AccountStateUpdater accountStateUpdater;
 
-    private Genesis genesisJson;
-
-    private Block genesis;
 
     @Override
     protected String getPrefix() {
@@ -40,8 +37,8 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
     }
 
     @Override
-    protected Map<byte[], AccountState> generateGenesisStates() {
-        return accountStateUpdater.generateGenesisStates(genesis, genesisJson);
+    protected Map<byte[], AccountState> generateGenesisStates(Block genesis, Genesis genesisJSON) {
+        return accountStateUpdater.generateGenesisStates(genesis, genesisJSON);
     }
 
     @Override
@@ -54,16 +51,14 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
             DatabaseStoreFactory factory,
             Block genesis,
             WisdomBlockChain bc,
+            Genesis genesisJSON,
             AccountStateUpdater accountStateUpdater,
             AccountDB accountDB,
-            Genesis genesisJSON,
             IncubatorDB incubatorDB,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis
     ) throws Exception {
-        super(genesis, AccountState.class, factory, true, false);
+        super(genesis, genesisJSON, AccountState.class, factory, true, false);
         this.bc = bc;
-        this.genesis = genesis;
-        this.genesisJson = genesisJSON;
         this.accountStateUpdater = accountStateUpdater;
 
 

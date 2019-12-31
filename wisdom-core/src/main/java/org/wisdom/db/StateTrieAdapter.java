@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
+import org.tdf.common.store.MemoryCachedStore;
 import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
@@ -14,6 +15,7 @@ import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.genesis.Genesis;
 
 import java.util.Collection;
 import java.util.Map;
@@ -40,9 +42,9 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     protected abstract String getPrefix();
 
-    protected abstract Map<byte[], T> generateGenesisStates();
+    protected abstract Map<byte[], T> generateGenesisStates(Block genesis, Genesis genesisJSON);
 
-    public StateTrieAdapter(Block genesis, Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
+    public StateTrieAdapter(Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
         TRIE = getPrefix() + "-trie";
         DELETED = getPrefix() + "-deleted";
         ROOTS = getPrefix() + "-trie-roots";
@@ -71,7 +73,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
         // sync to genesis
         Trie<byte[], T> tmp = trie.revert();
-        generateGenesisStates().forEach(tmp::put);
+        generateGenesisStates(genesis, genesisJSON).forEach(tmp::put);
         byte[] root = tmp.commit();
         tmp.flush();
         rootStore.put(genesis.getHash(), root);
@@ -94,5 +96,17 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
             m.put(x, o.get());
         });
         return m;
+    }
+
+    protected byte[] commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data){
+        Store<byte[], byte[]> cache = new MemoryCachedStore<>(getTrieStore());
+        Trie<byte[], T> trie = getTrie().revert(parentRoot, cache);
+        for (Map.Entry<byte[], T> entry: data.entrySet()) {
+            trie.put(entry.getKey(), entry.getValue());
+        }
+        byte[] newRoot = trie.commit();
+        trie.flush();
+        getRootStore().put(blockHash, newRoot);
+        return newRoot;
     }
 }

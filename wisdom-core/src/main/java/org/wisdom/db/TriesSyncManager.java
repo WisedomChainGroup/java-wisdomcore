@@ -58,7 +58,6 @@ public class TriesSyncManager {
         );
         this.preBuiltGenesis = preBuiltGenesis;
         this.bc = bc;
-        sync();
     }
 
     public void setChain(ForkedWisdomBlockChain chain) {
@@ -67,7 +66,7 @@ public class TriesSyncManager {
         validatorStateTrie.setChain(chain);
     }
 
-    private void sync() throws Exception{
+    void sync() throws Exception{
         // query for had been written
         long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).orElse(-1L);
 
