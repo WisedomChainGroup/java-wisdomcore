@@ -55,6 +55,7 @@ public class ProposersState implements State<ProposersState> {
 
 
     public static class Vote {
+
         public PublicKeyHash from;
         public long amount;
         public long accumulated;

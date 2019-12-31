@@ -238,7 +238,8 @@ public class AccountStateDBImpl implements AccountStateDB {
             byte[] newRoot = empty.commit();
             empty.flush();
             rootStore.put(genesis.getHash(), newRoot);
-            sync();
+            statusStore.put(LAST_SYNCED_HEIGHT, RLPCodec.encode(genesis.nHeight));
+            lastSyncedHeight = genesis.nHeight;
         }
 
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
@@ -261,11 +262,12 @@ public class AccountStateDBImpl implements AccountStateDB {
                 }
 
                 heights.put(block.nHeight, block.getHash());
-                statusStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), updated.values()));
+                rootStore.put(block.getHash(), putAccounts(block.hashPrevBlock, block.getHash(), updated.values()));
             }
             // sync trie here
-            if (blocks.size() < blocksPerUpdate) break;
             lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
+            statusStore.put(LAST_SYNCED_HEIGHT, RLPCodec.encode(lastSyncedHeight));
+            if (blocks.size() < blocksPerUpdate) break;
         }
     }
 
