@@ -22,6 +22,7 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
 
     @Override
     protected Map<byte[], Long> getUpdatedStates(Map<byte[], Long> beforeUpdates, Block block) {
+        if(block.nHeight == 0) return Collections.emptyMap();
         Map<byte[], Long> updated = new ByteArrayMap<>(beforeUpdates);
         long after = updated.get(block.body.get(0).to) + 1;
         updated.put(block.body.get(0).to, after);

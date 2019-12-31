@@ -23,7 +23,7 @@ import java.util.List;
 
 // helper to keep all state trie synced
 @Component
-public class SyncManager {
+public class TriesSyncManager {
     @Getter(AccessLevel.PACKAGE)
     private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
 
@@ -41,13 +41,13 @@ public class SyncManager {
 
     private WisdomBlockChain bc;
 
-    public SyncManager(
+    public TriesSyncManager(
             AccountStateTrie accountStateTrie,
             ValidatorStateTrie validatorStateTrie,
             DatabaseStoreFactory factory,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
             WisdomBlockChain bc
-    ){
+    ) throws Exception{
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
         this.statusStore = new StoreWrapper<>(
@@ -57,6 +57,7 @@ public class SyncManager {
         );
         this.preBuiltGenesis = preBuiltGenesis;
         this.bc = bc;
+        sync();
     }
 
     private void sync() throws Exception{
@@ -84,7 +85,8 @@ public class SyncManager {
             byte[] newRoot = empty.commit();
             empty.flush();
             accountStateTrie.getRootStore().put(genesis.getHash(), newRoot);
-            sync();
+            lastSyncedHeight = genesis.nHeight;
+            statusStore.put(LAST_SYNCED_HEIGHT, lastSyncedHeight);
         }
 
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
