@@ -100,14 +100,12 @@ public class CheckoutTransactions {
                 return resulttransa;
             }
             //更新状态
+            Result result=Result.SUCCESS;
             switch (tx.type) {
                 case 1://转账
                 case 2://投票
                 case 13://撤回投票
-                    Result resultfirst = CheckFirstKind(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
-                    if (!resultfirst.isSuccess()) {
-                        return resultfirst;
-                    }
+                    result = CheckFirstKind(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
                     break;
                 case 3://存证事务,只需要扣除手续费
                 case 9://孵化事务
@@ -116,23 +114,17 @@ public class CheckoutTransactions {
                 case 12://本金
                 case 14://抵押
                 case 15://撤回抵押
-                    Result resultother = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
-                    if (!resultother.isSuccess()) {
-                        return resultother;
-                    }
+                    result = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
                     break;
                 case 7://部署合约
-                    Result resultdeploy = CheckDeployContract(tx, publichash);
-                    if (!resultdeploy.isSuccess()) {
-                        return resultdeploy;
-                    }
+                    result = CheckDeployContract(tx, publichash);
                     break;
                 case 8://调用合约
-                    Result resultcall = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
-                    if (!resultcall.isSuccess()) {
-                        return resultcall;
-                    }
+                    result = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
                     break;
+            }
+            if(!result.isSuccess()){
+                return result;
             }
             pendingList.add(tx);
         }
