@@ -39,7 +39,7 @@ public abstract class AbstractStateTrie<T> implements StateTrie<T>{
     protected abstract Map<byte[], T> getUpdatedStates(Map<byte[], T> beforeUpdates, Block block);
     protected abstract Set<byte[]> getRelatedKeys(Block block);
 
-    public AbstractStateTrie(Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
+    public AbstractStateTrie(Block genesis, Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
         TRIE = getPrefix() + "-trie";
         DELETED = getPrefix() + "-deleted";
         ROOTS = getPrefix() + "-trie-roots";
@@ -62,6 +62,8 @@ public abstract class AbstractStateTrie<T> implements StateTrie<T>{
                 Codec.identity(),
                 Codec.newInstance(RLPCodec::encode, x -> RLPElement.fromEncoded(x).as(clazz))
                 );
+
+        rootStore.put(genesis.hashPrevBlock, trie.getNullHash());
     }
 
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash){
