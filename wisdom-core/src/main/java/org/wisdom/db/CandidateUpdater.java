@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
@@ -58,18 +57,18 @@ public class CandidateUpdater {
                 System.out.println("uri cannot be resolved");
             }
         }
-        state.setProposers(map);
+//        state.setProposers(map);
         return state;
     }
 
     public void updateTransaction(ProposersCache state, Transaction transaction) {
-        Candidate p = state.getProposers().get(transaction.to);
-        if (p == null) {
-            p = new Candidate();
-            p.setPublicKeyHash(transaction.to);
-        }
-        updateTransaction(p, transaction);
-        state.getProposers().put(p.getPublicKeyHash(), p);
+//        Candidate p = state.getProposers().get(transaction.to);
+//        if (p == null) {
+//            p = new Candidate();
+//            p.setPublicKeyHash(transaction.to);
+//        }
+//        updateTransaction(p, transaction);
+//        state.getProposers().put(p.getPublicKeyHash(), p);
     }
 
     private void updateTransaction(Candidate candidate, Transaction tx) {

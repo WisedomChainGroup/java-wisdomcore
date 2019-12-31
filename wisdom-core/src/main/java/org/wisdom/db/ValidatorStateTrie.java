@@ -5,10 +5,7 @@ import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.core.Block;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Component
 public class ValidatorStateTrie extends AbstractStateTrie<Long>{
@@ -23,7 +20,6 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
 
     @Override
     protected Map<byte[], Long> getUpdatedStates(Map<byte[], Long> beforeUpdates, Block block) {
-        if(block.nHeight == 0) return Collections.emptyMap();
         Map<byte[], Long> updated = new ByteArrayMap<>(beforeUpdates);
         long after = Optional.ofNullable(updated.get(block.body.get(0).to)).map(x -> x + 1).orElse(1L);
         updated.put(block.body.get(0).to, after);
@@ -33,5 +29,10 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
     @Override
     protected Set<byte[]> getRelatedKeys(Block block) {
         return new ByteArraySet(Collections.singleton(block.body.get(0).to));
+    }
+
+    @Override
+    protected Map<byte[], Long> generateGenesisStates() {
+        return Collections.emptyMap();
     }
 }

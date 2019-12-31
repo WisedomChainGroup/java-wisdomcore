@@ -2,9 +2,7 @@ package org.wisdom.db;
 
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Component;
-
 import org.tdf.common.store.Store;
-
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.core.Block;

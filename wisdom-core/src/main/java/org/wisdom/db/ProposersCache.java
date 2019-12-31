@@ -16,9 +16,9 @@ public class ProposersCache {
     @Autowired
     private CandidateStateTrie candidateStateTrie;
 
-    public List<Candidate> getProposers(byte[] eraLastBlock){
-
-    }
+//    public List<Candidate> getProposers(byte[] eraLastBlock){
+//
+//    }
 
     public ProposersCache() {
         this.proposers = CacheBuilder.newBuilder()

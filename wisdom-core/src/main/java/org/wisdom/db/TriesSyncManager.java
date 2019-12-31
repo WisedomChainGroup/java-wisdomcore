@@ -11,7 +11,6 @@ import org.tdf.common.store.StoreWrapper;
 import org.tdf.common.trie.Trie;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
-import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 
@@ -41,6 +40,8 @@ public class TriesSyncManager {
 
     private WisdomBlockChain bc;
 
+    private ForkedWisdomBlockChain chain;
+
     public TriesSyncManager(
             AccountStateTrie accountStateTrie,
             ValidatorStateTrie validatorStateTrie,
@@ -58,6 +59,12 @@ public class TriesSyncManager {
         this.preBuiltGenesis = preBuiltGenesis;
         this.bc = bc;
         sync();
+    }
+
+    public void setChain(ForkedWisdomBlockChain chain) {
+        this.chain = chain;
+        accountStateTrie.setChain(chain);
+        validatorStateTrie.setChain(chain);
     }
 
     private void sync() throws Exception{
@@ -101,5 +108,10 @@ public class TriesSyncManager {
             lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
         }
         statusStore.put(LAST_SYNCED_HEIGHT, lastSyncedHeight);
+    }
+
+    public void commit(Block block){
+        accountStateTrie.commit(block);
+        validatorStateTrie.commit(block);
     }
 }

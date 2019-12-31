@@ -25,7 +25,9 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
 
     private AccountStateUpdater accountStateUpdater;
 
-    private String preBuiltGenesis;
+    private Genesis genesisJson;
+
+    private Block genesis;
 
     @Override
     protected String getPrefix() {
@@ -38,9 +40,15 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
     }
 
     @Override
+    protected Map<byte[], AccountState> generateGenesisStates() {
+        return accountStateUpdater.generateGenesisStates(genesis, genesisJson);
+    }
+
+    @Override
     protected Set<byte[]> getRelatedKeys(Block block) {
         return accountStateUpdater.getRelatedAccounts(block);
     }
+
 
     public AccountStateTrie(
             DatabaseStoreFactory factory,
@@ -54,6 +62,8 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
     ) throws Exception {
         super(genesis, AccountState.class, factory, true, false);
         this.bc = bc;
+        this.genesis = genesis;
+        this.genesisJson = genesisJSON;
         this.accountStateUpdater = accountStateUpdater;
 
 

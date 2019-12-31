@@ -46,6 +46,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.util.stream.Collectors.*;
 
+@Deprecated
+// use ForkedWisdomBlockChain.currentBlock
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
@@ -225,6 +227,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
+    @Deprecated
+    // use ForkedWisdomBlockChain.currentBlock
     public Block getBestBlock() {
         this.readWriteLock.readLock().lock();
         try {

@@ -58,8 +58,8 @@ public class ValidatorStateTests {
                     }
                 })
                 .forEach(b -> {
-                    validatorStateTrie.commit(b);
                     if(b.nHeight == 0) return;
+                    validatorStateTrie.commit(b);
                     assertEquals(Long.valueOf(b.body.get(0).nonce), validatorStateTrie.get(b.getHash(), b.body.get(0).to).get());
                 });
     }

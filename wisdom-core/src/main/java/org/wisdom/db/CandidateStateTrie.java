@@ -1,12 +1,12 @@
 package org.wisdom.db;
 
-import org.junit.Test;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,8 +14,8 @@ import java.util.Set;
 public class CandidateStateTrie extends AbstractStateTrie<Candidate> {
     private CandidateUpdater candidateUpdater;
 
-    public CandidateStateTrie(DatabaseStoreFactory factory, CandidateUpdater candidateUpdater) {
-        super(Candidate.class, factory, false, false);
+    public CandidateStateTrie(Block genesis, DatabaseStoreFactory factory, CandidateUpdater candidateUpdater) {
+        super(genesis, Candidate.class, factory, false, false);
         this.candidateUpdater = candidateUpdater;
     }
 
@@ -51,5 +51,10 @@ public class CandidateStateTrie extends AbstractStateTrie<Candidate> {
             default:
                 return false;
         }
+    }
+
+    @Override
+    protected Map<byte[], Candidate> generateGenesisStates() {
+        return Collections.emptyMap();
     }
 }

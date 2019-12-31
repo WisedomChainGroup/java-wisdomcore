@@ -54,7 +54,6 @@ public class AccountStateUpdater {
     }
 
     public Map<byte[], AccountState> updateAll(Map<byte[], AccountState> accounts, Block block) {
-        if(block.nHeight == 0) return generateGenesisStates(block, genesis);
         Map<byte[], AccountState> res = copy(accounts);
         for (Transaction tx : block.body) {
             getRelatedAccounts(tx).stream()

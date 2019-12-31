@@ -10,6 +10,6 @@ public interface StateTrie<T> {
     // get an optional state at a block
     Optional<T> get(byte[] blockHash, byte[] publicKeyHash);
     Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys);
-    // commit a new block, if the new block had committed throw exception
-    byte[] commit(Block block);
+    // commit a new block
+    void commit(Block block);
 }
