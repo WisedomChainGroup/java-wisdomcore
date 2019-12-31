@@ -42,6 +42,9 @@ public class AccountStateUpdater {
     @Autowired
     private MerkleRule merkleRule;
 
+    @Autowired
+    private Genesis genesis;
+
     private Map<byte[], AccountState> copy(Map<byte[], AccountState> accountStateMap) {
         Map<byte[], AccountState> res = new ByteArrayMap<>();
         for (Map.Entry<byte[], AccountState> entry : accountStateMap.entrySet()) {
@@ -51,6 +54,7 @@ public class AccountStateUpdater {
     }
 
     public Map<byte[], AccountState> updateAll(Map<byte[], AccountState> accounts, Block block) {
+        if(block.nHeight == 0) return generateGenesisStates(block, genesis);
         Map<byte[], AccountState> res = copy(accounts);
         for (Transaction tx : block.body) {
             getRelatedAccounts(tx).stream()

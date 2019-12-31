@@ -29,7 +29,7 @@ public class ProposerStateDBImpl implements ProposerStateDB {
     private WisdomBlockChain bc;
 
 
-    private ProposerUpdater updater;
+    private CandidateUpdater updater;
 
     private List<String> initialProposers;
 
@@ -40,7 +40,7 @@ public class ProposerStateDBImpl implements ProposerStateDB {
     public ProposerStateDBImpl(
             DatabaseStoreFactory factory,
             WisdomBlockChain bc,
-            ProposerUpdater updater,
+            CandidateUpdater updater,
             ConsensusConfig config) {
         this.bc = bc;
         this.updater = updater;
@@ -54,7 +54,7 @@ public class ProposerStateDBImpl implements ProposerStateDB {
         // query for had been written
         long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).map(RLPCodec::decodeLong).orElse(-1L);
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
-        ProposerState updated = null;
+        ProposersCache updated = null;
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(lastSyncedHeight + 1, blocksPerUpdate);
             for (Block block : blocks) {
@@ -73,11 +73,11 @@ public class ProposerStateDBImpl implements ProposerStateDB {
 
 
     @Override
-    public Optional<ProposerState> getProposerState(byte[] blockHash) {
+    public Optional<ProposersCache> getProposerState(byte[] blockHash) {
         byte[] proposer = proposerStore.get(blockHash)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
         try {
-            ProposerState state = RLPCodec.decode(proposer, ProposerState.class);
+            ProposersCache state = RLPCodec.decode(proposer, ProposersCache.class);
             return Optional.of(state);
         } catch (Exception e) {
             return Optional.empty();
@@ -85,7 +85,7 @@ public class ProposerStateDBImpl implements ProposerStateDB {
     }
 
     @Override
-    public void putProposerStates(byte[] blockHash, ProposerState state) {
+    public void putProposerStates(byte[] blockHash, ProposersCache state) {
         proposerStore.put(blockHash, RLPCodec.encode(state));
     }
 }

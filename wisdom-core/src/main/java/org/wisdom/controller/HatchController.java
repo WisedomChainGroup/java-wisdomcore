@@ -113,4 +113,10 @@ public class HatchController {
         return hatchService.getCancelMortgage(height);
     }
 
+    @GetMapping(value = "/WisdomCore/sendCoinBase")
+    public Object sendCoinBase(@RequestParam("height") int height){
+        return hatchService.getCoinBaseList(height);
+    }
+
+
 }

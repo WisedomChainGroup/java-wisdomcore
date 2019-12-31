@@ -48,4 +48,5 @@ public interface HatchService {
 
     Object getTxrecordFromAddress(String address);
 
+    Object getCoinBaseList(int height);
 }

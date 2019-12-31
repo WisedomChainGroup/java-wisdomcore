@@ -136,7 +136,6 @@ public class ProposersState implements State<ProposersState> {
                         .longValue());
                 receivedVotes.put(k, v2);
             }
-
         }
 
         void updateTransaction(Transaction tx) {

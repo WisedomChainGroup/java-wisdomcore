@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class Proposer {
+public class Candidate {
 
     @RLP(0)
     private long mortgage;
@@ -30,14 +30,14 @@ public class Proposer {
     @RLP(3)
     private byte[] publicKeyHash;
 
-    public Proposer(){
+    public Candidate(){
         receivedVotes = new HashMap<>();
         erasCounter = new HashMap<>();
         publicKeyHash = new byte[0];
         mortgage = 0;
     }
 
-    public Proposer(long mortgage, Map<byte[], Vote> receivedVotes, Map<byte[], Long> erasCounter, byte[] publicKeyHash) {
+    public Candidate(long mortgage, Map<byte[], Vote> receivedVotes, Map<byte[], Long> erasCounter, byte[] publicKeyHash) {
         this.mortgage = mortgage;
         this.receivedVotes = receivedVotes;
         this.erasCounter = erasCounter;
@@ -76,15 +76,20 @@ public class Proposer {
         this.publicKeyHash = publicKeyHash;
     }
 
+    void increaseEraCounters() {
+        erasCounter.replaceAll((k, v) -> v + 1);
+    }
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Proposer proposerState = (Proposer) o;
-        return mortgage == proposerState.mortgage &&
-                receivedVotes.equals(proposerState.receivedVotes) &&
-                erasCounter.equals(proposerState.erasCounter) &&
-                Arrays.equals(publicKeyHash, proposerState.publicKeyHash);
+        Candidate candidateState = (Candidate) o;
+        return mortgage == candidateState.mortgage &&
+                receivedVotes.equals(candidateState.receivedVotes) &&
+                erasCounter.equals(candidateState.erasCounter) &&
+                Arrays.equals(publicKeyHash, candidateState.publicKeyHash);
     }
 
     @Override
