@@ -49,21 +49,31 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
     }
 
     @Override
+    public void commit(List<Block> blocks) {
+        if(blocks.size() != getBlocksPerEra()) throw new RuntimeException("not an era size = " + blocks.size());
+        Block last = blocks.get(blocks.size() - 1);
+        if(last.nHeight % getBlocksPerEra() != 0)
+            throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
+
+        if(getRootStore().containsKey(last.getHash())) return;
+        Set<byte[]> keys = getRelatedKeys(blocks);
+        Map<byte[], T> updated = getUpdatedStates(batchGet(blocks.get(0).hashPrevBlock, keys), blocks);
+
+        commitInternal(
+                getRootStore().get(blocks.get(0).hashPrevBlock)
+                        .orElseThrow(() -> new RuntimeException("unreachable")),
+                last.getHash(),
+                updated
+        );
+    }
+
+    @Override
     public void commit(Block block) {
         if(block.nHeight % getBlocksPerEra() != 0){
             return;
         }
         if(getRootStore().containsKey(block.getHash())) return;
-        Block prevEraLast = prevEraLast(block);
         List<Block> ancestors = getChain().getAncestorBlocks(block.getHash(), getBlocksPerEra());
-        Set<byte[]> keys = getRelatedKeys(ancestors);
-        Map<byte[], T> updated = getUpdatedStates(batchGet(block.getHash(), keys), ancestors);
-
-        commitInternal(
-                getRootStore().get(prevEraLast.getHash())
-                .orElseThrow(() -> new RuntimeException("unreachable")),
-                block.getHash(),
-                updated
-        );
+        commit(ancestors);
     }
 }
