@@ -12,11 +12,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
             Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory,
             boolean logDeletes, boolean reset) {
         super(genesis, genesisJSON, clazz, factory, logDeletes, reset);
-        cache = new ChainCache<>();
-        this.cache = this.cache.withComparator(Comparator.comparingLong(x -> x.get().nHeight));
     }
-
-    private ChainCache<BlockWrapper> cache;
 
     abstract protected int getBlocksPerEra();
 
@@ -55,17 +51,13 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
     @Override
     public void commit(Block block) {
         if(block.nHeight % getBlocksPerEra() != 0){
-            cache.put(new BlockWrapper(block));
             return;
         }
+        if(getRootStore().containsKey(block.getHash())) return;
         Block prevEraLast = prevEraLast(block);
-        List<BlockWrapper> ancestors = cache.getAncestors(block.getHash());
-        List<Block> blocks = ancestors.stream().filter(b -> b.get().nHeight > block.nHeight - getBlocksPerEra())
-                .map(BlockWrapper::get)
-                .collect(Collectors.toList());
-        if(blocks.size() != getBlocksPerEra()) throw new RuntimeException("unreachable");
-        Set<byte[]> keys = getRelatedKeys(blocks);
-        Map<byte[], T> updated = getUpdatedStates(batchGet(block.getHash(), keys), blocks);
+        List<Block> ancestors = getChain().getAncestorBlocks(block.getHash(), getBlocksPerEra());
+        Set<byte[]> keys = getRelatedKeys(ancestors);
+        Map<byte[], T> updated = getUpdatedStates(batchGet(block.getHash(), keys), ancestors);
 
         commitInternal(
                 getRootStore().get(prevEraLast.getHash())
@@ -73,6 +65,5 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
                 block.getHash(),
                 updated
         );
-        cache.remove(ancestors.stream().map(x -> x.get().getHash()).collect(Collectors.toList()));
     }
 }
