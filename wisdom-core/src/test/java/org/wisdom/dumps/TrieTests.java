@@ -7,23 +7,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.tdf.rlp.RLPElement;
+import org.tdf.common.util.HexBytes;
+import org.wisdom.consensus.pow.ProposersState;
+import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
-import org.wisdom.db.CandidateStateTrie;
-import org.wisdom.db.CandidateUpdater;
-import org.wisdom.db.DatabaseStoreFactory;
-import org.wisdom.db.ValidatorStateTrie;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.db.*;
 import org.wisdom.genesis.Genesis;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,6 +31,8 @@ public class TrieTests {
 
     protected CandidateStateTrie candidateStateTrie;
 
+    protected WisdomRepository wisdomRepository;
+
     @Autowired
     private Block genesis;
 
@@ -48,6 +44,12 @@ public class TrieTests {
 
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
+
+    @Autowired
+    private ProposersState genesisProposersState;
+
+    @Autowired
+    private BlockStreamBuilder blockStreamBuilder;
 
     private @Value("${wisdom.allow-miner-joins-era}") long allowMinersJoinEra;
     private @Value("${miner.validators}") String validatorsFile;
@@ -66,27 +68,10 @@ public class TrieTests {
                 initialBlockInterval);
     }
 
-    private Stream<Block> getBlocks(){
-        String blocksDirectory = "C:\\Users\\Sal\\Desktop\\dumps\\blocks";
-        File file = Paths.get(blocksDirectory).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(blocksDirectory + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        return Arrays.stream(files)
-                .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
-                .flatMap(x -> {
-                    try {
-                        byte[] bytes = Files.readAllBytes(x.toPath());
-                        return Arrays.stream(RLPElement.fromEncoded(bytes).as(Block[].class));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-    }
 
     @Test
     public void testValidatorNonceTrie(){
-        getBlocks().forEach(b -> {
+        blockStreamBuilder.getBlocks().forEach(b -> {
                     if(b.nHeight == 0) return;
                     validatorStateTrie.commit(b);
                     assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).orElse(0L));
@@ -96,14 +81,26 @@ public class TrieTests {
     @Test
     public void testProposers(){
         List<Block> era = new ArrayList<>(blocksPerEra);
-        getBlocks()
+        blockStreamBuilder.getBlocks()
                 .forEach(b -> {
                     if(b.nHeight == 0) return;
                     era.add(b);
-                    if(era.size() == blocksPerEra){
-                        candidateStateTrie.commit(era);
-                        era.clear();
+                    if(era.size() < blocksPerEra) return;
+                    System.out.println(b.nHeight);
+                    candidateStateTrie.commit(era);
+                    genesisProposersState.updateBlocks(era);
+
+                    List<ProposersState.Proposer> proposers = genesisProposersState.getProposers();
+                    List<Candidate> proposers2 = candidateStateTrie.getCache()
+                            .asMap()
+                            .get(HexBytes.fromBytes(era.get(era.size() - 1).getHash()));
+
+                    assertEquals(proposers.size(), proposers2.size());
+                    for(int i = 0; i < proposers.size(); i++){
+                        assert proposers.get(i).publicKeyHash
+                                .equals(HexBytes.encode(proposers2.get(i).getPublicKeyHash()));
                     }
+                    era.clear();
                 });
     }
 }

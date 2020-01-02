@@ -1,13 +1,30 @@
 package org.wisdom.account;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.*;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.util.Address;
 
 import java.util.Arrays;
 import java.util.Optional;
 
+@RLPEncoding(PublicKeyHash.PublicKeyHashEncoder.class)
+@RLPDecoding(PublicKeyHash.PublicKeyHashDecoder.class)
 public class PublicKeyHash {
+    public static class PublicKeyHashEncoder implements RLPEncoder<PublicKeyHash>{
+        @Override
+        public RLPElement encode(PublicKeyHash publicKeyHash) {
+            return RLPItem.fromBytes(publicKeyHash.publicKeyHash);
+        }
+    }
+
+    public static class PublicKeyHashDecoder implements RLPDecoder<PublicKeyHash>{
+        @Override
+        public PublicKeyHash decode(RLPElement rlpElement) {
+            return new PublicKeyHash(rlpElement.asBytes());
+        }
+    }
+
     private byte[] publicKeyHash;
     private String address;
     private String hex;

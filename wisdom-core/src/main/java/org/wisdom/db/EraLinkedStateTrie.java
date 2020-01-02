@@ -22,11 +22,13 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
 
     abstract protected int getBlocksPerEra();
 
+    abstract void updateHook(List<Block> blocks, Trie<byte[], T> trie);
+
     protected long getEraAtBlockNumber(long number) {
         return (number - 1) / getBlocksPerEra();
     }
 
-    protected Block prevEraLast(Block target) {
+    protected Block getPrevEraLast(Block target) {
         if (target.nHeight == 0) {
             throw new RuntimeException("cannot find prev era last of genesis");
         }
@@ -40,14 +42,14 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
     @Override
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash) {
         Block b = getRepository().getBlock(blockHash);
-        Block prevEraLast = prevEraLast(b);
+        Block prevEraLast = getPrevEraLast(b);
         return super.get(prevEraLast.getHash(), publicKeyHash);
     }
 
     @Override
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
         Block b = getRepository().getBlock(blockHash);
-        Block prevEraLast = prevEraLast(b);
+        Block prevEraLast = getPrevEraLast(b);
         return super.batchGet(prevEraLast.getHash(), keys);
     }
 
@@ -66,13 +68,14 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         Map<byte[], T> beforeUpdate = new ByteArrayMap<>();
         keys.forEach(k -> beforeUpdate.put(k, prevTrie.get(k).orElse(getUpdater().createEmpty(k))));
         Map<byte[], T> updated = getUpdater().update(beforeUpdate, blocks);
-
-        return super.commitInternal(
+        Trie<byte[], T> after = super.commitInternal(
                 getRootStore().get(blocks.get(0).hashPrevBlock)
                         .orElseThrow(() -> new RuntimeException("unreachable")),
                 last.getHash(),
                 updated
         );
+        updateHook(blocks, after);
+        return after;
     }
 
     @Override
@@ -83,5 +86,10 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         if (getRootStore().containsKey(block.getHash())) return;
         List<Block> ancestors = getRepository().getAncestorBlocks(block.getHash(), getBlocksPerEra());
         commit(ancestors);
+    }
+
+    @Override
+    public void commit(List<Block> blocks) {
+        commitInternal(blocks);
     }
 }

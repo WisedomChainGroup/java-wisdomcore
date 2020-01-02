@@ -2,7 +2,6 @@ package org.wisdom.db;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.MemoryCachedStore;

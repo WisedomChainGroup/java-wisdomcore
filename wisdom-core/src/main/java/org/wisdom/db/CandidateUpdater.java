@@ -81,7 +81,10 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
                     .revert(candidateStateTrie.getRootStore().get(blocks.get(0).hashPrevBlock).get())
                     .keySet();
         }
-        return super.getRelatedKeys(blocks);
+        Set<byte[]> related = super.getRelatedKeys(blocks);
+        related.addAll(candidateStateTrie
+                .getProposersByEraLst(blocks.get(0).hashPrevBlock, blocks.get(0).nHeight - 1));
+        return related;
     }
 
     @Override
@@ -120,16 +123,18 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
 
     @Override
     public Map<byte[], Candidate> update(Map<byte[], Candidate> beforeUpdates, List<Block> blocks) {
-        Map<byte[], Candidate> res = super.update(beforeUpdates, blocks);
+        Map<byte[], Candidate> ret = super.update(beforeUpdates, blocks);
         Map<byte[], Long> proposals = new ByteArrayMap<>();
 
         candidateStateTrie
-                .getProposers(repository.getBlock(blocks.get(0).hashPrevBlock))
+                .getProposersByEraLst(blocks.get(0).hashPrevBlock, blocks.get(0).nHeight - 1)
                 .forEach(h -> proposals.put(h, 0L));
 
         blocks.forEach(block -> {
             byte[] proposer = block.body.get(0).to;
-            if (!proposals.containsKey(proposer)) throw new RuntimeException("invalid proposal");
+            if (!proposals.containsKey(proposer)) {
+                throw new RuntimeException("invalid proposal");
+            }
             proposals.put(proposer, proposals.get(proposer) + 1);
         });
 
@@ -137,12 +142,12 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
         List<byte[]> toBlock = proposals.keySet().stream()
                 .filter(k -> proposals.get(k) == 0).collect(Collectors.toList());
 
-        toBlock.forEach(k -> res.get(k).setBlocked(true));
+        toBlock.forEach(k -> ret.get(k).setBlocked(true));
 
         // delete all block list after community miner joins
         if (atJoinEra(blocks)) {
-            res.values().forEach(c -> c.setBlocked(false));
+            ret.values().forEach(c -> c.setBlocked(false));
         }
-        return res;
+        return ret;
     }
 }
