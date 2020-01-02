@@ -29,7 +29,7 @@ public class Candidate {
         return Integer.parseInt(v);
     }
 
-    public static Candidate createEmpty(byte[] publicKeyHash){
+    public static Candidate createEmpty(byte[] publicKeyHash) {
         Candidate candidate = new Candidate();
         candidate.setPublicKeyHash(HexBytes.fromBytes(publicKeyHash));
         return candidate;
@@ -67,12 +67,12 @@ public class Candidate {
 
     public long getAccumulated(long era) {
         Long ret = cache.get(era);
-        if(ret != null) return ret;
-        ret =  receivedVotes.values().stream().map(v -> {
-            if(era <= v.getEra()) return 0L;
+        if (ret != null) return ret;
+        ret = receivedVotes.values().stream().map(v -> {
+            if (era <= v.getEra()) return 0L;
             long count = era - v.getEra() - 1;
             long accumulated = v.getAmount();
-            for(long i = 0; i < count; i++){
+            for (long i = 0; i < count / ATTENUATION_ERAS; i++) {
                 accumulated = ATTENUATION_COEFFICIENT.multiply(accumulated).longValue();
             }
             return accumulated;
@@ -81,7 +81,7 @@ public class Candidate {
         return ret;
     }
 
-    public Candidate copy(){
+    public Candidate copy() {
         return new Candidate(publicKeyHash, mortgage, new ByteArrayMap<>(receivedVotes), isBlocked, null, null);
     }
 }

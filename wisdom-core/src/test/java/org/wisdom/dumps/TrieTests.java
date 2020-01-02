@@ -17,7 +17,9 @@ import org.wisdom.db.*;
 import org.wisdom.genesis.Genesis;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -103,10 +105,30 @@ public class TrieTests {
                             .revert(candidateStateTrie.getRootStore().get(b.getHash()).get())
                             .values()
                             .forEach(c -> {
-                                assertEquals(c.getAccumulated(nextEra),
+                                if(c.getAccumulated(nextEra) !=
                                         genesisProposersState.getAll()
-                                                .get(c.getPublicKeyHash().toHex()).getAccumulated());
+                                                .get(c.getPublicKeyHash().toHex()).getAccumulated()){
+
+                                    Map<HexBytes, Vote> received = new HashMap<>();
+                                    c.getReceivedVotes().forEach((k, v) -> {
+                                        received.put(HexBytes.fromBytes(k), v);
+                                    });
+                                    System.out.println("=======================");
+                                }
                             });
+
+                    List<Candidate> proposers = candidateStateTrie.getCache()
+                            .asMap().get(HexBytes.fromBytes(b.getHash()));
+
+                    List<ProposersState.Proposer> proposersExpected = genesisProposersState
+                            .getProposers();
+
+                    assertEquals(proposersExpected.size(), proposers.size());
+
+                    for(int i = 0; i < proposersExpected.size(); i++){
+                        assertEquals(proposersExpected.get(i).publicKeyHash, proposers.get(i).getPublicKeyHash().toHex());
+                    }
+
                     era.clear();
                 });
     }
