@@ -1,10 +1,7 @@
 package org.wisdom.db;
 
 import org.springframework.stereotype.Component;
-import org.tdf.common.util.ByteArraySet;
-import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
-import org.wisdom.core.account.Transaction;
 import org.wisdom.genesis.Genesis;
 
 import java.util.Collection;
@@ -33,24 +30,12 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     @Override
     protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, Collection<Block> blocks) {
-        return null;
+        return candidateUpdater.updateAll(beforeUpdates, blocks);
     }
 
     @Override
     protected Set<byte[]> getRelatedKeys(Collection<Block> blocks) {
-        return null;
-    }
-
-    private boolean isCandidateRelated(Transaction tx) {
-        switch (Transaction.TYPES_TABLE[tx.type]) {
-            case VOTE:
-            case EXIT_VOTE:
-            case MORTGAGE:
-            case EXIT_MORTGAGE:
-                return true;
-            default:
-                return false;
-        }
+        return candidateUpdater.getRelatedCandidates(blocks);
     }
 
     @Override
