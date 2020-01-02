@@ -2,7 +2,6 @@ package org.wisdom.db;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.core.Block;
@@ -11,52 +10,42 @@ import java.util.*;
 
 public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
     public EraLinkedStateTrie(
-            Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis, DatabaseStoreFactory factory,
-            boolean logDeletes, boolean reset) {
+            Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis,
+            DatabaseStoreFactory factory, boolean logDeletes, boolean reset, int blocksPerEra) {
         super(clazz, updater, genesis, factory, logDeletes, reset);
+        this.eraLinker = new EraLinker(blocksPerEra);
     }
 
     @Getter(AccessLevel.PROTECTED)
-    @Setter(AccessLevel.PACKAGE)
     private WisdomRepository repository;
 
-    abstract protected int getBlocksPerEra();
+    protected void setRepository(WisdomRepository repository) {
+        this.repository = repository;
+        this.eraLinker.setRepository(repository);
+    }
 
     abstract void updateHook(List<Block> blocks, Trie<byte[], T> trie);
 
-    protected long getEraAtBlockNumber(long number) {
-        return (number - 1) / getBlocksPerEra();
-    }
-
-    protected Block getPrevEraLast(Block target) {
-        if (target.nHeight == 0) {
-            throw new RuntimeException("cannot find prev era last of genesis");
-        }
-        long lastHeaderNumber = getEraAtBlockNumber(target.nHeight) * getBlocksPerEra();
-        if (lastHeaderNumber == target.nHeight - 1) {
-            return getRepository().getHeader(target.hashPrevBlock);
-        }
-        return getRepository().findAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
-    }
+    protected EraLinker eraLinker;
 
     @Override
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash) {
         Block b = getRepository().getBlock(blockHash);
-        Block prevEraLast = getPrevEraLast(b);
+        Block prevEraLast = eraLinker.getPrevEraLast(b);
         return super.get(prevEraLast.getHash(), publicKeyHash);
     }
 
     @Override
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
         Block b = getRepository().getBlock(blockHash);
-        Block prevEraLast = getPrevEraLast(b);
+        Block prevEraLast = eraLinker.getPrevEraLast(b);
         return super.batchGet(prevEraLast.getHash(), keys);
     }
 
     protected Trie<byte[], T> commitInternal(List<Block> blocks) {
-        if (blocks.size() != getBlocksPerEra()) throw new RuntimeException("not an era size = " + blocks.size());
+        if (blocks.size() != eraLinker.getBlocksPerEra()) throw new RuntimeException("not an era size = " + blocks.size());
         Block last = blocks.get(blocks.size() - 1);
-        if (last.nHeight % getBlocksPerEra() != 0)
+        if (last.nHeight % eraLinker.getBlocksPerEra() != 0)
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
 
         if (getRootStore().containsKey(last.getHash())) throw new RuntimeException("has commit");
@@ -80,11 +69,11 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
 
     @Override
     public void commit(Block block) {
-        if (block.nHeight % getBlocksPerEra() != 0) {
+        if (block.nHeight % eraLinker.getBlocksPerEra() != 0) {
             return;
         }
         if (getRootStore().containsKey(block.getHash())) return;
-        List<Block> ancestors = getRepository().getAncestorBlocks(block.getHash(), getBlocksPerEra());
+        List<Block> ancestors = getRepository().getAncestorBlocks(block.getHash(), eraLinker.getBlocksPerEra());
         commit(ancestors);
     }
 

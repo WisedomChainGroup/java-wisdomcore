@@ -101,9 +101,10 @@ public class TestContext {
     public CandidateUpdater candidateUpdater(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
-            @Value("${wisdom.wip-1217.height}") long wip1217Height
+            @Value("${wisdom.wip-1217.height}") long wip1217Height,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
             ){
-        return new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height);
+        return new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height, blocksPerEra);
     }
 
     @Bean

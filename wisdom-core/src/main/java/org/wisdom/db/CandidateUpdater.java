@@ -34,8 +34,14 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
     @Setter
     private CandidateStateTrie candidateStateTrie;
 
-    @Setter
     private WisdomRepository repository;
+
+    public void setRepository(WisdomRepository repository) {
+        this.repository = repository;
+        eraLinker.setRepository(repository);
+    }
+
+    private EraLinker eraLinker;
 
     private static int getenv(String key, int defaultValue) {
         String v = System.getenv(key);
@@ -50,11 +56,13 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
 
     public CandidateUpdater(@Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
                             @Value("${wisdom.consensus.block-interval}") int blockInterval,
-                            @Value("${wisdom.wip-1217.height}") long WIP_12_17_HEIGHT
+                            @Value("${wisdom.wip-1217.height}") long WIP_12_17_HEIGHT,
+                            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) {
         this.allowMinersJoinEra = allowMinersJoinEra;
         this.blockInterval = blockInterval;
         this.WIP_12_17_HEIGHT = WIP_12_17_HEIGHT;
+        this.eraLinker = new EraLinker(blocksPerEra);
     }
 
     @Override
@@ -110,7 +118,7 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
                         .put(tx.getHash(), new Vote(
                                 PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash(),
                                 tx.amount,
-                                candidateStateTrie.getEraAtBlockNumber(blocks.get(0).nHeight))
+                                eraLinker.getEraAtBlockNumber(blocks.get(0).nHeight))
                         );
                 return candidate;
             // 撤回投票

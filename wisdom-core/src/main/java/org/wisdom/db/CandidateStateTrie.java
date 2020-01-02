@@ -81,7 +81,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
             @Value("${wisdom.consensus.block-interval}") int initialBlockInterval
     ) throws Exception {
-        super(Candidate.class, candidateUpdater, genesis, factory, false, false);
+        super(Candidate.class, candidateUpdater, genesis, factory, false, false, blocksPerEra);
         this.candidateUpdater = candidateUpdater;
         this.candidateUpdater.setCandidateStateTrie(this);
         this.blocksPerEra = blocksPerEra;
@@ -110,14 +110,14 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private int blocksPerEra;
 
     private long getPowWait(Block parent) {
-        if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1) >= blockIntervalSwitchEra) {
+        if (blockIntervalSwitchEra >= 0 && eraLinker.getEraAtBlockNumber(parent.nHeight + 1) >= blockIntervalSwitchEra) {
             return blockIntervalSwitchTo * POW_WAIT_FACTOR;
         }
         return initialBlockInterval * POW_WAIT_FACTOR;
     }
 
     @Override
-    void setRepository(WisdomRepository repository) {
+    protected void setRepository(WisdomRepository repository) {
         super.setRepository(repository);
         candidateUpdater.setRepository(repository);
     }
@@ -128,20 +128,15 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     @Override
-    protected int getBlocksPerEra() {
-        return blocksPerEra;
-    }
-
-    @Override
     void updateHook(List<Block> blocks, Trie<byte[], Candidate> trie) {
         generateProposers(blocks, trie);
     }
 
     List<byte[]> getProposersByEraLst(byte[] hash, long height){
-        if(height % getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
+        if(height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
 
         boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
-                getEraAtBlockNumber(height + 1) >= allowMinersJoinEra;
+                eraLinker.getEraAtBlockNumber(height + 1) >= allowMinersJoinEra;
 
         if (!enableMultiMiners && height >= 9235) {
             return initialProposers.subList(0, 1);
@@ -166,10 +161,10 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     public List<byte[]> getProposers(Block parentBlock) {
-        if (parentBlock.nHeight % getBlocksPerEra() == 0) {
+        if (parentBlock.nHeight % eraLinker.getBlocksPerEra() == 0) {
             return getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
         }
-        Block preEraLast = getPrevEraLast(parentBlock);
+        Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
         return getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
     }
 
@@ -210,7 +205,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 // 过滤掉抵押数量不足和投票为零的账户
                 .filter(p -> p.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE);
         boolean dropZeroVotes = blocks.get(0).getnHeight() > candidateUpdater.getWIP_12_17_HEIGHT();
-        long nextEra = getEraAtBlockNumber(blocks.get(0).nHeight) + 1;
+        long nextEra = eraLinker.getEraAtBlockNumber(blocks.get(0).nHeight) + 1;
         if (dropZeroVotes) {
             candidateStream = candidateStream
                     .filter(x -> x.getAccumulated(nextEra) > 0);
