@@ -1,17 +1,19 @@
 package org.wisdom.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDecoding;
-import org.wisdom.consensus.pow.ProposersState;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Candidate {
 
     private static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
@@ -26,116 +28,27 @@ public class Candidate {
     }
 
     public static Candidate createEmpty(byte[] publicKeyHash){
-        return new Candidate(0L, new ByteArrayMap<>(), new ByteArrayMap<>(), publicKeyHash, 0L);
+        return new Candidate(publicKeyHash, 0L, new ByteArrayMap<>(), false, null);
     }
 
     @RLP(0)
+    private byte[] publicKeyHash;
+
+    @RLP(1)
     private long mortgage;
 
     // transaction hash -> votes
     @JsonIgnore
-    @RLP(1)
+    @RLP(2)
     @RLPDecoding(as = ByteArrayMap.class)
     private Map<byte[], Vote> receivedVotes;
 
-    @JsonIgnore
-    @RLP(2)
-    @RLPDecoding(as = ByteArrayMap.class)
-    // transaction hash -> count
-    private Map<byte[], Long> erasCounter;
-
+    // has been blocked
     @RLP(3)
-    private byte[] publicKeyHash;
+    private boolean isBlocked;
 
     @JsonIgnore
-    @RLP(4)
     private Long votesCache;
-
-    public Candidate(){
-        receivedVotes = new HashMap<>();
-        erasCounter = new HashMap<>();
-        publicKeyHash = new byte[0];
-        mortgage = 0;
-        votesCache = 0L;
-    }
-
-    public Candidate(long mortgage, Map<byte[], Vote> receivedVotes, Map<byte[], Long> erasCounter, byte[] publicKeyHash, long votesCache) {
-        this.mortgage = mortgage;
-        this.receivedVotes = receivedVotes;
-        this.erasCounter = erasCounter;
-        this.publicKeyHash = publicKeyHash;
-        this.votesCache = votesCache;
-    }
-
-    public long getMortgage() {
-        return mortgage;
-    }
-
-    public void setMortgage(long mortgage) {
-        this.mortgage = mortgage;
-    }
-
-    public Map<byte[], Vote> getReceivedVotes() {
-        return receivedVotes;
-    }
-
-    public void setReceivedVotes(Map<byte[], Vote> receivedVotes) {
-        this.receivedVotes = receivedVotes;
-    }
-
-    public Map<byte[], Long> getErasCounter() {
-        return erasCounter;
-    }
-
-    public void setErasCounter(Map<byte[], Long> erasCounter) {
-        this.erasCounter = erasCounter;
-    }
-
-    public byte[] getPublicKeyHash() {
-        return publicKeyHash;
-    }
-
-    public void setPublicKeyHash(byte[] publicKeyHash) {
-        this.publicKeyHash = publicKeyHash;
-    }
-
-
-    public Long getVotesCache() {
-        return votesCache;
-    }
-
-    public void setVotesCache(Long votesCache) {
-        this.votesCache = votesCache;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Candidate candidateState = (Candidate) o;
-        return mortgage == candidateState.mortgage &&
-                receivedVotes.equals(candidateState.receivedVotes) &&
-                erasCounter.equals(candidateState.erasCounter) &&
-                Arrays.equals(publicKeyHash, candidateState.publicKeyHash) &&
-                votesCache.equals(candidateState.votesCache);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(mortgage, receivedVotes, erasCounter);
-        result = 31 * result + Arrays.hashCode(publicKeyHash);
-        return result;
-    }
-
-    public Candidate copy(){
-        Candidate candidate = new Candidate();
-        candidate.setErasCounter(this.erasCounter);
-        candidate.setMortgage(this.mortgage);
-        candidate.setPublicKeyHash(this.publicKeyHash);
-        candidate.setReceivedVotes(this.receivedVotes);
-        candidate.setVotesCache(this.votesCache);
-        return  candidate;
-    }
 
     public long getAmount() {
         if (votesCache != null) {
@@ -145,41 +58,19 @@ public class Candidate {
         return this.votesCache;
     }
 
-    public long getAccumulated() {
-        return receivedVotes.values().stream().map(Vote::getAccumulated).reduce(Long::sum).orElse(0L);
-    }
-
-    void increaseEraCounters() {
-        erasCounter.replaceAll((k, v) -> v + 1);
-    }
-
-    void attenuation() {
-        clearVotesCache();
-        for (byte[] k : erasCounter.keySet()) {
-            if (erasCounter.get(k) < ATTENUATION_ERAS) {
-                continue;
+    public long getAccumulated(long era) {
+        return receivedVotes.values().stream().map(v -> {
+            if(era <= v.getEra()) return 0L;
+            long count = era - v.getEra() - 1;
+            long accumulated = v.getAmount();
+            for(long i = 0; i < count; i++){
+                accumulated = ATTENUATION_COEFFICIENT.multiply(accumulated).longValue();
             }
-            erasCounter.put(k, 0L);
-            Vote v = receivedVotes.get(k);
-            Vote v2 = new Vote(v.getFrom(), v.getAmount(), new BigFraction(receivedVotes.get(k).getAccumulated(), 1L)
-                    .multiply(ATTENUATION_COEFFICIENT)
-                    .longValue());
-            receivedVotes.put(k, v2);
-        }
+            return accumulated;
+        }).reduce(Long::sum).orElse(0L);
     }
 
-    public void clearVotesCache() {
-        votesCache = null;
-    }
-
-    @Override
-    public String toString() {
-        return "Candidate{" +
-                "mortgage=" + mortgage +
-                ", receivedVotes=" + receivedVotes +
-                ", erasCounter=" + erasCounter +
-                ", publicKeyHash=" + Arrays.toString(publicKeyHash) +
-                ", votesCache=" + votesCache +
-                '}';
+    public Candidate copy(){
+        return new Candidate(publicKeyHash, mortgage, new ByteArrayMap<>(receivedVotes), isBlocked, null);
     }
 }

@@ -19,6 +19,7 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
@@ -102,7 +103,7 @@ public class Miner implements ApplicationListener {
     private Transaction createCoinBase(long height) throws Exception {
         Transaction tx = Transaction.createEmpty();
         tx.amount = economicModel.getConsensusRewardAtHeight(height);
-        tx.to = Hex.decodeHex(consensusConfig.getMinerPubKeyHash().toCharArray());
+        tx.to = consensusConfig.getMinerPubKeyHash();
         return tx;
     }
 
@@ -185,7 +186,7 @@ public class Miner implements ApplicationListener {
             throw new RuntimeException(e);
         }
         p.ifPresent(proposer -> {
-            if (!proposer.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
+            if (FastByteComparisons.equal(proposer.pubkeyHash, consensusConfig.getMinerPubKeyHash())) {
                 return;
             }
             try {

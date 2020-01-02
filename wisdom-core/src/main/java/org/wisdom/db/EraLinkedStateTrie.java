@@ -23,27 +23,27 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
         return (number - 1) / blocksPerEra;
     }
 
-    private Block prevEraLast(Block target) {
+    protected Block prevEraLast(Block target) {
         if (target.nHeight == 0) {
             throw new RuntimeException("cannot find prev era last of genesis");
         }
         long lastHeaderNumber = getEraAtBlockNumber(target.nHeight, getBlocksPerEra()) * getBlocksPerEra();
         if (lastHeaderNumber == target.nHeight - 1) {
-            return getChain().getHeader(target.hashPrevBlock);
+            return getRepository().getHeader(target.hashPrevBlock);
         }
-        return getChain().findAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
+        return getRepository().findAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
     }
 
     @Override
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash) {
-        Block b = getChain().getBlock(blockHash);
+        Block b = getRepository().getBlock(blockHash);
         Block prevEraLast = prevEraLast(b);
         return super.get(prevEraLast.getHash(), publicKeyHash);
     }
 
     @Override
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
-        Block b = getChain().getBlock(blockHash);
+        Block b = getRepository().getBlock(blockHash);
         Block prevEraLast = prevEraLast(b);
         return super.batchGet(prevEraLast.getHash(), keys);
     }
@@ -80,7 +80,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
             return;
         }
         if(getRootStore().containsKey(block.getHash())) return;
-        List<Block> ancestors = getChain().getAncestorBlocks(block.getHash(), getBlocksPerEra());
+        List<Block> ancestors = getRepository().getAncestorBlocks(block.getHash(), getBlocksPerEra());
         commit(ancestors);
     }
 }

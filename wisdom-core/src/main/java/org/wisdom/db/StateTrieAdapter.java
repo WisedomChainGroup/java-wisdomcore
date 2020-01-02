@@ -38,7 +38,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PACKAGE)
-    private WisdomRepositoryImpl chain;
+    private WisdomRepository repository;
 
     protected abstract String getPrefix();
 

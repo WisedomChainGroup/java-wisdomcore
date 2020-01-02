@@ -49,12 +49,21 @@ public class TrieTests {
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
+    private @Value("${wisdom.allow-miner-joins-era}") long allowMinersJoinEra;
+    private @Value("${miner.validators}") String validatorsFile;
+    private @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra;
+    private @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo;
+    private @Value("${wisdom.consensus.block-interval}") int initialBlockInterval;
+
     @Before
-    public void init(){
+    public void init() throws Exception{
         factory = new DatabaseStoreFactory("", 512, "memory");
 
         validatorStateTrie = new ValidatorStateTrie(genesis, genesisJSON, factory);
-        candidateStateTrie = new CandidateStateTrie(genesis, genesisJSON, factory, candidateUpdater, blocksPerEra);
+        candidateStateTrie = new CandidateStateTrie(genesis, genesisJSON, factory,
+                candidateUpdater, blocksPerEra, allowMinersJoinEra,
+                validatorsFile, blockIntervalSwitchEra, blockIntervalSwitchTo,
+                initialBlockInterval);
     }
 
     private Stream<Block> getBlocks(){

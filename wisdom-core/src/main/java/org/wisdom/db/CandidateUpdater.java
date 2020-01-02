@@ -2,9 +2,8 @@ package org.wisdom.db;
 
 
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
@@ -26,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
+@Slf4j
 public class CandidateUpdater {
     @Value("${wisdom.wip-1217.height}")
     @Setter
@@ -35,10 +35,14 @@ public class CandidateUpdater {
     private static final int MAXIMUM_PROPOSERS = getenv("MAXIMUM_PROPOSERS", 15);
     public static final int COMMUNITY_MINER_JOINS_HEIGHT = getenv("COMMUNITY_MINER_JOINS_HEIGHT", 522215);
 
-    private List<byte[]> proposers;
-    private Set<byte[]> blockList;
     private int allowMinersJoinEra;
     private int blockInterval;
+
+    @Setter
+    private CandidateStateTrie candidateStateTrie;
+
+    @Setter
+    private WisdomRepository repository;
 
     private static int getenv(String key, int defaultValue) {
         String v = System.getenv(key);
@@ -48,52 +52,46 @@ public class CandidateUpdater {
 
     public CandidateUpdater(@Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
                             @Value("${wisdom.consensus.block-interval}") int blockInterval) {
-        blockList = new HashSet<>();
-        proposers = new ArrayList<>();
         this.allowMinersJoinEra = allowMinersJoinEra;
         this.blockInterval = blockInterval;
     }
 
-    public static Logger logger = LoggerFactory.getLogger(ProposersCache.class);
 
-
-    public Map<byte[], Candidate> updateAll(Map<byte[], Candidate> beforeUpdates, Collection<Block> blocks) {
+    public Map<byte[], Candidate> updateAll(Map<byte[], Candidate> beforeUpdates, List<Block> blocks) {
         Map<byte[], Candidate> res = copy(beforeUpdates);
-        res.values().forEach(candidate -> {
-            candidate.increaseEraCounters();
-            candidate.attenuation();
-        });
+        Map<byte[], Long> proposals = new ByteArrayMap<>();
+
+        candidateStateTrie
+                .getProposers(repository.getBlock(blocks.get(0).hashPrevBlock))
+                .forEach(h -> proposals.put(h, 0L));
+
+
         boolean enableMultiMiners = allowMinersJoinEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(
                 blocks.stream().findFirst().get().nHeight, blockInterval
         ) >= allowMinersJoinEra;
         // 统计出块数量
-        int[] proposals = new int[proposers.size()];
+
         blocks.forEach(block -> {
-            int idx = proposers.indexOf(block.body.get(0).to);
-            if (idx < 0 || idx >= proposals.length) {
-                return;
-            }
-            proposals[idx]++;
+            byte[] proposer = block.body.get(0).to;
+            if(!proposals.containsKey(proposer)) throw new RuntimeException("invalid proposal");
+
+            proposals.put(proposer, proposals.get(proposer) + 1);
             for (Transaction tx : block.body) {
-                getRelatedCandidates(tx).stream().map(res::get).peek(x -> {
-                    if (x == null) throw new RuntimeException("unreachable here");
-                }).forEach(x -> this.updateOne(tx, x));
+
             }
         });
+
         // 拉黑不出块的节点
-        for (int i = 0; i < proposals.length && enableMultiMiners; i++) {
-            if (proposals[i] > 0) {
-                continue;
-            }
-            logger.info("block the proposer " + Hex.encodeHexString(proposers.get(i)));
-            blockList.add(proposers.get(i));
-        }
+        List<byte[]> toBlock = proposals.keySet().stream()
+                .filter(k -> proposals.get(k) == 0).collect(Collectors.toList());
+
         // delete all block list after community miner joins
         if (blocks.stream().anyMatch(b -> b.getnHeight() >= COMMUNITY_MINER_JOINS_HEIGHT
                 && blocks.stream().anyMatch(x -> x.getnHeight() < COMMUNITY_MINER_JOINS_HEIGHT))
         ) {
             blockList.clear();
         }
+
         // 重新生成 proposers
         Stream<Candidate> proposers = beforeUpdates.values().stream()
                 // 过滤掉黑名单中节点
@@ -111,15 +109,6 @@ public class CandidateUpdater {
         return res;
     }
 
-    private static int compareProposer(Candidate x, Candidate y) {
-        if (x.getAccumulated() != y.getAccumulated()) {
-            return Long.compare(x.getAccumulated(), y.getAccumulated());
-        }
-        if (x.getMortgage() != y.getMortgage()) {
-            return Long.compare(x.getMortgage(), y.getMortgage());
-        }
-        return Hex.encodeHexString(x.getPublicKeyHash()).compareTo(Hex.encodeHexString(y.getPublicKeyHash()));
-    }
 
     private Map<byte[], Candidate> copy(Map<byte[], Candidate> beforeUpdates) {
         Map<byte[], Candidate> res = new ByteArrayMap<>();
@@ -135,7 +124,8 @@ public class CandidateUpdater {
         long mortgage = candidate.getMortgage();
         switch (Transaction.TYPES_TABLE[tx.type]) {
             case VOTE:
-                receivedVotes.put(tx.getHash(), new Vote(PublicKeyHash.fromPublicKey(tx.from), tx.amount, tx.amount));
+                receivedVotes.put(tx.getHash(), new Vote(
+                        PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash(), tx.amount, tx.amount));
                 erasCounter.put(tx.getHash(), 0L);
                 candidate.clearVotesCache();
                 break;
@@ -143,7 +133,6 @@ public class CandidateUpdater {
             case EXIT_VOTE:
                 receivedVotes.remove(tx.payload);
                 erasCounter.remove(tx.payload);
-                candidate.clearVotesCache();
                 break;
             case MORTGAGE:
                 mortgage += tx.amount;
@@ -153,7 +142,7 @@ public class CandidateUpdater {
                 mortgage -= tx.amount;
                 candidate.setMortgage(mortgage);
                 if (mortgage < 0) {
-                    logger.error("mortgage < 0");
+                    log.error("mortgage < 0");
                 }
                 break;
         }
