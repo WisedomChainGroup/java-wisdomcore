@@ -26,6 +26,7 @@ import java.util.List;
  * @author sal 1564319846@qq.com
  * era linked state factory, updates per era
  */
+@Deprecated // use state trie instead
 public class EraLinkedStateFactory<T extends State<T>> extends AbstractStateFactory<T> {
     private int blocksPerEra;
 

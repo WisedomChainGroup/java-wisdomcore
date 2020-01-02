@@ -26,6 +26,7 @@ import org.wisdom.db.StateDB;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
+@Deprecated // use state trie instead
 public abstract class AbstractStateFactory<T extends State<T>> {
     protected StateDB stateDB;
     protected T genesisState;

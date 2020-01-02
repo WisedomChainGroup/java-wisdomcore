@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+@Deprecated
 public class BlocksCacheWrapper extends BlocksCache {
     private ReadWriteLock readWriteLock;
 

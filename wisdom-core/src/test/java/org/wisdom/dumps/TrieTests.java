@@ -12,7 +12,6 @@ import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.db.*;
 import org.wisdom.genesis.Genesis;
 
