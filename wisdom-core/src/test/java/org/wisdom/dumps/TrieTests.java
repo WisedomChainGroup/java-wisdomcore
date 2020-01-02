@@ -99,21 +99,14 @@ public class TrieTests {
                     genesisProposersState.updateBlocks(era);
 
                     final long nextEra = (b.nHeight - 1) / blocksPerEra + 1;
-                    List<ProposersState.Proposer> proposers = genesisProposersState.getProposers();
-                    List<Candidate> proposers2 = candidateStateTrie.getCache()
-                            .asMap()
-                            .get(HexBytes.fromBytes(era.get(era.size() - 1).getHash()));
-
-                    try {
-                        assertEquals(proposers.size(), proposers2.size());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    }
-                    for (int i = 0; i < proposers.size(); i++) {
-                        assert proposers.get(i).publicKeyHash
-                                .equals(proposers2.get(i).getPublicKeyHash().toHex());
-                    }
+                    candidateStateTrie.getTrie()
+                            .revert(candidateStateTrie.getRootStore().get(b.getHash()).get())
+                            .values()
+                            .forEach(c -> {
+                                assertEquals(c.getAccumulated(nextEra),
+                                        genesisProposersState.getAll()
+                                                .get(c.getPublicKeyHash().toHex()).getAccumulated());
+                            });
                     era.clear();
                 });
     }

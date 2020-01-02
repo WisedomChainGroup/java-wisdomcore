@@ -10,6 +10,7 @@ import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDecoding;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -29,7 +30,9 @@ public class Candidate {
     }
 
     public static Candidate createEmpty(byte[] publicKeyHash){
-        return new Candidate(HexBytes.fromBytes(publicKeyHash), 0L, new ByteArrayMap<>(), false, null);
+        Candidate candidate = new Candidate();
+        candidate.setPublicKeyHash(HexBytes.fromBytes(publicKeyHash));
+        return candidate;
     }
 
     @RLP(0)
@@ -42,7 +45,7 @@ public class Candidate {
     @JsonIgnore
     @RLP(2)
     @RLPDecoding(as = ByteArrayMap.class)
-    private Map<byte[], Vote> receivedVotes;
+    private Map<byte[], Vote> receivedVotes = new ByteArrayMap<>();
 
     // has been blocked
     @RLP(3)
@@ -50,6 +53,9 @@ public class Candidate {
 
     @JsonIgnore
     private Long votesCache;
+
+    @JsonIgnore
+    private HashMap<Long, Long> cache = new HashMap<>();
 
     public long getAmount() {
         if (votesCache != null) {
@@ -60,7 +66,9 @@ public class Candidate {
     }
 
     public long getAccumulated(long era) {
-        return receivedVotes.values().stream().map(v -> {
+        Long ret = cache.get(era);
+        if(ret != null) return ret;
+        ret =  receivedVotes.values().stream().map(v -> {
             if(era <= v.getEra()) return 0L;
             long count = era - v.getEra() - 1;
             long accumulated = v.getAmount();
@@ -69,9 +77,11 @@ public class Candidate {
             }
             return accumulated;
         }).reduce(Long::sum).orElse(0L);
+        cache.put(era, ret);
+        return ret;
     }
 
     public Candidate copy(){
-        return new Candidate(publicKeyHash, mortgage, new ByteArrayMap<>(receivedVotes), isBlocked, null);
+        return new Candidate(publicKeyHash, mortgage, new ByteArrayMap<>(receivedVotes), isBlocked, null, null);
     }
 }

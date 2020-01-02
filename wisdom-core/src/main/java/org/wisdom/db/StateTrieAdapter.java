@@ -27,10 +27,10 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     @Getter(AccessLevel.PROTECTED)
     private NoDeleteStore<byte[], byte[]> trieStore;
 
-    @Getter(AccessLevel.PROTECTED)
+    @Getter
     private Store<byte[], byte[]> rootStore;
 
-    @Getter(AccessLevel.PROTECTED)
+    @Getter
     private Trie<byte[], T> trie;
 
     protected abstract String getPrefix();

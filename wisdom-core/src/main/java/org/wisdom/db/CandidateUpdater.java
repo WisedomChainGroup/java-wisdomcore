@@ -77,12 +77,14 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
 
     @Override
     public Set<byte[]> getRelatedKeys(List<Block> blocks) {
-        if (atJoinEra(blocks)) {
-            return candidateStateTrie.getTrie()
-                    .revert(candidateStateTrie.getRootStore().get(blocks.get(0).hashPrevBlock).get())
-                    .keySet();
-        }
         Set<byte[]> related = super.getRelatedKeys(blocks);
+
+        if (atJoinEra(blocks)) {
+            related.addAll(candidateStateTrie.getTrie()
+                    .revert(candidateStateTrie.getRootStore().get(blocks.get(0).hashPrevBlock).get())
+                    .keySet());
+            return related;
+        }
 
         related.addAll(candidateStateTrie
                 .getCache().asMap().getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
