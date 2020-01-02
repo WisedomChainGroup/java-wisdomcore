@@ -2,6 +2,7 @@ package org.wisdom.context;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
+import org.junit.Before;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -17,6 +18,7 @@ import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.db.CandidateUpdater;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 
@@ -70,5 +72,16 @@ public class TestContext {
         db.setTmpl(jdbcTemplate);
         db.setIncubatorDB(incubatorDB);
         return db;
+    }
+
+    @Bean
+    public CandidateUpdater candidateUpdater(
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.wip-1217-height}") long wip1217Height
+            ){
+        CandidateUpdater candidateUpdater = new CandidateUpdater(allowMinersJoinEra, blockInterval);
+        candidateUpdater.setWIP_12_17_HEIGHT(wip1217Height);
+        return candidateUpdater;
     }
 }

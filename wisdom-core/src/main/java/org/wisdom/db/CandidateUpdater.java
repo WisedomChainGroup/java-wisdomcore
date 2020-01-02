@@ -1,6 +1,7 @@
 package org.wisdom.db;
 
 
+import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import java.util.stream.Stream;
 @Component
 public class CandidateUpdater {
     @Value("${wisdom.wip-1217.height}")
+    @Setter
     private long WIP_12_17_HEIGHT;
 
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;

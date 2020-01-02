@@ -9,6 +9,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
+import org.wisdom.db.CandidateStateTrie;
+import org.wisdom.db.CandidateUpdater;
 import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.db.ValidatorStateTrie;
 import org.wisdom.genesis.Genesis;
@@ -24,10 +26,12 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestContext.class)
 // set SPRING_CONFIG_LOCATION=classpath:application-test.yml to run dump tasks
-public class ValidatorStateTests {
+public class TrieTests {
     protected ValidatorStateTrie validatorStateTrie;
 
     protected DatabaseStoreFactory factory;
+
+    protected CandidateStateTrie candidateStateTrie;
 
     @Autowired
     private Block genesis;
@@ -35,15 +39,19 @@ public class ValidatorStateTests {
     @Autowired
     private Genesis genesisJSON;
 
+    @Autowired
+    private CandidateUpdater candidateUpdater;
+
     @Before
     public void init(){
         factory = new DatabaseStoreFactory("", 512, "memory");
 
         validatorStateTrie = new ValidatorStateTrie(genesis, genesisJSON, factory);
+        candidateStateTrie = new CandidateStateTrie(genesis, genesisJSON, factory, candidateUpdater);
     }
 
     @Test
-    public void testUpdates(){
+    public void testValidatorNonceTrie(){
         String blocksDirectory = "z:\\dumps\\blocks";
         File file = Paths.get(blocksDirectory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(blocksDirectory + " is not a valid directory");
@@ -65,4 +73,5 @@ public class ValidatorStateTests {
                     assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).get());
                 });
     }
+
 }
