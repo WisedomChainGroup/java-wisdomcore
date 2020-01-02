@@ -67,7 +67,7 @@ public class TrieTests {
     }
 
     private Stream<Block> getBlocks(){
-        String blocksDirectory = "z:\\dumps\\blocks";
+        String blocksDirectory = "C:\\Users\\Sal\\Desktop\\dumps\\blocks";
         File file = Paths.get(blocksDirectory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(blocksDirectory + " is not a valid directory");
         File[] files = file.listFiles();

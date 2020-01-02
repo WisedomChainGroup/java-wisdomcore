@@ -80,8 +80,7 @@ public class TestContext {
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
             @Value("${wisdom.wip-1217.height}") long wip1217Height
             ){
-        CandidateUpdater candidateUpdater = new CandidateUpdater(allowMinersJoinEra, blockInterval);
-        candidateUpdater.setWIP_12_17_HEIGHT(wip1217Height);
+        CandidateUpdater candidateUpdater = new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height);
         return candidateUpdater;
     }
 }

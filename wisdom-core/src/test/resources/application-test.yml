@@ -6,15 +6,21 @@ spring:
     type: 'org.apache.commons.dbcp2.BasicDataSource'
 
 
+miner:
+  validators: 'genesis/validators.json'
 
 wisdom:
   wip-1217:
     height: '769876'
   allow-miner-joins-era: '2380'
+  block-interval-switch-era: '2380'
+  block-interval-switch-to: '10'
 
   consensus:
     genesis: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator.json'
     block-interval: '30'
     blocks-per-era: '120'
+
+
 
 clear-data: 'false'

@@ -100,7 +100,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         return m;
     }
 
-    protected byte[] commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data){
+    protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data){
         Store<byte[], byte[]> cache = new MemoryCachedStore<>(getTrieStore());
         Trie<byte[], T> trie = getTrie().revert(parentRoot, cache);
         for (Map.Entry<byte[], T> entry: data.entrySet()) {
@@ -109,6 +109,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         byte[] newRoot = trie.commit();
         trie.flush();
         getRootStore().put(blockHash, newRoot);
-        return newRoot;
+        return trie;
     }
 }

@@ -1,12 +1,13 @@
 package org.wisdom.consensus.pow;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ByteArraySet;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.Block;
 import org.wisdom.core.state.EraLinkedStateFactory;
 import org.wisdom.db.StateDB;
@@ -23,10 +24,12 @@ import java.util.stream.Stream;
 
 
 @Component
+@Deprecated
+// use CandidateStateTrie
 public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
     private static final int POW_WAIT_FACTOR = 3;
-    private static final Set<String> WHITE_LIST = Stream.of(
+    private static final Set<byte[]> WHITE_LIST = new ByteArraySet(Stream.of(
             "552f6d4390367de2b05f4c9fc345eeaaf0750db9",
             "5b0a4c7e31c3123db40a4c14200b54b8e358294b",
             "08f74cb61f41f692011a5e66e3c038969eb0ec75",
@@ -37,7 +40,7 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
             "2c5de963729478a48d89df268e8c29fd94fd5182",
             "3e8f7c9406e8bb62363eaed0d1e3def77faa9df9",
             "83670eb15325c86b479abb87191be93d3470f91a"
-    ).collect(Collectors.toSet());
+    ).map(HexBytes::decode).collect(Collectors.toList()));
 
 //    private static final Set<String> WHITE_LIST = Stream.of(
 //            "c017fd8d81fb6e5bbe56dc549c33abcf4f397332",
@@ -59,7 +62,7 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     @Value("${wisdom.block-interval-switch-to}")
     private int blockIntervalSwitchTo;
 
-    private List<String> initialProposers;
+    private List<byte[]> initialProposers;
 
     @Value("${wisdom.allow-miner-joins-era}")
     private long allowMinersJoinEra;
@@ -81,11 +84,10 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
         ).map(v -> {
             try {
                 URI uri = new URI(v);
-                return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
+                return KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo());
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-            return null;
         }).collect(Collectors.toList());
 
 
@@ -98,7 +100,7 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
         return initialBlockInterval * POW_WAIT_FACTOR;
     }
 
-    public List<String> getProposers(Block parentBlock) {
+    public List<byte[]> getProposers(Block parentBlock) {
         boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
                 getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
 
@@ -110,13 +112,13 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
             return initialProposers;
         }
 
-        List<String> res;
+        List<byte[]> res;
         if (parentBlock.nHeight % getBlocksPerEra() == 0) {
             ProposersState state = getFromCache(parentBlock);
-            res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+            res = state.getProposers().stream().map(p -> HexBytes.decode(p.publicKeyHash)).collect(Collectors.toList());
         } else {
             ProposersState state = getInstance(parentBlock);
-            res = state.getProposers().stream().map(p -> p.publicKeyHash).collect(Collectors.toList());
+            res = state.getProposers().stream().map(p -> HexBytes.decode(p.publicKeyHash)).collect(Collectors.toList());
         }
         if (parentBlock.getnHeight() + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
             res = res.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
@@ -129,30 +131,31 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
     }
 
     public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
-        List<String> proposers = getProposers(parentBlock);
+        List<HexBytes> proposers = getProposers(parentBlock).stream()
+                .map(HexBytes::fromBytes)
+                .collect(Collectors.toList());
 
         if (timeStamp <= parentBlock.nTime) {
             return Optional.empty();
         }
 
         if (parentBlock.nHeight == 0) {
-            return Optional.of(new Proposer(proposers.get(0), 0, Long.MAX_VALUE));
+            return Optional.of(new Proposer(proposers.get(0).getBytes(), 0, Long.MAX_VALUE));
         }
 
         long step = (timeStamp - parentBlock.nTime)
                 / getPowWait(parentBlock) + 1;
-        String lastValidator = Hex
-                .encodeHexString(
+        byte[] lastValidator =
                         parentBlock.body.get(0).to
-                );
+                ;
         int lastValidatorIndex = proposers
-                .indexOf(lastValidator);
+                .indexOf(HexBytes.fromBytes(lastValidator));
         int currentValidatorIndex = (int) (lastValidatorIndex + step) % proposers.size();
         long endTime = parentBlock.nTime + step * getPowWait(parentBlock);
         long startTime = endTime - getPowWait(parentBlock);
-        String validator = proposers.get(currentValidatorIndex);
+        HexBytes validator = proposers.get(currentValidatorIndex);
         return Optional.of(new Proposer(
-                validator,
+                validator.getBytes(),
                 startTime,
                 endTime
         ));

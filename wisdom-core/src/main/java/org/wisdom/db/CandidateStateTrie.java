@@ -7,6 +7,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
@@ -21,6 +22,9 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.wisdom.db.CandidateUpdater.MAXIMUM_PROPOSERS;
+import static org.wisdom.db.CandidateUpdater.MINIMUM_PROPOSER_MORTGAGE;
 
 @Component
 public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
@@ -110,7 +114,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private int blocksPerEra;
 
     private long getPowWait(Block parent) {
-        if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1, getBlocksPerEra()) >= blockIntervalSwitchEra) {
+        if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1) >= blockIntervalSwitchEra) {
             return blockIntervalSwitchTo * POW_WAIT_FACTOR;
         }
         return initialBlockInterval * POW_WAIT_FACTOR;
@@ -133,12 +137,12 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     @Override
-    protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, Collection<Block> blocks) {
+    protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, List<Block> blocks) {
         return candidateUpdater.updateAll(beforeUpdates, blocks);
     }
 
     @Override
-    protected Set<byte[]> getRelatedKeys(Collection<Block> blocks) {
+    protected Set<byte[]> getRelatedKeys(List<Block> blocks) {
         return candidateUpdater.getRelatedCandidates(blocks);
     }
 
@@ -154,7 +158,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     public List<byte[]> getProposers(Block parentBlock) {
         boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
-                getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
+                getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinersJoinEra;
 
         if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
             return initialProposers.subList(0, 1);
@@ -224,5 +228,34 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     @Override
     public void commit(Block block) {
         super.commit(block);
+    }
+
+    public void generateProposers(Trie<byte[], Candidate> trie, List<Block> blocks){
+        // 重新生成 proposers
+        Stream<Candidate> candidateStream = trie.values().stream()
+                // 过滤掉黑名单中节点
+                .filter(p -> !p.isBlocked())
+                // 过滤掉抵押数量不足和投票为零的账户
+                .filter(p -> p.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE);
+        boolean dropZeroVotes = blocks.get(0).getnHeight() > candidateUpdater.getWIP_12_17_HEIGHT();
+        long era = getEraAtBlockNumber(blocks.get(0).nHeight);
+        if (dropZeroVotes) {
+            candidateStream = candidateStream
+                    .filter(x -> x.getAccumulated(era) > 0);
+        }
+        // 按照 投票，抵押，字典从大到小排序
+        List<Candidate> proposers = candidateStream.sorted((x, y) -> -compareProposer(x, y, era))
+                .limit(MAXIMUM_PROPOSERS)
+                .collect(Collectors.toList());
+    }
+
+    private static int compareProposer(Candidate x, Candidate y, long era) {
+        if (x.getAccumulated(era) != y.getAccumulated(era)) {
+            return Long.compare(x.getAccumulated(era), y.getAccumulated(era));
+        }
+        if (x.getMortgage() != y.getMortgage()) {
+            return Long.compare(x.getMortgage(), y.getMortgage());
+        }
+        return HexBytes.encode(x.getPublicKeyHash()).compareTo(HexBytes.encode(y.getPublicKeyHash()));
     }
 }
