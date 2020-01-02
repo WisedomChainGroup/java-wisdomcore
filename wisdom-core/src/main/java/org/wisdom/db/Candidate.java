@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPDecoding;
 
@@ -28,11 +29,11 @@ public class Candidate {
     }
 
     public static Candidate createEmpty(byte[] publicKeyHash){
-        return new Candidate(publicKeyHash, 0L, new ByteArrayMap<>(), false, null);
+        return new Candidate(HexBytes.fromBytes(publicKeyHash), 0L, new ByteArrayMap<>(), false, null);
     }
 
     @RLP(0)
-    private byte[] publicKeyHash;
+    private HexBytes publicKeyHash;
 
     @RLP(1)
     private long mortgage;

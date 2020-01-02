@@ -51,14 +51,19 @@ public class TrieTests {
     @Autowired
     private BlockStreamBuilder blockStreamBuilder;
 
-    private @Value("${wisdom.allow-miner-joins-era}") long allowMinersJoinEra;
-    private @Value("${miner.validators}") String validatorsFile;
-    private @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra;
-    private @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo;
-    private @Value("${wisdom.consensus.block-interval}") int initialBlockInterval;
+    private @Value("${wisdom.allow-miner-joins-era}")
+    long allowMinersJoinEra;
+    private @Value("${miner.validators}")
+    String validatorsFile;
+    private @Value("${wisdom.block-interval-switch-era}")
+    long blockIntervalSwitchEra;
+    private @Value("${wisdom.block-interval-switch-to}")
+    int blockIntervalSwitchTo;
+    private @Value("${wisdom.consensus.block-interval}")
+    int initialBlockInterval;
 
     @Before
-    public void init() throws Exception{
+    public void init() throws Exception {
         factory = new DatabaseStoreFactory("", 512, "memory");
 
         validatorStateTrie = new ValidatorStateTrie(genesis, factory);
@@ -70,35 +75,44 @@ public class TrieTests {
 
 
     @Test
-    public void testValidatorNonceTrie(){
+    public void testValidatorNonceTrie() {
         blockStreamBuilder.getBlocks().forEach(b -> {
-                    if(b.nHeight == 0) return;
-                    validatorStateTrie.commit(b);
-                    assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).orElse(0L));
-                });
+            if (b.nHeight == 0) return;
+            validatorStateTrie.commit(b);
+            assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).orElse(0L));
+        });
     }
 
     @Test
-    public void testProposers(){
+    public void testProposers() {
         List<Block> era = new ArrayList<>(blocksPerEra);
         blockStreamBuilder.getBlocks()
                 .forEach(b -> {
-                    if(b.nHeight == 0) return;
+                    if (b.nHeight == 0) return;
                     era.add(b);
-                    if(era.size() < blocksPerEra) return;
+                    if (b.nHeight == 447600) {
+                        System.out.println("========");
+                    }
+                    if (era.size() < blocksPerEra) return;
                     System.out.println(b.nHeight);
                     candidateStateTrie.commit(era);
                     genesisProposersState.updateBlocks(era);
 
+                    final long nextEra = (b.nHeight - 1) / blocksPerEra + 1;
                     List<ProposersState.Proposer> proposers = genesisProposersState.getProposers();
                     List<Candidate> proposers2 = candidateStateTrie.getCache()
                             .asMap()
                             .get(HexBytes.fromBytes(era.get(era.size() - 1).getHash()));
 
-                    assertEquals(proposers.size(), proposers2.size());
-                    for(int i = 0; i < proposers.size(); i++){
+                    try {
+                        assertEquals(proposers.size(), proposers2.size());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                    for (int i = 0; i < proposers.size(); i++) {
                         assert proposers.get(i).publicKeyHash
-                                .equals(HexBytes.encode(proposers2.get(i).getPublicKeyHash()));
+                                .equals(proposers2.get(i).getPublicKeyHash().toHex());
                     }
                     era.clear();
                 });

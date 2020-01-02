@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 
 import org.tdf.common.util.FastByteComparisons;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
@@ -82,20 +83,33 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
                     .keySet();
         }
         Set<byte[]> related = super.getRelatedKeys(blocks);
+
         related.addAll(candidateStateTrie
-                .getProposersByEraLst(blocks.get(0).hashPrevBlock, blocks.get(0).nHeight - 1));
+                .getCache().asMap().getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
+                .stream().map(c -> c.getPublicKeyHash().getBytes())
+                .collect(Collectors.toList())
+        );
+
         return related;
     }
 
     @Override
-    public Candidate update(byte[] id, Candidate candidate, Transaction tx) {
-        if (!FastByteComparisons.equal(tx.to, candidate.getPublicKeyHash())) throw new RuntimeException("unreachable");
+    Candidate update(byte[] id, Candidate state, Transaction transaction) {
+        throw new RuntimeException("not implemented");
+    }
+
+    private Candidate updateInternal(byte[] id, Candidate candidate, List<Block> blocks, Transaction tx) {
+        if (!FastByteComparisons.equal(tx.to, candidate.getPublicKeyHash().getBytes()))
+            throw new RuntimeException("unreachable");
         candidate = candidate.copy();
         switch (Transaction.TYPES_TABLE[tx.type]) {
             case VOTE:
                 candidate.getReceivedVotes()
                         .put(tx.getHash(), new Vote(
-                                PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash(), tx.amount, tx.amount));
+                                PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash(),
+                                tx.amount,
+                                candidateStateTrie.getEraAtBlockNumber(blocks.get(0).nHeight))
+                        );
                 return candidate;
             // 撤回投票
             case EXIT_VOTE:
@@ -116,6 +130,17 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
         }
     }
 
+    Map<byte[], Candidate> updateInternal(Map<byte[], Candidate> beforeUpdate, List<Block> blocks) {
+        Map<byte[], Candidate> ret = new ByteArrayMap<>(beforeUpdate);
+        blocks.stream().flatMap(b -> b.body.stream())
+                .forEach(tx -> {
+                    getRelatedKeys(tx).forEach(k -> {
+                        ret.put(k, updateInternal(k, ret.get(k), blocks, tx));
+                    });
+                });
+        return ret;
+    }
+
     @Override
     public Candidate createEmpty(byte[] id) {
         return Candidate.createEmpty(id);
@@ -123,17 +148,18 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
 
     @Override
     public Map<byte[], Candidate> update(Map<byte[], Candidate> beforeUpdates, List<Block> blocks) {
-        Map<byte[], Candidate> ret = super.update(beforeUpdates, blocks);
+        Map<byte[], Candidate> ret = updateInternal(beforeUpdates, blocks);
         Map<byte[], Long> proposals = new ByteArrayMap<>();
 
         candidateStateTrie
-                .getProposersByEraLst(blocks.get(0).hashPrevBlock, blocks.get(0).nHeight - 1)
+                .getCache().asMap().getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
+                .stream().map(c -> c.getPublicKeyHash().getBytes())
                 .forEach(h -> proposals.put(h, 0L));
 
         blocks.forEach(block -> {
             byte[] proposer = block.body.get(0).to;
             if (!proposals.containsKey(proposer)) {
-                throw new RuntimeException("invalid proposal");
+                return;
             }
             proposals.put(proposer, proposals.get(proposer) + 1);
         });

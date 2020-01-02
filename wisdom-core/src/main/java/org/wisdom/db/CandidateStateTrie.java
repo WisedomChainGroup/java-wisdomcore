@@ -153,6 +153,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
         List<byte[]> res = cache.asMap().get(HexBytes.fromBytes(hash))
                     .stream().map(Candidate::getPublicKeyHash)
+                    .map(HexBytes::getBytes)
                     .collect(Collectors.toList());
 
         if (height + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
@@ -209,13 +210,13 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 // 过滤掉抵押数量不足和投票为零的账户
                 .filter(p -> p.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE);
         boolean dropZeroVotes = blocks.get(0).getnHeight() > candidateUpdater.getWIP_12_17_HEIGHT();
-        long era = getEraAtBlockNumber(blocks.get(0).nHeight);
+        long nextEra = getEraAtBlockNumber(blocks.get(0).nHeight) + 1;
         if (dropZeroVotes) {
             candidateStream = candidateStream
-                    .filter(x -> x.getAccumulated(era) > 0);
+                    .filter(x -> x.getAccumulated(nextEra) > 0);
         }
         // 按照 投票，抵押，字典从大到小排序
-        List<Candidate> proposers = candidateStream.sorted((x, y) -> -compareCandidate(x, y, era))
+        List<Candidate> proposers = candidateStream.sorted((x, y) -> -compareCandidate(x, y, nextEra))
                 .limit(MAXIMUM_PROPOSERS)
                 .collect(Collectors.toList());
 
@@ -229,6 +230,8 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         if (x.getMortgage() != y.getMortgage()) {
             return Long.compare(x.getMortgage(), y.getMortgage());
         }
-        return HexBytes.encode(x.getPublicKeyHash()).compareTo(HexBytes.encode(y.getPublicKeyHash()));
+        return x.getPublicKeyHash()
+                .toHex()
+                .compareTo(y.getPublicKeyHash().toHex());
     }
 }
