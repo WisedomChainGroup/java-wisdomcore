@@ -46,6 +46,10 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
         return accountStateUpdater.getRelatedAccounts(block);
     }
 
+    @Override
+    protected AccountState createEmpty(byte[] publicKeyHash) {
+        return accountStateUpdater.createEmpty(publicKeyHash);
+    }
 
     public AccountStateTrie(
             DatabaseStoreFactory factory,

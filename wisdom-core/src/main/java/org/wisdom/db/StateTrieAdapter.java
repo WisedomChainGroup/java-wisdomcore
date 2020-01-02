@@ -38,11 +38,13 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PACKAGE)
-    private WisdomRepositoryImpl chain;
+    private WisdomRepository repository;
 
     protected abstract String getPrefix();
 
     protected abstract Map<byte[], T> generateGenesisStates(Block genesis, Genesis genesisJSON);
+
+    protected abstract T createEmpty(byte[] publicKeyHash);
 
     public StateTrieAdapter(Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
         TRIE = getPrefix() + "-trie";
@@ -90,15 +92,15 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
         Trie<byte[], T> trie = getTrie().revert(root);
         ByteArrayMap<T> m = new ByteArrayMap<>();
-        keys.forEach(x -> {
-            Optional<T> o = trie.get(x);
-            if (!o.isPresent()) return;
-            m.put(x, o.get());
-        });
+        keys.forEach(x ->
+                m.put(
+                        x, trie.get(x).orElse(createEmpty(x))
+                )
+        );
         return m;
     }
 
-    protected byte[] commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data){
+    protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data){
         Store<byte[], byte[]> cache = new MemoryCachedStore<>(getTrieStore());
         Trie<byte[], T> trie = getTrie().revert(parentRoot, cache);
         for (Map.Entry<byte[], T> entry: data.entrySet()) {
@@ -107,6 +109,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         byte[] newRoot = trie.commit();
         trie.flush();
         getRootStore().put(blockHash, newRoot);
-        return newRoot;
+        return trie;
     }
 }

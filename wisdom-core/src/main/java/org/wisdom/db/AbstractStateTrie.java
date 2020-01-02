@@ -1,9 +1,6 @@
 package org.wisdom.db;
 
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.common.store.MemoryCachedStore;
-import org.tdf.common.store.Store;
-import org.tdf.common.trie.Trie;
 import org.wisdom.core.Block;
 import org.wisdom.genesis.Genesis;
 

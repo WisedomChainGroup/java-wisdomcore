@@ -7,16 +7,20 @@ spring:
 
 
 
+
 wisdom:
+  wip-1217:
+    height: '769876'
+  allow-miner-joins-era: '2380'
+  block-interval-switch-era: '2380'
+  block-interval-switch-to: '10'
   consensus:
     genesis: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator2.json'
     block-interval: '30'
     blocks-per-era: '120'
-  block-interval-switch-era: '2380'
-  block-interval-switch-to: '10'
-  allow-miner-joins-era: '2380'
-  wip-1217:
-    height: '0'
 miner:
   validators: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
+
+
+
 clear-data: 'false'

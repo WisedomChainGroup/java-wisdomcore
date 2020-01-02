@@ -62,8 +62,8 @@ public class TriesSyncManager {
 
     public void setChain(WisdomRepositoryImpl chain) {
         this.chain = chain;
-        accountStateTrie.setChain(chain);
-        validatorStateTrie.setChain(chain);
+        accountStateTrie.setRepository(chain);
+        validatorStateTrie.setRepository(chain);
     }
 
     void sync() throws Exception{

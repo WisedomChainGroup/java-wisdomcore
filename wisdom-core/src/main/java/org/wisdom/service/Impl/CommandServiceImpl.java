@@ -19,6 +19,7 @@
 package org.wisdom.service.Impl;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CommandServiceImpl implements CommandService {
@@ -83,7 +85,10 @@ public class CommandServiceImpl implements CommandService {
             }
             if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
                 Block block = stateDB.getBestBlock();
-                List<String> list = stateDB.getProposersFactory().getProposers(block);
+                List<String> list = stateDB.getProposersFactory()
+                        .getProposers(block).stream()
+                        .map(HexBytes::encode)
+                        .collect(Collectors.toList());
                 byte[] fromPublicHash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (list.size() > 0 && list.contains(Hex.encodeHexString(fromPublicHash))) {
                     apiResult.setCode(5000);

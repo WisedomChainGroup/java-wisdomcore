@@ -12,7 +12,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
@@ -20,6 +19,7 @@ import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.db.CandidateUpdater;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 
@@ -88,6 +88,15 @@ public class TestContext {
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
             @Value("${wisdom.consensus.block-interval}") int blockInterval) {
         return new ProposersState(allowMinersJoinEra, blockInterval);
+    }
+
+    public CandidateUpdater candidateUpdater(
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.wip-1217.height}") long wip1217Height
+            ){
+        CandidateUpdater candidateUpdater = new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height);
+        return candidateUpdater;
     }
 
 }
