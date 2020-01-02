@@ -90,13 +90,13 @@ public class TestContext {
         return new ProposersState(allowMinersJoinEra, blockInterval);
     }
 
+    @Bean
     public CandidateUpdater candidateUpdater(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
             @Value("${wisdom.wip-1217.height}") long wip1217Height
             ){
-        CandidateUpdater candidateUpdater = new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height);
-        return candidateUpdater;
+        return new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height);
     }
 
 }

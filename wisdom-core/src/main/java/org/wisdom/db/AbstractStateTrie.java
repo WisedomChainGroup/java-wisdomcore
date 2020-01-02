@@ -2,20 +2,15 @@ package org.wisdom.db;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.core.Block;
-import org.wisdom.genesis.Genesis;
 
 import java.util.Map;
-import java.util.Set;
 
 public abstract class AbstractStateTrie<T> extends StateTrieAdapter<T>{
-    protected abstract Map<byte[], T> getUpdatedStates(Map<byte[], T> beforeUpdates, Block block);
-    protected abstract Set<byte[]> getRelatedKeys(Block block);
-
     public AbstractStateTrie(
-            Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory,
+            Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis, DatabaseStoreFactory factory,
             boolean logDeletes, boolean reset
     ) {
-        super(genesis, genesisJSON, clazz, factory, logDeletes, reset);
+        super(clazz, updater, genesis, factory, logDeletes, reset);
     }
 
 
@@ -26,7 +21,7 @@ public abstract class AbstractStateTrie<T> extends StateTrieAdapter<T>{
             return;
         byte[] root = getRootStore().get(block.hashPrevBlock)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(block.hashPrevBlock) + " not exists"));
-        Map<byte[], T> beforeUpdates = batchGet(block.hashPrevBlock, getRelatedKeys(block));
-        commitInternal(root, block.getHash(), getUpdatedStates(beforeUpdates, block));
+        Map<byte[], T> beforeUpdates = batchGet(block.hashPrevBlock, getUpdater().getRelatedKeys(block));
+        commitInternal(root, block.getHash(), getUpdater().update(beforeUpdates, block));
     }
 }

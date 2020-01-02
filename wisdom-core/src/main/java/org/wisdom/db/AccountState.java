@@ -111,6 +111,7 @@ public class AccountState {
         return Arrays.hashCode(account.getPubkeyHash());
     }
 
+    // TODO: is deep copy?
     public AccountState copy() {
         AccountState accountState = new AccountState();
         accountState.setAccount(account.copy());

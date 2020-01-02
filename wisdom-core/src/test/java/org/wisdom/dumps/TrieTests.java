@@ -59,7 +59,7 @@ public class TrieTests {
     public void init() throws Exception{
         factory = new DatabaseStoreFactory("", 512, "memory");
 
-        validatorStateTrie = new ValidatorStateTrie(genesis, genesisJSON, factory);
+        validatorStateTrie = new ValidatorStateTrie(genesis, factory);
         candidateStateTrie = new CandidateStateTrie(genesis, genesisJSON, factory,
                 candidateUpdater, blocksPerEra, allowMinersJoinEra,
                 validatorsFile, blockIntervalSwitchEra, blockIntervalSwitchTo,

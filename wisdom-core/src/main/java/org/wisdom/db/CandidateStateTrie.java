@@ -85,7 +85,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
             @Value("${wisdom.consensus.block-interval}") int initialBlockInterval
     ) throws Exception {
-        super(genesis, genesisJSON, Candidate.class, factory, false, false);
+        super(Candidate.class, candidateUpdater, genesis, factory, false, false);
         this.candidateUpdater = candidateUpdater;
         this.candidateUpdater.setCandidateStateTrie(this);
         this.blocksPerEra = blocksPerEra;
@@ -136,22 +136,11 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         return blocksPerEra;
     }
 
-    @Override
-    protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, List<Block> blocks) {
-        return candidateUpdater.updateAll(beforeUpdates, blocks);
-    }
 
-    @Override
-    protected Set<byte[]> getRelatedKeys(List<Block> blocks) {
-        return candidateUpdater.getRelatedCandidates(blocks);
-    }
-
-    @Override
     protected Map<byte[], Candidate> generateGenesisStates(Block genesis, Genesis genesisJSON) {
         return Collections.emptyMap();
     }
 
-    @Override
     protected Candidate createEmpty(byte[] publicKeyHash) {
         return Candidate.createEmpty(publicKeyHash);
     }

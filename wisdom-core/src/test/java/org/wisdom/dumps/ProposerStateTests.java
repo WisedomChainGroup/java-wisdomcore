@@ -45,7 +45,7 @@ public class ProposerStateTests {
         Map<Integer, Map<String, ProposersState.Proposer>> map = new HashMap<>();
         for (int i = 0; i < blocks.size() - 120; i += 120) {
             proposersFactory.initCache(blocks.get(i), blocks.subList(i + 1, i + 121));
-            map.put(i, proposersFactory.getSpecificProposers(blocks.get(i + 120)));
+//            map.put(i, proposersFactory.getSpecificProposers(blocks.get(i + 120)));
         }
     }
 
