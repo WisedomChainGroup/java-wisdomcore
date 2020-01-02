@@ -26,6 +26,9 @@ import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.contract.AssetCode;
 import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.AssetDefinition.AssetChangeowner;
+import org.wisdom.contract.AssetDefinition.AssetIncreased;
+import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
@@ -74,6 +77,9 @@ public class TransactionCheck {
 
     @Autowired
     AssetCode assetCode;
+
+    public static final String WX="WX";
+    public static final String WR="WR";
 
     public APIResult TransactionFormatCheck(byte[] transfer) {
         APIResult apiResult = new APIResult();
@@ -157,7 +163,7 @@ public class TransactionCheck {
                 }
             }
             //fromaddress
-            boolean verifyfrom = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00)) == 0);
+            boolean verifyfrom = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00,"")) == 0);
             if (!verifyfrom) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("From format check error");
@@ -171,7 +177,7 @@ public class TransactionCheck {
                     return apiResult;
                 }
             } else {
-                boolean verifyto = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte) 0x00)) == 0);
+                boolean verifyto = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(topubkeyhash, (byte) 0x00,"")) == 0);
                 if (!verifyto) {
                     apiResult.setCode(5000);
                     apiResult.setMessage("To format check error");
@@ -296,10 +302,10 @@ public class TransactionCheck {
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x07://部署合约
-                apiResult = CheckDeployContract(payload,frompubhash);
+                apiResult = CheckDeployContract(payload,frompubhash,amount,topubkeyhash);
                 break;
             case 0x08://调用合约
-                apiResult = CheckCallContract(payload, topubkeyhash);
+                apiResult = CheckCallContract(payload, topubkeyhash,amount);
                 break;
             case 0x0c://提取本金
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
@@ -314,70 +320,93 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckCallContract(byte[] bytes, byte[] payload) {
-        APIResult apiResult = new APIResult();
-        return apiResult;
-    }
-
-    private APIResult CheckDeployContract(byte[] payload, byte[] frompubhash) {
+    private APIResult CheckCallContract(byte[] payload, byte[] frompubhash,Long amount) {
         byte type=payload[0];
         byte[] data=ByteUtil.bytearraycopy(payload,1,payload.length-1);
+        //amount
+        if(amount != 0) return APIResult.newFailed("Amount must be zero");
         switch (type){
-            case 0://代币
-               return CheckAsset(data,frompubhash);
-            case 1://多重签名
-                return CheckMultiple(data);
+            case 0://更新合约管理员
+                return CheckChangeowner(data,frompubhash);
+            case 1://合约转账
+                return CheckTransfer(data,frompubhash);
+            case 2://增发
+                return CheckIncreased(data,frompubhash);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
     }
 
-    private APIResult CheckAsset(byte[] data, byte[] frompubhash){
+    private APIResult CheckDeployContract(byte[] payload, byte[] frompubhash,Long amount, byte[] topubkeyhash) {
+        byte type=payload[0];
+        byte[] data=ByteUtil.bytearraycopy(payload,1,payload.length-1);
+        switch (type){
+            case 0://代币
+               return CheckAsset(data,frompubhash,amount,topubkeyhash);
+//            case 1://多重签名
+//                return CheckMultiple(data);
+            default:
+                return APIResult.newFailed("Invalid rules");
+        }
+    }
+
+    private APIResult CheckAsset(byte[] data, byte[] frompubhash, Long amount, byte[] topubkeyhash){
         Asset asset=new Asset();
         APIResult apiResult = new APIResult();
         if(asset.RLPdeserialization(data)){
             //校验
+            //amount
+            if(amount != 0) return APIResult.newFailed("Amount must be zero");
+            //topubkeyhash
+            byte[] emptyPubkeyhash = new byte[20];
+            if (!Arrays.equals(emptyPubkeyhash, topubkeyhash)) return APIResult.newFailed("topubkeyhash format check error");
+            //code
             Pattern pattern = Pattern.compile("[A-Z]*");
             Matcher matcher = pattern.matcher(asset.getCode());
+            //TODO 查询是否有重复code 异常处理
             if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher.matches()  && !asset.getCode().equals("WDC")){
-                if (assetCode.isContainsKey(asset.getCode())){
-                    return APIResult.newFailed("Assets code is exist");
-                }
-                if (asset.getOffering()>0 && asset.getTotalamount()>0){
-                    if(asset.getOffering() != asset.getTotalamount()){
-                        return APIResult.newFailed("Offering and totalamount must be the same");
-                    }
-                }else {
-                    return APIResult.newFailed("Offering or totalamount can not be zero");
-                }
-                if(asset.getCreateuser().length>0 && asset.getOwner().length>0){
-                    if(!Arrays.equals(frompubhash, asset.getCreateuser())){
-                        return APIResult.newFailed("Create and from are different");
-                    }
-                }else{
-                    return APIResult.newFailed("Create or owner can not be null");
-                }
-                if(asset.getAllowincrease() != 0 || asset.getAllowincrease() != 1){
-                    return APIResult.newFailed("Allowincrease error");
-                }
+                if (assetCode.isContainsKey(asset.getCode()))return APIResult.newFailed("Assets code is exist");
             }else{
-                return APIResult.newFailed("Assets format error");
+                return APIResult.newFailed("Assets code format check error");
             }
-            apiResult.setCode(2000);
-            apiResult.setMessage("SUCCESS");
-            return apiResult;
+            //Offering Totalamount
+            if (asset.getOffering()>0 && asset.getTotalamount()>0){
+                if(asset.getOffering() != asset.getTotalamount()){
+                    return APIResult.newFailed("Offering and totalamount must be the same");
+                }
+            }else {
+                return APIResult.newFailed("Offering or totalamount must be in specified scope");
+            }
+            //TODO 校验hash
+            //fromPubkeyHash
+            boolean verifyfromPubkeyHash = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00,WX)) == 0);
+            if (!verifyfromPubkeyHash) return APIResult.newFailed("From format check error");
+            //Createuser
+            boolean verifyCreateuser = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getCreateuser(), (byte) 0x00,WX)) == 0);
+            if (!verifyCreateuser) return APIResult.newFailed("Createuser format check error");
+            //Owner
+            boolean verifyOwner = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getOwner(), (byte) 0x00,WX)) == 0);
+            if (!verifyOwner) return APIResult.newFailed("Owner format check error");
+            //Createuser frompubhash
+            if(!Arrays.equals(frompubhash, asset.getCreateuser()))return APIResult.newFailed("Create and frompubhash are different");
+
+            if(asset.getAllowincrease() != 0 || asset.getAllowincrease() != 1)return APIResult.newFailed("Allowincrease error");
+        apiResult.setCode(2000);
+        apiResult.setMessage("SUCCESS");
+        return apiResult;
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
 
     private APIResult CheckMultiple(byte[] data){
         Multiple multiple=new Multiple();
+        APIResult apiResult = new APIResult();
         if(multiple.RLPdeserialization(data)){
             //校验
-            if(multiple.getAssetHash().length != 20){
-                return APIResult.newFailed("AssetHash error");
-            }
-            if(multiple.getMin()>0 && multiple.getMax()>0){
+            //AssetHash
+            if(multiple.getAssetHash().length != 20)return APIResult.newFailed("AssetHash format check error");
+            //
+            if(multiple.getMin()>=0 && multiple.getMax()>=0){
                 if(multiple.getMin()>multiple.getMax()){
                     return APIResult.newFailed("Min must be less than or equal to max");
                 }
@@ -390,6 +419,77 @@ public class TransactionCheck {
             if(multiple.getAmount()<=0){
                 return APIResult.newFailed("Amount must be greater than zero");
             }
+            apiResult.setCode(2000);
+            apiResult.setMessage("SUCCESS");
+            return apiResult;
+        }
+        return APIResult.newFailed("Invalid Assets rules");
+    }
+
+    private APIResult CheckChangeowner(byte[] data, byte[] frompubhash){
+        AssetChangeowner assetChangeowner = new AssetChangeowner();
+        APIResult apiResult = new APIResult();
+        if(assetChangeowner.RLPdeserialization(data)){
+            //TODO hash的校验
+            if(assetChangeowner.getNewowner().length != 20){
+                return APIResult.newFailed("Newowner format check error");
+            }
+            //fromaddress
+            boolean verifyfrom = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00,"")) == 0);
+            if (!verifyfrom) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("From format check error");
+                return apiResult;
+            }
+            //TODO 查询原owner是否与from一致
+
+            //TODO newowner与oldowner不能一致
+
+
+
+            apiResult.setCode(2000);
+            apiResult.setMessage("SUCCESS");
+            return apiResult;
+        }
+        return APIResult.newFailed("Invalid Assets rules");
+    }
+
+    private APIResult CheckTransfer(byte[] data, byte[] frompubhash){
+        AssetTransfer assetTransfer = new AssetTransfer();
+        APIResult apiResult = new APIResult();
+        if(assetTransfer.RLPdeserialization(data)){
+            //TODO hash校验
+
+            //FROM
+
+            //TO
+
+            //value
+            if(assetTransfer.getValue() > 0){
+                //TODO 校验是否有足够多的余额
+            }else{
+                return APIResult.newFailed("Value must be greater than zero");
+            }
+
+            //From from是否一致
+        }
+        return APIResult.newFailed("Invalid Assets rules");
+    }
+
+    private APIResult CheckIncreased(byte[] data, byte[] frompubhash){
+        AssetIncreased assetIncreased = new AssetIncreased();
+        APIResult apiResult = new APIResult();
+        if(assetIncreased.RLPdeserialization(data)){
+            //allowincrease
+            //TODO 查询资产的allowincrease值
+            //amount
+            if(assetIncreased.getAmount()>0){
+            //TODO 校验总量+增发量是否小于Long的最大值
+            }else{
+                return APIResult.newFailed("Amount must be greater than zero");
+            }
+            //From Owner
+            //TODO 校验From Owner是否一致
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
