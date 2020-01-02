@@ -12,11 +12,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
             Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory,
             boolean logDeletes, boolean reset) {
         super(genesis, genesisJSON, clazz, factory, logDeletes, reset);
-        cache = new ChainCache<>();
-        this.cache = this.cache.withComparator(Comparator.comparingLong(x -> x.get().nHeight));
     }
-
-    private ChainCache<BlockWrapper> cache;
 
     abstract protected int getBlocksPerEra();
 
@@ -53,26 +49,31 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
     }
 
     @Override
-    public void commit(Block block) {
-        if(block.nHeight % getBlocksPerEra() != 0){
-            cache.put(new BlockWrapper(block));
-            return;
-        }
-        Block prevEraLast = prevEraLast(block);
-        List<BlockWrapper> ancestors = cache.getAncestors(block.getHash());
-        List<Block> blocks = ancestors.stream().filter(b -> b.get().nHeight > block.nHeight - getBlocksPerEra())
-                .map(BlockWrapper::get)
-                .collect(Collectors.toList());
-        if(blocks.size() != getBlocksPerEra()) throw new RuntimeException("unreachable");
+    public void commit(List<Block> blocks) {
+        if(blocks.size() != getBlocksPerEra()) throw new RuntimeException("not an era size = " + blocks.size());
+        Block last = blocks.get(blocks.size() - 1);
+        if(last.nHeight % getBlocksPerEra() != 0)
+            throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
+
+        if(getRootStore().containsKey(last.getHash())) return;
         Set<byte[]> keys = getRelatedKeys(blocks);
-        Map<byte[], T> updated = getUpdatedStates(batchGet(block.getHash(), keys), blocks);
+        Map<byte[], T> updated = getUpdatedStates(batchGet(blocks.get(0).hashPrevBlock, keys), blocks);
 
         commitInternal(
-                getRootStore().get(prevEraLast.getHash())
-                .orElseThrow(() -> new RuntimeException("unreachable")),
-                block.getHash(),
+                getRootStore().get(blocks.get(0).hashPrevBlock)
+                        .orElseThrow(() -> new RuntimeException("unreachable")),
+                last.getHash(),
                 updated
         );
-        cache.remove(ancestors.stream().map(x -> x.get().getHash()).collect(Collectors.toList()));
+    }
+
+    @Override
+    public void commit(Block block) {
+        if(block.nHeight % getBlocksPerEra() != 0){
+            return;
+        }
+        if(getRootStore().containsKey(block.getHash())) return;
+        List<Block> ancestors = getChain().getAncestorBlocks(block.getHash(), getBlocksPerEra());
+        commit(ancestors);
     }
 }

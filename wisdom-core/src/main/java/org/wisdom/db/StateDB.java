@@ -47,7 +47,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static java.util.stream.Collectors.*;
 
 @Deprecated
-// use ForkedWisdomBlockChain.currentBlock
+// use WisdomRepository instead
 @Component
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
