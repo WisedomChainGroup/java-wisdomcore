@@ -1,10 +1,8 @@
 package org.wisdom.dumps;
 
-import net.bytebuddy.asm.Advice;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -13,6 +11,7 @@ import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
 import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.db.ValidatorStateTrie;
+import org.wisdom.genesis.Genesis;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -33,11 +32,14 @@ public class ValidatorStateTests {
     @Autowired
     private Block genesis;
 
+    @Autowired
+    private Genesis genesisJSON;
+
     @Before
     public void init(){
         factory = new DatabaseStoreFactory("", 512, "memory");
 
-        validatorStateTrie = new ValidatorStateTrie(genesis, factory);
+        validatorStateTrie = new ValidatorStateTrie(genesis, genesisJSON, factory);
     }
 
     @Test
@@ -60,7 +62,7 @@ public class ValidatorStateTests {
                 .forEach(b -> {
                     if(b.nHeight == 0) return;
                     validatorStateTrie.commit(b);
-                    assertEquals(Long.valueOf(b.body.get(0).nonce), validatorStateTrie.get(b.getHash(), b.body.get(0).to).get());
+                    assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).get());
                 });
     }
 }
