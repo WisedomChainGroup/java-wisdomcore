@@ -40,7 +40,7 @@ public class TriesSyncManager {
 
     private WisdomBlockChain bc;
 
-    private ForkedWisdomBlockChain chain;
+    private WisdomRepositoryImpl chain;
 
     public TriesSyncManager(
             AccountStateTrie accountStateTrie,
@@ -60,7 +60,7 @@ public class TriesSyncManager {
         this.bc = bc;
     }
 
-    public void setChain(ForkedWisdomBlockChain chain) {
+    public void setChain(WisdomRepositoryImpl chain) {
         this.chain = chain;
         accountStateTrie.setChain(chain);
         validatorStateTrie.setChain(chain);
