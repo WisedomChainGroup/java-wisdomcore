@@ -22,7 +22,7 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
     @Override
     protected Map<byte[], Long> getUpdatedStates(Map<byte[], Long> beforeUpdates, Block block) {
         Map<byte[], Long> updated = new ByteArrayMap<>(beforeUpdates);
-        long after = Optional.ofNullable(updated.get(block.body.get(0).to)).map(x -> x + 1).orElse(1L);
+        long after = updated.get(block.body.get(0).to) + 1;
         updated.put(block.body.get(0).to, after);
         return updated;
     }
@@ -35,5 +35,10 @@ public class ValidatorStateTrie extends AbstractStateTrie<Long>{
     @Override
     protected Map<byte[], Long> generateGenesisStates(Block genesis, Genesis genesisJSON) {
         return Collections.emptyMap();
+    }
+
+    @Override
+    protected Long createEmpty(byte[] publicKeyHash) {
+        return 0L;
     }
 }

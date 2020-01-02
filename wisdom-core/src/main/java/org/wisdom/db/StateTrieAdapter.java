@@ -44,6 +44,8 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     protected abstract Map<byte[], T> generateGenesisStates(Block genesis, Genesis genesisJSON);
 
+    protected abstract T createEmpty(byte[] publicKeyHash);
+
     public StateTrieAdapter(Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
         TRIE = getPrefix() + "-trie";
         DELETED = getPrefix() + "-deleted";
@@ -90,11 +92,11 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
         Trie<byte[], T> trie = getTrie().revert(root);
         ByteArrayMap<T> m = new ByteArrayMap<>();
-        keys.forEach(x -> {
-            Optional<T> o = trie.get(x);
-            if (!o.isPresent()) return;
-            m.put(x, o.get());
-        });
+        keys.forEach(x ->
+                m.put(
+                        x, trie.get(x).orElse(createEmpty(x))
+                )
+        );
         return m;
     }
 

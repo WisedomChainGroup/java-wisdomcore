@@ -1,11 +1,11 @@
 package org.wisdom.db;
 
-import org.tdf.common.util.ChainCache;
+import org.tdf.common.trie.Trie;
+import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.core.Block;
 import org.wisdom.genesis.Genesis;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
     public EraLinkedStateTrie(
@@ -56,8 +56,15 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T>{
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
 
         if(getRootStore().containsKey(last.getHash())) return;
+        Trie<byte[], T> prevTrie = getRootStore()
+                .get(blocks.get(0).hashPrevBlock)
+                .map(getTrie()::revert)
+                .orElseThrow(() -> new RuntimeException("not synced"))
+                ;
         Set<byte[]> keys = getRelatedKeys(blocks);
-        Map<byte[], T> updated = getUpdatedStates(batchGet(blocks.get(0).hashPrevBlock, keys), blocks);
+        Map<byte[], T> beforeUpdate = new ByteArrayMap<>();
+        keys.forEach(k -> beforeUpdate.put(k, prevTrie.get(k).orElse(createEmpty(k))));
+        Map<byte[], T> updated = getUpdatedStates(beforeUpdate, blocks);
 
         commitInternal(
                 getRootStore().get(blocks.get(0).hashPrevBlock)

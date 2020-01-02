@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
 import org.wisdom.genesis.Genesis;
@@ -13,10 +14,19 @@ import java.util.Set;
 public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private CandidateUpdater candidateUpdater;
 
-    public CandidateStateTrie(Block genesis, Genesis genesisJSON, DatabaseStoreFactory factory, CandidateUpdater candidateUpdater) {
+    public CandidateStateTrie(
+            Block genesis,
+            Genesis genesisJSON,
+            DatabaseStoreFactory factory,
+            CandidateUpdater candidateUpdater,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+    ) {
         super(genesis, genesisJSON, Candidate.class, factory, false, false);
         this.candidateUpdater = candidateUpdater;
+        this.blocksPerEra = blocksPerEra;
     }
+
+    private int blocksPerEra;
 
     @Override
     protected String getPrefix() {
@@ -25,7 +35,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     @Override
     protected int getBlocksPerEra() {
-        return 0;
+        return blocksPerEra;
     }
 
     @Override
@@ -41,5 +51,10 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     @Override
     protected Map<byte[], Candidate> generateGenesisStates(Block genesis, Genesis genesisJSON) {
         return Collections.emptyMap();
+    }
+
+    @Override
+    protected Candidate createEmpty(byte[] publicKeyHash) {
+        return Candidate.createEmpty(publicKeyHash);
     }
 }

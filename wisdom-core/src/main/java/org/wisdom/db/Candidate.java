@@ -25,6 +25,9 @@ public class Candidate {
         return Integer.parseInt(v);
     }
 
+    public static Candidate createEmpty(byte[] publicKeyHash){
+        return new Candidate(0L, new ByteArrayMap<>(), new ByteArrayMap<>(), publicKeyHash, 0L);
+    }
 
     @RLP(0)
     private long mortgage;
