@@ -14,10 +14,7 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.wallet.KeystoreAction;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -157,4 +154,101 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
                 endTime
         ));
     }
+
+    public Map<String, ProposersState.Proposer> getSpecificProposers(Block parentBlock) {
+        boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
+                getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
+        if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
+            Map<String, ProposersState.Proposer> map = new HashMap<>();
+            initialProposers.subList(0, 1).forEach(x -> {
+                ProposersState.Proposer proposer = new ProposersState.Proposer();
+                proposer.publicKeyHash = x;
+                map.put(x, proposer);
+            });
+            return map;
+        }
+
+        if (!enableMultiMiners) {
+            Map<String, ProposersState.Proposer> map = new HashMap<>();
+            initialProposers.forEach(x -> {
+                ProposersState.Proposer proposer = new ProposersState.Proposer();
+                proposer.publicKeyHash = x;
+                map.put(x, proposer);
+            });
+            return map;
+        }
+
+        Map<String, ProposersState.Proposer> map;
+        if (parentBlock.nHeight % getBlocksPerEra() == 0) {
+            ProposersState state = getFromCache(parentBlock);
+            map = state.getProposers().stream().collect(Collectors.toMap((x) -> x.publicKeyHash, x -> x));
+        } else {
+            ProposersState state = getInstance(parentBlock);
+            map = state.getProposers().stream().collect(Collectors.toMap((x) -> x.publicKeyHash, x -> x));
+        }
+        if (parentBlock.getnHeight() + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
+            Map<String, ProposersState.Proposer> result = new HashMap<>();
+            for (Map.Entry<String, ProposersState.Proposer> entry : map.entrySet()) {
+                if (WHITE_LIST.contains(entry.getKey())) {
+                    if (result.put(entry.getKey(), entry.getValue()) != null) {
+                        throw new IllegalStateException("Duplicate key");
+                    }
+                }
+            }
+            map = result;
+        }
+        return map;
+    }
+
+//    public Map<byte[], Map<String, ProposersState.Proposer>> getAll(List<Block> parentBlocks) {
+//        Map<byte[], Map<String, ProposersState.Proposer>> maps = new HashMap<>();
+//        for (Block parentBlock : parentBlocks) {
+//            boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
+//                    getEraAtBlockNumber(parentBlock.nHeight + 1, this.getBlocksPerEra()) >= allowMinersJoinEra;
+//            if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
+//                Map<String, ProposersState.Proposer> map = new HashMap<>();
+//                initialProposers.subList(0, 1).forEach(x -> {
+//                    ProposersState.Proposer proposer = new ProposersState.Proposer();
+//                    proposer.publicKeyHash = x;
+//                    map.put(x, proposer);
+//                });
+//                maps.put(parentBlock.getHash(), map);
+//                continue;
+//            }
+//
+//            if (!enableMultiMiners) {
+//                Map<String, ProposersState.Proposer> map = new HashMap<>();
+//                initialProposers.forEach(x -> {
+//                    ProposersState.Proposer proposer = new ProposersState.Proposer();
+//                    proposer.publicKeyHash = x;
+//                    map.put(x, proposer);
+//                });
+//                maps.put(parentBlock.getHash(), map);
+//                continue;
+//            }
+//
+//            Map<String, ProposersState.Proposer> map;
+//            if (parentBlock.nHeight % getBlocksPerEra() == 0) {
+//                ProposersState state = getFromCache(parentBlock);
+//                map = state.getProposers().stream().collect(Collectors.toMap((x) -> x.publicKeyHash, x -> x));
+//            } else {
+//                ProposersState state = getInstance(parentBlock);
+//                map = state.getProposers().stream().collect(Collectors.toMap((x) -> x.publicKeyHash, x -> x));
+//            }
+//            if (parentBlock.getnHeight() + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
+//                Map<String, ProposersState.Proposer> result = new HashMap<>();
+//                for (Map.Entry<String, ProposersState.Proposer> entry : map.entrySet()) {
+//                    if (WHITE_LIST.contains(entry.getKey())) {
+//                        if (result.put(entry.getKey(), entry.getValue()) != null) {
+//                            throw new IllegalStateException("Duplicate key");
+//                        }
+//                    }
+//                }
+//                map = result;
+//            }
+//            maps.put(parentBlock.getHash(), map);
+//        }
+//        return maps;
+//    }
+
 }

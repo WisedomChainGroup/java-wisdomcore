@@ -79,10 +79,10 @@ public class KeystoreTests {
         byte[] pubkey=Hex.decodeHex("5ac9cc553fe5047cf0b33b983f50afe228c17b050c688a7d22800bfbdef9af66".toCharArray());
         System.out.println("pubkey-->pubkeyhash:"+Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(pubkey))));
 
-        System.out.println("pubkey-->address:"+KeystoreAction.pubkeyToAddress(pubkey, (byte) 0x00));
-
-        byte[] pubhash=Hex.decodeHex("97a87c356867327bfbc1a600cce02546ba07bf20".toCharArray());
-        System.out.println("pubhash-->address:"+KeystoreAction.pubkeyHashToAddress(pubhash, (byte) 0x00));
+//        System.out.println("pubkey-->address:"+KeystoreAction.pubkeyToAddress(pubkey, (byte) 0x00));
+//
+//        byte[] pubhash=Hex.decodeHex("97a87c356867327bfbc1a600cce02546ba07bf20".toCharArray());
+//        System.out.println("pubhash-->address:"+KeystoreAction.pubkeyHashToAddress(pubhash, (byte) 0x00));
 
         String address1="1pQfDX4fvz7uzBQuM9FbuoKWohmhg9TmY";
         String address2="12hk3cWr28BJWjASCy9Diw4bqH8SnWvSpP";

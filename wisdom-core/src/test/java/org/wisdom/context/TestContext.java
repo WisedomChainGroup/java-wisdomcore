@@ -12,6 +12,9 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.consensus.pow.ProposersFactory;
+import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
 import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
@@ -32,7 +35,7 @@ public class TestContext {
             @Value("${spring.datasource.username}") String databaseUserName,
             @Value("${clear-data}") boolean clearData,
             BasicDataSource basicDataSource
-    ) throws Exception{
+    ) throws Exception {
         return new RDBMSBlockChainImpl(jdbcTemplate, transactionTemplate, genesis, applicationContext, databaseUserName, clearData, basicDataSource);
     }
 
@@ -41,34 +44,50 @@ public class TestContext {
             throws Exception {
         System.out.println(genesis);
         Resource resource = new FileSystemResource(genesis);
-        if (!resource.exists()){
+        if (!resource.exists()) {
             resource = new ClassPathResource(genesis);
         }
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
 
     @Bean
-    public Block block(Genesis genesis) throws Exception{
+    public Block block(Genesis genesis) throws Exception {
         return new Block(genesis);
     }
 
     @Bean
-    public JSONEncodeDecoder jsonEncodeDecoder(){
+    public JSONEncodeDecoder jsonEncodeDecoder() {
         return new JSONEncodeDecoder();
     }
 
     @Bean
-    public IncubatorDB incubatorDB(JdbcTemplate jdbcTemplate){
+    public IncubatorDB incubatorDB(JdbcTemplate jdbcTemplate) {
         IncubatorDB incubatorDB = new IncubatorDB();
         incubatorDB.setTmpl(jdbcTemplate);
         return incubatorDB;
     }
 
     @Bean
-    public AccountDB accountDB(JdbcTemplate jdbcTemplate, IncubatorDB incubatorDB){
+    public AccountDB accountDB(JdbcTemplate jdbcTemplate, IncubatorDB incubatorDB) {
         AccountDB db = new AccountDB();
         db.setTmpl(jdbcTemplate);
         db.setIncubatorDB(incubatorDB);
         return db;
     }
+
+    @Bean
+    public ProposersFactory proposersFactory(
+            ProposersState genesisState,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            @Value("${miner.validators}") String validatorsFile) throws Exception {
+        return new ProposersFactory(genesisState, blocksPerEra, validatorsFile);
+    }
+
+    @Bean
+    public ProposersState proposersState(
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval) {
+        return new ProposersState(allowMinersJoinEra, blockInterval);
+    }
+
 }
