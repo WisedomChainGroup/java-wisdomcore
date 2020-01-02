@@ -112,7 +112,7 @@ public class TrieTests {
                                     c.getReceivedVotes().forEach((k, v) -> {
                                         received.put(HexBytes.fromBytes(k), v);
                                     });
-                                    System.out.println("=======================");
+                                    throw new RuntimeException("assertion failed");
                                 }
                             });
 
