@@ -8,7 +8,8 @@ spring:
 
 
 wisdom:
-  wip-1217-height: '769876'
+  wip-1217:
+    height: '769876'
   allow-miner-joins-era: '2380'
 
   consensus:

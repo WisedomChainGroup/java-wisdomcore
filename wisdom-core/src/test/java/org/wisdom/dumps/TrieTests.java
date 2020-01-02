@@ -70,7 +70,7 @@ public class TrieTests {
                 .forEach(b -> {
                     if(b.nHeight == 0) return;
                     validatorStateTrie.commit(b);
-                    assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).get());
+                    assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).orElse(0L));
                 });
     }
 
