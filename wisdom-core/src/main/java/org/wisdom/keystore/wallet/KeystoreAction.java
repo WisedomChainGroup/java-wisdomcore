@@ -237,10 +237,10 @@ public class KeystoreAction {
       6.r6就是地址
 
    */
-    public static String pubkeyToAddress(byte[] pubkey,byte numb){
+    public static String pubkeyToAddress(byte[] pubkey,byte numb,String type){
         byte[] pub256 = SHA3Utility.keccak256(pubkey);
         byte[] r1 = RipemdUtility.ripemd160(pub256);
-        return pubkeyHashToAddress(r1,numb);
+        return pubkeyHashToAddress(r1,numb,type);
     }
 
     /**
@@ -249,13 +249,17 @@ public class KeystoreAction {
      * @param numb
      * @return
      */
-    public static String pubkeyHashToAddress(byte[] pubkey,byte numb){
+    public static String pubkeyHashToAddress(byte[] pubkey,byte numb,String type){
         byte[] r2 = ByteUtil.prepend(pubkey,numb);
         byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(pubkey));
         byte[] b4 = ByteUtil.bytearraycopy(r3,0,4);
         byte[] b5 = ByteUtil.byteMerger(r2,b4);
         String s6 = Base58Utility.encode(b5);
-        return "WX"+s6 ;
+        if(type.equals("")){
+            return s6;
+        }
+        return type+s6 ;
+
     }
 
 
@@ -286,6 +290,25 @@ public class KeystoreAction {
         if (!address.startsWith("1") && !address.startsWith("WX") && !address.startsWith("WR")){
             return  -1;
         }
+        return verify(address);
+    }
+
+    public static int verifyAddressType(String address,String type){
+        if(type.equals("WX")){
+            if(address.substring(2).equals("WX")){
+                return verify(address);
+            }
+        }else if(type.equals("WR")){
+            if(address.substring(2).equals("WR")){
+                return verify(address);
+            }
+        }else{
+            return -1;
+        }
+        return -1;
+    }
+
+    public static int verify(String address){
         byte[] r5 = {};
         if(address.startsWith("1")){
             r5 = Base58Utility.decode(address);

@@ -35,7 +35,7 @@ public class AddressRule implements TransactionRule, BlockRule{
             isValid = Arrays.areEqual(transaction.to, new byte[transaction.to.length]);
         }else{
             isValid = KeystoreAction.verifyAddress(
-                    KeystoreAction.pubkeyHashToAddress(transaction.to, (byte)0x00)
+                    KeystoreAction.pubkeyHashToAddress(transaction.to, (byte)0x00,"")
             ) == 0;
         }
         if(!isValid){
