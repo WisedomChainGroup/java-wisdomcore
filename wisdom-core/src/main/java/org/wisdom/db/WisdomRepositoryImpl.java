@@ -15,8 +15,10 @@ import static java.util.stream.Collectors.toList;
 
 @Component
 @Slf4j
-public class ForkedWisdomBlockChain {
+public class WisdomRepositoryImpl implements WisdomRepository {
     private ChainCache<BlockWrapper> chainCache;
+
+    private PriorityQueue<BlockWrapper> blockQueue;
 
     // block confirms
     private Map<byte[], Set<byte[]>> confirms = new ByteArrayMap<>();
@@ -35,22 +37,28 @@ public class ForkedWisdomBlockChain {
 
     private WisdomBlockChain bc;
 
-    private Block current;
-
     private TriesSyncManager triesSyncManager;
 
-    public ForkedWisdomBlockChain(WisdomBlockChain bc, TriesSyncManager triesSyncManager) throws Exception{
+    private AccountStateTrie accountStateTrie;
+
+    private ValidatorStateTrie validatorStateTrie;
+
+    public WisdomRepositoryImpl(
+            WisdomBlockChain bc,
+            TriesSyncManager triesSyncManager,
+            AccountStateTrie accountStateTrie,
+            ValidatorStateTrie validatorStateTrie
+    ) throws Exception {
         this.bc = bc;
         chainCache = new ChainCache<>();
         this.chainCache = chainCache
                 .withComparator((x, y) -> compareBlock(x.get(), y.get()));
+        this.accountStateTrie = accountStateTrie;
+        this.validatorStateTrie = validatorStateTrie;
+        this.blockQueue = new PriorityQueue<>((x, y) -> compareBlock(x.get(), y.get()));
         this.triesSyncManager = triesSyncManager;
         this.triesSyncManager.setChain(this);
         this.triesSyncManager.sync();
-    }
-
-    private void clearCurrentCache() {
-        this.current = null;
     }
 
     private void deleteCache(Block b) {
@@ -58,6 +66,7 @@ public class ForkedWisdomBlockChain {
         confirms.remove(b.getHash());
         leastConfirms.remove(b.getHash());
         transactionIndex.remove(b.getHash());
+        blockQueue.remove(new BlockWrapper(b));
         b.body.forEach(t -> transactionCache.remove(t.getHash()));
     }
 
@@ -76,19 +85,15 @@ public class ForkedWisdomBlockChain {
                 );
     }
 
+    @Override
     public Block getGenesis() {
         return bc.getGenesis();
     }
 
-    public Block currentHeader() {
-        return currentBlock();
-    }
-
-    public Block currentBlock() {
-        if (current != null) return current;
-        List<BlockWrapper> blockWrappers = chainCache.getLeaves();
-        current = blockWrappers.get(blockWrappers.size() - 1).get();
-        return current;
+    @Override
+    public Block getBestBlock() {
+        if (blockQueue.size() == 0) return latestConfirmed;
+        return blockQueue.peek().get();
     }
 
     public Block getHeader(byte[] blockHash) {
@@ -132,62 +137,80 @@ public class ForkedWisdomBlockChain {
         return ret.getAll().stream().map(BlockWrapper::get).collect(toList());
     }
 
-    public boolean hasBlockInCache(byte[] hash) {
+    public boolean isStaged(byte[] hash) {
         return chainCache.contains(hash);
     }
 
-    public boolean hasBlock(byte[] hash) {
-        return chainCache.contains(hash) ||
-                FastByteComparisons.equal(latestConfirmed.getHash(), hash) ||
+    public boolean isConfirmed(byte[] hash) {
+        return FastByteComparisons.equal(latestConfirmed.getHash(), hash) ||
                 bc.hasBlock(hash);
     }
 
+
     // the block or the ancestor has the transaction
-    public boolean hasTransaction(byte[] blockHash, byte[] transactionHash) {
+    public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
             return bc.hasTransaction(transactionHash);
         }
-        if (!transactionCache.containsKey(transactionHash)) return bc.hasTransaction(transactionHash);
-        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
-        if (!o.isPresent()) {
-            throw new RuntimeException("unreachable");
-        }
-        if (transactionIndex.containsKey(blockHash) && transactionIndex.get(blockHash).contains(transactionHash)) {
+        if (!transactionCache.containsKey(transactionHash))
+            return bc.hasTransaction(transactionHash);
+        Block b = chainCache
+                .get(blockHash).map(BlockWrapper::get)
+                .orElseThrow(() -> new RuntimeException("unreachable"))
+                ;
+        if (transactionIndex.containsKey(blockHash)
+                && transactionIndex.get(blockHash).contains(transactionHash)) {
             return true;
         }
-        return hasTransaction(o.get().hashPrevBlock, transactionHash);
+        return hasTransactionAt(b.hashPrevBlock, transactionHash);
     }
 
     // get transaction from block or the ancestor
-    private Transaction getTransaction(byte[] blockHash, byte[] txHash) {
+    public Optional<Transaction> getTransactionAt(byte[] blockHash, byte[] txHash) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
-            return bc.getTransaction(txHash);
+            return Optional.ofNullable(bc.getTransaction(txHash));
         }
         Set<byte[]> txs = transactionIndex.get(blockHash);
         if (txs == null) throw new RuntimeException("unreachable");
-        if (txs.contains(txHash)) return transactionCache.get(txHash);
+        if (txs.contains(txHash)) return Optional.of(transactionCache.get(txHash));
         byte[] parent = chainCache.get(blockHash)
                 .map(BlockWrapper::get)
                 .map(b -> b.hashPrevBlock)
                 .orElseThrow(() -> new RuntimeException("unreachable"));
-        return getTransaction(parent, txHash);
+        return getTransactionAt(parent, txHash);
     }
 
-    private boolean hasPayload(byte[] blockHash, int type, byte[] payload) {
+    public boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
             return bc.hasPayload(type, payload);
         }
-        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
-        if (!o.isPresent()) {
-            throw new RuntimeException("unreachable");
-        }
-        for (Transaction t : o.get().body) {
+        Block b = chainCache
+                .get(blockHash).map(BlockWrapper::get)
+                .orElseThrow(() -> new RuntimeException("unreachable"))
+                ;
+        for (Transaction t : b.body) {
             if (t.payload != null && t.type == type && FastByteComparisons.equal(t.payload, payload)) {
                 return true;
             }
         }
-        return hasPayload(o.get().hashPrevBlock, type, payload);
+        return hasPayloadAt(b.hashPrevBlock, type, payload);
     }
+
+    @Override
+    public Optional<AccountState> getAccountStateAt(byte[] blockHash, byte[] publicKeyHash) {
+        return accountStateTrie.get(blockHash, publicKeyHash);
+    }
+
+    @Override
+    public Map<byte[], AccountState> getAccountStatesAt(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
+        return accountStateTrie.batchGet(blockHash, publicKeyHashes);
+    }
+
+    @Override
+    public long getValidatorNonceAt(byte[] blockHash, byte[] publicKeyHash) {
+        return validatorStateTrie.get(blockHash, publicKeyHash).orElse(0L);
+    }
+
 
     // 写入区块
     public void writeBlock(Block block) {
@@ -228,7 +251,7 @@ public class ForkedWisdomBlockChain {
 //        );
         List<Block> ancestors =
                 chainCache.getAncestors(block.getHash())
-                .stream().map(BlockWrapper::get).collect(toList());
+                        .stream().map(BlockWrapper::get).collect(toList());
 
         for (Block b : ancestors) {
             if (!confirms.containsKey(b.getHash())) {
