@@ -18,6 +18,7 @@
 package org.wisdom.command;
 
 import org.apache.commons.codec.binary.Hex;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
@@ -48,10 +50,13 @@ import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class TransactionCheck {
@@ -80,6 +85,8 @@ public class TransactionCheck {
 
     public static final String WX="WX";
     public static final String WR="WR";
+    private static final Long rate = 100000000L;
+    private static final Long serviceCharge = 200000L;
 
     public APIResult TransactionFormatCheck(byte[] transfer) {
         APIResult apiResult = new APIResult();
@@ -276,7 +283,7 @@ public class TransactionCheck {
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
-                return PayloadCheck(payload, type, transaction.amount, frompubhash, transaction.to, incubator);
+                return PayloadCheck(transaction, incubator);
             }
         } catch (Exception e) {
             apiResult.setCode(5000);
@@ -288,8 +295,13 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    public APIResult PayloadCheck(byte[] payload, int type, long amount, byte[] frompubhash, byte[] topubkeyhash, Incubator incubator) {
+    public APIResult PayloadCheck(Transaction transaction, Incubator incubator) {
         APIResult apiResult = new APIResult();
+        byte[] payload = transaction.payload;
+        int type = transaction.type;
+        long amount = transaction.amount;
+        byte[] frompubhash = transaction.from;
+        byte[] topubkeyhash = transaction.to;
         switch (type) {
             case 0x09://孵化器
                 apiResult = CheckHatch(amount, payload, topubkeyhash);
@@ -305,7 +317,7 @@ public class TransactionCheck {
                 apiResult = CheckDeployContract(payload,frompubhash,amount,topubkeyhash);
                 break;
             case 0x08://调用合约
-                apiResult = CheckCallContract(payload, topubkeyhash,amount);
+                apiResult = CheckCallContract(transaction);
                 break;
             case 0x0c://提取本金
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
@@ -320,7 +332,10 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckCallContract(byte[] payload, byte[] frompubhash,Long amount) {
+    private APIResult CheckCallContract(Transaction transaction) {
+        byte[] payload = transaction.payload;
+        byte[] frompubhash = transaction.from;
+        Long amount = transaction.amount;
         byte type=payload[0];
         byte[] data=ByteUtil.bytearraycopy(payload,1,payload.length-1);
         //amount
@@ -332,6 +347,8 @@ public class TransactionCheck {
                 return CheckTransfer(data,frompubhash);
             case 2://增发
                 return CheckIncreased(data,frompubhash);
+            case 3://多签规则转账
+                return CheckMultTransfer(data,transaction);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -343,8 +360,8 @@ public class TransactionCheck {
         switch (type){
             case 0://代币
                return CheckAsset(data,frompubhash,amount,topubkeyhash);
-//            case 1://多重签名
-//                return CheckMultiple(data);
+            case 1://多重签名
+                return CheckMultiple(data,frompubhash,amount,topubkeyhash);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -398,27 +415,33 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult CheckMultiple(byte[] data){
+    private APIResult CheckMultiple(byte[] data, byte[] frompubhash, Long amount, byte[] topubkeyhash){
         Multiple multiple=new Multiple();
         APIResult apiResult = new APIResult();
         if(multiple.RLPdeserialization(data)){
             //校验
+            //amount
+            if(amount != 0) return APIResult.newFailed("Amount must be zero");
+            //topubkeyhash
+            byte[] emptyPubkeyhash = new byte[20];
+            if (!Arrays.equals(emptyPubkeyhash, topubkeyhash)) return APIResult.newFailed("topubkeyhash format check error");
             //AssetHash
             if(multiple.getAssetHash().length != 20)return APIResult.newFailed("AssetHash format check error");
-            //
+            byte[] WDCAssetHash = new byte[20];
+            if(!Arrays.equals(multiple.getAssetHash(),WDCAssetHash)){
+                //TODO 校验AssetHash是否存在
+            }
+            //M and N
             if(multiple.getMin()>=0 && multiple.getMax()>=0){
-                if(multiple.getMin()>multiple.getMax()){
-                    return APIResult.newFailed("Min must be less than or equal to max");
-                }
-            }else{
-                return APIResult.newFailed("Min or max eror");
-            }
-            if(multiple.getPubList().size() != multiple.getMax()){
-                return APIResult.newFailed("PubkeyList does not match max");
-            }
-            if(multiple.getAmount()<=0){
-                return APIResult.newFailed("Amount must be greater than zero");
-            }
+                if(multiple.getMin()>multiple.getMax()) return APIResult.newFailed("N must be less than or equal to M");
+                if(!String.valueOf(multiple.getMin()).matches("[0-9]+") || !String.valueOf(multiple.getMax()).matches("[0-9]+"))return APIResult.newFailed("N and max must be positive integer");
+                if(multiple.getMin()<2 || multiple.getMin()>multiple.getMax())return APIResult.newFailed("N must be within the specified range");
+                if(multiple.getMax()<2 || multiple.getMax()>8)return APIResult.newFailed("M must be within the specified range");
+            }else return APIResult.newFailed("N and M must be positive integer");
+            //payload amount
+            if(multiple.getAmount()!=0)return APIResult.newFailed("Amount must be zero");
+            if(multiple.getPubList().size() != multiple.getMax()) return APIResult.newFailed("PubkeyList does not match max");
+            if(!multiple.getPubList().contains(frompubhash))return APIResult.newFailed("From must be in payload");
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
             return apiResult;
@@ -472,6 +495,10 @@ public class TransactionCheck {
             }
 
             //From from是否一致
+
+            apiResult.setCode(2000);
+            apiResult.setMessage("SUCCESS");
+            return apiResult;
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
@@ -490,6 +517,81 @@ public class TransactionCheck {
             }
             //From Owner
             //TODO 校验From Owner是否一致
+
+            apiResult.setCode(2000);
+            apiResult.setMessage("SUCCESS");
+            return apiResult;
+        }
+        return APIResult.newFailed("Invalid Assets rules");
+    }
+
+    private APIResult CheckMultTransfer(byte[] data,Transaction transaction){
+        MultTransfer multTransfer = new MultTransfer();
+        APIResult apiResult = new APIResult();
+        if(multTransfer.RLPdeserialization(data)){
+            //Origin and Dest
+            if(multTransfer.getOrigin() != 0 && multTransfer.getOrigin() != 1)return APIResult.newFailed("Origin must be within the specified range");
+            if(multTransfer.getDest() != 0 && multTransfer.getDest() != 1)return APIResult.newFailed("Dest must be within the specified range");
+            if(multTransfer.getOrigin() == 0 && multTransfer.getDest() == 0)return APIResult.newFailed("Dest and origin cannot be both normal address");
+            if(multTransfer.getOrigin() == 0){//from是普通地址
+
+            }else{
+                if(multTransfer.getFrom().size() != multTransfer.getSignatures().size())return APIResult.newFailed("The number of pubkey and sign is not the same");
+                //payload from
+                List<byte[]> from = new ArrayList<>();
+                //TODO 查询部署时多签的n,区别普通与多签
+                int n = 0;
+                if(from.size()<n)return APIResult.newFailed("Sign numbers less than n");
+                byte[] nonece = {};
+                if(multTransfer.getOrigin() == 0){//普通地址
+                    from = multTransfer.getFrom();
+                    nonece = BigEndian.encodeUint64(transaction.nonce);
+                }else{
+                    //去重   TODO 查询部署时多签的pubkey List 取交集
+                    from = multTransfer.getFrom().stream().distinct().collect(Collectors.toList());
+                    nonece = BigEndian.encodeUint64(0);
+                }
+                if(!from.contains(transaction.from))return APIResult.newFailed("From must be in payload");
+                //signatures 去重
+                List<byte[]> signatures = multTransfer.getSignatures().stream().distinct().collect(Collectors.toList());
+                int signAdopt = 0;
+                //构造签名原文
+                byte[] version = new byte[1];
+                version[0] = (byte) transaction.version;
+                byte[] type = new byte[1];
+                type[0] = (byte) transaction.type;
+                byte[] nullsig = new byte[64];
+                //TODO 确认gas
+                byte[] gasPrice = ByteUtil.longToBytes(obtainServiceCharge(100000L, serviceCharge));
+                byte[] amount = ByteUtil.longToBytes(0L);
+                //验证签名
+                for(int i=0;i<from.size();i++){
+                    Ed25519PublicKey ed25519PublicKey = new Ed25519PublicKey(from.get(i));
+                    for(int j=0;j<signatures.size();j++){
+                        List<byte[]> fromList = new ArrayList<>();
+                        fromList.add(from.get(i));
+                        List<byte[]> emptyList = new ArrayList<>();
+                        MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(),multTransfer.getDest(),fromList,emptyList,multTransfer.getTo(),multTransfer.getValue());
+                        byte[] nosig = ByteUtil.merge(version, type, nonece, from.get(i), gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length),payloadMultTransfer.RLPserialization());
+                        if(ed25519PublicKey.verify(nosig, signatures.get(j))) signAdopt++;
+                    }
+                }
+                //TODO 查询部署时多签的n
+                if(signAdopt<n)return APIResult.newFailed("Sign numbers less than n");
+
+                //TODO 验证to
+
+                //value
+                //TODO 查询FROM TO币种是否一致
+
+                if(!String.valueOf(multTransfer.getValue()).matches("[0-9]+"))return APIResult.newFailed("Value must be positive integer");
+                //TODO 查询DB验证余额是否足够
+
+
+            }
+            apiResult.setCode(2000);
+            apiResult.setMessage("SUCCESS");
+            return apiResult;
         }
         return APIResult.newFailed("Invalid Assets rules");
     }
@@ -847,6 +949,21 @@ public class TransactionCheck {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 计算gas单价
+     *
+     * @param gas
+     * @param total
+     * @return
+     */
+    public static Long obtainServiceCharge(Long gas, Long total) {
+        BigDecimal a = new BigDecimal(gas.toString());
+        BigDecimal b = new BigDecimal(total.toString());
+        BigDecimal divide = b.divide(a, 0, RoundingMode.HALF_UP);
+        Long gasPrice = divide.longValue();
+        return gasPrice;
     }
 }
 

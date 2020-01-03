@@ -112,6 +112,7 @@ public class CommandServiceImpl implements CommandService {
                 return apiResult;
             }
             if (tran.getFee() >= configuration.getMin_procedurefee()) {
+                //TODO 判断TO的类型并放进去
                 adoptTransPool.add(Collections.singletonList(tran));
             }
             apiResult.setData(tran);
