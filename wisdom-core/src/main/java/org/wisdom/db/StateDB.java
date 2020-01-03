@@ -1177,7 +1177,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private List<Transaction> getTransactionsByToAndType(int type, byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return bc.getTransactionsByToAndType(type, publicKeyHash, offset, limit);
+            return bc.getTransactionsByTypeAndTo(type, publicKeyHash, offset, limit);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
@@ -1194,7 +1194,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private List<Transaction> getTransactionsByFromAndType(int type, byte[] blockHash, byte[] publicKey, int offset, int limit) {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return bc.getTransactionsByFromAndType(type, publicKey, offset, limit);
+            return bc.getTransactionsByTypeAndFrom(type, publicKey, offset, limit);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
@@ -1211,7 +1211,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private List<Transaction> getTransactionsByFromToAndType(int type, byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return bc.getTransactionsByFromToAndType(type, from, to, offset, limit);
+            return bc.getTransactionsByTypeFromAndTo(type, from, to, offset, limit);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {

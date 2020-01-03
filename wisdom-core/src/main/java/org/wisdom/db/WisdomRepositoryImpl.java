@@ -2,8 +2,10 @@ package org.wisdom.db;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.*;
+import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -43,22 +45,37 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     private ValidatorStateTrie validatorStateTrie;
 
+    private TargetCache targetCache;
+
+    private CandidateStateTrie candidateStateTrie;
+
+    private EraLinker eraLinker;
+
     public WisdomRepositoryImpl(
             WisdomBlockChain bc,
             TriesSyncManager triesSyncManager,
             AccountStateTrie accountStateTrie,
-            ValidatorStateTrie validatorStateTrie
+            ValidatorStateTrie validatorStateTrie,
+            CandidateStateTrie candidateStateTrie,
+            TargetCache targetCache,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) throws Exception {
+        this.eraLinker = new EraLinker(blocksPerEra);
+        this.eraLinker.setRepository(this);
         this.bc = bc;
+        this.targetCache = targetCache;
+        this.targetCache.setRepository(this);
         chainCache = new ChainCache<>();
         this.chainCache = chainCache
                 .withComparator((x, y) -> compareBlock(x.get(), y.get()));
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
-        this.blockQueue = new PriorityQueue<>((x, y) -> compareBlock(x.get(), y.get()));
+        this.blockQueue = new PriorityQueue<>((x, y) -> -compareBlock(x.get(), y.get()));
         this.triesSyncManager = triesSyncManager;
-        this.triesSyncManager.setChain(this);
+        this.triesSyncManager.setRepository(this);
         this.triesSyncManager.sync();
+        this.candidateStateTrie = candidateStateTrie;
+        this.candidateStateTrie.setRepository(this);
     }
 
     private void deleteCache(Block b) {
@@ -141,11 +158,22 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         return chainCache.contains(hash);
     }
 
-    public boolean isConfirmed(byte[] hash) {
-        return FastByteComparisons.equal(latestConfirmed.getHash(), hash) ||
-                bc.hasBlock(hash);
+    @Override
+    public List<Block> getStaged() {
+        return chainCache.getAll().stream().map(BlockWrapper::get).collect(toList());
     }
 
+    public boolean isConfirmed(byte[] hash) {
+        return !chainCache.contains(hash) && (
+                FastByteComparisons.equal(latestConfirmed.getHash(), hash) ||
+                        bc.hasBlock(hash)
+        );
+    }
+
+    @Override
+    public byte[] getTargetByParent(Block parent) {
+        return targetCache.getTargetByParent(parent);
+    }
 
     // the block or the ancestor has the transaction
     public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
@@ -156,8 +184,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             return bc.hasTransaction(transactionHash);
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)
-                .orElseThrow(() -> new RuntimeException("unreachable"))
-                ;
+                .orElseThrow(() -> new RuntimeException("unreachable"));
         if (transactionIndex.containsKey(blockHash)
                 && transactionIndex.get(blockHash).contains(transactionHash)) {
             return true;
@@ -186,8 +213,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)
-                .orElseThrow(() -> new RuntimeException("unreachable"))
-                ;
+                .orElseThrow(() -> new RuntimeException("unreachable"));
         for (Transaction t : b.body) {
             if (t.payload != null && t.type == type && FastByteComparisons.equal(t.payload, payload)) {
                 return true;
@@ -211,8 +237,169 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         return validatorStateTrie.get(blockHash, publicKeyHash).orElse(0L);
     }
 
+    @Override
+    public List<byte[]> getProposersByParent(Block parent) {
+        return candidateStateTrie.getProposers(parent);
+    }
+
+    @Override
+    public Optional<Proposer> getProposerByParentAndEpoch(Block parent, long epochSecond) {
+        return candidateStateTrie.getProposer(parent, epochSecond);
+    }
+
+    @Override
+    public List<Candidate> getCurrentCandidates() {
+        Block best = getBestBlock();
+        byte[] key;
+        if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
+            key = best.getHash();
+        } else {
+            key = eraLinker.getPrevEraLast(best).getHash();
+        }
+        return candidateStateTrie
+                .getCache()
+                .asMap()
+                .getOrDefault(HexBytes.fromBytes(key), new ArrayList<>());
+    }
+
+
+    @Override
+    public List<Transaction> getTransactionsAtByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {
+        if (FastByteComparisons.equal(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByTo(publicKeyHash, offset, limit);
+        }
+        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
+        if (!o.isPresent()) {
+            return Collections.emptyList();
+        }
+        Block b = o.get();
+        if (b.body == null) {
+            return getTransactionsAtByTo(b.hashPrevBlock, publicKeyHash, offset, limit);
+        }
+        List<Transaction> transactions = b.body
+                .stream()
+                .filter(tx -> FastByteComparisons.equal(tx.to, publicKeyHash))
+                .collect(toList());
+        List<Transaction> transactionsPrevBlocks =
+                getTransactionsAtByTo(b.hashPrevBlock, publicKeyHash, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    @Override
+    public List<Transaction> getTransactionsAtByFrom(byte[] blockHash, byte[] publicKey, int offset, int limit) {
+        if (FastByteComparisons.equal(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByFrom(publicKey, offset, limit);
+        }
+        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
+        if (!o.isPresent()) {
+            return Collections.emptyList();
+        }
+        Block b = o.get();
+        if (b.body == null) {
+            return getTransactionsAtByFrom(b.hashPrevBlock, publicKey, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream()
+                .filter(tx -> FastByteComparisons.equal(tx.from, publicKey))
+                .collect(toList());
+        List<Transaction> transactionsPrevBlocks
+                = getTransactionsAtByFrom(b.hashPrevBlock, publicKey, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    @Override
+    public List<Transaction> getTransactionsAtByFromAndTo(byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
+        if (FastByteComparisons.equal(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByFromAndTo(from, to, offset, limit);
+        }
+        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
+        if (!o.isPresent()) {
+            return Collections.emptyList();
+        }
+        Block b = o.get();
+        if (b.body == null) {
+            return getTransactionsAtByFromAndTo(b.hashPrevBlock, from, to, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(
+                tx -> FastByteComparisons.equal(tx.from, from)
+                        && FastByteComparisons.equal(tx.to, to)
+        ).collect(toList());
+        List<Transaction> transactionsPrevBlocks =
+                getTransactionsAtByFromAndTo(b.hashPrevBlock, from, to, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    @Override
+    public List<Transaction> getTransactionsAtByTypeAndTo(byte[] blockHash, int type, byte[] publicKeyHash, int offset, int limit) {
+        if (FastByteComparisons.equal(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByTypeAndTo(type, publicKeyHash, offset, limit);
+        }
+        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
+        if (!o.isPresent()) {
+            return Collections.emptyList();
+        }
+        Block b = o.get();
+        if (b.body == null) {
+            return getTransactionsAtByTypeAndTo(b.hashPrevBlock, type, publicKeyHash, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(tx -> tx.type == type
+                && FastByteComparisons.equal(tx.to, publicKeyHash)
+        ).collect(toList());
+        List<Transaction> transactionsPrevBlocks =
+                getTransactionsAtByTypeAndTo(b.hashPrevBlock, type, publicKeyHash, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    @Override
+    public List<Transaction> getTransactionsAtByTypeAndFrom(byte[] blockHash, int type, byte[] publicKey, int offset, int limit) {
+        if (FastByteComparisons.equal(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByTypeAndFrom(type, publicKey, offset, limit);
+        }
+        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
+        if (!o.isPresent()) {
+            return Collections.emptyList();
+        }
+        Block b = o.get();
+        if (b.body == null) {
+            return getTransactionsAtByTypeAndFrom(b.hashPrevBlock, type, publicKey, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(
+                tx -> tx.type == type
+                        && FastByteComparisons.equal(tx.from, publicKey)
+        ).collect(toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsAtByTypeAndFrom(b.hashPrevBlock, type, publicKey, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
+
+    @Override
+    public List<Transaction> getTransactionsAtByTypeFromAndTo(byte[] blockHash, int type, byte[] from, byte[] to, int offset, int limit) {
+        if (FastByteComparisons.equal(blockHash, latestConfirmed.getHash())) {
+            return bc.getTransactionsByTypeFromAndTo(type, from, to, offset, limit);
+        }
+        Optional<Block> o = chainCache.get(blockHash).map(BlockWrapper::get);
+        if (!o.isPresent()) {
+            return Collections.emptyList();
+        }
+        Block b = o.get();
+        if (b.body == null) {
+            return getTransactionsAtByTypeFromAndTo(b.hashPrevBlock, type, from, to, offset, limit);
+        }
+        List<Transaction> transactions = b.body.stream().filter(
+                tx -> tx.type == type
+                        && FastByteComparisons.equal(tx.from, from)
+                        && FastByteComparisons.equal(tx.to, to)
+        ).collect(toList());
+        List<Transaction> transactionsPrevBlocks = getTransactionsAtByTypeFromAndTo(b.hashPrevBlock, type, from, to, offset, limit);
+        transactionsPrevBlocks.addAll(transactions);
+        return transactionsPrevBlocks;
+    }
 
     // 写入区块
+    @Override
     public void writeBlock(Block block) {
         // the block had been confirmed
         if (block.nHeight <= latestConfirmed.nHeight) {
@@ -243,12 +430,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             transactionCache.put(t.getHash(), t);
         });
 
-//        leastConfirms.put(block.getHash(),
-//                (int) Math.ceil(
-//                        proposersFactory.getProposers(getBlock(block.hashPrevBlock)).size()
-//                                * 2.0 / 3
-//                )
-//        );
+        leastConfirms.put(block.getHash(),
+                (int) Math.ceil(
+                        candidateStateTrie.getProposers(getBlock(block.hashPrevBlock)).size()
+                                * 2.0 / 3
+                )
+        );
+
         List<Block> ancestors =
                 chainCache.getAncestors(block.getHash())
                         .stream().map(BlockWrapper::get).collect(toList());

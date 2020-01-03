@@ -1,11 +1,9 @@
 package org.wisdom.db;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.tdf.common.util.HexBytes;
 import org.wisdom.Start;
 import org.wisdom.core.Block;
 import org.wisdom.encoding.BigEndian;
@@ -14,6 +12,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 
+@Component
 public class TargetCache {
     private static final long MAX_ADJUST_RATE = 16;
 
@@ -45,7 +44,7 @@ public class TargetCache {
         this.eraLinker = new EraLinker(blocksPerEra);
     }
 
-    public byte[] getTargetAt(Block parentBlock) {
+    public byte[] getTargetByParent(Block parentBlock) {
         if (parentBlock.nHeight < eraLinker.getBlocksPerEra()) return genesisTarget;
         if(parentBlock.nHeight % eraLinker.getBlocksPerEra() != 0) return parentBlock.nBits;
         List<Block> updates = repository

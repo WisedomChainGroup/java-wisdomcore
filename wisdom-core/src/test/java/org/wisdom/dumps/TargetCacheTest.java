@@ -1,6 +1,5 @@
 package org.wisdom.dumps;
 
-import lombok.AllArgsConstructor;
 import lombok.Setter;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +18,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.TargetCache;
 import org.wisdom.db.WisdomRepository;
+import org.wisdom.db.WisdomRepositoryAdapter;
 
 import java.util.*;
 
@@ -40,39 +40,9 @@ public class TargetCacheTest {
 
     protected MockRepository mockRepository;
 
-    public static class MockRepository implements WisdomRepository{
+    public static class MockRepository extends WisdomRepositoryAdapter {
         @Setter
         private List<Block> ancestors;
-
-        @Override
-        public Block getLatestConfirmed() {
-            return null;
-        }
-
-        @Override
-        public Block getGenesis() {
-            return null;
-        }
-
-        @Override
-        public Block getBestBlock() {
-            return null;
-        }
-
-        @Override
-        public Block getBlock(byte[] hash) {
-            return null;
-        }
-
-        @Override
-        public Block getHeader(byte[] hash) {
-            return null;
-        }
-
-        @Override
-        public Block findAncestorHeader(byte[] hash, long h) {
-            return null;
-        }
 
         @Override
         public List<Block> getAncestorBlocks(byte[] hash, long height) {
@@ -80,46 +50,6 @@ public class TargetCacheTest {
             if(!FastByteComparisons.equal(ancestors.get(ancestors.size() - 1).getHash(), hash))
                 throw new RuntimeException("unreachable");
             return ancestors;
-        }
-
-        @Override
-        public boolean isStaged(byte[] hash) {
-            return false;
-        }
-
-        @Override
-        public boolean isConfirmed(byte[] hash) {
-            return false;
-        }
-
-        @Override
-        public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
-            return false;
-        }
-
-        @Override
-        public Optional<Transaction> getTransactionAt(byte[] blockHash, byte[] txHash) {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload) {
-            return false;
-        }
-
-        @Override
-        public Optional<AccountState> getAccountStateAt(byte[] blockHash, byte[] publicKeyHash) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Map<byte[], AccountState> getAccountStatesAt(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
-            return null;
-        }
-
-        @Override
-        public long getValidatorNonceAt(byte[] blockHash, byte[] publicKeyHash) {
-            return 0;
         }
     }
 
@@ -151,11 +81,12 @@ public class TargetCacheTest {
                             BigEndian.encodeUint256(targetState.getTarget()), b.nBits);
                     if(blocks.size() == blocksPerEra){
                         System.out.println(b.nHeight);
+                        System.out.println(b.nHeight);
                         targetState.updateBlocks(blocks);
                         mockRepository.setAncestors(new ArrayList<>(blocks));
                         blocks.clear();
                     }
-                    if(!FastByteComparisons.equal(targetCache.getTargetAt(parent[0]), b.nBits)){
+                    if(!FastByteComparisons.equal(targetCache.getTargetByParent(parent[0]), b.nBits)){
                         throw new RuntimeException("unreachable");
                     }
                     parent[0] = b;
