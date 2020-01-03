@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ import static java.util.stream.Collectors.*;
 @Deprecated
 // use WisdomRepository instead
 @Component
+@Setter
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
