@@ -1,6 +1,9 @@
 package org.wisdom.consensus.pow;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.slf4j.Logger;
@@ -9,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.tdf.rlp.RLPIgnored;
 import org.wisdom.Start;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
@@ -35,6 +39,7 @@ public class ProposersState implements State<ProposersState> {
     public static final int COMMUNITY_MINER_JOINS_HEIGHT = getenv("COMMUNITY_MINER_JOINS_HEIGHT", 522215);
 
     @Value("${wisdom.wip-1217.height}")
+    @Setter
     private long WIP_12_17_HEIGHT;
 
     // 投票数每次衰减 10%
@@ -54,17 +59,12 @@ public class ProposersState implements State<ProposersState> {
     }
 
 
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Vote {
-
         public PublicKeyHash from;
         public long amount;
         public long accumulated;
-
-        public Vote(PublicKeyHash from, long amount, long accumulated) {
-            this.from = from;
-            this.amount = amount;
-            this.accumulated = accumulated;
-        }
     }
 
     public static class Proposer {
@@ -76,9 +76,11 @@ public class ProposersState implements State<ProposersState> {
 
         @JsonIgnore
         // transaction hash -> count
+        @RLPIgnored
         private Map<String, Long> erasCounter;
 
         @JsonIgnore
+        @RLPIgnored
         private Long votesCache;
 
         public String publicKeyHash;

@@ -2,7 +2,6 @@ package org.wisdom.db;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.MemoryCachedStore;
@@ -15,12 +14,10 @@ import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
-import org.wisdom.genesis.Genesis;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-
 
 public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     private String TRIE;
@@ -30,27 +27,22 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     @Getter(AccessLevel.PROTECTED)
     private NoDeleteStore<byte[], byte[]> trieStore;
 
-    @Getter(AccessLevel.PROTECTED)
+    @Getter
     private Store<byte[], byte[]> rootStore;
 
-    @Getter(AccessLevel.PROTECTED)
+    @Getter
     private Trie<byte[], T> trie;
-
-    @Getter(AccessLevel.PROTECTED)
-    @Setter(AccessLevel.PACKAGE)
-    private WisdomRepository repository;
 
     protected abstract String getPrefix();
 
-    protected abstract Map<byte[], T> generateGenesisStates(Block genesis, Genesis genesisJSON);
+    @Getter(AccessLevel.PROTECTED)
+    private AbstractStateUpdater<T> updater;
 
-    protected abstract T createEmpty(byte[] publicKeyHash);
-
-    public StateTrieAdapter(Block genesis, Genesis genesisJSON, Class<T> clazz, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
+    public StateTrieAdapter(Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
         TRIE = getPrefix() + "-trie";
         DELETED = getPrefix() + "-deleted";
         ROOTS = getPrefix() + "-trie-roots";
-
+        this.updater = updater;
         rootStore = factory.create(ROOTS, reset);
         if (logDeletes) {
             trieStore = new NoDeleteStore<>(
@@ -75,7 +67,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
         // sync to genesis
         Trie<byte[], T> tmp = trie.revert();
-        generateGenesisStates(genesis, genesisJSON).forEach(tmp::put);
+        updater.getGenesisStates().forEach(tmp::put);
         byte[] root = tmp.commit();
         tmp.flush();
         rootStore.put(genesis.getHash(), root);
@@ -94,16 +86,16 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         ByteArrayMap<T> m = new ByteArrayMap<>();
         keys.forEach(x ->
                 m.put(
-                        x, trie.get(x).orElse(createEmpty(x))
+                        x, trie.get(x).orElse(updater.createEmpty(x))
                 )
         );
         return m;
     }
 
-    protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data){
+    protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data) {
         Store<byte[], byte[]> cache = new MemoryCachedStore<>(getTrieStore());
         Trie<byte[], T> trie = getTrie().revert(parentRoot, cache);
-        for (Map.Entry<byte[], T> entry: data.entrySet()) {
+        for (Map.Entry<byte[], T> entry : data.entrySet()) {
             trie.put(entry.getKey(), entry.getValue());
         }
         byte[] newRoot = trie.commit();

@@ -7,6 +7,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -25,6 +26,7 @@ import org.wisdom.genesis.Genesis;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration
+@ComponentScan(basePackages = "org.wisdom.context")
 public class TestContext {
     @Bean
     public WisdomBlockChain wisdomBlockChain(
@@ -86,17 +88,27 @@ public class TestContext {
     @Bean
     public ProposersState proposersState(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
-            @Value("${wisdom.consensus.block-interval}") int blockInterval) {
-        return new ProposersState(allowMinersJoinEra, blockInterval);
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.wip-1217.height}") long wip1217Height
+
+    ) {
+        ProposersState proposersState = new ProposersState(allowMinersJoinEra, blockInterval);
+        proposersState.setWIP_12_17_HEIGHT(wip1217Height);
+        return proposersState;
     }
 
+    @Bean
     public CandidateUpdater candidateUpdater(
             @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
-            @Value("${wisdom.wip-1217.height}") long wip1217Height
+            @Value("${wisdom.wip-1217.height}") long wip1217Height,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
             ){
-        CandidateUpdater candidateUpdater = new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height);
-        return candidateUpdater;
+        return new CandidateUpdater(allowMinersJoinEra, blockInterval, wip1217Height, blocksPerEra);
     }
 
+    @Bean
+    public BlockStreamBuilder blockStreamBuilder(TestConfig testConfig){
+        return new BlockStreamBuilder(testConfig.getBlocksDirectory());
+    }
 }

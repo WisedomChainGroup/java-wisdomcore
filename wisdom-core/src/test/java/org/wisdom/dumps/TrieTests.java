@@ -7,23 +7,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.tdf.rlp.RLPElement;
+import org.tdf.common.util.HexBytes;
+import org.wisdom.consensus.pow.ProposersState;
+import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
-import org.wisdom.db.CandidateStateTrie;
-import org.wisdom.db.CandidateUpdater;
-import org.wisdom.db.DatabaseStoreFactory;
-import org.wisdom.db.ValidatorStateTrie;
+import org.wisdom.db.*;
 import org.wisdom.genesis.Genesis;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,6 +32,8 @@ public class TrieTests {
 
     protected CandidateStateTrie candidateStateTrie;
 
+    protected WisdomRepository wisdomRepository;
+
     @Autowired
     private Block genesis;
 
@@ -49,61 +46,89 @@ public class TrieTests {
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
-    private @Value("${wisdom.allow-miner-joins-era}") long allowMinersJoinEra;
-    private @Value("${miner.validators}") String validatorsFile;
-    private @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra;
-    private @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo;
-    private @Value("${wisdom.consensus.block-interval}") int initialBlockInterval;
+    @Autowired
+    private ProposersState genesisProposersState;
+
+    @Autowired
+    private BlockStreamBuilder blockStreamBuilder;
+
+    private @Value("${wisdom.allow-miner-joins-era}")
+    long allowMinersJoinEra;
+    private @Value("${miner.validators}")
+    String validatorsFile;
+    private @Value("${wisdom.block-interval-switch-era}")
+    long blockIntervalSwitchEra;
+    private @Value("${wisdom.block-interval-switch-to}")
+    int blockIntervalSwitchTo;
+    private @Value("${wisdom.consensus.block-interval}")
+    int initialBlockInterval;
 
     @Before
-    public void init() throws Exception{
+    public void init() throws Exception {
         factory = new DatabaseStoreFactory("", 512, "memory");
 
-        validatorStateTrie = new ValidatorStateTrie(genesis, genesisJSON, factory);
+        validatorStateTrie = new ValidatorStateTrie(genesis, factory);
         candidateStateTrie = new CandidateStateTrie(genesis, genesisJSON, factory,
                 candidateUpdater, blocksPerEra, allowMinersJoinEra,
                 validatorsFile, blockIntervalSwitchEra, blockIntervalSwitchTo,
                 initialBlockInterval);
     }
 
-    private Stream<Block> getBlocks(){
-        String blocksDirectory = "C:\\Users\\Sal\\Desktop\\dumps\\blocks";
-        File file = Paths.get(blocksDirectory).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(blocksDirectory + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        return Arrays.stream(files)
-                .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
-                .flatMap(x -> {
-                    try {
-                        byte[] bytes = Files.readAllBytes(x.toPath());
-                        return Arrays.stream(RLPElement.fromEncoded(bytes).as(Block[].class));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+
+    @Test
+    public void testValidatorNonceTrie() {
+        blockStreamBuilder.getBlocks().forEach(b -> {
+            if (b.nHeight == 0) return;
+            validatorStateTrie.commit(b);
+            assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).orElse(0L));
+        });
     }
 
     @Test
-    public void testValidatorNonceTrie(){
-        getBlocks().forEach(b -> {
-                    if(b.nHeight == 0) return;
-                    validatorStateTrie.commit(b);
-                    assertEquals(Long.valueOf(b.body.get(0).nonce - 1), validatorStateTrie.get(b.hashPrevBlock, b.body.get(0).to).orElse(0L));
-                });
-    }
-
-    @Test
-    public void testProposers(){
+    public void testProposers() {
         List<Block> era = new ArrayList<>(blocksPerEra);
-        getBlocks()
+        blockStreamBuilder.getBlocks()
                 .forEach(b -> {
-                    if(b.nHeight == 0) return;
+                    if (b.nHeight == 0) return;
                     era.add(b);
-                    if(era.size() == blocksPerEra){
-                        candidateStateTrie.commit(era);
-                        era.clear();
+                    if (b.nHeight == 447600) {
+                        System.out.println("========");
                     }
+                    if (era.size() < blocksPerEra) return;
+                    System.out.println(b.nHeight);
+                    candidateStateTrie.commit(era);
+                    genesisProposersState.updateBlocks(era);
+
+                    final long nextEra = (b.nHeight - 1) / blocksPerEra + 1;
+                    candidateStateTrie.getTrie()
+                            .revert(candidateStateTrie.getRootStore().get(b.getHash()).get())
+                            .values()
+                            .forEach(c -> {
+                                if(c.getAccumulated(nextEra) !=
+                                        genesisProposersState.getAll()
+                                                .get(c.getPublicKeyHash().toHex()).getAccumulated()){
+
+                                    Map<HexBytes, Vote> received = new HashMap<>();
+                                    c.getReceivedVotes().forEach((k, v) -> {
+                                        received.put(HexBytes.fromBytes(k), v);
+                                    });
+                                    throw new RuntimeException("assertion failed");
+                                }
+                            });
+
+                    List<Candidate> proposers = candidateStateTrie.getCache()
+                            .asMap().get(HexBytes.fromBytes(b.getHash()));
+
+                    List<ProposersState.Proposer> proposersExpected = genesisProposersState
+                            .getProposers();
+
+                    assertEquals(proposersExpected.size(), proposers.size());
+
+                    for(int i = 0; i < proposersExpected.size(); i++){
+                        assertEquals(proposersExpected.get(i).publicKeyHash, proposers.get(i).getPublicKeyHash().toHex());
+                    }
+
+                    era.clear();
                 });
     }
 }

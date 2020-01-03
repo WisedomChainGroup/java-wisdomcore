@@ -1,5 +1,8 @@
 package org.wisdom.db;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import lombok.Getter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +11,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.tdf.common.trie.Trie;
-import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.consensus.pow.Proposer;
@@ -61,17 +63,11 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     private int initialBlockInterval;
 
-    private Map<byte[], List<Candidate>> cache = new ByteArrayMap<>();
-
-    private static int compareCandidate(Candidate x, Candidate y, long era) {
-        if (x.getAccumulated(era) != y.getAccumulated(era)) {
-            return Long.compare(x.getAccumulated(era), y.getAccumulated(era));
-        }
-        if (x.getMortgage() != y.getMortgage()) {
-            return Long.compare(x.getMortgage(), y.getMortgage());
-        }
-        return Hex.encodeHexString(x.getPublicKeyHash()).compareTo(Hex.encodeHexString(y.getPublicKeyHash()));
-    }
+    @Getter
+    private Cache<HexBytes, List<Candidate>> cache = CacheBuilder
+            .newBuilder()
+            .maximumSize(16)
+            .build();
 
     public CandidateStateTrie(
             Block genesis,
@@ -85,7 +81,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
             @Value("${wisdom.consensus.block-interval}") int initialBlockInterval
     ) throws Exception {
-        super(genesis, genesisJSON, Candidate.class, factory, false, false);
+        super(Candidate.class, candidateUpdater, genesis, factory, false, false, blocksPerEra);
         this.candidateUpdater = candidateUpdater;
         this.candidateUpdater.setCandidateStateTrie(this);
         this.blocksPerEra = blocksPerEra;
@@ -114,14 +110,14 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private int blocksPerEra;
 
     private long getPowWait(Block parent) {
-        if (blockIntervalSwitchEra >= 0 && getEraAtBlockNumber(parent.nHeight + 1) >= blockIntervalSwitchEra) {
+        if (blockIntervalSwitchEra >= 0 && eraLinker.getEraAtBlockNumber(parent.nHeight + 1) >= blockIntervalSwitchEra) {
             return blockIntervalSwitchTo * POW_WAIT_FACTOR;
         }
         return initialBlockInterval * POW_WAIT_FACTOR;
     }
 
     @Override
-    void setRepository(WisdomRepository repository) {
+    protected void setRepository(WisdomRepository repository) {
         super.setRepository(repository);
         candidateUpdater.setRepository(repository);
     }
@@ -132,35 +128,17 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     @Override
-    protected int getBlocksPerEra() {
-        return blocksPerEra;
+    void updateHook(List<Block> blocks, Trie<byte[], Candidate> trie) {
+        generateProposers(blocks, trie);
     }
 
-    @Override
-    protected Map<byte[], Candidate> getUpdatedStates(Map<byte[], Candidate> beforeUpdates, List<Block> blocks) {
-        return candidateUpdater.updateAll(beforeUpdates, blocks);
-    }
+    List<byte[]> getProposersByEraLst(byte[] hash, long height){
+        if(height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
 
-    @Override
-    protected Set<byte[]> getRelatedKeys(List<Block> blocks) {
-        return candidateUpdater.getRelatedCandidates(blocks);
-    }
-
-    @Override
-    protected Map<byte[], Candidate> generateGenesisStates(Block genesis, Genesis genesisJSON) {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    protected Candidate createEmpty(byte[] publicKeyHash) {
-        return Candidate.createEmpty(publicKeyHash);
-    }
-
-    public List<byte[]> getProposers(Block parentBlock) {
         boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
-                getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinersJoinEra;
+                eraLinker.getEraAtBlockNumber(height + 1) >= allowMinersJoinEra;
 
-        if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
+        if (!enableMultiMiners && height >= 9235) {
             return initialProposers.subList(0, 1);
         }
 
@@ -168,25 +146,26 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             return initialProposers;
         }
 
-        List<byte[]> res;
-        if (parentBlock.nHeight % getBlocksPerEra() == 0) {
-            res = cache.get(parentBlock.getHash())
+        List<byte[]> res = cache.asMap().get(HexBytes.fromBytes(hash))
                     .stream().map(Candidate::getPublicKeyHash)
+                    .map(HexBytes::getBytes)
                     .collect(Collectors.toList());
-        } else {
-            res = cache.get(prevEraLast(parentBlock).getHash())
-                    .stream().map(Candidate::getPublicKeyHash)
-                    .collect(Collectors.toList())
-                    ;
-        }
-        if (parentBlock.getnHeight() + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
+
+        if (height + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
             res = res.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
         }
         if (res.size() > 0) {
             return res;
         }
         return initialProposers;
+    }
 
+    public List<byte[]> getProposers(Block parentBlock) {
+        if (parentBlock.nHeight % eraLinker.getBlocksPerEra() == 0) {
+            return getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
+        }
+        Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
+        return getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
     }
 
     public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
@@ -218,19 +197,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         ));
     }
 
-    @Override
-    public void commit(List<Block> blocks) {
-        if(getRootStore().containsKey(blocks.get(blocks.size() - 1).getHash()))
-            return;
-        super.commit(blocks);
-    }
-
-    @Override
-    public void commit(Block block) {
-        super.commit(block);
-    }
-
-    public void generateProposers(Trie<byte[], Candidate> trie, List<Block> blocks){
+    public void generateProposers(List<Block> blocks, Trie<byte[], Candidate> trie){
         // 重新生成 proposers
         Stream<Candidate> candidateStream = trie.values().stream()
                 // 过滤掉黑名单中节点
@@ -238,24 +205,28 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 // 过滤掉抵押数量不足和投票为零的账户
                 .filter(p -> p.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE);
         boolean dropZeroVotes = blocks.get(0).getnHeight() > candidateUpdater.getWIP_12_17_HEIGHT();
-        long era = getEraAtBlockNumber(blocks.get(0).nHeight);
+        long nextEra = eraLinker.getEraAtBlockNumber(blocks.get(0).nHeight) + 1;
         if (dropZeroVotes) {
             candidateStream = candidateStream
-                    .filter(x -> x.getAccumulated(era) > 0);
+                    .filter(x -> x.getAccumulated(nextEra) > 0);
         }
         // 按照 投票，抵押，字典从大到小排序
-        List<Candidate> proposers = candidateStream.sorted((x, y) -> -compareProposer(x, y, era))
+        List<Candidate> proposers = candidateStream.sorted((x, y) -> -compareCandidate(x, y, nextEra))
                 .limit(MAXIMUM_PROPOSERS)
                 .collect(Collectors.toList());
+
+        cache.put(HexBytes.fromBytes(blocks.get(blocks.size() - 1).getHash()), proposers);
     }
 
-    private static int compareProposer(Candidate x, Candidate y, long era) {
+    private int compareCandidate(Candidate x, Candidate y, long era) {
         if (x.getAccumulated(era) != y.getAccumulated(era)) {
             return Long.compare(x.getAccumulated(era), y.getAccumulated(era));
         }
         if (x.getMortgage() != y.getMortgage()) {
             return Long.compare(x.getMortgage(), y.getMortgage());
         }
-        return HexBytes.encode(x.getPublicKeyHash()).compareTo(HexBytes.encode(y.getPublicKeyHash()));
+        return x.getPublicKeyHash()
+                .toHex()
+                .compareTo(y.getPublicKeyHash().toHex());
     }
 }

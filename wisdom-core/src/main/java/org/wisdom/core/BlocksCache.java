@@ -23,6 +23,7 @@ import org.apache.commons.codec.binary.Hex;
 import java.util.*;
 
 
+@Deprecated // use ChainCache instead
 /**
  * @author sal 1564319846@qq.com
  */

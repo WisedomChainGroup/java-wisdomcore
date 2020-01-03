@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
-public class AccountStateTrie extends AbstractStateTrie<AccountState>{
+public class AccountStateTrie extends AbstractStateTrie<AccountState> {
 
     // mark whether the state of the block had been stored
     // block hash -> long
@@ -31,37 +31,15 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState>{
         return "account";
     }
 
-    @Override
-    protected Map<byte[], AccountState> getUpdatedStates(Map<byte[], AccountState> beforeUpdates, Block block) {
-        return accountStateUpdater.updateAll(beforeUpdates, block);
-    }
-
-    @Override
-    protected Map<byte[], AccountState> generateGenesisStates(Block genesis, Genesis genesisJSON) {
-        return accountStateUpdater.generateGenesisStates(genesis, genesisJSON);
-    }
-
-    @Override
-    protected Set<byte[]> getRelatedKeys(Block block) {
-        return accountStateUpdater.getRelatedAccounts(block);
-    }
-
-    @Override
-    protected AccountState createEmpty(byte[] publicKeyHash) {
-        return accountStateUpdater.createEmpty(publicKeyHash);
-    }
-
     public AccountStateTrie(
             DatabaseStoreFactory factory,
             Block genesis,
             WisdomBlockChain bc,
             Genesis genesisJSON,
             AccountStateUpdater accountStateUpdater,
-            AccountDB accountDB,
-            IncubatorDB incubatorDB,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis
     ) throws Exception {
-        super(genesis, genesisJSON, AccountState.class, factory, true, false);
+        super(AccountState.class, accountStateUpdater, genesis, factory, true, false);
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
 

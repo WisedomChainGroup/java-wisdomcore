@@ -40,13 +40,14 @@ public class TriesSyncManager {
 
     private WisdomBlockChain bc;
 
-    private WisdomRepositoryImpl chain;
+    private WisdomRepository repository;
 
     public TriesSyncManager(
             AccountStateTrie accountStateTrie,
             ValidatorStateTrie validatorStateTrie,
             DatabaseStoreFactory factory,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
+            WisdomRepository repository,
             WisdomBlockChain bc
     ) throws Exception{
         this.accountStateTrie = accountStateTrie;
@@ -56,14 +57,12 @@ public class TriesSyncManager {
                 Codecs.STRING,
                 Codec.newInstance(RLPCodec::encode, RLPCodec::decodeLong)
         );
-        this.preBuiltGenesis = preBuiltGenesis;
         this.bc = bc;
+        this.preBuiltGenesis = preBuiltGenesis;
     }
 
-    public void setChain(WisdomRepositoryImpl chain) {
-        this.chain = chain;
-        accountStateTrie.setRepository(chain);
-        validatorStateTrie.setRepository(chain);
+    public void setChain(WisdomRepository repository) {
+        this.repository = repository;
     }
 
     void sync() throws Exception{
