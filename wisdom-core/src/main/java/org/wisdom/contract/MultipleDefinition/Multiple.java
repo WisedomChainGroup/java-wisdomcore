@@ -36,16 +36,15 @@ public class Multiple implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        try{
-            Multiple multiple= RLPCodec.decode(payload,Multiple.class);
-            this.assetHash=multiple.getAssetHash();
-            this.min=multiple.getMin();
-            this.max=multiple.getMax();
-            this.pubList=multiple.getPubList();
-            this.amount=multiple.getAmount();
-        }catch (Exception e){
+        Multiple multiple= RLPCodec.decode(payload,Multiple.class);
+        if(multiple==null){
             return false;
         }
+        this.assetHash=multiple.getAssetHash();
+        this.min=multiple.getMin();
+        this.max=multiple.getMax();
+        this.pubList=multiple.getPubList();
+        this.amount=multiple.getAmount();
         return true;
     }
 
@@ -57,5 +56,9 @@ public class Multiple implements AnalysisContract {
                             .max(this.max)
                             .pubList(this.pubList)
                             .amount(this.amount).build());
+    }
+
+    public static Multiple getMultiple(byte[] Rlpbyte){
+        return RLPElement.fromEncoded(Rlpbyte).as(Multiple.class);
     }
 }
