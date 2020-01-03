@@ -258,8 +258,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
         return candidateStateTrie
                 .getCache()
-                .asMap()
-                .getOrDefault(HexBytes.fromBytes(key), new ArrayList<>());
+                .get(HexBytes.fromBytes(key));
     }
 
 

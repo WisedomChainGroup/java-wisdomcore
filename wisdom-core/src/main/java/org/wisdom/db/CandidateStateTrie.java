@@ -1,7 +1,5 @@
 package org.wisdom.db;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
@@ -13,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
+import org.tdf.common.util.LRUMap;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
@@ -64,10 +63,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private int initialBlockInterval;
 
     @Getter
-    private Cache<HexBytes, List<Candidate>> cache = CacheBuilder
-            .newBuilder()
-            .maximumSize(16)
-            .build();
+    private LRUMap<HexBytes, List<Candidate>> cache;
 
     public CandidateStateTrie(
             Block genesis,
@@ -82,6 +78,8 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             @Value("${wisdom.consensus.block-interval}") int initialBlockInterval
     ) throws Exception {
         super(Candidate.class, candidateUpdater, genesis, factory, false, false, blocksPerEra);
+        this.cache = new LRUMap<>();
+        this.cache = this.cache.withMaximumSize(16);
         this.candidateUpdater = candidateUpdater;
         this.candidateUpdater.setCandidateStateTrie(this);
         this.blocksPerEra = blocksPerEra;
@@ -146,7 +144,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             return initialProposers;
         }
 
-        List<byte[]> res = cache.asMap().get(HexBytes.fromBytes(hash))
+        List<byte[]> res = cache.get(HexBytes.fromBytes(hash))
                     .stream().map(Candidate::getPublicKeyHash)
                     .map(HexBytes::getBytes)
                     .collect(Collectors.toList());

@@ -15,11 +15,14 @@ wisdom:
   block-interval-switch-era: '2380'
   block-interval-switch-to: '10'
   consensus:
-    genesis: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator2.json'
+    genesis: 'E:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator2.json'
     block-interval: '30'
     blocks-per-era: '120'
+    pre-built-genesis-directory: 'E:\java-wisdomcore\wisdom-core\src\test\resources'
 miner:
-  validators: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
+  validators: 'E:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
+
+node-character: 'default'
 
 wisdom-test:
   blocks-directory: 'C:\Users\Sal\Desktop\dumps\blocks'
@@ -29,5 +32,19 @@ wisdom-test:
 transaction:
   day:
     count: '2880'
-    
+  nonce: '128'
+
+min:
+  procedurefee: '200000'
+
+pool:
+  clear:
+    days: '2'
+  queued:
+    maxcount: '60000'
+  pending:
+    maxcount: '30000'
+  queuedtopending:
+    maxcount: '5000'
+
 clear-data: 'false'

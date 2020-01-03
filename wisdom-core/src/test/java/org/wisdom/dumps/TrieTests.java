@@ -86,7 +86,7 @@ public class TrieTests {
                             });
 
                     List<Candidate> proposers = candidateStateTrie.getCache()
-                            .asMap().get(HexBytes.fromBytes(b.getHash()));
+                            .get(HexBytes.fromBytes(b.getHash()));
 
                     List<ProposersState.Proposer> proposersExpected = genesisProposersState
                             .getProposers();
