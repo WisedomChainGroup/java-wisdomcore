@@ -2,6 +2,8 @@ package org.wisdom.dumps;
 
 import lombok.AllArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.tdf.rlp.RLPElement;
+import org.tdf.rlp.RLPItem;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.db.CandidateStateTrie;
@@ -21,4 +23,12 @@ public class GenesisDump {
     private int genesisDumpHeight;
 
     private BlockStreamBuilder blockStreamBuilder;
+
+    public void dump(){
+
+    }
+
+    public RLPElement parse(){
+        return RLPItem.NULL;
+    }
 }

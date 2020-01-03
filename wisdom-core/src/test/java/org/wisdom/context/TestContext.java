@@ -22,6 +22,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.db.*;
+import org.wisdom.dumps.BlocksDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 
@@ -159,5 +160,10 @@ public class TestContext {
     @Bean
     public ValidatorStateTrie validatorStateTrie(Block genesis, DatabaseStoreFactory factory){
         return new ValidatorStateTrie(genesis, factory);
+    }
+
+    @Bean
+    public BlocksDump blocksDump(TestConfig testConfig, WisdomBlockChain wisdomBlockChain){
+        return new BlocksDump(0.0, testConfig.getBlocksDirectory(), wisdomBlockChain);
     }
 }

@@ -17,14 +17,12 @@ import org.tdf.rlp.RLPList;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.AccountState;
 
 import java.io.File;
 import java.nio.file.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -35,52 +33,14 @@ import java.util.stream.Collectors;
 // set SPRING_CONFIG_LOCATION=classpath:application-test.yml to run dump tasks
 public class DumpTests {
     @Autowired
-    private WisdomBlockChain wisdomBlockChain;
-
-    @Autowired
     private AccountDB accountDB;
 
-    private Double dumpStatus;
+    @Autowired
+    private BlocksDump blocksDump;
 
     @Test
     public void dumpBlocks() throws Exception {
-        String directory = "c:\\Users\\Sal\\Desktop\\dumps\\blocks";
-
-        File file = Paths.get(directory).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
-        dumpStatus = 0.0;
-        int last = (int) wisdomBlockChain.getLastConfirmedBlock().nHeight;
-
-        int blocksPerDump = 100000;
-        int blocksPerFetch = 4096;
-        int start = 0;
-        int i = 0;
-        while (true) {
-            List<Block> all = new ArrayList<>(blocksPerDump);
-            final int end = start + blocksPerDump;
-            int cursor = start;
-            while (true) {
-                List<Block> lists =
-                        wisdomBlockChain.getCanonicalBlocks(cursor, blocksPerFetch)
-                                .stream().filter(x -> x.getnHeight() < end).collect(Collectors.toList());
-                all.addAll(lists);
-                cursor += blocksPerFetch;
-                if (lists.size() < blocksPerFetch) break;
-            }
-            Path path =
-                    Paths.get(directory,
-                            String.format("blocks-dump.%d.%d-%d.rlp", i, all.get(0).nHeight, all.get(all.size() - 1).nHeight + 1)
-                    );
-            Files.write(path, RLPCodec.encode(all), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
-            if (all.size() < blocksPerDump) {
-                break;
-            }
-            dumpStatus = all.get(all.size() - 1).nHeight * 1.0 / last;
-            start += blocksPerDump;
-            i++;
-            System.out.println(dumpStatus);
-        }
-        dumpStatus = null;
+        blocksDump.dump();
     }
 
     @Test

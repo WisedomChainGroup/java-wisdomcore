@@ -15,4 +15,8 @@ import org.springframework.stereotype.Component;
 public class TestConfig {
     @NonNull
     private String blocksDirectory;
+    @NonNull
+    private String genesisDumpOut;
+    @NonNull
+    private String genesisDumpHeight;
 }
