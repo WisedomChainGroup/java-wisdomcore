@@ -1,6 +1,5 @@
 package org.wisdom.dumps;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
 import org.wisdom.db.*;
-import org.wisdom.genesis.Genesis;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,22 +24,17 @@ import static org.junit.Assert.assertEquals;
 @SpringBootTest(classes = TestContext.class)
 // set SPRING_CONFIG_LOCATION=classpath:application-test.yml to run dump tasks
 public class TrieTests {
+
+    @Autowired
     protected ValidatorStateTrie validatorStateTrie;
 
-    protected DatabaseStoreFactory factory;
-
+    @Autowired
     protected CandidateStateTrie candidateStateTrie;
-
-    protected WisdomRepository wisdomRepository;
 
     @Autowired
     private Block genesis;
 
-    @Autowired
-    private Genesis genesisJSON;
 
-    @Autowired
-    private CandidateUpdater candidateUpdater;
 
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
@@ -52,27 +45,6 @@ public class TrieTests {
     @Autowired
     private BlockStreamBuilder blockStreamBuilder;
 
-    private @Value("${wisdom.allow-miner-joins-era}")
-    long allowMinersJoinEra;
-    private @Value("${miner.validators}")
-    String validatorsFile;
-    private @Value("${wisdom.block-interval-switch-era}")
-    long blockIntervalSwitchEra;
-    private @Value("${wisdom.block-interval-switch-to}")
-    int blockIntervalSwitchTo;
-    private @Value("${wisdom.consensus.block-interval}")
-    int initialBlockInterval;
-
-    @Before
-    public void init() throws Exception {
-        factory = new DatabaseStoreFactory("", 512, "memory");
-
-        validatorStateTrie = new ValidatorStateTrie(genesis, factory);
-        candidateStateTrie = new CandidateStateTrie(genesis, genesisJSON, factory,
-                candidateUpdater, blocksPerEra, allowMinersJoinEra,
-                validatorsFile, blockIntervalSwitchEra, blockIntervalSwitchTo,
-                initialBlockInterval);
-    }
 
 
     @Test

@@ -23,5 +23,7 @@ miner:
 
 wisdom-test:
   blocks-directory: 'C:\Users\Sal\Desktop\dumps\blocks'
+  genesis-dump-out: 'C:\Users\Sal\Desktop\dumps\genesis'
+  genesis-dump-height: '120'
 
 clear-data: 'false'

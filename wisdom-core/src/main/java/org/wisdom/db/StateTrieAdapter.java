@@ -103,4 +103,10 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         getRootStore().put(blockHash, newRoot);
         return trie;
     }
+
+    public Trie<byte[], T> getTrie(byte[] blockHash){
+        return getTrie().revert(
+                getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unexpected"))
+        );
+    }
 }

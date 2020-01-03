@@ -2,7 +2,6 @@ package org.wisdom.context;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -22,8 +21,7 @@ import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.db.CandidateUpdater;
-import org.wisdom.db.TargetCache;
+import org.wisdom.db.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 
@@ -116,6 +114,30 @@ public class TestContext {
     }
 
     @Bean
+    public DatabaseStoreFactory databaseStoreFactory() {
+        return new DatabaseStoreFactory("memory", 512, "memory");
+    }
+
+    @Bean
+    public CandidateStateTrie candidateStateTrie(
+            Block genesis,
+            Genesis genesisJSON,
+            DatabaseStoreFactory factory,
+            CandidateUpdater candidateUpdater,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            @Value("${wisdom.allow-miner-joins-era}") long allowMinersJoinEra,
+            @Value("${miner.validators}") String validatorsFile,
+            @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
+            @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
+            @Value("${wisdom.consensus.block-interval}") int initialBlockInterval) throws Exception{
+        return new CandidateStateTrie(
+                genesis, genesisJSON, factory, candidateUpdater,
+                blocksPerEra, allowMinersJoinEra, validatorsFile,
+                blockIntervalSwitchEra, blockIntervalSwitchTo, initialBlockInterval
+        );
+    }
+
+    @Bean
     public TargetCache targetCache(
             Block genesis,
             @Value("${wisdom.consensus.block-interval}") int blockInterval,
@@ -132,5 +154,10 @@ public class TestContext {
                                    @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
                                    @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) {
         return new TargetState(genesis, blockInterval, blockIntervalSwitchEra, blockIntervalSwitchTo, blocksPerEra);
+    }
+
+    @Bean
+    public ValidatorStateTrie validatorStateTrie(Block genesis, DatabaseStoreFactory factory){
+        return new ValidatorStateTrie(genesis, factory);
     }
 }
