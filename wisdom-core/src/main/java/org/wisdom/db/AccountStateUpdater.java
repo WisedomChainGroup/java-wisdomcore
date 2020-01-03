@@ -34,6 +34,7 @@ import org.wisdom.util.ByteUtil;
 import java.util.*;
 
 @Component
+@Setter
 // TODO: make omit branch unreachable
 public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 

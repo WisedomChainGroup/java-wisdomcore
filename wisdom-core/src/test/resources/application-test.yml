@@ -26,4 +26,8 @@ wisdom-test:
   genesis-dump-out: 'C:\Users\Sal\Desktop\dumps\genesis'
   genesis-dump-height: '120'
 
+transaction:
+  day:
+    count: '2880'
+    
 clear-data: 'false'

@@ -22,6 +22,7 @@ import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.*;
 import org.wisdom.dumps.BlocksDump;
 import org.wisdom.dumps.GenesisDump;
@@ -132,7 +133,7 @@ public class TestContext {
             @Value("${miner.validators}") String validatorsFile,
             @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
             @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
-            @Value("${wisdom.consensus.block-interval}") int initialBlockInterval) throws Exception{
+            @Value("${wisdom.consensus.block-interval}") int initialBlockInterval) throws Exception {
         return new CandidateStateTrie(
                 genesis, genesisJSON, factory, candidateUpdater,
                 blocksPerEra, allowMinersJoinEra, validatorsFile,
@@ -160,17 +161,17 @@ public class TestContext {
     }
 
     @Bean
-    public ValidatorStateTrie validatorStateTrie(Block genesis, DatabaseStoreFactory factory){
+    public ValidatorStateTrie validatorStateTrie(Block genesis, DatabaseStoreFactory factory) {
         return new ValidatorStateTrie(genesis, factory);
     }
 
     @Bean
-    public BlocksDump blocksDump(TestConfig testConfig, WisdomBlockChain wisdomBlockChain){
+    public BlocksDump blocksDump(TestConfig testConfig, WisdomBlockChain wisdomBlockChain) {
         return new BlocksDump(0.0, testConfig.getBlocksDirectory(), wisdomBlockChain);
     }
 
     @Bean
-    public ValidatorState validatorState(Block genesis){
+    public ValidatorState validatorState(Block genesis) {
         return new ValidatorState(genesis);
     }
 
@@ -183,11 +184,24 @@ public class TestContext {
             BlockStreamBuilder blockStreamBuilder,
             AccountDB accountDB,
             WisdomBlockChain wisdomBlockChain
-            ){
+    ) {
         return new GenesisDump(
                 testConfig.getGenesisDumpOut(), jdbcTemplate, validatorState,
                 candidateStateTrie, testConfig.getGenesisDumpHeight(), blockStreamBuilder,
                 accountDB, wisdomBlockChain
         );
+    }
+
+
+    @Bean
+    public RateTable rateTable(@Value("${wisdom.block-interval-switch-era}") int switchEra) {
+        RateTable rateTable = new RateTable();
+        rateTable.setEra(switchEra);
+        return rateTable;
+    }
+
+    @Bean
+    public AccountStateUpdater accountStateUpdater(){
+
     }
 }

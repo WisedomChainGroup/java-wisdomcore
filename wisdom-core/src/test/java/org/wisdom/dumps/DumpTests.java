@@ -1,5 +1,6 @@
 package org.wisdom.dumps;
 
+import net.bytebuddy.asm.Advice;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +16,13 @@ import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPList;
 import org.wisdom.account.PublicKeyHash;
+import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
 
 import java.io.File;
 import java.nio.file.*;
@@ -41,6 +44,12 @@ public class DumpTests {
     @Autowired
     private GenesisDump genesisDump;
 
+    @Autowired
+    private BlockStreamBuilder blockStreamBuilder;
+
+    @Autowired
+    private AccountStateTrie accountStateTrie;
+
     @Test
     public void dumpBlocks() throws Exception {
         blocksDump.dump();
@@ -56,19 +65,14 @@ public class DumpTests {
         genesisDump.dump();
     }
 
-    @Test
-    public void parse() throws Exception {
-        String genesisDirectory = "z:\\dumps\\accounts";
-        File file = Paths.get(genesisDirectory).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(genesisDirectory + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        File lastGenesis = Arrays.stream(files)
-                .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp"))
-                .sorted((x, y) -> (int) (Long.parseLong(y.getName().split("\\.")[1]) - Long.parseLong(x.getName().split("\\.")[1])))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("unreachable"));
-        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(lastGenesis.toPath()));
+    public void compareStates() throws Exception {
+        File expectedGenesisFile = Paths.get("").toFile();;
+        File fromGenesisFile = Paths.get("").toFile();
+
+        if (!fromGenesisFile.isFile() || !expectedGenesisFile.isFile())
+            throw new RuntimeException("not a valid file");
+
+        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(fromGenesisFile.toPath()));
         Block genesis = el.get(0).as(Block.class);
         AccountState[] genesisStates = el.get(1).as(AccountState[].class);
         Trie<byte[], AccountState> trie = TrieImpl.newInstance(
@@ -76,9 +80,7 @@ public class DumpTests {
                 Codec.identity(),
                 Codec.newInstance(RLPCodec::encode, x -> RLPCodec.decode(x, AccountState.class))
         );
-        Arrays.asList(genesisStates)
-                .forEach(s -> trie.put(s.getAccount().getPubkeyHash(), s));
-        byte[] root = trie.commit();
-        System.out.println(HexBytes.encode(root));
+
+
     }
 }

@@ -19,6 +19,7 @@
 package org.wisdom.core.validate;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 @Component
+@Setter
 public class MerkleRule implements BlockRule {
 
     private static final Logger logger = LoggerFactory.getLogger(MerkleRule.class);
