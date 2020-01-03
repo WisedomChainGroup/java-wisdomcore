@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.ByteArraySet;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
@@ -14,6 +15,7 @@ import org.wisdom.core.Block;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
+import org.wisdom.db.AccountStateUpdater;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -43,6 +45,9 @@ public class DumpTests {
     @Autowired
     private AccountStateTrie accountStateTrie;
 
+    @Autowired
+    private AccountStateUpdater accountStateUpdater;
+
     @Test
     public void dumpBlocks() throws Exception {
         blocksDump.dump();
@@ -56,6 +61,33 @@ public class DumpTests {
     @Test
     public void createNewGenesis() throws Exception {
         genesisDump.dump();
+    }
+
+    @Test
+    public void compareKeys() throws Exception{
+        File genesisFile = Paths.get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.480000.rlp").toFile();
+        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(genesisFile.toPath()));
+        Block genesis = el.get(0).as(Block.class);
+        Map<byte[], AccountState> expectedAccountStates = new ByteArrayMap<>();
+        for(AccountState state: el.get(1).as(AccountState[].class)){
+            expectedAccountStates.put(state.getAccount().getPubkeyHash(), state);
+        }
+
+        Set<byte[]> all = new ByteArraySet();
+
+        blockStreamBuilder.getBlocks()
+                .filter(b -> b.nHeight <= genesis.nHeight)
+                .forEach(b -> {
+                    if (b.nHeight == 0) {
+                        all.addAll(accountStateUpdater.getGenesisStates().keySet());
+                        return;
+                    }
+                    all.addAll(accountStateUpdater.getRelatedKeys(b));
+                });
+        assert all.size() == expectedAccountStates.size();
+        for(byte[] k: all){
+            assert expectedAccountStates.containsKey(k);
+        }
     }
 
     @Test
