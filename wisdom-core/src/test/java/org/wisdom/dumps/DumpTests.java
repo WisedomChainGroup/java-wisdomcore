@@ -65,7 +65,7 @@ public class DumpTests {
 
     @Test
     public void compareKeys() throws Exception{
-        File genesisFile = Paths.get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.480000.rlp").toFile();
+        File genesisFile = Paths.get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.800040.rlp").toFile();
         RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(genesisFile.toPath()));
         Block genesis = el.get(0).as(Block.class);
         Map<byte[], AccountState> expectedAccountStates = new ByteArrayMap<>();
@@ -92,47 +92,57 @@ public class DumpTests {
 
     @Test
     public void compareStates() throws Exception {
-        File expectedGenesisFile = Paths.get("").toFile();
-        File fromGenesisFile = Paths.get("E:\\java-wisdomcore\\wisdom-core\\src\\test\\resources\\genesis.480000.rlp").toFile();
+        File expectedGenesisFile = Paths
+                .get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.800040.rlp")
+                .toFile();
+        File fromGenesisFile = Paths
+                .get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.480000.rlp")
+                .toFile();
 
         if (!fromGenesisFile.isFile() || !expectedGenesisFile.isFile())
             throw new RuntimeException("not a valid file");
 
 
         RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(fromGenesisFile.toPath()));
-        Block genesis = el.get(0).as(Block.class);
-        RLPElement elExpected = RLPElement.fromEncoded(Files.readAllBytes(fromGenesisFile.toPath()));
-        Block expected = elExpected.get(0).as(Block.class);
+
+        Block fromGenesis = el.get(0).as(Block.class);
+        AccountState[] fromAccountStates = el.get(1).as(AccountState[].class);
+
+        el = RLPElement.fromEncoded(Files.readAllBytes(expectedGenesisFile.toPath()));
+        Block expectedGenesis = el.get(0).as(Block.class);
 
         Map<byte[], AccountState> expectedAccountStates = new ByteArrayMap<>();
-        for(AccountState state: elExpected.get(1).as(AccountState[].class)){
+        for(AccountState state: el.get(1).as(AccountState[].class)){
             expectedAccountStates.put(state.getAccount().getPubkeyHash(), state);
         }
 
-        Trie<byte[], AccountState> empty = accountStateTrie.getTrie().revert();
-        Arrays.stream(el.get(1).as(AccountState[].class))
+        Trie<byte[], AccountState> empty = accountStateTrie
+                .getTrie().revert();
+        Arrays.stream(fromAccountStates)
                 .forEach(a -> empty.put(a.getAccount().getPubkeyHash(), a));
 
         byte[] newRoot = empty.commit();
         empty.flush();
-        accountStateTrie.getRootStore().put(genesis.getHash(), newRoot);
+        accountStateTrie
+                .getRootStore()
+                .put(fromGenesis.getHash(), newRoot);
 
 
         Stream<Block> blocks =
                 blockStreamBuilder.getBlocks()
-                .filter(b -> b.nHeight > genesis.nHeight && b.nHeight <= expected.nHeight)
+                .filter(b -> b.nHeight > fromGenesis.nHeight && b.nHeight <= expectedGenesis.nHeight)
                 ;
 
         blocks.forEach(accountStateTrie::commit);
 
         Trie<byte[], AccountState> accountStates = accountStateTrie
-                .getTrie(expected.getHash());
+                .getTrie(expectedGenesis.getHash());
 
         assertEquals(accountStates.size(), expectedAccountStates.size());
+
         accountStates.values()
                 .forEach(a -> {
                     assert expectedAccountStates.containsKey(a.getAccount().getPubkeyHash());
-                    assert a.equals(expectedAccountStates.get(a.getAccount().getPubkeyHash()));
                 });
     }
 }
