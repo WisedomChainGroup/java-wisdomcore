@@ -7,8 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.tdf.rlp.Container;
-import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
@@ -20,7 +18,6 @@ import org.wisdom.core.Block;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -80,23 +77,14 @@ public class ProposerStateTests {
                     genesisState.updateBlocks(blocks);
                     blocks.clear();
                 });
-        Files.write(
-                Paths.get(testConfig.getProposersFile()),
-                RLPCodec.encode(genesisState.getAll()),
-                StandardOpenOption.WRITE, StandardOpenOption.SYNC, StandardOpenOption.CREATE_NEW
-        );
+//        Files.write(
+//                Paths.get(testConfig.getProposersFile()),
+//                RLPCodec.encode(genesisState.getAll()),
+//                StandardOpenOption.WRITE, StandardOpenOption.SYNC, StandardOpenOption.CREATE_NEW
+//        );
     }
 
-    @Test
-    public void testGetDumpedProposers() throws Exception{
-        assert getDumpedProposers() != null;
-    }
 
     static class Foo extends HashMap<String, ProposersState.Proposer>{}
 
-    Map<String, ProposersState.Proposer> getDumpedProposers() throws Exception{
-        byte[] data = Files.readAllBytes(Paths.get(testConfig.getProposersFile()));
-        return (Map<String, ProposersState.Proposer>) RLPCodec.
-                decodeContainer(data, Container.fromType(Foo.class.getGenericSuperclass()));
-    }
 }

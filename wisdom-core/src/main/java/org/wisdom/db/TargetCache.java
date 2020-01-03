@@ -1,11 +1,9 @@
 package org.wisdom.db;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import org.apache.commons.math3.fraction.BigFraction;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.tdf.common.util.HexBytes;
 import org.wisdom.Start;
 import org.wisdom.core.Block;
 import org.wisdom.encoding.BigEndian;
@@ -14,13 +12,9 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 
+@Component
 public class TargetCache {
-    private Cache<HexBytes, byte[]> cache =
-            CacheBuilder
-                    .newBuilder()
-                    .maximumSize(16).build();
-
-    private static final long MAX_ADJUST_RATE = 8 * 120;
+    private static final long MAX_ADJUST_RATE = 16;
 
 
     private int initialBlockInterval;
@@ -50,24 +44,15 @@ public class TargetCache {
         this.eraLinker = new EraLinker(blocksPerEra);
     }
 
-    private byte[] getTargetAtInternal(Block block) {
-        if(block.nHeight <= eraLinker.getBlocksPerEra()) return genesisTarget;
-        Block last = eraLinker.getPrevEraLast(block);
+    public byte[] getTargetByParent(Block parentBlock) {
+        if (parentBlock.nHeight < eraLinker.getBlocksPerEra()) return genesisTarget;
+        if(parentBlock.nHeight % eraLinker.getBlocksPerEra() != 0) return parentBlock.nBits;
         List<Block> updates = repository
-                .getAncestorBlocks(last.getHash(), last.nHeight - eraLinker.getBlocksPerEra() + 1);
-        return updateBlocks(last.nBits, updates);
+                .getAncestorBlocks(parentBlock.getHash(), parentBlock.nHeight - eraLinker.getBlocksPerEra() + 1);
+        return updateBlocks(parentBlock.nBits, updates);
     }
 
-    public byte[] getTargetAt(Block block) {
-        byte[] ret = cache.asMap().get(HexBytes.fromBytes(block.getHash()));
-
-        if(ret != null) return ret;
-        ret = getTargetAtInternal(block);
-        cache.put(HexBytes.fromBytes(block.getHash()), ret);
-        return ret;
-    }
-
-    public byte[] updateBlocks(byte[] nBits, List<Block> blocks) {
+    private byte[] updateBlocks(byte[] nBits, List<Block> blocks) {
         long blockInterval = this.initialBlockInterval;
 
         if (blockIntervalSwitchEra >= 0 && eraLinker.getEraAtBlockNumber(blocks.get(0).nHeight) >= blockIntervalSwitchEra) {

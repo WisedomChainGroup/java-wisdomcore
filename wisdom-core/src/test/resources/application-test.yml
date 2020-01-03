@@ -21,6 +21,7 @@ wisdom:
 miner:
   validators: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
 
-
+wisdom-test:
+  blocks-directory: 'C:\Users\Sal\Desktop\dumps\blocks'
 
 clear-data: 'false'

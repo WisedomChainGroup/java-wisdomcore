@@ -441,7 +441,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public List<Transaction> getTransactionsByFromAndType(int type, byte[] publicKey, int offset, int limit) {
+    public List<Transaction> getTransactionsByTypeAndFrom(int type, byte[] publicKey, int offset, int limit) {
         return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
                     "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type = ? and  tx.from = ?  order by height, ti.tx_index offset ? limit ?", new Object[]{type, publicKey, offset, limit}, new TransactionMapper());
     }
@@ -453,7 +453,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public List<Transaction> getTransactionsByToAndType(int type, byte[] publicKeyHash, int offset, int limit) {
+    public List<Transaction> getTransactionsByTypeAndTo(int type, byte[] publicKeyHash, int offset, int limit) {
         return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
                 "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type = ? and tx.to = ? order by height, ti.tx_index offset ? limit ?", new Object[]{type, publicKeyHash, offset, limit}, new TransactionMapper());
     }
@@ -465,7 +465,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit) {
+    public List<Transaction> getTransactionsByTypeFromAndTo(int type, byte[] from, byte[] to, int offset, int limit) {
         return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
                 "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type =? and tx.from = ? and tx.to =? order by height, ti.tx_index offset ? limit ?", new Object[]{type, from, to, offset, limit}, new TransactionMapper());
     }

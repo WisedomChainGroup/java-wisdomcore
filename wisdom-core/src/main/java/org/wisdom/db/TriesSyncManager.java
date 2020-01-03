@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.serialize.Codec;
@@ -34,20 +35,23 @@ public class TriesSyncManager {
 
     private ValidatorStateTrie validatorStateTrie;
 
+    private CandidateStateTrie candidateStateTrie;
+
     private Store<String, Long> statusStore;
 
     private String preBuiltGenesis;
 
     private WisdomBlockChain bc;
 
+    @Setter
     private WisdomRepository repository;
 
     public TriesSyncManager(
             AccountStateTrie accountStateTrie,
             ValidatorStateTrie validatorStateTrie,
             DatabaseStoreFactory factory,
+            CandidateStateTrie candidateStateTrie,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
-            WisdomRepository repository,
             WisdomBlockChain bc
     ) throws Exception{
         this.accountStateTrie = accountStateTrie;
@@ -61,7 +65,7 @@ public class TriesSyncManager {
         this.preBuiltGenesis = preBuiltGenesis;
     }
 
-    public void setChain(WisdomRepository repository) {
+    public void setRepository(WisdomRepository repository) {
         this.repository = repository;
     }
 
