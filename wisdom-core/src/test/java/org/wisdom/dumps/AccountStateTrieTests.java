@@ -14,6 +14,7 @@ import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateUpdater;
 
 
 import java.util.Arrays;
@@ -33,6 +34,9 @@ public class AccountStateTrieTests {
 
     @Autowired
     private AccountDB accountDB;
+
+    @Autowired
+    private AccountStateUpdater accountStateUpdater;
 
     @Test
     public void testAccountsEquals() throws Exception {
