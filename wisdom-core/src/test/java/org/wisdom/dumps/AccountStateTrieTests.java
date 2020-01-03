@@ -1,6 +1,5 @@
 package org.wisdom.dumps;
 
-import org.apache.commons.codec.binary.Hex;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,26 +9,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import org.tdf.common.util.ByteArraySet;
-import org.tdf.rlp.RLPElement;
+import org.wisdom.account.PublicKeyHash;
+import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
-
-import org.wisdom.core.Block;
-
+import org.wisdom.core.account.AccountDB;
 import org.wisdom.db.AccountState;
 
-import java.io.File;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import java.util.stream.Collectors;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestContext.class)
@@ -38,23 +28,33 @@ public class AccountStateTrieTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private BlockStreamBuilder blockStreamBuilder;
+
+    @Autowired
+    private AccountDB accountDB;
+
     @Test
     public void testAccountsEquals() throws Exception {
-        String preBuiltGenesis = "E:\\java-wisdomcore\\wisdom-core\\src\\main\\resources\\genesis\\";
-        File file = Paths.get(preBuiltGenesis).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(preBuiltGenesis + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        File lastGenesis = Arrays.stream(files)
-                .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp")).min((x, y) -> (int) (Long.parseLong(y.getName().split("\\.")[1]) - Long.parseLong(x.getName().split("\\.")[1])))
-                .orElseThrow(() -> new RuntimeException("unreachable"));
-        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(lastGenesis.toPath()));
-        AccountState[] accountStates = el.get(1).as(AccountState[].class);
-        Block block = el.get(0).as(Block.class);
-        long height = block.nHeight;
-        Set<byte[]> all = new ByteArraySet(
-                Arrays.stream(accountStates).map(a -> a.getAccount().getPubkeyHash()).collect(Collectors.toList())
-        );
+        ByteArraySet all = new ByteArraySet();
+        int height = 800040;
+
+
+        byte[] zeroPublicKey = new byte[32];
+        byte[] zeroPublicKeyHash = new byte[20];
+        blockStreamBuilder.getBlocks()
+                .flatMap(b -> b.body.stream())
+                .forEach(tx -> {
+                    if (!Arrays.equals(zeroPublicKey, tx.from)) {
+                        assert tx.from.length == 32 || tx.from.length == 20;
+                        all.add(tx.from.length == 32 ? PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash() : tx.from);
+                    }
+                    if (!Arrays.equals(zeroPublicKeyHash, tx.to)) {
+                        assert tx.to.length == 20;
+                        all.add(tx.to);
+                    }
+                });
+
         Set<byte[]> expected = new ByteArraySet();
         List<byte[]> list;
         try {
@@ -78,10 +78,12 @@ public class AccountStateTrieTests {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        assertEquals(expected.size(), all.size());
+//        assertEquals(expected.size(), all.size());
         for (byte[] k : expected) {
-            assertTrue(all.contains(k));
-
+            if(!all.contains(k)){
+                   AccountState accountState = accountDB.getAccounstate(k, height);
+                   System.out.println("===");
+            }
         }
     }
 }
