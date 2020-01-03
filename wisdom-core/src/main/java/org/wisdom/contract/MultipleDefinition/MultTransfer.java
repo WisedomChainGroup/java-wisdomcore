@@ -22,9 +22,9 @@ public class MultTransfer implements AnalysisContract {
     @RLP(1)
     private int dest;
     @RLP(2)
-    private List<byte[]> pubhash;
+    private List<byte[]> from;
     @RLP(3)
-    private List<byte[]> signaturesList;
+    private List<byte[]> signatures;
     @RLP(4)
     private byte[] to;
     @RLP(5)
@@ -43,8 +43,8 @@ public class MultTransfer implements AnalysisContract {
         }
         this.origin=multTransfer.getOrigin();
         this.dest=multTransfer.getDest();
-        this.pubhash=multTransfer.getPubhash();
-        this.signaturesList=multTransfer.getSignaturesList();
+        this.from=multTransfer.getFrom();
+        this.signatures=multTransfer.getSignatures();
         this.to=multTransfer.getTo();
         this.value=multTransfer.getValue();
         return false;
@@ -55,8 +55,8 @@ public class MultTransfer implements AnalysisContract {
         return RLPCodec.encode(MultTransfer.builder()
                 .origin(this.origin)
                 .dest(this.dest)
-                .pubhash(this.pubhash)
-                .signaturesList(this.signaturesList)
+                .from(this.from)
+                .signatures(this.signatures)
                 .to(this.to)
                 .value(this.value).build());
     }
