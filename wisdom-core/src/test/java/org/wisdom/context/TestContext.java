@@ -16,6 +16,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.consensus.pow.TargetState;
+import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.core.Block;
 import org.wisdom.core.RDBMSBlockChainImpl;
 import org.wisdom.core.WisdomBlockChain;
@@ -23,6 +24,7 @@ import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.db.*;
 import org.wisdom.dumps.BlocksDump;
+import org.wisdom.dumps.GenesisDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 
@@ -165,5 +167,27 @@ public class TestContext {
     @Bean
     public BlocksDump blocksDump(TestConfig testConfig, WisdomBlockChain wisdomBlockChain){
         return new BlocksDump(0.0, testConfig.getBlocksDirectory(), wisdomBlockChain);
+    }
+
+    @Bean
+    public ValidatorState validatorState(Block genesis){
+        return new ValidatorState(genesis);
+    }
+
+    @Bean
+    public GenesisDump genesisDump(
+            TestConfig testConfig,
+            JdbcTemplate jdbcTemplate,
+            ValidatorState validatorState,
+            CandidateStateTrie candidateStateTrie,
+            BlockStreamBuilder blockStreamBuilder,
+            AccountDB accountDB,
+            WisdomBlockChain wisdomBlockChain
+            ){
+        return new GenesisDump(
+                testConfig.getGenesisDumpOut(), jdbcTemplate, validatorState,
+                candidateStateTrie, testConfig.getGenesisDumpHeight(), blockStreamBuilder,
+                accountDB, wisdomBlockChain
+        );
     }
 }

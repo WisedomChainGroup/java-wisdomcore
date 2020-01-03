@@ -38,6 +38,9 @@ public class DumpTests {
     @Autowired
     private BlocksDump blocksDump;
 
+    @Autowired
+    private GenesisDump genesisDump;
+
     @Test
     public void dumpBlocks() throws Exception {
         blocksDump.dump();
@@ -50,70 +53,7 @@ public class DumpTests {
 
     @Test
     public void createNewGenesis() throws Exception {
-        String blocksDirectory = "z:\\dumps\\blocks";
-        String outputDirectory = "z:\\dumps\\accounts";
-        int height = 800040;
-
-        final Block[] newGenesis = {null};
-        byte[] zeroPublicKey = new byte[32];
-        byte[] zeroPublicKeyHash = new byte[20];
-
-        Double restoreStatus;
-        File file = Paths.get(blocksDirectory).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(blocksDirectory + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        int filesCount = files.length;
-        ByteArraySet set = new ByteArraySet();
-
-        Arrays.stream(files)
-                .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
-                .flatMap(x -> {
-                    try {
-                        byte[] bytes = Files.readAllBytes(x.toPath());
-                        return Arrays.stream(RLPElement.fromEncoded(bytes).as(Block[].class));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .filter(b -> b.nHeight <= height)
-                .peek(b -> {
-                    if (b.nHeight == height) newGenesis[0] = b;
-                })
-                .flatMap(b -> b.body.stream())
-                .forEach(tx -> {
-                    if (!Arrays.equals(zeroPublicKey, tx.from)) {
-                        assert tx.from.length == 32 || tx.from.length == 20;
-                        set.add(tx.from.length == 32 ? PublicKeyHash.fromPublicKey(tx.from).getPublicKeyHash() : tx.from);
-                    }
-                    if (!Arrays.equals(zeroPublicKeyHash, tx.to)) {
-                        assert tx.to.length == 20;
-                        set.add(tx.to);
-                    }
-                });
-        System.out.println(set.size());
-        assert newGenesis[0] != null;
-        List<AccountState> states = set.stream()
-                .map(x -> {
-                    try {
-                        return accountDB.getAccounstate(x, height);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        System.out.println(HexBytes.encode(x));
-                        return null;
-                    }
-                }).collect(Collectors.toList());
-        Path path =
-                Paths.get(outputDirectory,
-                        String.format("genesis.%d.rlp", height)
-                );
-        RLPElement newGenesisAccounts = RLPElement.readRLPTree(states);
-        RLPElement newGenesisData = RLPList.createEmpty(2);
-        newGenesisData.add(RLPElement.readRLPTree(newGenesis[0]));
-        newGenesisData.add(newGenesisAccounts);
-
-        Files.write(path, newGenesisData.getEncoded(),
-                StandardOpenOption.SYNC, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        genesisDump.dump();
     }
 
     @Test

@@ -17,6 +17,5 @@ public class TestConfig {
     private String blocksDirectory;
     @NonNull
     private String genesisDumpOut;
-    @NonNull
-    private String genesisDumpHeight;
+    private long genesisDumpHeight;
 }
