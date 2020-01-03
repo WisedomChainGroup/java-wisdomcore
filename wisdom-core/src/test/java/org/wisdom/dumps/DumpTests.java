@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-;
+;import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestContext.class)
@@ -98,6 +98,7 @@ public class DumpTests {
         Trie<byte[], AccountState> accountStates = accountStateTrie
                 .getTrie(expected.getHash());
 
+        assertEquals(accountStates.size(), expectedAccountStates.size());
         accountStates.values()
                 .forEach(a -> {
                     assert expectedAccountStates.containsKey(a.getAccount().getPubkeyHash());
