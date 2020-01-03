@@ -62,7 +62,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 Codec.newInstance(RLPCodec::encode, x -> RLPElement.fromEncoded(x).as(clazz))
         );
 
-        rootStore.put(genesis.hashPrevBlock, trie.getNullHash());
+        rootStore.put(genesis.hashPrevBlock, trie.revert().getRootHash());
         if (rootStore.containsKey(genesis.getHash())) return;
 
         // sync to genesis

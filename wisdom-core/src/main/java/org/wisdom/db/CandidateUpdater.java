@@ -94,8 +94,10 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
             return related;
         }
 
-        related.addAll(candidateStateTrie
-                .getCache().asMap().getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
+        related.addAll(
+                candidateStateTrie
+                .getCache()
+                .getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
                 .stream().map(c -> c.getPublicKeyHash().getBytes())
                 .collect(Collectors.toList())
         );
@@ -162,7 +164,8 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
         Map<byte[], Long> proposals = new ByteArrayMap<>();
 
         candidateStateTrie
-                .getCache().asMap().getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
+                .getCache()
+                .getOrDefault(HexBytes.fromBytes(blocks.get(0).hashPrevBlock), Collections.emptyList())
                 .stream().map(c -> c.getPublicKeyHash().getBytes())
                 .forEach(h -> proposals.put(h, 0L));
 

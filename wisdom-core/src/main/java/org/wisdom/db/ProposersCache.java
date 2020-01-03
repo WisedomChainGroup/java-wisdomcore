@@ -9,7 +9,7 @@ import org.tdf.common.util.HexBytes;
 
 import java.util.List;
 
-@Component
+//@Component
 public class ProposersCache {
     private Cache<HexBytes, List<Candidate>> proposers;
 
