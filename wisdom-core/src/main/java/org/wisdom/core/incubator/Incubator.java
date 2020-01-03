@@ -214,4 +214,27 @@ public class Incubator {
         result = 31 * result + Arrays.hashCode(txid_issue);
         return result;
     }
+
+    public boolean equalsInterest(Object o){
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incubator incubator = (Incubator) o;
+        return cost == incubator.cost &&
+                interest_amount == incubator.interest_amount &&
+                last_blockheight_interest == incubator.last_blockheight_interest &&
+                Arrays.equals(pubkeyhash, incubator.pubkeyhash) &&
+                Arrays.equals(txid_issue, incubator.txid_issue);
+
+    }
+
+    public boolean equalsShare(Object o){
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incubator incubator = (Incubator) o;
+        return cost == incubator.cost &&
+                share_amount == incubator.share_amount &&
+                last_blockheight_share == incubator.last_blockheight_share &&
+                Arrays.equals(share_pubkeyhash, incubator.share_pubkeyhash) &&
+                Arrays.equals(txid_issue, incubator.txid_issue);
+    }
 }
