@@ -91,9 +91,6 @@ public class TrieTests {
                 .forEach(b -> {
                     if (b.nHeight == 0) return;
                     era.add(b);
-                    if (b.nHeight == 447600) {
-                        System.out.println("========");
-                    }
                     if (era.size() < blocksPerEra) return;
                     System.out.println(b.nHeight);
                     candidateStateTrie.commit(era);
