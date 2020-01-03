@@ -17,7 +17,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.db.AccountState;
 
 import java.io.File;
-import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public class AccountStateTrieTests {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    public void testAccountsEquals() throws IOException {
+    public void testAccountsEquals() throws Exception {
         String preBuiltGenesis = "E:\\java-wisdomcore\\wisdom-core\\src\\main\\resources\\genesis\\";
         File file = Paths.get(preBuiltGenesis).toFile();
         if (!file.isDirectory()) throw new RuntimeException(preBuiltGenesis + " is not a valid directory");
@@ -54,7 +54,6 @@ public class AccountStateTrieTests {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        System.out.println(list.size());
         List<Incubator> incubatorList;
         try {
             String sql = "select * from incubator_state  where height<=?";
@@ -71,13 +70,15 @@ public class AccountStateTrieTests {
             });
             assert a.get();
         }
+
         for (Incubator incubator : incubatorList) {
             AtomicBoolean a = new AtomicBoolean(false);
             accountStatesList.forEach(x -> {
-                if (x.getInterestMap().containsKey(incubator.getPubkeyhash())) {
+                if (x.getInterestMap().containsKey(incubator.getTxid_issue())) {
                     a.set(true);
                 }
             });
+
             assert a.get();
         }
     }
