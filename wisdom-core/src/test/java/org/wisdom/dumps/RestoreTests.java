@@ -22,7 +22,7 @@ public class RestoreTests {
     public void test(){
         stateDB.init();
         blockStreamBuilder.getBlocks()
-                .filter(b -> b.nHeight > 0)
+                .filter(b -> b.nHeight > stateDB.getLastConfirmed().nHeight)
                 .peek(b -> {
                     if(b.nHeight % 1000 == 0){
                         System.out.println(b.nHeight);
