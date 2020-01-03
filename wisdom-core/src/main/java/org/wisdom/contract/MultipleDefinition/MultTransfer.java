@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
+import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
@@ -21,7 +22,7 @@ public class MultTransfer implements AnalysisContract {
     @RLP(1)
     private int dest;
     @RLP(2)
-    private byte[] pubhash;
+    private List<byte[]> pubhash;
     @RLP(3)
     private List<byte[]> signaturesList;
     @RLP(4)
@@ -36,17 +37,16 @@ public class MultTransfer implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        try{
-            MultTransfer multTransfer= RLPCodec.decode(payload,MultTransfer.class);
-            this.origin=multTransfer.getOrigin();
-            this.dest=multTransfer.getDest();
-            this.pubhash=multTransfer.getPubhash();
-            this.signaturesList=multTransfer.getSignaturesList();
-            this.to=multTransfer.getTo();
-            this.value=multTransfer.getValue();
-        }catch (Exception e){
+        MultTransfer multTransfer= RLPCodec.decode(payload,MultTransfer.class);
+        if(multTransfer==null){
             return false;
         }
+        this.origin=multTransfer.getOrigin();
+        this.dest=multTransfer.getDest();
+        this.pubhash=multTransfer.getPubhash();
+        this.signaturesList=multTransfer.getSignaturesList();
+        this.to=multTransfer.getTo();
+        this.value=multTransfer.getValue();
         return false;
     }
 
@@ -59,5 +59,9 @@ public class MultTransfer implements AnalysisContract {
                 .signaturesList(this.signaturesList)
                 .to(this.to)
                 .value(this.value).build());
+    }
+
+    public static MultTransfer getMultTransfer(byte[] Rlpbyte){
+        return RLPElement.fromEncoded(Rlpbyte).as(MultTransfer.class);
     }
 }
