@@ -12,7 +12,10 @@ import org.tdf.rlp.RLPElement;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
+import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.AccountStateUpdater;
@@ -64,12 +67,12 @@ public class DumpTests {
     }
 
     @Test
-    public void compareKeys() throws Exception{
+    public void compareKeys() throws Exception {
         File genesisFile = Paths.get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.800040.rlp").toFile();
         RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(genesisFile.toPath()));
         Block genesis = el.get(0).as(Block.class);
         Map<byte[], AccountState> expectedAccountStates = new ByteArrayMap<>();
-        for(AccountState state: el.get(1).as(AccountState[].class)){
+        for (AccountState state : el.get(1).as(AccountState[].class)) {
             expectedAccountStates.put(state.getAccount().getPubkeyHash(), state);
         }
 
@@ -85,7 +88,7 @@ public class DumpTests {
                     all.addAll(accountStateUpdater.getRelatedKeys(b));
                 });
         assert all.size() == expectedAccountStates.size();
-        for(byte[] k: all){
+        for (byte[] k : all) {
             assert expectedAccountStates.containsKey(k);
         }
     }
@@ -112,7 +115,7 @@ public class DumpTests {
         Block expectedGenesis = el.get(0).as(Block.class);
 
         Map<byte[], AccountState> expectedAccountStates = new ByteArrayMap<>();
-        for(AccountState state: el.get(1).as(AccountState[].class)){
+        for (AccountState state : el.get(1).as(AccountState[].class)) {
             expectedAccountStates.put(state.getAccount().getPubkeyHash(), state);
         }
 
@@ -121,28 +124,61 @@ public class DumpTests {
         Arrays.stream(fromAccountStates)
                 .forEach(a -> empty.put(a.getAccount().getPubkeyHash(), a));
 
-        byte[] newRoot = empty.commit();
-        empty.flush();
-        accountStateTrie
-                .getRootStore()
-                .put(fromGenesis.getHash(), newRoot);
-
 
         Stream<Block> blocks =
                 blockStreamBuilder.getBlocks()
-                .filter(b -> b.nHeight > fromGenesis.nHeight && b.nHeight <= expectedGenesis.nHeight)
-                ;
+                        .filter(b -> b.nHeight > fromGenesis.nHeight && b.nHeight <= expectedGenesis.nHeight)
+                        .peek(b -> {
+                            if (b.nHeight % 10000 == 0) {
+                                System.out.println(b.nHeight);
+                            }
+                        });
 
-        blocks.forEach(accountStateTrie::commit);
+        blocks.forEach(b -> {
+            Map<byte[], AccountState> tmp = new ByteArrayMap<>();
+            accountStateUpdater.getRelatedKeys(b).forEach(k ->
+                    tmp.put(k, empty.get(k).orElse(accountStateUpdater.createEmpty(k))));
 
-        Trie<byte[], AccountState> accountStates = accountStateTrie
-                .getTrie(expectedGenesis.getHash());
+            accountStateUpdater.update(tmp, b).forEach(empty::put);
+        });
 
-        assertEquals(accountStates.size(), expectedAccountStates.size());
+        assertEquals(empty.size(), expectedAccountStates.size());
 
-        accountStates.values()
+        empty.values()
                 .forEach(a -> {
                     assert expectedAccountStates.containsKey(a.getAccount().getPubkeyHash());
+                    AccountState expected = expectedAccountStates.get(a.getAccount().getPubkeyHash());
+                    if (!equalAccount(a.getAccount(), expected.getAccount())) {
+                        System.out.println("======");
+                    }
+                    if (!equalIncubator(a, expected)) {
+                        System.out.println("======");
+                    }
                 });
+    }
+
+    private static boolean equalAccount(Account x, Account y) {
+        x.setBlockHeight(y.getBlockHeight());
+        return x.equals(y);
+    }
+
+    private static boolean equalIncubator(AccountState x, AccountState y) {
+        if (x.getInterestMap().size() != y.getInterestMap().size()) return false;
+        for (byte[] k : x.getInterestMap().keySet()) {
+            Incubator xi = x.getInterestMap().get(k);
+            Incubator yi = y.getInterestMap().get(k);
+            if(yi == null) return false;
+            if(!xi.equalsInterest(yi)) return false;
+            if(!xi.equalsShare(yi)) return false;
+        }
+
+        for (byte[] k : x.getShareMap().keySet()) {
+            Incubator xi = x.getShareMap().get(k);
+            Incubator yi = y.getShareMap().get(k);
+            if(yi == null) return false;
+            if(!xi.equalsInterest(yi)) return false;
+            if(!xi.equalsShare(yi)) return false;
+        }
+        return true;
     }
 }
