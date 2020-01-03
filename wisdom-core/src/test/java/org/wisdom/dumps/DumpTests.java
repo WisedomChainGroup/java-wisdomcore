@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.ByteArrayMapStore;
+import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.trie.TrieImpl;
 import org.tdf.common.util.ByteArraySet;
@@ -26,10 +27,12 @@ import org.wisdom.db.AccountStateTrie;
 
 import java.io.File;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestContext.class)
@@ -44,7 +47,7 @@ public class DumpTests {
     @Autowired
     private GenesisDump genesisDump;
 
-    @Autowired
+
     private BlockStreamBuilder blockStreamBuilder;
 
     @Autowired
@@ -65,22 +68,40 @@ public class DumpTests {
         genesisDump.dump();
     }
 
+    @Test
     public void compareStates() throws Exception {
-        File expectedGenesisFile = Paths.get("").toFile();;
-        File fromGenesisFile = Paths.get("").toFile();
+        File expectedGenesisFile = Paths.get("").toFile();
+        File fromGenesisFile = Paths.get("E:\\java-wisdomcore\\wisdom-core\\src\\test\\resources\\genesis.480000.rlp").toFile();
+        RLPElement element = RLPElement.fromEncoded(Files.readAllBytes(expectedGenesisFile.toPath()));
 
-        if (!fromGenesisFile.isFile() || !expectedGenesisFile.isFile())
+        if (!fromGenesisFile.isFile() && !expectedGenesisFile.isFile())
             throw new RuntimeException("not a valid file");
+
+        File blocksFile = Paths.get("").toFile();
+        if (!blocksFile.isDirectory()) throw new RuntimeException(blocksFile.getPath() + " is not a valid directory");
 
         RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(fromGenesisFile.toPath()));
         Block genesis = el.get(0).as(Block.class);
-        AccountState[] genesisStates = el.get(1).as(AccountState[].class);
-        Trie<byte[], AccountState> trie = TrieImpl.newInstance(
-                HashUtil::keccak256, new ByteArrayMapStore<>(),
-                Codec.identity(),
-                Codec.newInstance(RLPCodec::encode, x -> RLPCodec.decode(x, AccountState.class))
-        );
+        Trie<byte[], AccountState> empty = accountStateTrie.getTrie().revert();
+        Arrays.stream(el.get(1).as(AccountState[].class))
+                .forEach(a -> empty.put(a.getAccount().getPubkeyHash(), a));
+        byte[] newRoot = empty.commit();
+        empty.flush();
 
+        accountStateTrie.getRootStore().put(genesis.getHash(), newRoot);
 
+        blockStreamBuilder = new BlockStreamBuilder("");
+        Stream<Block> blocks = blockStreamBuilder.getBlocks();
+        accountStateTrie.commit(blocks.collect(Collectors.toList()));
+
+        Block block = blocks.max(Comparator.comparingLong(Block::getnHeight)).get();
+        Trie<byte[], AccountState> accountStates = accountStateTrie.getTrie(block.getHash());
+        List<AccountState> list = new ArrayList(accountStates.asMap().values());
+
+        RLPElement newGenesisAccounts = RLPElement.readRLPTree(list);
+        RLPElement newGenesisData = RLPList.createEmpty(2);
+        newGenesisData.add(RLPElement.readRLPTree(block));
+        newGenesisData.add(newGenesisAccounts);
+        assert newGenesisData == element;
     }
 }

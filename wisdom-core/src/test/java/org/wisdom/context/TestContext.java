@@ -2,6 +2,7 @@ package org.wisdom.context;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
+import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -13,6 +14,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.command.Configuration;
 import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.consensus.pow.TargetState;
@@ -23,11 +25,14 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.*;
 import org.wisdom.dumps.BlocksDump;
 import org.wisdom.dumps.GenesisDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
+
+import java.util.stream.Collectors;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration
@@ -201,7 +206,66 @@ public class TestContext {
     }
 
     @Bean
-    public AccountStateUpdater accountStateUpdater(){
-
+    public AccountStateUpdater accountStateUpdater(
+            RateTable rateTable,
+            MerkleRule merkleRule,
+            Genesis genesisJSON,
+            Block block) {
+        AccountStateUpdater updater = new AccountStateUpdater();
+        updater.setGenesis(block);
+        updater.setGenesisJSON(genesisJSON);
+        updater.setMerkleRule(merkleRule);
+        updater.setRateTable(rateTable);
+        return updater;
     }
+
+    @Bean
+    public MerkleRule merkleRule(
+            @Value("${node-character}") String character,
+            AccountDB accountDB,
+            IncubatorDB incubatorDB,
+            RateTable rateTable,
+            WisdomBlockChain wisdomBlockChain,
+            Configuration configuration
+    ) {
+        MerkleRule merkleRule = new MerkleRule(character);
+        merkleRule.setAccountDB(accountDB);
+        merkleRule.setConfiguration(configuration);
+        merkleRule.setIncubatorDB(incubatorDB);
+        merkleRule.setRateTable(rateTable);
+        merkleRule.setWisdomBlockChain(wisdomBlockChain);
+        return merkleRule;
+    }
+
+    @Bean
+    public Configuration configuration(@Value("${transaction.day.count}") int day_count,
+                                       @Value("${min.procedurefee}") long min_procedurefee,
+                                       @Value("${pool.clear.days}") long poolcleardays,
+                                       @Value("${transaction.nonce}") long maxnonce,
+                                       @Value("${pool.queued.maxcount}") long maxqueued,
+                                       @Value("${pool.pending.maxcount}") long maxpending,
+                                       @Value("${pool.queuedtopending.maxcount}") long maxqpcount,
+                                       @Value("${wisdom.block-interval-switch-era}") int era) {
+        Configuration configuration = new Configuration();
+        configuration.setMaxpending(maxpending);
+        configuration.setMaxqueued(maxqueued);
+        configuration.setMin_procedurefee(min_procedurefee);
+        configuration.setDay_count(day_count);
+        configuration.setEra(era);
+        configuration.setPoolcleardays(poolcleardays);
+        configuration.setMaxnonce(maxnonce);
+        configuration.setMaxqpcount(maxqpcount);
+        return configuration;
+    }
+
+    @Bean
+    public AccountStateTrie accountStateTrie(DatabaseStoreFactory factory,
+                                             Block genesis,
+                                             WisdomBlockChain bc,
+                                             Genesis genesisJSON,
+                                             AccountStateUpdater accountStateUpdater,
+                                             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis) throws Exception {
+        return new AccountStateTrie(factory, genesis, bc, genesisJSON, accountStateUpdater, preBuiltGenesis);
+    }
+
 }
