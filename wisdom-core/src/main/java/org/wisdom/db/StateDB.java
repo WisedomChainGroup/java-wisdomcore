@@ -74,7 +74,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private Map<String, Set<String>> transactionIndex;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
-    public static final int CACHE_SIZE = 512;
+    public static final int CACHE_SIZE = 256;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -187,7 +187,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    @PostConstruct
+//    @PostConstruct
     public void init() {
         readWriteLock.writeLock().lock();
         try {

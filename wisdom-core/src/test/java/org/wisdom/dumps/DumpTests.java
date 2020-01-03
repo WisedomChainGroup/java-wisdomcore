@@ -8,7 +8,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLPElement;
-import org.tdf.rlp.RLPList;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
@@ -20,7 +19,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 ;import static org.junit.Assert.assertEquals;
