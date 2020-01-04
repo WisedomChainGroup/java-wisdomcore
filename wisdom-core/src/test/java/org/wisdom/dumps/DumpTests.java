@@ -109,7 +109,11 @@ public class DumpTests {
         RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(fromGenesisFile.toPath()));
 
         Block fromGenesis = el.get(0).as(Block.class);
-        AccountState[] fromAccountStates = el.get(1).as(AccountState[].class);
+        Map<byte[], AccountState> fromAccountStates = new ByteArrayMap<>();
+
+        for (AccountState state : el.get(1).as(AccountState[].class)) {
+            fromAccountStates.put(state.getAccount().getPubkeyHash(), state);
+        }
 
         el = RLPElement.fromEncoded(Files.readAllBytes(expectedGenesisFile.toPath()));
         Block expectedGenesis = el.get(0).as(Block.class);
@@ -118,12 +122,6 @@ public class DumpTests {
         for (AccountState state : el.get(1).as(AccountState[].class)) {
             expectedAccountStates.put(state.getAccount().getPubkeyHash(), state);
         }
-
-        Trie<byte[], AccountState> empty = accountStateTrie
-                .getTrie().revert();
-        Arrays.stream(fromAccountStates)
-                .forEach(a -> empty.put(a.getAccount().getPubkeyHash(), a));
-
 
         Stream<Block> blocks =
                 blockStreamBuilder.getBlocks()
@@ -137,14 +135,17 @@ public class DumpTests {
         blocks.forEach(b -> {
             Map<byte[], AccountState> tmp = new ByteArrayMap<>();
             accountStateUpdater.getRelatedKeys(b).forEach(k ->
-                    tmp.put(k, empty.get(k).orElse(accountStateUpdater.createEmpty(k))));
+                    tmp.put(
+                            k, fromAccountStates.getOrDefault(k, accountStateUpdater.createEmpty(k))
+                    )
+            );
 
-            accountStateUpdater.update(tmp, b).forEach(empty::put);
+            accountStateUpdater.update(tmp, b).forEach(fromAccountStates::put);
         });
 
-        assertEquals(empty.size(), expectedAccountStates.size());
+        assertEquals(fromAccountStates.size(), expectedAccountStates.size());
 
-        empty.values()
+        fromAccountStates.values()
                 .forEach(a -> {
                     assert expectedAccountStates.containsKey(a.getAccount().getPubkeyHash());
                     AccountState expected = expectedAccountStates.get(a.getAccount().getPubkeyHash());
