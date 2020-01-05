@@ -71,7 +71,8 @@ public class TrieTests {
                     final long nextEra = (b.nHeight - 1) / blocksPerEra + 1;
                     candidateStateTrie.getTrie()
                             .revert(candidateStateTrie.getRootStore().get(b.getHash()).get())
-                            .values()
+                            .stream()
+                            .map(Map.Entry::getValue)
                             .forEach(c -> {
                                 if(c.getAccumulated(nextEra) !=
                                         genesisProposersState.getAll()

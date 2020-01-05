@@ -88,9 +88,14 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
         Set<byte[]> related = super.getRelatedKeys(blocks);
 
         if (atJoinEra(blocks)) {
-            related.addAll(candidateStateTrie.getTrie()
+            related.addAll(
+                    candidateStateTrie.getTrie()
                     .revert(candidateStateTrie.getRootStore().get(blocks.get(0).hashPrevBlock).get())
-                    .keySet());
+                    .stream()
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toList())
+            )
+            ;
             return related;
         }
 

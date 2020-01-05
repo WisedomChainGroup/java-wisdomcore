@@ -19,11 +19,13 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.AccountStateUpdater;
+import org.wisdom.keystore.util.TimeUtil;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 ;import static org.junit.Assert.assertEquals;
@@ -101,7 +103,7 @@ public class DumpTests {
         File fromGenesisFile = Paths
                 .get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.480000.rlp")
                 .toFile();
-
+        TimeUnit.SECONDS.sleep(5);
         if (!fromGenesisFile.isFile() || !expectedGenesisFile.isFile())
             throw new RuntimeException("not a valid file");
 

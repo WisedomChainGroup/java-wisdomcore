@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
 
 import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
@@ -125,7 +126,6 @@ public class Leveldb implements DatabaseStore {
         }
     }
 
-    @Override
     public Set<byte[]> keySet() throws RuntimeException {
         resetDbLock.readLock().lock();
         try {
@@ -149,6 +149,11 @@ public class Leveldb implements DatabaseStore {
         close();
         FileUtil.recursiveDelete(getPath().toString());
         init(dbSettings);
+    }
+
+    @Override
+    public void forEach(BiConsumer<byte[], byte[]> biConsumer) {
+
     }
 
     @Override
@@ -242,7 +247,7 @@ public class Leveldb implements DatabaseStore {
     public void flush() {
     }
 
-    @Override
+
     public Collection<byte[]> values() {
         Set<byte[]> ret = new ByteArraySet();
         keySet().stream().map(this::get)
