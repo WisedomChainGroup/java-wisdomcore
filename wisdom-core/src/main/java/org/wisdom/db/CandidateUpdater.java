@@ -91,11 +91,7 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
             related.addAll(
                     candidateStateTrie.getTrie()
                     .revert(candidateStateTrie.getRootStore().get(blocks.get(0).hashPrevBlock).get())
-                    .stream()
-                    .map(Map.Entry::getKey)
-                    .collect(Collectors.toList())
-            )
-            ;
+                    .keySet());
             return related;
         }
 

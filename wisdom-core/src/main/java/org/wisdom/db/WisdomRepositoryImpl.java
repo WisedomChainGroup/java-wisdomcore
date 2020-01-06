@@ -3,7 +3,6 @@ package org.wisdom.db;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.tdf.common.util.*;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.core.Block;
@@ -15,7 +14,6 @@ import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 
-@Component
 @Slf4j
 public class WisdomRepositoryImpl implements WisdomRepository {
     private ChainCache<BlockWrapper> chainCache;

@@ -14,10 +14,7 @@ import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.db.AccountState;
 import org.wisdom.db.TargetCache;
-import org.wisdom.db.WisdomRepository;
 import org.wisdom.db.WisdomRepositoryAdapter;
 
 import java.util.*;
