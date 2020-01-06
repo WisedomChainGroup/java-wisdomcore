@@ -1,6 +1,7 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
@@ -8,7 +9,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
 import org.wisdom.pool.WaitCount;
@@ -24,9 +25,6 @@ public class PackageMiner {
     private PeningTransPool peningTransPool;
 
     @Autowired
-    private StateDB stateDB;
-
-    @Autowired
     private MerkleRule merkleRule;
 
     @Autowired
@@ -35,20 +33,32 @@ public class PackageMiner {
     @Autowired
     private RateTable rateTable;
 
+    @Autowired
+    private WisdomRepository wisdomRepository;
+
     public List<Transaction> TransferCheck(byte[] parenthash, long height, Block block) throws DecoderException {
         Map<String, TreeMap<Long, TransPool>> maps = peningTransPool.getAllMap();
         List<byte[]> pubhashlist = peningTransPool.getAllPubhash();
-        Map<String, AccountState> accountStateMap = stateDB.getAccounts(parenthash, pubhashlist);
+        Map<byte[], AccountState> accountStateMap = wisdomRepository.getAccountStatesAt(parenthash, pubhashlist);
         if (accountStateMap.size() == 0) {
             return new ArrayList<>();
         }
         PackageCache packageCache = new PackageCache();
-        packageCache.init(peningTransPool, stateDB, merkleRule, waitCount, rateTable,
-                accountStateMap, maps, parenthash, block, height, block.size());
+        packageCache.init(peningTransPool, wisdomRepository, merkleRule, waitCount, rateTable,
+                convertAccountStateMap(accountStateMap), maps, parenthash, block, height, block.size());
         List<Transaction> packageTransaction = packageCache.getRightTransactions();
         if (packageTransaction == null) {
             return new ArrayList<>();
         }
         return packageTransaction;
     }
+
+    private Map<String, AccountState> convertAccountStateMap(Map<byte[], AccountState> accountStateMap){
+        Map<String, AccountState> map = new HashMap<>();
+        for(Map.Entry<byte[], AccountState> entry:accountStateMap.entrySet()){
+            map.put(Hex.encodeHexString(entry.getKey()),entry.getValue());
+        }
+        return map;
+    }
+
 }

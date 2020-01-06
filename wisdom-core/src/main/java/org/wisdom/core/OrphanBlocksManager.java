@@ -20,21 +20,20 @@ package org.wisdom.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.tdf.common.serialize.Codecs;
 import org.tdf.common.store.Store;
 import org.tdf.common.store.StoreWrapper;
 import org.wisdom.core.event.NewBlockEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationListener;
-import org.springframework.stereotype.Component;
 import org.wisdom.db.DatabaseStoreFactory;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +49,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     private BlocksCacheWrapper orphans;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     private PendingBlocksManager pool;
@@ -62,7 +61,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     private Store<String, String> leveldb;
 
-    public OrphanBlocksManager(DatabaseStoreFactory factory){
+    public OrphanBlocksManager(DatabaseStoreFactory factory) {
         leveldb = new StoreWrapper<>(
                 factory.create("orphans", false)
                 , Codecs.STRING, Codecs.STRING);
@@ -74,7 +73,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     private boolean isOrphan(Block block) {
-        return !stateDB.hasBlock(block.hashPrevBlock);
+        return repository.getBlock(block.hashPrevBlock) == null;
     }
 
     public void addBlock(Block block) {
@@ -83,13 +82,13 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     // remove orphans return writable blocks，过滤掉孤块
     public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
-        Block lastConfirmed = stateDB.getLastConfirmed();
+        Block lastConfirmed = repository.getLatestConfirmed();
         BlocksCache cache = new BlocksCache(blocks.stream()
                 .filter(b -> b.nHeight > lastConfirmed.nHeight)
                 .collect(Collectors.toList())
         );
         BlocksCache res = new BlocksCache();
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
         for (Block init : cache.getInitials()) {
             List<Block> descendantBlocks = cache.getDescendantBlocks(init);
             if (!isOrphan(init)) {
@@ -130,13 +129,13 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     // 定时清理距离当前高度已经被确认的区块
     @Scheduled(fixedRate = 30 * 1000)
     public void clearOrphans() {
-        Block lastConfirmed = stateDB.getLastConfirmed();
+        Block lastConfirmed = repository.getLatestConfirmed();
         orphans.getAll().stream()
-                .filter(b -> b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlock(b.getHash()))
+                .filter(b -> b.nHeight <= lastConfirmed.nHeight || repository.getBlock(b.getHash()) != null)
                 .forEach(b -> orphans.deleteBlock(b));
     }
 
-    public List<Block> getOrphans(){
+    public List<Block> getOrphans() {
         return orphans.getAll();
     }
 
