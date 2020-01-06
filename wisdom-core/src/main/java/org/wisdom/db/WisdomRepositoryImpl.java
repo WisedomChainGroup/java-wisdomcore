@@ -123,6 +123,16 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 .orElse(bc.getBlock(blockHash));
     }
 
+    @Override
+    public long getCurrentEra() {
+        Block best = getBestBlock();
+        if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
+            return eraLinker.getEraAtBlockNumber(best.nHeight) + 1;
+        } else {
+            return eraLinker.getEraAtBlockNumber(best.nHeight);
+        }
+    }
+
     // 获取包含未确认的区块
     public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         if (sizeLimit == 0 || startHeight > stopHeight) {
@@ -283,7 +293,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
-    public List<Candidate> getCurrentCandidates() {
+    public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
         Block best = getBestBlock();
         byte[] key;
         if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
@@ -292,10 +302,28 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             key = eraLinker.getPrevEraLast(best).getHash();
         }
         return candidateStateTrie
-                .getCache()
+                .getBestCandidatesCache()
                 .get(HexBytes.fromBytes(key));
     }
 
+    @Override
+    public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
+        Block best = getBestBlock();
+        byte[] key;
+        if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
+            key = best.getHash();
+        } else {
+            key = eraLinker.getPrevEraLast(best).getHash();
+        }
+        return candidateStateTrie
+                .getBlockedCandidatesCache()
+                .get(HexBytes.fromBytes(key));
+    }
+
+    @Override
+    public Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash) {
+        return candidateStateTrie.get(getBestBlock().getHash(), publicKeyHash);
+    }
 
     @Override
     public List<Transaction> getTransactionsAtByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {

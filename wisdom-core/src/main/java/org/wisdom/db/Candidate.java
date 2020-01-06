@@ -18,10 +18,10 @@ import java.util.Map;
 @NoArgsConstructor
 public class Candidate {
 
-    private static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
+    static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
 
     // 投票数每次衰减 10%
-    private static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
+    static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
 
     private static int getenv(String key, int defaultValue) {
         String v = System.getenv(key);
@@ -68,15 +68,10 @@ public class Candidate {
     public long getAccumulated(long era) {
         Long ret = cache.get(era);
         if (ret != null) return ret;
-        ret = receivedVotes.values().stream().map(v -> {
-            if (era <= v.getEra()) return 0L;
-            long count = era - v.getEra() - 1;
-            long accumulated = v.getAmount();
-            for (long i = 0; i < count / ATTENUATION_ERAS; i++) {
-                accumulated = ATTENUATION_COEFFICIENT.multiply(accumulated).longValue();
-            }
-            return accumulated;
-        }).reduce(Long::sum).orElse(0L);
+        ret = receivedVotes.values().stream()
+                .map(v -> v.getAccumulated(era))
+                .reduce(Long::sum)
+                .orElse(0L);
         cache.put(era, ret);
         return ret;
     }

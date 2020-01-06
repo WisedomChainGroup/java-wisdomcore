@@ -1,5 +1,7 @@
 package org.wisdom.db;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
@@ -31,7 +33,7 @@ import static org.wisdom.db.CandidateUpdater.MINIMUM_PROPOSER_MORTGAGE;
 public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private CandidateUpdater candidateUpdater;
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
-
+    private static final int CACHE_SIZE = 16;
     private static final int POW_WAIT_FACTOR = 3;
     private static final Set<byte[]> WHITE_LIST = new ByteArraySet(Stream.of(
             "552f6d4390367de2b05f4c9fc345eeaaf0750db9",
@@ -62,8 +64,31 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     private int initialBlockInterval;
 
+    @AllArgsConstructor
+    @Builder
     @Getter
-    private LRUMap<HexBytes, List<Candidate>> cache;
+    public static class CandidateInfo {
+        private HexBytes publicKeyHash;
+        private long mortgage;
+        private long amount;
+        private long accumulated;
+
+        public static CandidateInfo fromCandidate(Candidate candidate, long era) {
+            return CandidateInfo
+                    .builder()
+                    .publicKeyHash(candidate.getPublicKeyHash())
+                    .mortgage(candidate.getMortgage())
+                    .amount(candidate.getAmount())
+                    .accumulated(candidate.getAccumulated(era))
+                    .build();
+        }
+    }
+
+    @Getter
+    private LRUMap<HexBytes, List<CandidateInfo>> bestCandidatesCache;
+
+    @Getter
+    private LRUMap<HexBytes, List<CandidateInfo>> blockedCandidatesCache;
 
     public CandidateStateTrie(
             Block genesis,
@@ -78,8 +103,10 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             @Value("${wisdom.consensus.block-interval}") int initialBlockInterval
     ) throws Exception {
         super(Candidate.class, candidateUpdater, genesis, factory, false, false, blocksPerEra);
-        this.cache = new LRUMap<>();
-        this.cache = this.cache.withMaximumSize(16);
+        this.bestCandidatesCache = new LRUMap<>();
+        this.bestCandidatesCache = this.bestCandidatesCache.withMaximumSize(CACHE_SIZE);
+        this.blockedCandidatesCache = new LRUMap<>();
+        this.blockedCandidatesCache = this.blockedCandidatesCache.withMaximumSize(CACHE_SIZE);
         this.candidateUpdater = candidateUpdater;
         this.candidateUpdater.setCandidateStateTrie(this);
         this.blocksPerEra = blocksPerEra;
@@ -130,8 +157,8 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         generateProposers(blocks, trie);
     }
 
-    List<byte[]> getProposersByEraLst(byte[] hash, long height){
-        if(height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
+    List<byte[]> getProposersByEraLst(byte[] hash, long height) {
+        if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
 
         boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
                 eraLinker.getEraAtBlockNumber(height + 1) >= allowMinersJoinEra;
@@ -144,10 +171,10 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             return initialProposers;
         }
 
-        List<byte[]> res = cache.get(HexBytes.fromBytes(hash))
-                    .stream().map(Candidate::getPublicKeyHash)
-                    .map(HexBytes::getBytes)
-                    .collect(Collectors.toList());
+        List<byte[]> res = bestCandidatesCache.get(HexBytes.fromBytes(hash))
+                .stream().map(CandidateInfo::getPublicKeyHash)
+                .map(HexBytes::getBytes)
+                .collect(Collectors.toList());
 
         if (height + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
             res = res.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
@@ -195,13 +222,20 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         ));
     }
 
-    public void generateProposers(List<Block> blocks, Trie<byte[], Candidate> trie){
+    public void generateProposers(List<Block> blocks, Trie<byte[], Candidate> trie) {
         // 重新生成 proposers
+        List<Candidate> blocked = new ArrayList<>();
         Stream<Candidate> candidateStream = trie
                 .stream()
                 .map(Map.Entry::getValue)
                 // 过滤掉黑名单中节点
-                .filter(p -> !p.isBlocked())
+                .filter(p -> {
+                    boolean ret = !p.isBlocked();
+                    if (p.isBlocked()) {
+                        blocked.add(p);
+                    }
+                    return ret;
+                })
                 // 过滤掉抵押数量不足和投票为零的账户
                 .filter(p -> p.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE);
         boolean dropZeroVotes = blocks.get(0).getnHeight() > candidateUpdater.getWIP_12_17_HEIGHT();
@@ -215,7 +249,16 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 .limit(MAXIMUM_PROPOSERS)
                 .collect(Collectors.toList());
 
-        cache.put(HexBytes.fromBytes(blocks.get(blocks.size() - 1).getHash()), proposers);
+        bestCandidatesCache.put(
+                HexBytes.fromBytes(blocks.get(blocks.size() - 1).getHash()),
+                proposers.stream().map(c -> CandidateInfo.fromCandidate(c, nextEra))
+                        .collect(Collectors.toList())
+        );
+        blockedCandidatesCache.put(
+                HexBytes.fromBytes(blocks.get(blocks.size() - 1).getHash()),
+                blocked.stream().map(c -> CandidateInfo.fromCandidate(c, nextEra))
+                        .collect(Collectors.toList())
+        );
     }
 
     private int compareCandidate(Candidate x, Candidate y, long era) {

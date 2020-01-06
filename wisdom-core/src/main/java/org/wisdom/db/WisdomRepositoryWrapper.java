@@ -198,10 +198,40 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public List<Candidate> getCurrentCandidates() {
+    public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
         readWriteLock.readLock().lock();
         try{
-            return delegate.getCurrentCandidates();
+            return delegate.getCurrentBestCandidates();
+        }finally{
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
+        readWriteLock.readLock().lock();
+        try{
+            return delegate.getCurrentBlockList();
+        }finally{
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public long getCurrentEra() {
+        readWriteLock.readLock().lock();
+        try{
+            return delegate.getCurrentEra();
+        }finally{
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash) {
+        readWriteLock.readLock().lock();
+        try{
+            return delegate.getCurrentCandidate(publicKeyHash);
         }finally{
             readWriteLock.readLock().unlock();
         }

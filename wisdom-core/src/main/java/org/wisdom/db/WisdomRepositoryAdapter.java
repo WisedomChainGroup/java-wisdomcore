@@ -86,8 +86,23 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public List<Candidate> getCurrentCandidates() {
+    public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
         return null;
+    }
+
+    @Override
+    public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
+        return null;
+    }
+
+    @Override
+    public long getCurrentEra() {
+        return 0;
+    }
+
+    @Override
+    public Optional<Candidate> getCurrentCandidate(byte[] _) {
+        return Optional.empty();
     }
 
     @Override
