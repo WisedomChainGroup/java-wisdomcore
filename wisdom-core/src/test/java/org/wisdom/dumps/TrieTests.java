@@ -85,7 +85,7 @@ public class TrieTests {
                                 }
                             });
 
-                    List<Candidate> proposers = candidateStateTrie.getCache()
+                    List<CandidateStateTrie.CandidateInfo> proposers = candidateStateTrie.getBestCandidatesCache()
                             .get(HexBytes.fromBytes(b.getHash()));
 
                     List<ProposersState.Proposer> proposersExpected = genesisProposersState

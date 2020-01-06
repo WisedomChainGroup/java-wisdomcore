@@ -20,7 +20,7 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.EconomicModel;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
 public class CoinbaseRule implements BlockRule, TransactionRule {
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     private EconomicModel economicModel;
@@ -53,7 +53,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         if (coinbase.type != Transaction.Type.COINBASE.ordinal()) {
             return Result.Error("the first transaction of block body must be coin base");
         }
-        Block parent = stateDB.getBlock(block.hashPrevBlock);
+        Block parent = repository.getBlock(block.hashPrevBlock);
         if (parent == null) {
             return Result.Error("cannot find parent" + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
         }

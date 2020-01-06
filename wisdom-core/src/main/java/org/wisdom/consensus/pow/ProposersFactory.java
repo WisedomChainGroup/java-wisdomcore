@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-@Component
+//@Component
 @Deprecated
 // use CandidateStateTrie
 public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {

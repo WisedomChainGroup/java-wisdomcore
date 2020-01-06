@@ -22,6 +22,8 @@ public interface WisdomRepository {
 
     Block getHeader(byte[] hash);
 
+    long getCurrentEra();
+
     // get ancestor at height h of block
     Block findAncestorHeader(byte[] hash, long h);
 
@@ -51,10 +53,18 @@ public interface WisdomRepository {
 
     Optional<Proposer> getProposerByParentAndEpoch(Block parent, long epochSecond);
 
-    List<Candidate> getCurrentCandidates();
+    List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates();
+
+    List<CandidateStateTrie.CandidateInfo> getCurrentBlockList();
+
+    Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash);
 
     // get transaction from block or the ancestor
     Optional<Transaction> getTransactionAt(byte[] blockHash, byte[] txHash);
+
+    default Optional<Transaction> getLatestTransaction(byte[] txHash){
+        return getTransactionAt(getBestBlock().getHash(), txHash);
+    }
 
     boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload);
 
