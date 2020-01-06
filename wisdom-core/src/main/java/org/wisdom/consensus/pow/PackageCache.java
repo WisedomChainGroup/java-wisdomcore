@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tdf.common.util.ByteArraySet;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
@@ -19,6 +20,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
+import org.wisdom.db.AssetCodeTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
@@ -46,7 +48,7 @@ public class PackageCache {
 
     private List<Transaction> transactionList;
 
-    private Set<String> AssetcodeSet;
+    private Set<byte[]> AssetcodeSet;
 
     private boolean exit;
 
@@ -74,10 +76,12 @@ public class PackageCache {
 
     private RateTable rateTable;
 
+    private AssetCodeTrie assetCodeTrie;
+
     public PackageCache() {
         this.removemap = new IdentityHashMap<>();
         this.transactionList = new ArrayList<>();
-        this.AssetcodeSet = new HashSet<>();
+        this.AssetcodeSet = new ByteArraySet();
         this.exit = false;
         this.state = false;
     }
@@ -264,7 +268,7 @@ public class PackageCache {
                 return;
             }
             //判断forkdb中是否有重复的代币合约code存在
-            if (repository.hasAssetCodeAt(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
+            if (repository.hasAssetCodeAt(parenthash, asset.getCode())) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }

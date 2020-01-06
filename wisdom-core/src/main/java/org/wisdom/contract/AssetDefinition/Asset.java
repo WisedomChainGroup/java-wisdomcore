@@ -19,7 +19,7 @@ public class Asset implements AnalysisContract {
     }
 
     @RLP(0)
-    private String code;
+    private byte[] code;
     @RLP(1)
     private long offering;
     @RLP(2)

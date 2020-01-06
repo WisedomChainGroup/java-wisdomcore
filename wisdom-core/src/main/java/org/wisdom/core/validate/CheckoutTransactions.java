@@ -3,6 +3,7 @@ package org.wisdom.core.validate;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.ByteArraySet;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.command.TransactionCheck;
@@ -45,7 +46,7 @@ public class CheckoutTransactions {
 
     private long height;
 
-    private Set<String> AssetcodeSet;
+    private Set<byte[]> AssetcodeSet;
 
     private WisdomRepository wisdomRepository;
 
@@ -64,7 +65,7 @@ public class CheckoutTransactions {
         this.pendingList = new ArrayList<>();
         this.map = new ByteArrayMap<>();
         this.fromaccountstate = new AccountState();
-        this.AssetcodeSet = new HashSet<>();
+        this.AssetcodeSet = new ByteArraySet();
     }
 
     public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
@@ -212,7 +213,7 @@ public class CheckoutTransactions {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb中是否有重复的代币合约code存在
-            if (wisdomRepository.hasAssetCodeAt(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
+            if (wisdomRepository.hasAssetCodeAt(parenthash, asset.getCode())) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
             }
