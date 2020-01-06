@@ -2,6 +2,7 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.command.TransactionCheck;
@@ -61,7 +62,7 @@ public class CheckoutTransactions {
     public CheckoutTransactions() {
         this.transactionList = new ArrayList<>();
         this.pendingList = new ArrayList<>();
-        this.map = new HashMap<>();
+        this.map = new ByteArrayMap<>();
         this.fromaccountstate = new AccountState();
         this.AssetcodeSet = new HashSet<>();
     }
@@ -380,7 +381,7 @@ public class CheckoutTransactions {
                 }
                 account.setBalance(balance);
                 totalaccountState.setAccount(account);
-                map.put(IncubatorAddress.Hexpubhash(), totalaccountState);
+                map.put(IncubatorAddress.resultpubhash(), totalaccountState);
             } catch (Exception e) {
                 return true;
             }
@@ -389,7 +390,7 @@ public class CheckoutTransactions {
     }
 
     private AccountState getIncubatorTotal() {
-        byte[] totalhash = IncubatorAddress.Hexpubhash();
+        byte[] totalhash = IncubatorAddress.resultpubhash();
         if (map.containsKey(totalhash)) {
             return map.get(totalhash);
         } else {

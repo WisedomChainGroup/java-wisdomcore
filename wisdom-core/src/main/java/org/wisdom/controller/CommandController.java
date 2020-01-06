@@ -21,7 +21,6 @@ package org.wisdom.controller;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.db.StateDB;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.ipc.IpcConfig;

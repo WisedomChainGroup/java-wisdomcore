@@ -18,37 +18,25 @@
 
 package org.wisdom.core.validate;
 
-import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.util.Arrays;
-import org.springframework.beans.factory.annotation.Value;
-import org.wisdom.core.OrphanBlocksManager;
-import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.db.StateDB;
-import org.wisdom.encoding.BigEndian;
-import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.core.Block;
-import org.wisdom.core.account.Account;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
 import org.hibernate.validator.HibernateValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.wisdom.core.Block;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.db.WisdomRepository;
+import org.wisdom.encoding.BigEndian;
 
 import javax.validation.Validation;
-import java.util.List;
-import java.util.Map;
+
 
 // 基本规则校验 校验区块版本号，字段类型, pow，交易 merkle root
 @Component
 public class BasicRule implements BlockRule, TransactionRule {
 
     @Autowired
-    private WisdomBlockChain bc;
-
-    @Autowired
-    private StateDB stateDB;
+    private WisdomRepository wisdomRepository;
 
     @Value("${wisdom.consensus.block-interval}")
     private int blockInterval;
@@ -58,15 +46,13 @@ public class BasicRule implements BlockRule, TransactionRule {
             .configure()
             .failFast(true)
             .buildValidatorFactory().getValidator();
-    private static final Logger logger = LoggerFactory.getLogger(BasicRule.class);
-    private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
 
     @Value("${p2p.max-blocks-per-transfer}")
     private int orphanHeightsRange;
 
     @Override
     public Result validateBlock(Block block) {
-        Block best = stateDB.getBestBlock();
+        Block best = wisdomRepository.getBestBlock();
         if (block == null) {
             return Result.Error("null block");
         }
