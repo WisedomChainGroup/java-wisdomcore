@@ -11,15 +11,15 @@ import org.wisdom.core.Block;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.StateDB;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;

@@ -469,4 +469,5 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
             readWriteLock.readLock().unlock();
         }
     }
+
 }

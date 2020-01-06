@@ -13,7 +13,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.validate.CompositeBlockRule;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.merkletree.*;
 import org.wisdom.sync.Utils;
 
@@ -23,8 +23,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageEvent> {
-
-    private static final Logger logger = LoggerFactory.getLogger(MerkleHandler.class);
 
     private PeerServer server;
 
@@ -41,7 +39,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     private WisdomBlockChain bc;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Override
     public void onMessage(Context context, PeerServer server) {
@@ -108,7 +106,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         }
         merkleTreeManager.removeBlockToCache(Hex.encodeHexString(blockHash));
         block.weight = 1;
-        stateDB.writeBlock(block);
+        repository.writeBlock(block);
     }
 
     private void onGetMerkleTransactions(Context context, PeerServer server) {

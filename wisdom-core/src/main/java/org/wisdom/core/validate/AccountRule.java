@@ -28,7 +28,6 @@ import org.wisdom.core.WhitelistTransaction;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.StateDB;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
 
@@ -41,7 +40,6 @@ import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 // 2. nonce 校验
 @Component
 public class AccountRule implements BlockRule {
-    static final Base64.Encoder encoder = Base64.getEncoder();
 
     @Autowired
     RateTable rateTable;

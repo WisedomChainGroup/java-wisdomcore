@@ -19,7 +19,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
 import org.wisdom.pool.WaitCount;
@@ -64,7 +64,7 @@ public class PackageCache {
 
     private Map<String, AccountState> newMap;
 
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     private MerkleRule merkleRule;
 
@@ -82,12 +82,12 @@ public class PackageCache {
         this.state = false;
     }
 
-    public void init(PeningTransPool peningTransPool, StateDB stateDB, MerkleRule merkleRule,
+    public void init(PeningTransPool peningTransPool, WisdomRepository repository, MerkleRule merkleRule,
                      WaitCount waitCount, RateTable rateTable, Map<String, AccountState> accountStateMap,
                      Map<String, TreeMap<Long, TransPool>> maps, byte[] parenthash,
                      Block block, long height, int size) {
         this.peningTransPool = peningTransPool;
-        this.stateDB = stateDB;
+        this.repository = repository;
         this.merkleRule = merkleRule;
         this.waitCount = waitCount;
         this.rateTable = rateTable;
@@ -238,7 +238,7 @@ public class PackageCache {
                 AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
                 long totalamount = asset.getTotalamount();
                 totalamount += assetIncreased.getAmount();
-                if(totalamount<=0){
+                if (totalamount <= 0) {
                     AddRemoveMap(publicKeyHash, tx.nonce);
                     return;
                 }
@@ -264,7 +264,7 @@ public class PackageCache {
                 return;
             }
             //判断forkdb中是否有重复的代币合约code存在
-            if (stateDB.hasAssetCode(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
+            if (repository.hasAssetCodeAt(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
@@ -286,17 +286,11 @@ public class PackageCache {
     }
 
     private boolean CheckRepetition(Transaction tx) {
-        if (stateDB.hasTransaction(parenthash, tx.getHash())) {
-            return true;
-        }
-        return false;
+        return repository.hasTransactionAt(parenthash, tx.getHash());
     }
 
     private boolean CheckMapRedo(String publicKeyHash) {
-        if (accountStateMap.containsKey(publicKeyHash)) {
-            return false;
-        }
-        return true;
+        return !accountStateMap.containsKey(publicKeyHash);
     }
 
     private AccountState getKeyAccounState(byte[] key) {
@@ -304,7 +298,7 @@ public class PackageCache {
         if (accountStateMap.containsKey(keyHex)) {
             return accountStateMap.get(keyHex);
         } else {
-            return stateDB.getAccount(parenthash, key);
+            return repository.getAccountStateAt(parenthash, key).get();
         }
     }
 
@@ -317,19 +311,19 @@ public class PackageCache {
         if (accountStateMap.containsKey(Hex.encodeHexString(totalhash))) {
             return accountStateMap.get(Hex.encodeHexString(totalhash));
         } else {
-            return stateDB.getAccount(parenthash, totalhash);
+            return repository.getAccountStateAt(parenthash, totalhash).get();
         }
     }
 
     private void CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
         if (tx.type == 12) {
-            if (stateDB.hasPayload(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
+            if (repository.hasPayloadAt(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
         }
         if (tx.type == 15) {
-            if (stateDB.hasPayload(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
+            if (repository.hasPayloadAt(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
@@ -395,7 +389,7 @@ public class PackageCache {
         } else if (tx.type == 2) {
             accountList = updateVote(fromaccount, toaccount, tx);
         } else {
-            if (stateDB.hasPayload(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)) {
+            if (repository.hasPayloadAt(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
@@ -583,7 +577,7 @@ public class PackageCache {
     }
 
     public Incubator UpdateIncubtor(Map<byte[], Incubator> map, Transaction transaction, long hieght) {
-        Incubator incubator = map.get(Hex.encodeHexString(transaction.payload));
+        Incubator incubator = map.get(transaction.payload);
         if (transaction.type == 10 || transaction.type == 11) {
             incubator = merkleRule.UpdateExtIncuator(transaction, hieght, incubator);
         }
@@ -604,9 +598,7 @@ public class PackageCache {
 
     public boolean updateWaitCount(String publicKeyHash, long nonce) {
         if (waitCount.IsExist(publicKeyHash, nonce)) {
-            if (waitCount.updateNonce(publicKeyHash)) {
-                return true;//单个节点最长旷工数量的7个区块，可以加入
-            }
+            return waitCount.updateNonce(publicKeyHash);//单个节点最长旷工数量的7个区块，可以加入
         } else {
             waitCount.add(publicKeyHash, nonce);
         }

@@ -19,27 +19,26 @@
 package org.wisdom.service.Impl;
 
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.common.util.HexBytes;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-
-import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
+import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.db.StateDB;
+import org.wisdom.core.incubator.RateTable;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.service.CommandService;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.RateTable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,7 +63,7 @@ public class CommandServiceImpl implements CommandService {
     Configuration configuration;
 
     @Autowired
-    StateDB stateDB;
+    WisdomRepository repository;
 
 
     @Override
@@ -84,11 +83,7 @@ public class CommandServiceImpl implements CommandService {
                 return apiResult;
             }
             if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
-                Block block = stateDB.getBestBlock();
-                List<String> list = stateDB.getProposersFactory()
-                        .getProposers(block).stream()
-                        .map(HexBytes::encode)
-                        .collect(Collectors.toList());
+                List<String> list = repository.getCurrentBestCandidates().stream().map(x -> Hex.encodeHexString(x.getPublicKeyHash().getBytes())).collect(Collectors.toList());
                 byte[] fromPublicHash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (list.size() > 0 && list.contains(Hex.encodeHexString(fromPublicHash))) {
                     apiResult.setCode(5000);

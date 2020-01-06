@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.merkletree.MerkleTreeManager;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public class PendingBlocksManager {
     private WisdomBlockChain bc;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository wisdomRepository;
 
     @Autowired
     private CompositeBlockRule rule;
@@ -63,9 +63,9 @@ public class PendingBlocksManager {
                 continue;
             }
             logger.info("try to write blocks to local storage, size = " + chain.size());
-            Block lastConfirmed = stateDB.getLastConfirmed();
+            Block lastConfirmed = wisdomRepository.getLatestConfirmed();
             for (Block b : chain) {
-                if (b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlockInCache(b.getHash())) {
+                if (b.nHeight <= lastConfirmed.nHeight || wisdomRepository.getBlock(b.getHash()) != null) {
                     logger.info("the block has written");
                     continue;
                 }
@@ -80,7 +80,7 @@ public class PendingBlocksManager {
                     continue;
                 }
                 b.weight = 1;
-                stateDB.writeBlock(b);
+                wisdomRepository.writeBlock(b);
             }
         }
     }
@@ -90,6 +90,6 @@ public class PendingBlocksManager {
             return true;
         }
         byte[] hash = chain.get(chain.size() - 1).getHash();
-        return stateDB.hasBlock(hash) || bc.hasBlock(hash);
+        return wisdomRepository.getBlock(hash) != null || bc.hasBlock(hash);
     }
 }
