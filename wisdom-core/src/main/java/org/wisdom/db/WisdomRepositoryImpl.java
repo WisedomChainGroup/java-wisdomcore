@@ -123,6 +123,43 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 .orElse(bc.getBlock(blockHash));
     }
 
+    // 获取包含未确认的区块
+    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        if (sizeLimit == 0 || startHeight > stopHeight) {
+            return Collections.emptyList();
+        }
+
+        ChainCache<BlockWrapper> c = new ChainCache<>();
+
+        List<Block> blocks = new ArrayList<>();
+
+        // 从数据库获取一部分
+        if (startHeight < latestConfirmed.nHeight) {
+            blocks.addAll(
+                    bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial));
+        }
+
+        blocks.add(latestConfirmed);
+
+        // 从 forkdb 获取一部分
+        blocks.stream().filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
+                .forEach(b -> c.put(new BlockWrapper(b)));
+
+        // 按需进行裁剪
+        List<Block> all = c.getAll().stream()
+                .map(BlockWrapper::get)
+                .sorted(this::compareBlock)
+                .collect(toList());
+
+        if (sizeLimit > all.size() || sizeLimit < 0) {
+            sizeLimit = all.size();
+        }
+        if (clipInitial) {
+            return all.subList(all.size() - sizeLimit, all.size());
+        }
+        return all.subList(0, sizeLimit);
+    }
+
     public Block findAncestorHeader(byte[] hash, long height) {
         Block bHeader = getHeader(hash);
         if (bHeader.nHeight < height) {

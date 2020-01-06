@@ -31,7 +31,7 @@ public abstract class AbstractStateUpdater<T> {
     }
 
     // the update method should always returns a new state
-    abstract T update(byte[] id, T state, Transaction transaction);
+    abstract T update(byte[] id, T state, Block block, Transaction transaction);
 
     abstract T createEmpty(byte[] id);
 
@@ -39,7 +39,7 @@ public abstract class AbstractStateUpdater<T> {
         Map<byte[], T> ret = new ByteArrayMap<>(beforeUpdate);
         block.body.forEach(tx -> {
             getRelatedKeys(tx).forEach(k -> {
-                ret.put(k, update(k, ret.get(k), tx));
+                ret.put(k, update(k, ret.get(k), block, tx));
             });
         });
         return ret;
@@ -47,10 +47,11 @@ public abstract class AbstractStateUpdater<T> {
 
     public Map<byte[], T> update(Map<byte[], T> beforeUpdate, List<Block> blocks) {
         Map<byte[], T> ret = new ByteArrayMap<>(beforeUpdate);
-        blocks.stream().flatMap(b -> b.body.stream())
-                .forEach(tx -> {
-                    getRelatedKeys(tx).forEach(k -> {
-                        ret.put(k, update(k, ret.get(k), tx));
+        blocks.forEach(b -> {
+                    b.body.forEach(tx -> {
+                        getRelatedKeys(tx).forEach(k -> {
+                            ret.put(k, update(k, ret.get(k), b, tx));
+                        });
                     });
                 });
         return ret;

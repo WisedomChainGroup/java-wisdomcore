@@ -51,11 +51,11 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private Block genesis;
 
     @Override
-    public AccountState update(byte[] id, AccountState state, Transaction transaction) {
-        return updateOne(transaction, state.copy());
+    public AccountState update(byte[] id, AccountState state, Block block, Transaction transaction) {
+        return updateOne(block, transaction, state.copy());
     }
 
-    public AccountState updateOne(Transaction transaction, AccountState accountState) {
+    public AccountState updateOne(Block block, Transaction transaction, AccountState accountState) {
         try {
             switch (transaction.type) {
                 case 0x00://coinbase

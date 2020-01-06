@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.FastByteComparisons;
+import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
 import java.util.Collections;
@@ -23,7 +24,7 @@ public class ValidatorStateUpdater extends AbstractStateUpdater<Long> {
     }
 
     @Override
-    public Long update(byte[] id, Long state, Transaction transaction) {
+    public Long update(byte[] id, Long state, Block block, Transaction transaction) {
         if(transaction.type != Transaction.Type.COINBASE.ordinal()) return state;
         if(FastByteComparisons.equal(transaction.to, id)) return state + 1;
         return state;

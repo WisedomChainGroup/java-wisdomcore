@@ -24,8 +24,7 @@ import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.crypto.HashUtil;
-import org.wisdom.db.StateDB;
-import org.wisdom.encoding.BigEndian;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
@@ -70,7 +69,7 @@ public class Miner implements ApplicationListener {
     private WisdomBlockChain bc;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     private PendingBlocksManager pendingBlocksManager;
@@ -108,21 +107,19 @@ public class Miner implements ApplicationListener {
     }
 
     private Block createBlock() throws Exception {
-        Block parent = stateDB.getBestBlock();
+        Block parent = repository.getBestBlock();
         Block block = new Block();
         block.nVersion = parent.nVersion;
         block.hashPrevBlock = parent.getHash();
 
         // merkle state root
         block.nHeight = parent.nHeight + 1;
-        TargetState targetState = stateDB.getTargetStateFactory().getInstance(block);
-        block.nBits = BigEndian.encodeUint256(targetState.getTarget());
+        block.nBits = repository.getTargetByParent(parent);
         block.nNonce = new byte[Block.HASH_SIZE];
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
-        ValidatorState validatorState = stateDB.getValidatorStateFactory().getInstance(parent);
-        long nonce = validatorState.
-                getNonceFromPublicKeyHash(block.body.get(0).to);
+
+        long nonce = repository.getValidatorNonceAt(block.hashPrevBlock, consensusConfig.getMinerPubKeyHash());
 
         block.body.get(0).nonce = nonce + 1;
 
@@ -176,11 +173,11 @@ public class Miner implements ApplicationListener {
         if (!result.isSuccess()) {
             return;
         }
-        Block bestBlock = stateDB.getBestBlock();
+        Block bestBlock = repository.getBestBlock();
         // 判断是否轮到自己出块
         Optional<Proposer> p;
         try{
-            p = stateDB.getProposersFactory().getProposer(bestBlock, System.currentTimeMillis() / 1000);
+            p = repository.getProposerByParentAndEpoch(bestBlock, System.currentTimeMillis() / 1000);
         }catch (Exception e){
             e.printStackTrace();
             throw new RuntimeException(e);

@@ -107,7 +107,7 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
     }
 
     @Override
-    Candidate update(byte[] id, Candidate state, Transaction transaction) {
+    Candidate update(byte[] id, Candidate state, Block block, Transaction transaction) {
         throw new RuntimeException("not implemented");
     }
 

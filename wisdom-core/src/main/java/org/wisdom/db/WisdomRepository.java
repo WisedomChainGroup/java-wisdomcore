@@ -18,6 +18,8 @@ public interface WisdomRepository {
 
     Block getBlock(byte[] hash);
 
+    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+
     Block getHeader(byte[] hash);
 
     // get ancestor at height h of block

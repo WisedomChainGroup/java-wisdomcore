@@ -78,6 +78,16 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
+    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        readWriteLock.readLock().lock();
+        try{
+            return delegate.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
+        }finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
     public Block getHeader(byte[] hash) {
         readWriteLock.readLock().lock();
         try{

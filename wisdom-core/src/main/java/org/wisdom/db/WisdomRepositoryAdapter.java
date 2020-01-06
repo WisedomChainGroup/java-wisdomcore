@@ -31,6 +31,11 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
+    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        return null;
+    }
+
+    @Override
     public Block getHeader(byte[] hash) {
         return null;
     }

@@ -14,7 +14,7 @@ import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
 
@@ -54,7 +54,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private BasicRule rule;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
@@ -131,7 +131,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
-        List<Block> blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        List<Block> blocksToSend = repository.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend == null || blocksToSend.size() == 0) {
             return;
         }
@@ -165,7 +165,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
 
         // 拉黑创世区块不相同的节点
         if (!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())) {
@@ -194,7 +194,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onGetStatus(Context context, PeerServer server) {
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
         WisdomOuterClass.Status resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
                 .setCurrentHeight(best.nHeight)
