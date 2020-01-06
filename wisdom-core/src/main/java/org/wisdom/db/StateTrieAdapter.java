@@ -4,12 +4,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
-import org.tdf.common.store.MemoryCachedStore;
+import org.tdf.common.store.CachedStore;
 import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
-import org.tdf.common.trie.TrieImpl;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
@@ -55,12 +55,14 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                     Store.getNop()
             );
         }
-        trie = TrieImpl.newInstance(
-                HashUtil::keccak256,
-                trieStore,
-                Codec.identity(),
-                Codec.newInstance(RLPCodec::encode, x -> RLPElement.fromEncoded(x).as(clazz))
-        );
+        Trie.Builder<byte[], T> builder = Trie.builder();
+        trie =  builder.hashFunction(HashUtil::keccak256)
+                .store(trieStore)
+                .keyCodec(Codec.identity())
+                .valueCodec(
+                        Codec.newInstance(RLPCodec::encode, x -> RLPElement.fromEncoded(x).as(clazz))
+                )
+                .build();
 
         rootStore.put(genesis.hashPrevBlock, trie.revert().getRootHash());
         if (rootStore.containsKey(genesis.getHash())) return;
@@ -93,7 +95,11 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     }
 
     protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data) {
-        Store<byte[], byte[]> cache = new MemoryCachedStore<>(getTrieStore());
+        Store<byte[], byte[]> cache = new CachedStore<>(
+                getTrieStore(),
+                ByteArrayMap::new,
+                HexBytes.EMPTY_BYTES
+        );
         Trie<byte[], T> trie = getTrie().revert(parentRoot, cache);
         for (Map.Entry<byte[], T> entry : data.entrySet()) {
             trie.put(entry.getKey(), entry.getValue());

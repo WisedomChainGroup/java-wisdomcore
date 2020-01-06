@@ -35,7 +35,7 @@ public abstract class AbstractStateUpdater<T> {
 
     abstract T createEmpty(byte[] id);
 
-    Map<byte[], T> update(Map<byte[], T> beforeUpdate, Block block) {
+    public Map<byte[], T> update(Map<byte[], T> beforeUpdate, Block block) {
         Map<byte[], T> ret = new ByteArrayMap<>(beforeUpdate);
         block.body.forEach(tx -> {
             getRelatedKeys(tx).forEach(k -> {
@@ -45,7 +45,7 @@ public abstract class AbstractStateUpdater<T> {
         return ret;
     }
 
-    Map<byte[], T> update(Map<byte[], T> beforeUpdate, List<Block> blocks) {
+    public Map<byte[], T> update(Map<byte[], T> beforeUpdate, List<Block> blocks) {
         Map<byte[], T> ret = new ByteArrayMap<>(beforeUpdate);
         blocks.stream().flatMap(b -> b.body.stream())
                 .forEach(tx -> {

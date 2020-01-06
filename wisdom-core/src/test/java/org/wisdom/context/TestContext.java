@@ -1,12 +1,13 @@
 package org.wisdom.context;
 
+import lombok.AllArgsConstructor;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
-import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.io.ClassPathResource;
@@ -19,10 +20,14 @@ import org.wisdom.consensus.pow.ProposersFactory;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.consensus.pow.TargetState;
 import org.wisdom.consensus.pow.ValidatorState;
+import org.wisdom.contract.AssetCode;
 import org.wisdom.core.Block;
 import org.wisdom.core.RDBMSBlockChainImpl;
+import org.wisdom.core.StatetreeUpdate;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.event.AccountUpdatedEvent;
+import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
@@ -31,8 +36,6 @@ import org.wisdom.dumps.BlocksDump;
 import org.wisdom.dumps.GenesisDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
-
-import java.util.stream.Collectors;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration
@@ -268,4 +271,69 @@ public class TestContext {
         return new AccountStateTrie(factory, genesis, bc, genesisJSON, accountStateUpdater, preBuiltGenesis);
     }
 
+    @Bean
+    public ValidatorStateFactory validatorStateFactory(ValidatorState validatorState) {
+        return new ValidatorStateFactory(validatorState);
+    }
+
+    @Bean
+    public TargetStateFactory targetStateFactory(
+            TargetState targetState,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+    ) {
+        return new TargetStateFactory(targetState, blocksPerEra);
+    }
+
+    @Bean
+    public AssetCode assetCode(DatabaseStoreFactory databaseStoreFactory) {
+        return new AssetCode(databaseStoreFactory);
+    }
+
+    @Bean
+    public StateDB stateDB(
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            @Value("${wisdom.allow-miner-joins-era}") int allowMinersJoinEra,
+            @Value("${wisdom.consensus.block-interval}") int blockInterval,
+            @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
+            @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
+            WisdomBlockChain wisdomBlockChain,
+            AccountDB accountDB,
+            IncubatorDB incubatorDB,
+            RateTable rateTable,
+            MerkleRule merkleRule,
+            ApplicationContext applicationContext,
+            Block genesis,
+            AssetCode assetCode,
+            ValidatorStateFactory validatorStateFactory,
+            TargetStateFactory targetStateFactory,
+            ProposersFactory proposersFactory
+    ) {
+        StateDB stateDB = new StateDB(blocksPerEra, allowMinersJoinEra, blockInterval, blockIntervalSwitchEra, blockIntervalSwitchTo);
+        stateDB.setBc(wisdomBlockChain);
+        stateDB.setAccountDB(accountDB);
+        stateDB.setIncubatorDB(incubatorDB);
+        stateDB.setRateTable(rateTable);
+        stateDB.setMerkleRule(merkleRule);
+        stateDB.setCtx(applicationContext);
+        stateDB.setGenesis(genesis);
+        stateDB.setAssetCode(assetCode);
+        stateDB.setValidatorStateFactory(validatorStateFactory);
+        stateDB.setTargetStateFactory(targetStateFactory);
+        stateDB.setProposersFactory(proposersFactory);
+        return stateDB;
+    }
+
+    @Bean
+    public EventEmitter eventEmitter(ApplicationContext applicationContext){
+        return new EventEmitter(applicationContext);
+    }
+
+    @AllArgsConstructor
+    public static class EventEmitter implements ApplicationListener<NewBestBlockEvent>{
+        private ApplicationContext applicationContext;
+        @Override
+        public void onApplicationEvent(NewBestBlockEvent event) {
+            applicationContext.publishEvent(new AccountUpdatedEvent(this, event.getBlock()));
+        }
+    }
 }

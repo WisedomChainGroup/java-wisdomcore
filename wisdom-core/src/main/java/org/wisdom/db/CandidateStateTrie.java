@@ -197,7 +197,9 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     public void generateProposers(List<Block> blocks, Trie<byte[], Candidate> trie){
         // 重新生成 proposers
-        Stream<Candidate> candidateStream = trie.values().stream()
+        Stream<Candidate> candidateStream = trie
+                .stream()
+                .map(Map.Entry::getValue)
                 // 过滤掉黑名单中节点
                 .filter(p -> !p.isBlocked())
                 // 过滤掉抵押数量不足和投票为零的账户
