@@ -22,7 +22,6 @@ import com.alibaba.fastjson.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.math3.fraction.BigFraction;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.Block;
@@ -31,8 +30,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.StateDB;
-import org.wisdom.encoding.BigEndian;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -68,7 +66,7 @@ public class HatchServiceImpl implements HatchService {
     Configuration configuration;
 
     @Autowired
-    StateDB stateDB;
+    private WisdomRepository repository;
 
     @Override
     public Object getBalance(String pubkeyhash) {
@@ -85,10 +83,14 @@ public class HatchServiceImpl implements HatchService {
     public Object getNonce(String pubkeyhash) {
         try {
             byte[] pubkey = Hex.decodeHex(pubkeyhash.toCharArray());
-            Block block = stateDB.getBestBlock();
-            AccountState accountState = stateDB.getAccount(block.getHash(), pubkey);
-            long nonce = accountState.getAccount().getNonce();
-            return APIResult.newFailResult(2000, "SUCCESS", nonce);
+            Block block = repository.getBestBlock();
+            Optional<AccountState> accountState = repository.getAccountStateAt(block.getHash(), pubkey);
+            if (accountState.isPresent()) {
+                long nonce = accountState.get().getAccount().getNonce();
+                return APIResult.newFailResult(2000, "SUCCESS", nonce);
+            } else {
+                return APIResult.newFailResult(5000, "Exception error");
+            }
         } catch (DecoderException e) {
             return APIResult.newFailResult(5000, "Exception error");
         }
@@ -101,8 +103,8 @@ public class HatchServiceImpl implements HatchService {
         for (Map<String, Object> map : list) {
             byte[] from = (byte[]) map.get("fromAddress");
             byte[] to = (byte[]) map.get("coinAddress");
-            map.put("fromAddress", KeystoreAction.pubkeyHashToAddress(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)), (byte) 0x00,""));
-            map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00,""));
+            map.put("fromAddress", KeystoreAction.pubkeyHashToAddress(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)), (byte) 0x00, ""));
+            map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
             jsonArray.add(map);
         }
         return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -125,9 +127,9 @@ public class HatchServiceImpl implements HatchService {
                 String sharpubkey = "";
                 if (sharpubkeyhex != null && sharpubkeyhex != "") {
                     byte[] sharepubkeyhash = Hex.decodeHex(sharpubkeyhex.toCharArray());
-                    sharpubkey = KeystoreAction.pubkeyHashToAddress(sharepubkeyhash, (byte) 0x00,"");
+                    sharpubkey = KeystoreAction.pubkeyHashToAddress(sharepubkeyhash, (byte) 0x00, "");
                 }
-                json.put("coinAddress", KeystoreAction.pubkeyHashToAddress(tohash, (byte) 0x00,""));
+                json.put("coinAddress", KeystoreAction.pubkeyHashToAddress(tohash, (byte) 0x00, ""));
                 json.put("blockType", days);
                 json.put("inviteAddress", sharpubkey);
                 json.remove("payload");
@@ -146,7 +148,7 @@ public class HatchServiceImpl implements HatchService {
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 byte[] to = (byte[]) map.get("coinAddress");
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00,""));
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
                 //分享者
                 String tranhex = map.get("coinHash").toString();
                 byte[] tranhash = Hex.decodeHex(tranhex.toCharArray());
@@ -154,7 +156,7 @@ public class HatchServiceImpl implements HatchService {
                 if (incubator != null) {
                     byte[] share = incubator.getShare_pubkeyhash();
                     if (share != null && share.length > 0) {
-                        map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(share, (byte) 0x00,""));
+                        map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(share, (byte) 0x00, ""));
                     } else {
                         map.put("inviteAddress", "");
                     }
@@ -177,8 +179,8 @@ public class HatchServiceImpl implements HatchService {
             for (Map<String, Object> map : list) {
                 byte[] to = (byte[]) map.get("coinAddress");
                 byte[] invite = (byte[]) map.get("inviteAddress");
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00,""));
-                map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(invite, (byte) 0x00,""));
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
+                map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(invite, (byte) 0x00, ""));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -195,7 +197,7 @@ public class HatchServiceImpl implements HatchService {
             for (Map<String, Object> map : list) {
                 String coinAddress = map.get("coinAddress").toString();
                 byte[] pubkeyhash = Hex.decodeHex(coinAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(pubkeyhash, (byte) 0x00,""));
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(pubkeyhash, (byte) 0x00, ""));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -212,10 +214,10 @@ public class HatchServiceImpl implements HatchService {
             for (Map<String, Object> map : list) {
                 String coinAddress = map.get("coinAddress").toString();
                 byte[] frompubkey = Hex.decodeHex(coinAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00,""));
-                String toAddress=map.get("toAddress").toString();
-                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
-                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00,""));
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, ""));
+                String toAddress = map.get("toAddress").toString();
+                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
+                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -232,10 +234,10 @@ public class HatchServiceImpl implements HatchService {
             for (Map<String, Object> map : list) {
                 String coinAddress = map.get("coinAddress").toString();
                 byte[] frompubkey = Hex.decodeHex(coinAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00,""));
-                String toAddress=map.get("toAddress").toString();
-                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
-                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00,""));
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, ""));
+                String toAddress = map.get("toAddress").toString();
+                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
+                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -250,9 +252,9 @@ public class HatchServiceImpl implements HatchService {
             List<Map<String, Object>> list = accountDB.selectlistMortgage(height, 14);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String toAddress=map.get("coinAddress").toString();
-                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00,""));
+                String toAddress = map.get("coinAddress").toString();
+                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -267,9 +269,9 @@ public class HatchServiceImpl implements HatchService {
             List<Map<String, Object>> list = accountDB.selectlistCancelMortgage(height, 15);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String toAddress=map.get("coinAddress").toString();
-                byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00,""));
+                String toAddress = map.get("coinAddress").toString();
+                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -418,10 +420,10 @@ public class HatchServiceImpl implements HatchService {
                 for (Map<String, Object> to : tolist) {
                     Map<String, Object> maps = to;
                     String from = maps.get("from").toString();
-                    String fromaddress = KeystoreAction.pubkeyToAddress(Hex.decodeHex(from.toCharArray()), (byte) 0x00,"");
+                    String fromaddress = KeystoreAction.pubkeyToAddress(Hex.decodeHex(from.toCharArray()), (byte) 0x00, "");
                     maps.put("from", fromaddress);
                     String topubkeyhash = maps.get("to").toString();
-                    String toaddress = KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()), (byte) 0x00,"");
+                    String toaddress = KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()), (byte) 0x00, "");
                     maps.put("to", toaddress);
                     long time = Long.valueOf(maps.get("datetime").toString());
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -437,10 +439,10 @@ public class HatchServiceImpl implements HatchService {
                     String froms = maps.get("from").toString();
                     byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(Hex.decodeHex(froms.toCharArray())));
                     if (Arrays.equals(frompubhash, pubkeyhash)) {
-                        String fromaddress = KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00,"");
+                        String fromaddress = KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00, "");
                         maps.put("from", fromaddress);
                         String topubkeyhash = maps.get("to").toString();
-                        String toaddress = KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()), (byte) 0x00,"");
+                        String toaddress = KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(topubkeyhash.toCharArray()), (byte) 0x00, "");
                         maps.put("to", toaddress);
                         long time = Long.valueOf(maps.get("datetime").toString());
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -451,7 +453,7 @@ public class HatchServiceImpl implements HatchService {
                         list.add(maps);
                     }
                 }
-                list=list.stream().sorted((p1, p2) -> Integer.valueOf(p1.get("height").toString()) - Integer.valueOf(p2.get("height").toString()))
+                list = list.stream().sorted((p1, p2) -> Integer.valueOf(p1.get("height").toString()) - Integer.valueOf(p2.get("height").toString()))
                         .collect(toList());
                 return APIResult.newFailResult(2000, "SUCCESS", list);
             } else {
@@ -466,19 +468,19 @@ public class HatchServiceImpl implements HatchService {
     public Object getCoinBaseList(int height) {
         try {
             List<Map<String, Object>> list = accountDB.selectlistCoinBase(height);
-            int count=0;
-            Map<String, Object> maps=new HashMap<>();
+            int count = 0;
+            Map<String, Object> maps = new HashMap<>();
             for (Map<String, Object> map : list) {
-                if(Integer.valueOf(map.get("type").toString())==0){
-                    String toAddress=map.get("coinAddress").toString();
-                    byte[] topubhash=Hex.decodeHex(toAddress.toCharArray());
-                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00,""));
+                if (Integer.valueOf(map.get("type").toString()) == 0) {
+                    String toAddress = map.get("coinAddress").toString();
+                    byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
+                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
                     maps.putAll(map);
                     break;
                 }
                 count++;
             }
-            maps.put("trancount",count);
+            maps.put("trancount", count);
             return APIResult.newFailResult(2000, "SUCCESS", maps);
         } catch (Exception e) {
             return APIResult.newFailResult(5000, "Exception error");

@@ -18,7 +18,6 @@
 package org.wisdom.command;
 
 import org.apache.commons.codec.binary.Hex;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +39,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -75,7 +74,7 @@ public class TransactionCheck {
     WisdomBlockChain wisdomBlockChain;
 
     @Autowired
-    StateDB stateDB;
+    WisdomRepository wisdomRepository;
 
     @Autowired
     RateTable rateTable;
@@ -613,7 +612,7 @@ public class TransactionCheck {
                 apiResult.setMessage("Abnormal incubation days");
                 return apiResult;
             }
-            long nowheight = stateDB.getBestBlock().nHeight;
+            long nowheight = wisdomRepository.getBestBlock().nHeight;
             String nowrate = rateTable.selectrate(nowheight, days);
             //利息和分享收益
             BigDecimal amountbig = BigDecimal.valueOf(amount);
@@ -765,7 +764,7 @@ public class TransactionCheck {
                     apiResult.setMessage("Cannot extract, still less than a day");
                     return apiResult;
                 }
-                long nowheight = stateDB.getBestBlock().nHeight;
+                long nowheight = wisdomRepository.getBestBlock().nHeight;
                 int blockcount = mul * configuration.getDay_count(nowheight);
                 if ((inheight + blockcount) > nowheight) {
                     apiResult.setCode(5000);

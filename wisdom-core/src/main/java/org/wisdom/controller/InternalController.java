@@ -12,6 +12,7 @@ import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
 
@@ -34,7 +35,7 @@ import java.util.concurrent.Future;
 @RestController
 public class InternalController {
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository wisdomRepository;
 
     @Autowired
     private WisdomBlockChain bc;
@@ -53,11 +54,11 @@ public class InternalController {
     @GetMapping(value = "/internal/transaction/{transactionHash}", produces = "application/json")
     public Object getTransaction(@PathVariable("transactionHash") String hash) {
         try {
-            Block best = stateDB.getBestBlock();
+            Block best = wisdomRepository.getBestBlock();
             byte[] h = Hex.decodeHex(hash.toCharArray());
-            Transaction tx = stateDB.getTransaction(best.getHash(), h);
-            if (tx != null) {
-                return codec.encodeTransaction(tx);
+            Optional<Transaction> tx = wisdomRepository.getTransactionAt(best.getHash(), h);
+            if (tx.isPresent()) {
+                return codec.encodeTransaction(tx.get());
             }
         } catch (Exception e) {
             return "invalid transaction hash hex string " + hash;
@@ -83,7 +84,7 @@ public class InternalController {
     // 获取 forkdb 区块高度
     @GetMapping(value = "/internal/height", produces = "application/json")
     public Object getHeight() {
-        return stateDB.getBestBlock().nHeight;
+        return wisdomRepository.getBestBlock().nHeight;
     }
 
     // 获取孤块池/forkdb 中的区块
@@ -93,11 +94,11 @@ public class InternalController {
             return codec.encodeBlocks(manager.getOrphans());
         }
         if (blockInfo.equals("unconfirmed")) {
-            return codec.encodeBlocks(stateDB.getAll());
+            return codec.encodeBlocks(wisdomRepository.getStaged());
         }
         try {
             byte[] hash = Hex.decodeHex(blockInfo);
-            return stateDB.getBlock(hash);
+            return wisdomRepository.getBlock(hash);
         } catch (Exception e) {
             return getBlocksByHeight(blockInfo);
         }
@@ -106,7 +107,7 @@ public class InternalController {
     public Object getBlocksByHeight(String height) {
         try {
             long h = Long.parseLong(height);
-            return codec.encodeBlocks(stateDB.getBlocks(h, h, Integer.MAX_VALUE, false));
+            return codec.encodeBlocks(wisdomRepository.getBlocks(h, h, Integer.MAX_VALUE, false));
         } catch (Exception e) {
             return "invalid block path variable " + height;
         }
@@ -157,7 +158,7 @@ public class InternalController {
                         try {
                             Block[] blocks = RLPCodec.decode(Files.readAllBytes(f.toPath()), Block[].class);
                             for (Block b : blocks) {
-                                stateDB.writeBlock(b);
+                                wisdomRepository.writeBlock(b);
                             }
                         } catch (Exception e) {
                             restoreStatus = null;
@@ -236,7 +237,7 @@ public class InternalController {
         if (limit == null || limit <= 0) {
             limit = Integer.MAX_VALUE;
         }
-
+        Block best = wisdomRepository.getBestBlock();
         if (!from.equals("") && !to.equals("")) {
             byte[] publicKey;
             try {
@@ -246,11 +247,11 @@ public class InternalController {
             }
             if (typeParsed == null) {
                 return codec.encodeTransactions(
-                        stateDB.getTransactionsByFromAndTo(publicKey, Address.getPublicKeyHash(to), offset, limit)
+                        wisdomRepository.getTransactionsAtByFromAndTo(best.getHash(), publicKey, Address.getPublicKeyHash(to), offset, limit)
                 );
             }
             return codec.encodeTransactions(
-                    stateDB.getTransactionsByFromToAndType(typeParsed, publicKey, Address.getPublicKeyHash(to), offset, limit)
+                    wisdomRepository.getTransactionsAtByTypeFromAndTo(best.getHash(), typeParsed, publicKey, Address.getPublicKeyHash(to), offset, limit)
             );
         }
         if (!from.equals("")) {
@@ -262,21 +263,21 @@ public class InternalController {
             }
             if (typeParsed == null) {
                 return codec.encodeTransactions(
-                        stateDB.getTransactionsByFrom(publicKey, offset, limit)
+                        wisdomRepository.getTransactionsAtByFrom(best.getHash(), publicKey, offset, limit)
                 );
             }
             return codec.encodeTransactions(
-                    stateDB.getTransactionsByFromAndType(typeParsed, publicKey, offset, limit)
+                    wisdomRepository.getTransactionsAtByTypeAndFrom(best.getHash(), typeParsed, publicKey, offset, limit)
             );
         }
         if (!to.equals("")) {
             if (typeParsed == null) {
                 return codec.encodeTransactions(
-                        stateDB.getTransactionsByTo(Address.getPublicKeyHash(to), offset, limit)
+                        wisdomRepository.getLatestTransactionsByTo(Address.getPublicKeyHash(to), offset, limit)
                 );
             }
             return codec.encodeTransactions(
-                    stateDB.getTransactionsByToAndType(typeParsed, Address.getPublicKeyHash(to), offset, limit)
+                    wisdomRepository.getTransactionsAtByTypeAndTo(best.getHash(), typeParsed, Address.getPublicKeyHash(to), offset, limit)
             );
         }
         return "please provide from or to";
