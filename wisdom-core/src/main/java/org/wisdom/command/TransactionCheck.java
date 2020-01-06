@@ -381,7 +381,7 @@ public class TransactionCheck {
             Matcher matcher = pattern.matcher(asset.getCode());
             //TODO 查询是否有重复code 异常处理
             if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher.matches()  && !asset.getCode().equals("WDC")){
-                if (assetCode.isContainsKey(asset.getCode()))return APIResult.newFailed("Assets code is exist");
+                if (assetCode.isContainsKey(asset.getCode()))return APIResult.newFailed("asset code already exists");
             }else{
                 return APIResult.newFailed("Assets code format check error");
             }
