@@ -130,4 +130,13 @@ public interface WisdomRepository {
     void writeBlock(Block block);
 
     boolean hasAssetCodeAt(byte[] blockHash, byte[] code);
+
+    double averageBlocksInterval();
+
+    long averageFee();
+
+    List<Block> getBestChain(int limit);
+
+    long countBlocksAfter(long timestamp);
+
 }

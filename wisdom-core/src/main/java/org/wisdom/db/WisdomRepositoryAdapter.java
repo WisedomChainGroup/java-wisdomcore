@@ -164,4 +164,29 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     public void writeBlock(Block block) {
 
     }
+
+    @Override
+    public boolean hasAssetCodeAt(byte[] blockHash, int type, String code) {
+        return false;
+    }
+
+    @Override
+    public double averageBlocksInterval() {
+        return 0;
+    }
+
+    @Override
+    public long averageFee() {
+        return 0;
+    }
+
+    @Override
+    public List<Block> getBestChain(int limit) {
+        return null;
+    }
+
+    @Override
+    public long countBlocksAfter(long timestamp) {
+        return 0;
+    }
 }

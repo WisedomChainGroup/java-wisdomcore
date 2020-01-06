@@ -470,4 +470,44 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
         }
     }
 
+    @Override
+    public double averageBlocksInterval() {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.averageBlocksInterval();
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public long averageFee() {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.averageFee();
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<Block> getBestChain(int limit) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getBestChain(limit);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public long countBlocksAfter(long timestamp) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.countBlocksAfter(timestamp);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
 }

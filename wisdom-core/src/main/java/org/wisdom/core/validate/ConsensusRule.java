@@ -19,16 +19,15 @@
 package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
-import org.wisdom.consensus.pow.ConsensusConfig;
-import org.wisdom.consensus.pow.Proposer;
-import org.wisdom.consensus.pow.TargetState;
-import org.wisdom.core.state.EraLinkedStateFactory;
-import org.wisdom.db.StateDB;
-import org.wisdom.encoding.BigEndian;
-import org.wisdom.core.Block;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.consensus.pow.ConsensusConfig;
+import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.core.Block;
+import org.wisdom.db.WisdomRepository;
+import org.wisdom.encoding.BigEndian;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 // 共识校验规则
@@ -38,22 +37,20 @@ import java.util.Optional;
 // 4. 时间戳递增
 @Component
 public class ConsensusRule implements BlockRule {
-    private EraLinkedStateFactory targetStateFactory;
 
     @Autowired
     ConsensusConfig consensusConfig;
 
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
-    public ConsensusRule(StateDB stateDB) {
-        this.stateDB = stateDB;
-        this.targetStateFactory = stateDB.getTargetStateFactory();
+    public ConsensusRule(WisdomRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public Result validateBlock(Block block) {
-        Block parent = stateDB.getBlock(block.hashPrevBlock);
+        Block parent = repository.getBlock(block.hashPrevBlock);
         // 不接受孤块
         if (parent == null) {
             return Result.Error("failed to find parent block");
@@ -63,16 +60,15 @@ public class ConsensusRule implements BlockRule {
             return Result.Error("block height invalid");
         }
         // 出块在是否在合理时间内出块
-        Optional<Proposer> p = stateDB.getProposersFactory().getProposer(parent, block.nTime);
+        Optional<Proposer> p = repository.getProposerByParentAndEpoch(parent, block.nTime);
         if (!p.
-                map(x -> x.pubkeyHash.equals(Hex.encodeHexString(block.body.get(0).to)))
+                map(x -> Arrays.equals(x.pubkeyHash, block.body.get(0).to))
                 .orElse(false)) {
             return Result.Error("the proposer cannot propose this block");
         }
-        // 难度值符合调整难度值
-        TargetState state = (TargetState) targetStateFactory.getInstance(block);
-        if (BigEndian.decodeUint256(block.nBits).compareTo(state.getTarget()) != 0) {
-            return Result.Error("block at height " + block.nHeight + " nbits invalid " + Hex.encodeHexString(BigEndian.encodeUint256(state.getTarget())) + " expected " + Hex.encodeHexString(block.nBits) + " received");
+        byte[] target = repository.getTargetByParent(block);
+        if (BigEndian.decodeUint256(block.nBits).compareTo(BigEndian.decodeUint256(target)) != 0) {
+            return Result.Error("block at height " + block.nHeight + " nbits invalid " + Hex.encodeHexString(target) + " expected " + Hex.encodeHexString(block.nBits) + " received");
         }
         return Result.SUCCESS;
     }
