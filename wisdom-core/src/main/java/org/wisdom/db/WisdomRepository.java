@@ -128,4 +128,6 @@ public interface WisdomRepository {
     }
 
     void writeBlock(Block block);
+
+    boolean hasAssetCodeAt(byte[] blockHash, int type, String code);
 }

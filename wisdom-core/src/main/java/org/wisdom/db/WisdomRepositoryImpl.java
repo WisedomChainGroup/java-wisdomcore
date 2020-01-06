@@ -2,13 +2,17 @@ package org.wisdom.db;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.tdf.common.util.*;
 import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.contract.AssetCode;
+import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.BigEndian;
+import org.wisdom.util.ByteUtil;
 
 import java.util.*;
 
@@ -49,6 +53,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     private EraLinker eraLinker;
 
+    private AssetCode assetCode;
+
     public WisdomRepositoryImpl(
             WisdomBlockChain bc,
             TriesSyncManager triesSyncManager,
@@ -56,7 +62,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             ValidatorStateTrie validatorStateTrie,
             CandidateStateTrie candidateStateTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            AssetCode assetCode
     ) throws Exception {
         this.eraLinker = new EraLinker(blocksPerEra);
         this.eraLinker.setRepository(this);
@@ -74,6 +81,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.triesSyncManager.sync();
         this.candidateStateTrie = candidateStateTrie;
         this.candidateStateTrie.setRepository(this);
+        this.assetCode = assetCode;
     }
 
     private void deleteCache(Block b) {
@@ -265,6 +273,25 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             }
         }
         return hasPayloadAt(b.hashPrevBlock, type, payload);
+    }
+
+    public boolean hasAssetCodeAt(byte[] blockHash, int type, String code) {
+        if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
+            return assetCode.isContainsKey(code);
+        }
+        Block b = chainCache
+                .get(blockHash).map(BlockWrapper::get)
+                .orElseThrow(() -> new RuntimeException("unreachable"));
+        if (b == null) return false;
+        for (Transaction t : b.body) {
+            if (t.payload != null && t.type == type) {
+                if (t.payload[0] == 0) {//代币
+                    Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(t.payload));
+                    return asset.getCode().equals(code);
+                }
+            }
+        }
+        return hasAssetCodeAt(b.hashPrevBlock, type, code);
     }
 
     @Override

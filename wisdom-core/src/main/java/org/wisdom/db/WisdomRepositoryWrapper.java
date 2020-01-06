@@ -3,6 +3,7 @@ package org.wisdom.db;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.contract.AssetCode;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -28,21 +29,22 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
             ValidatorStateTrie validatorStateTrie,
             CandidateStateTrie candidateStateTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            AssetCode assetCode
     ) throws Exception {
         this.delegate =
                 new WisdomRepositoryImpl(bc, triesSyncManager, accountStateTrie,
                         validatorStateTrie, candidateStateTrie, targetCache,
-                        blocksPerEra
+                        blocksPerEra, assetCode
                 );
     }
 
     @Override
     public Block getLatestConfirmed() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestConfirmed();
-        }finally {
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -50,9 +52,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Block getGenesis() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getGenesis();
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -60,9 +62,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Block getBestBlock() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getBestBlock();
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -70,9 +72,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Block getBlock(byte[] hash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getBlock(hash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -80,9 +82,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
-        }finally {
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -90,9 +92,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Block getHeader(byte[] hash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getHeader(hash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -100,9 +102,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Block findAncestorHeader(byte[] hash, long h) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.findAncestorHeader(hash, h);
-        }finally {
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -110,9 +112,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Block> getAncestorBlocks(byte[] hash, long height) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getAncestorBlocks(hash, height);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -120,9 +122,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public boolean isStaged(byte[] hash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.isStaged(hash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -130,9 +132,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Block> getStaged() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getStaged();
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -140,9 +142,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public boolean isConfirmed(byte[] hash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.isConfirmed(hash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -150,9 +152,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public boolean isStagedOrConfirmed(byte[] hash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.isStagedOrConfirmed(hash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -160,9 +162,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.hasTransactionAt(blockHash, transactionHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -170,9 +172,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public byte[] getTargetByParent(Block parent) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTargetByParent(parent);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -180,19 +182,20 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<byte[]> getProposersByParent(Block parent) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getProposersByParent(parent);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
+
     @Override
     public Optional<Proposer> getProposerByParentAndEpoch(Block parent, long epochSecond) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getProposerByParentAndEpoch(parent, epochSecond);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -200,9 +203,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getCurrentBestCandidates();
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -210,9 +213,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getCurrentBlockList();
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -220,9 +223,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public long getCurrentEra() {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getCurrentEra();
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -230,9 +233,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getCurrentCandidate(publicKeyHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -240,9 +243,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Optional<Transaction> getTransactionAt(byte[] blockHash, byte[] txHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionAt(blockHash, txHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -250,9 +253,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.hasPayloadAt(blockHash, type, payload);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -260,9 +263,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Optional<AccountState> getAccountStateAt(byte[] blockHash, byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getAccountStateAt(blockHash, publicKeyHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -270,9 +273,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Map<byte[], AccountState> getAccountStatesAt(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getAccountStatesAt(blockHash, publicKeyHashes);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -280,9 +283,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public long getValidatorNonceAt(byte[] blockHash, byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getValidatorNonceAt(blockHash, publicKeyHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -290,9 +293,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Optional<AccountState> getConfirmedAccountState(byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getConfirmedAccountState(publicKeyHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -300,9 +303,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Map<byte[], AccountState> getConfirmedAccountStates(Collection<byte[]> publicKeyHashes) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getConfirmedAccountStates(publicKeyHashes);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -310,9 +313,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Optional<AccountState> getLatestAccountState(byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestAccountState(publicKeyHash);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -320,9 +323,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public Map<byte[], AccountState> getLatestAccountStates(Collection<byte[]> publicKeyHashes) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestAccountStates(publicKeyHashes);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -330,9 +333,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getTransactionsAtByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionsAtByTo(blockHash, publicKeyHash, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -340,9 +343,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getTransactionsAtByFrom(byte[] blockHash, byte[] publicKey, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionsAtByFrom(blockHash, publicKey, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -350,9 +353,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getTransactionsAtByFromAndTo(byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionsAtByFromAndTo(blockHash, from, to, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -360,9 +363,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getTransactionsAtByTypeAndTo(byte[] blockHash, int type, byte[] publicKeyHash, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionsAtByTypeAndTo(blockHash, type, publicKeyHash, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -370,9 +373,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getTransactionsAtByTypeFromAndTo(byte[] blockHash, int type, byte[] from, byte[] to, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionsAtByTypeFromAndTo(blockHash, type, from, to, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -380,9 +383,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getTransactionsAtByTypeAndFrom(byte[] blockHash, int type, byte[] from, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getTransactionsAtByTypeAndFrom(blockHash, type, from, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -390,9 +393,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getLatestTransactionsByTo(byte[] publicKeyHash, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestTransactionsByTo(publicKeyHash, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -400,9 +403,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getLatestTransactionsByFrom(byte[] publicKey, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestTransactionsByFrom(publicKey, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -410,9 +413,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getLatestTransactionsByFromAndTo(byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestTransactionsByFromAndTo(blockHash, from, to, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -420,9 +423,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getLatestTransactionByTypeAndTo(byte[] blockHash, int type, byte[] publicKeyHash, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestTransactionByTypeAndTo(blockHash, type, publicKeyHash, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -430,9 +433,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getLatestTransactionsByTypeFromAndTo(byte[] blockHash, int type, byte[] from, byte[] to, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestTransactionsByTypeFromAndTo(blockHash, type, from, to, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -440,9 +443,9 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public List<Transaction> getLatestTransactionsByTypeAndFrom(byte[] blockHash, int type, byte[] from, int offset, int limit) {
         readWriteLock.readLock().lock();
-        try{
+        try {
             return delegate.getLatestTransactionsByTypeAndFrom(blockHash, type, from, offset, limit);
-        }finally{
+        } finally {
             readWriteLock.readLock().unlock();
         }
     }
@@ -450,10 +453,20 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     @Override
     public void writeBlock(Block block) {
         readWriteLock.writeLock().lock();
-        try{
+        try {
             delegate.writeBlock(block);
-        }finally {
+        } finally {
             readWriteLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public boolean hasAssetCodeAt(byte[] blockHash, int type, String code) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.hasAssetCodeAt(blockHash, type, code);
+        } finally {
+            readWriteLock.readLock().unlock();
         }
     }
 }

@@ -1,5 +1,6 @@
 package org.wisdom.core.validate;
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.IncubatorAddress;
@@ -16,7 +17,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.PeningTransPool;
@@ -37,7 +38,7 @@ public class CheckoutTransactions {
 
     private byte[] parenthash;
 
-    private Map<String, AccountState> map;
+    private Map<byte[], AccountState> map;
 
     private AccountState fromaccountstate;
 
@@ -45,7 +46,7 @@ public class CheckoutTransactions {
 
     private Set<String> AssetcodeSet;
 
-    private StateDB stateDB;
+    private WisdomRepository wisdomRepository;
 
     private TransactionCheck transactionCheck;
 
@@ -65,14 +66,14 @@ public class CheckoutTransactions {
         this.AssetcodeSet = new HashSet<>();
     }
 
-    public void init(Block block, Map<String, AccountState> map, PeningTransPool peningTransPool, StateDB stateDB,
+    public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
                      TransactionCheck transactionCheck, WhitelistTransaction whitelistTransaction, RateTable rateTable, MerkleRule merkleRule) {
         this.transactionList = block.body;
         this.height = block.nHeight;
         this.parenthash = block.hashPrevBlock;
         this.map = map;
         this.peningTransPool = peningTransPool;
-        this.stateDB = stateDB;
+        this.wisdomRepository = wisdomRepository;
         this.transactionCheck = transactionCheck;
         this.whitelistTransaction = whitelistTransaction;
         this.rateTable = rateTable;
@@ -88,24 +89,23 @@ public class CheckoutTransactions {
                 continue;
             }
             byte[] pubkeyhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
-            String publichash = Hex.encodeHexString(pubkeyhash);
             //校验撤回事务是否存在
-            Result resultexit = CheckExitTransaction(tx, publichash);
+            Result resultexit = CheckExitTransaction(tx, pubkeyhash);
             if (!resultexit.isSuccess()) {
                 return resultexit;
             }
             //事务校验格式和数据
-            Result resulttransa = CheckTransaction(tx, publichash);
+            Result resulttransa = CheckTransaction(tx, pubkeyhash);
             if (!resulttransa.isSuccess()) {
                 return resulttransa;
             }
             //更新状态
-            Result result=Result.SUCCESS;
+            Result result = Result.SUCCESS;
             switch (tx.type) {
                 case 1://转账
                 case 2://投票
                 case 13://撤回投票
-                    result = CheckFirstKind(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
+                    result = CheckFirstKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
                     break;
                 case 3://存证事务,只需要扣除手续费
                 case 9://孵化事务
@@ -114,16 +114,16 @@ public class CheckoutTransactions {
                 case 12://本金
                 case 14://抵押
                 case 15://撤回抵押
-                    result = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
+                    result = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
                     break;
                 case 7://部署合约
-                    result = CheckDeployContract(tx, publichash);
+                    result = CheckDeployContract(tx, pubkeyhash);
                     break;
                 case 8://调用合约
-                    result = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, publichash);
+                    result = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
                     break;
             }
-            if(!result.isSuccess()){
+            if (!result.isSuccess()) {
                 return result;
             }
             pendingList.add(tx);
@@ -132,11 +132,11 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
+    private Result CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         long balance = fromaccount.getBalance();
         balance -= tx.getFee();
         if (balance < 0) {
-            peningTransPool.removeOne(publicKeyHash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
         }
         fromaccount.setBalance(balance);
@@ -149,27 +149,27 @@ public class CheckoutTransactions {
             if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//更换所有者
                 byte[] owner = asset.getOwner();
                 if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
-                    peningTransPool.removeOne(publicKeyHash, tx.nonce);
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset definition does not have permission to replace the owner");
                 }
                 AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(ByteUtil.bytearrayridfirst(tx.payload));
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
-                map.put(Hex.encodeHexString(tx.to), assetaccountstate);
+                map.put(tx.to, assetaccountstate);
             } else if (tx.getMethodType() == TRANSFER.ordinal()) {//资产转账
                 AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
                 Map<byte[], Long> maps = accountState.getTokensMap();
                 long tokenbalance = maps.get(tx.to);
                 tokenbalance -= assetTransfer.getValue();
                 if (tokenbalance < 0) {
-                    peningTransPool.removeOne(publicKeyHash, tx.nonce);
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient balance in asset transfer");
                 }
                 maps.put(tx.to, tokenbalance);
                 accountState.setTokensMap(maps);
 
                 //to
-                AccountState toaccountstate = getKeyAccounState(assetTransfer.getTo());
+                AccountState toaccountstate = getKeyAccountState(assetTransfer.getTo());
                 Map<byte[], Long> tomaps = toaccountstate.getTokensMap();
                 long tobalance = 0;
                 if (tomaps.containsKey(tx.to)) {
@@ -178,23 +178,23 @@ public class CheckoutTransactions {
                 tobalance += assetTransfer.getValue();
                 tomaps.put(tx.to, tobalance);
                 toaccountstate.setTokensMap(tomaps);
-                map.put(Hex.encodeHexString(assetTransfer.getTo()), toaccountstate);
+                map.put(assetTransfer.getTo(), toaccountstate);
             } else {//increased
                 if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
                         || Arrays.equals(asset.getOwner(), new byte[32])) {
-                    peningTransPool.removeOne(publicKeyHash, tx.nonce);
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": The asset definition does not have rights to issue shares");
                 }
                 AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
                 long totalamount = asset.getTotalamount();
                 totalamount += assetIncreased.getAmount();
-                if(totalamount<=0){
-                    peningTransPool.removeOne(publicKeyHash, tx.nonce);
+                if (totalamount <= 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Total asset issuance exceeded the maximum");
                 }
                 asset.setTotalamount(totalamount);
                 assetaccountstate.setContract(asset.RLPserialization());
-                map.put(Hex.encodeHexString(tx.to), assetaccountstate);
+                map.put(tx.to, assetaccountstate);
 
                 Map<byte[], Long> tokensmap = accountState.getTokensMap();
                 long tokensbalance = tokensmap.get(tx.to);
@@ -207,16 +207,16 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckDeployContract(Transaction tx, String publicKeyHash) {
+    private Result CheckDeployContract(Transaction tx, byte[] publicKeyHash) {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb中是否有重复的代币合约code存在
-            if (stateDB.hasAssetCode(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
-                peningTransPool.removeOne(publicKeyHash, tx.nonce);
+            if (wisdomRepository.hasAssetCodeAt(parenthash, DEPLOY_CONTRACT.ordinal(), asset.getCode())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
             }
             if (AssetcodeSet.contains(asset.getCode())) {
-                peningTransPool.removeOne(publicKeyHash, tx.nonce);
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
             }
             AssetcodeSet.add(asset.getCode());
@@ -224,10 +224,10 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
+    private Result CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         AccountState toaccountState = getMapAccountState(tx);
         Account toaccount = toaccountState.getAccount();
-        List<Account> accountList = null;
+        List<Account> accountList;
         if (tx.type == 1) {
             accountList = PackageCache.updateTransfer(fromaccount, toaccount, tx);
         } else if (tx.type == 2) {
@@ -236,29 +236,33 @@ public class CheckoutTransactions {
             accountList = PackageCache.UpdateCancelVote(fromaccount, toaccount, tx);
         }
         if (accountList == null) {
-            peningTransPool.removeOne(publicKeyHash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
         }
         accountList.forEach(account -> {
-            if (account.getKey().equals(publicKeyHash)) {
+            if (account.getKey().equals(Hex.encodeHexString(publicKeyHash))) {
                 accountState.setAccount(account);
                 map.put(publicKeyHash, accountState);
             } else {
                 toaccountState.setAccount(account);
-                map.put(toaccount.getKey(), toaccountState);
+                try {
+                    map.put(Hex.decodeHex(toaccount.getKey()), toaccountState);
+                } catch (DecoderException e) {
+                    e.printStackTrace();
+                }
             }
         });
         return Result.SUCCESS;
     }
 
-    private Result CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
+    private Result CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         Account account = UpdateOtherAccount(fromaccount, tx);
         if (account == null) {
-            peningTransPool.removeOne(publicKeyHash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
         }
         if (CheckIncubatorTotal(tx)) {//孵化总地址余额校验
-            peningTransPool.removeOne(publicKeyHash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Hatching total address balance insufficient");
         }
         accountState.setAccount(account);
@@ -290,7 +294,7 @@ public class CheckoutTransactions {
     }
 
     public Incubator UpdateIncubtor(Map<byte[], Incubator> map, Transaction transaction, long hieght) {
-        Incubator incubator = map.get(Hex.encodeHexString(transaction.payload));
+        Incubator incubator = map.get(transaction.payload);
         if (transaction.type == 10 || transaction.type == 11) {
             incubator = merkleRule.UpdateExtIncuator(transaction, hieght, incubator);
         }
@@ -385,37 +389,36 @@ public class CheckoutTransactions {
     }
 
     private AccountState getIncubatorTotal() {
-        String totalhash = IncubatorAddress.Hexpubhash();
+        byte[] totalhash = IncubatorAddress.Hexpubhash();
         if (map.containsKey(totalhash)) {
             return map.get(totalhash);
         } else {
-            return stateDB.getAccount(parenthash, IncubatorAddress.resultpubhash());
+            return wisdomRepository.getAccountStateAt(parenthash, IncubatorAddress.resultpubhash()).get();
         }
     }
 
-    private AccountState getKeyAccounState(byte[] key) {
-        String keyHex = Hex.encodeHexString(key);
-        if (map.containsKey(keyHex)) {
-            return map.get(keyHex);
+    private AccountState getKeyAccountState(byte[] key) {
+        if (map.containsKey(key)) {
+            return map.get(key);
         } else {
-            return stateDB.getAccount(parenthash, key);
+            return wisdomRepository.getAccountStateAt(parenthash, key).get();
         }
     }
 
     private AccountState getMapAccountState(Transaction tx) {
-        return getKeyAccounState(tx.to);
+        return getKeyAccountState(tx.to);
     }
 
-    private Result CheckTransaction(Transaction tx, String publichash) {
+    private Result CheckTransaction(Transaction tx, byte[] publichash) {
         APIResult apiResult = transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
         if (apiResult.getCode() == 5000) {
-            peningTransPool.removeOne(publichash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
         }
         if (map.containsKey(publichash)) {
             fromaccountstate = map.get(publichash);
         } else {
-            peningTransPool.removeOne(publichash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Cannot query the account for the from ");
         }
         Account account = fromaccountstate.getAccount();
@@ -432,34 +435,34 @@ public class CheckoutTransactions {
         //数据校验
         apiResult = transactionCheck.TransactionVerify(tx, account, forkincubator);
         if (apiResult.getCode() == 5000) {
-            peningTransPool.removeOne(publichash, tx.nonce);
+            peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ":" + apiResult.getMessage());
         }
         return Result.SUCCESS;
     }
 
-    private Result CheckExitTransaction(Transaction tx, String publichash) {
+    private Result CheckExitTransaction(Transaction tx, byte[] publichash) {
         switch (Transaction.Type.values()[tx.type]) {
             case EXIT_VOTE: {
                 // 投票没有撤回过
-                if (stateDB.hasPayload(parenthash, EXIT_VOTE.ordinal(), tx.payload)) {
-                    peningTransPool.removeOne(publichash, tx.nonce);
+                if (wisdomRepository.hasPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
                 break;
             }
             case EXIT_MORTGAGE: {
                 // 抵押没有撤回过
-                if (stateDB.hasPayload(parenthash, EXIT_MORTGAGE.ordinal(), tx.payload)) {
-                    peningTransPool.removeOne(publichash, tx.nonce);
+                if (wisdomRepository.hasPayloadAt(parenthash, EXIT_MORTGAGE.ordinal(), tx.payload)) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
                 break;
             }
             case EXTRACT_COST: {
                 //本金没有被撤回过
-                if (stateDB.hasPayload(parenthash, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
-                    peningTransPool.removeOne(publichash, tx.nonce);
+                if (wisdomRepository.hasPayloadAt(parenthash, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the incubate transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
                 break;

@@ -29,7 +29,7 @@ public class IncubatorAddress {
         return KeystoreAction.addressToPubkeyHash(address);
     }
 
-    public static String Hexpubhash(){
-        return Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address));
+    public static byte[] Hexpubhash(){
+        return KeystoreAction.addressToPubkeyHash(address);
     }
 }

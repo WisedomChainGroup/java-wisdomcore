@@ -313,9 +313,9 @@ public class PackageCache {
     }
 
     private AccountState getIncubatorTotal() {
-        String totalhash = IncubatorAddress.Hexpubhash();
-        if (accountStateMap.containsKey(totalhash)) {
-            return accountStateMap.get(totalhash);
+        byte[] totalhash = IncubatorAddress.Hexpubhash();
+        if (accountStateMap.containsKey(Hex.encodeHexString(totalhash))) {
+            return accountStateMap.get(Hex.encodeHexString(totalhash));
         } else {
             return stateDB.getAccount(parenthash, IncubatorAddress.resultpubhash());
         }
@@ -378,7 +378,7 @@ public class PackageCache {
                 }
                 account.setBalance(balance);
                 totalaccountState.setAccount(account);
-                newMap.put(IncubatorAddress.Hexpubhash(), totalaccountState);
+                newMap.put(Hex.encodeHexString(IncubatorAddress.Hexpubhash()), totalaccountState);
             } catch (Exception e) {
                 return true;
             }
