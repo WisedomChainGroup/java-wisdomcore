@@ -231,10 +231,33 @@ public class Incubator {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Incubator incubator = (Incubator) o;
-        return cost == incubator.cost &&
-                share_amount == incubator.share_amount &&
+        return share_amount == incubator.share_amount &&
                 last_blockheight_share == incubator.last_blockheight_share &&
                 Arrays.equals(share_pubkeyhash, incubator.share_pubkeyhash) &&
                 Arrays.equals(txid_issue, incubator.txid_issue);
+    }
+
+    public String toStringInterest() {
+        return "Incubator{" +
+                ", pubkeyhash=" + Hex.encodeHexString(pubkeyhash) +
+                ", txid_issue=" + Hex.encodeHexString(txid_issue) +
+                ", height=" + height +
+                ", cost=" + cost +
+                ", interest_amount=" + interest_amount +
+                ", last_blockheight_interest=" + last_blockheight_interest +
+                ", days=" + days +
+                '}';
+    }
+
+    public String toStringShare() {
+        return "Incubator{" +
+                ", share_pubkeyhash=" + Hex.encodeHexString(share_pubkeyhash) +
+                ", txid_issue=" + Hex.encodeHexString(txid_issue) +
+                ", height=" + height +
+                ", cost=" + cost +
+                ", share_amount=" + share_amount +
+                ", last_blockheight_share=" + last_blockheight_share +
+                ", days=" + days +
+                '}';
     }
 }

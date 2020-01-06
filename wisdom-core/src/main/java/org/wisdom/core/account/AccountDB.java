@@ -152,10 +152,10 @@ public class AccountDB {
     public Account getHeightAccount(byte[] pubkeyhash, long height) {
         try {
             String sql = "select c.* from account c where c.pubkeyhash=? and c.blockheight=(\n" +
-                    "select max(a.blockheight) from account a where a.pubkeyhash=? and a.blockheight<=?)";
+                    "select a.blockheight from account a where a.pubkeyhash=? and a.blockheight<=? order by a.blockheight desc limit 1)";
             return tmpl.queryForObject(sql, new Object[]{pubkeyhash, pubkeyhash, height},  new BeanPropertyRowMapper<>(Account.class));
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             return null;
         }
     }
@@ -413,7 +413,9 @@ public class AccountDB {
     public AccountState getAccounstate(byte[] pubkeyHash,long height){
         AccountState accountState=new AccountState(pubkeyHash);
         Account account=getHeightAccount(pubkeyHash,height);
-        accountState.setAccount(account);
+        if(account!=null){
+            accountState.setAccount(account);
+        }
 
         Map<byte[],Incubator> interestMap=new ByteArrayMap<>();
         List<Incubator> incubatorList=incubatorDB.getList(pubkeyHash,height);

@@ -5,7 +5,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.rlp.RLPElement;
@@ -14,12 +13,10 @@ import org.wisdom.context.TestContext;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.AccountStateUpdater;
-import org.wisdom.keystore.util.TimeUtil;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -98,10 +95,10 @@ public class DumpTests {
     @Test
     public void compareStates() throws Exception {
         File expectedGenesisFile = Paths
-                .get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.800040.rlp")
+                .get("F:\\newout20200103\\genesis.800040.rlp")
                 .toFile();
         File fromGenesisFile = Paths
-                .get("C:\\Users\\Sal\\Desktop\\dumps\\genesis\\genesis.480000.rlp")
+                .get("F:\\out\\genesis.480000.rlp")
                 .toFile();
         TimeUnit.SECONDS.sleep(5);
         if (!fromGenesisFile.isFile() || !expectedGenesisFile.isFile())
@@ -170,17 +167,27 @@ public class DumpTests {
         for (byte[] k : x.getInterestMap().keySet()) {
             Incubator xi = x.getInterestMap().get(k);
             Incubator yi = y.getInterestMap().get(k);
-            if(yi == null) return false;
-            if(!xi.equalsInterest(yi)) return false;
-            if(!xi.equalsShare(yi)) return false;
+            if(yi == null) {
+                System.out.println("Interest new ："+xi.toStringInterest()+" old 不存在");
+                return false;
+            }
+            if(!xi.equalsInterest(yi)) {
+                System.out.println("Interest new ："+xi.toStringInterest()+"---> old :"+yi.toStringInterest());
+                return false;
+            }
         }
 
         for (byte[] k : x.getShareMap().keySet()) {
             Incubator xi = x.getShareMap().get(k);
             Incubator yi = y.getShareMap().get(k);
-            if(yi == null) return false;
-            if(!xi.equalsInterest(yi)) return false;
-            if(!xi.equalsShare(yi)) return false;
+            if(yi == null) {
+                System.out.println("Share new ："+xi.toStringShare()+" old 不存在");
+                return false;
+            }
+            if(!xi.equalsShare(yi)) {
+                System.out.println("Share new ："+xi.toStringShare()+"---> old :"+yi.toStringShare());
+                return false;
+            }
         }
         return true;
     }

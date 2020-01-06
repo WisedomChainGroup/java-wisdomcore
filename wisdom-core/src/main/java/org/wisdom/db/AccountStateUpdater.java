@@ -59,31 +59,31 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
-                    return updateCoinBase(transaction, accountState);
+                    return updateCoinBase(transaction, accountState, block.getnHeight());
                 case 0x01://TRANSFER
-                    return updateTransfer(transaction, accountState);
+                    return updateTransfer(transaction, accountState, block.getnHeight());
                 case 0x02://VOTE
-                    return updateVote(transaction, accountState);
+                    return updateVote(transaction, accountState, block.getnHeight());
                 case 0x03://DEPOSIT
-                    return updateDeposit(transaction, accountState);
+                    return updateDeposit(transaction, accountState, block.getnHeight());
                 case 0x07://DEPLOY_CONTRACT
-                    return updateDeployContract(transaction, accountState);
+                    return updateDeployContract(transaction, accountState, block.getnHeight());
                 case 0x08://CALL_CONTRACT
-                    return updateCallContract(transaction, accountState);
+                    return updateCallContract(transaction, accountState, block.getnHeight());
                 case 0x09://INCUBATE
-                    return updateIncubate(transaction, accountState);
+                    return updateIncubate(transaction, accountState, block.getnHeight());
                 case 0x0a://EXTRACT_INTEREST
-                    return updateExtractInterest(transaction, accountState);
+                    return updateExtractInterest(transaction, accountState, block.getnHeight());
                 case 0x0b://EXTRACT_SHARING_PROFIT
-                    return updateExtractShare(transaction, accountState);
+                    return updateExtractShare(transaction, accountState, block.getnHeight());
                 case 0x0c://EXTRACT_COST
-                    return updateExtranctCost(transaction, accountState);
+                    return updateExtranctCost(transaction, accountState, block.getnHeight());
                 case 0x0d://EXIT_VOTE
-                    return updateCancelVote(transaction, accountState);
+                    return updateCancelVote(transaction, accountState, block.getnHeight());
                 case 0x0e://MORTGAGE
-                    return updateMortgage(transaction, accountState);
+                    return updateMortgage(transaction, accountState, block.getnHeight());
                 case 0x0f://EXTRACT_MORTGAGE
-                    return updateCancelMortgage(transaction, accountState);
+                    return updateCancelMortgage(transaction, accountState, block.getnHeight());
                 default:
                     throw new Exception("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
             }
@@ -195,7 +195,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return ret;
     }
 
-    private AccountState updateCoinBase(Transaction tx, AccountState accountState) {
+    private AccountState updateCoinBase(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
@@ -206,12 +206,12 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             throw new RuntimeException("math overflow");
         }
         account.setBalance(balance);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
 
-    private AccountState updateTransfer(Transaction tx, AccountState accountState) {
+    private AccountState updateTransfer(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
         if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
@@ -220,20 +220,20 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             balance -= tx.getFee();
             account.setBalance(balance);
             account.setNonce(tx.nonce);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
             account.setBalance(balance);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         return accountState;
     }
 
-    private AccountState updateVote(Transaction tx, AccountState accountState) {
+    private AccountState updateVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
         if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
@@ -242,20 +242,20 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             balance -= tx.getFee();
             account.setBalance(balance);
             account.setNonce(tx.nonce);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote += tx.amount;
             account.setVote(vote);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         return accountState;
     }
 
-    private AccountState updateDeposit(Transaction tx, AccountState accountState) {
+    private AccountState updateDeposit(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
             return accountState;
@@ -264,12 +264,12 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         balance -= tx.getFee();
         account.setBalance(balance);
         account.setNonce(tx.nonce);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
 
-    private AccountState updateDeployContract(Transaction tx, AccountState accountState) {
+    private AccountState updateDeployContract(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         if (tx.getContractType() == 0) {//代币
             byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
@@ -282,7 +282,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 balance -= tx.getFee();
                 account.setBalance(balance);
                 account.setNonce(tx.nonce);
-                account.setBlockHeight(tx.height);
+                account.setBlockHeight(height);
                 accountState.setAccount(account);
 
                 Map<byte[], Long> tokensmap = accountState.getTokensMap();
@@ -302,7 +302,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updateCallContract(Transaction tx, AccountState accountState) {
+    private AccountState updateCallContract(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
         byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
@@ -314,7 +314,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                         balance -= tx.getFee();
                         account.setBalance(balance);
                         account.setNonce(tx.nonce);
-                        account.setBlockHeight(tx.height);
+                        account.setBlockHeight(height);
                         accountState.setAccount(account);
                     }
                     if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
@@ -333,7 +333,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                         balance -= tx.getFee();
                         account.setBalance(balance);
                         account.setNonce(tx.nonce);
-                        account.setBlockHeight(tx.height);
+                        account.setBlockHeight(height);
                         accountState.setAccount(account);
                     }
                     if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
@@ -358,7 +358,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                         balance -= tx.getFee();
                         account.setBalance(balance);
                         account.setNonce(tx.nonce);
-                        account.setBlockHeight(tx.height);
+                        account.setBlockHeight(height);
                         accountState.setAccount(account);
 
                         Map<byte[], Long> tokensmap = accountState.getTokensMap();
@@ -381,7 +381,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updateIncubate(Transaction tx, AccountState accountState) throws InvalidProtocolBufferException, DecoderException {
+    private AccountState updateIncubate(Transaction tx, AccountState accountState, long height) throws InvalidProtocolBufferException, DecoderException {
         Account account = accountState.getAccount();
         HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tx.payload);
         int days = payloadproto.getType();
@@ -396,8 +396,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setIncubatecost(incub);
             account.setNonce(tx.nonce);
-            account.setBlockHeight(tx.height);
-            Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, tx.getInterest(tx.height, rateTable, days), tx.height, days);
+            account.setBlockHeight(height);
+            Incubator incubator = new Incubator(tx.to, tx.getHash(), height, tx.amount, tx.getInterest(height, rateTable, days), height, days);
             Map<byte[], Incubator> maps = accountState.getInterestMap();
             maps.put(tx.getHash(), incubator);
             accountState.setInterestMap(maps);
@@ -406,7 +406,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (sharpub != null && !sharpub.equals("")) {
             byte[] sharepublic = Hex.decodeHex(sharpub.toCharArray());
             if (Arrays.equals(sharepublic, account.getPubkeyHash())) {
-                Incubator share = new Incubator(sharepublic, tx.getHash(), tx.height, tx.amount, days, tx.getShare(tx.height, rateTable, days), tx.height);
+                Incubator share = new Incubator(sharepublic, tx.getHash(), height, tx.amount, days, tx.getShare(height, rateTable, days), height);
                 Map<byte[], Incubator> sharemaps = accountState.getShareMap();
                 sharemaps.put(tx.getHash(), share);
                 accountState.setShareMap(sharemaps);
@@ -415,15 +415,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
         if (Arrays.equals(IncubatorAddress.resultpubhash(), account.getPubkeyHash())) {
             balance = account.getBalance();
-            balance -= tx.getInterest(tx.height, rateTable, days);
+            balance -= tx.getInterest(height, rateTable, days);
             if (sharpub != null && !sharpub.equals("")) {
-                balance -= tx.getShare(tx.height, rateTable, days);
+                balance -= tx.getShare(height, rateTable, days);
             }
             long nonce = account.getNonce();
             nonce++;
             account.setBalance(balance);
             account.setNonce(nonce);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         return accountState;
@@ -532,7 +532,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         private long balance;
     }
 
-    private AccountState updateExtractInterest(Transaction tx, AccountState accountState) {
+    private AccountState updateExtractInterest(Transaction tx, AccountState accountState, long height) {
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -552,18 +552,18 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         balance += tx.amount;
         account.setBalance(balance);
         account.setNonce(tx.nonce);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
 
-    private AccountState updateExtractShare(Transaction tx, AccountState accountState) {
+    private AccountState updateExtractShare(Transaction tx, AccountState accountState, long height) {
         Map<byte[], Incubator> map = accountState.getShareMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
             throw new RuntimeException("Update extract share error,tx:" + tx.getHashHexString());
         }
-        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
+        incubator = merkleRule.UpdateExtIncuator(tx, height, incubator);
         map.put(tx.payload, incubator);
         accountState.setShareMap(map);
 
@@ -576,19 +576,19 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         balance += tx.amount;
         account.setBalance(balance);
         account.setNonce(tx.nonce);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
 
-    private AccountState updateExtranctCost(Transaction tx, AccountState accountState) {
+    private AccountState updateExtranctCost(Transaction tx, AccountState accountState, long height) {
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
             throw new RuntimeException("Update extract cost error,tx:" + tx.getHashHexString());
         }
         incubator.setCost(0);
-        incubator.setHeight(tx.height);
+        incubator.setHeight(height);
         map.put(tx.payload, incubator);
         accountState.setInterestMap(map);
 
@@ -604,12 +604,12 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setBalance(balance);
         account.setIncubatecost(incub);
         account.setNonce(tx.nonce);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
 
-    private AccountState updateCancelVote(Transaction tx, AccountState accountState) {
+    private AccountState updateCancelVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
         if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
@@ -618,20 +618,20 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             balance -= tx.getFee();
             account.setBalance(balance);
             account.setNonce(tx.nonce);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote -= tx.amount;
             account.setVote(vote);
-            account.setBlockHeight(tx.height);
+            account.setBlockHeight(height);
             accountState.setAccount(account);
         }
         return accountState;
     }
 
-    private AccountState updateMortgage(Transaction tx, AccountState accountState) {
+    private AccountState updateMortgage(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
@@ -644,12 +644,12 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setBalance(balance);
         account.setMortgage(mortgage);
         account.setNonce(tx.nonce);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
 
-    private AccountState updateCancelMortgage(Transaction tx, AccountState accountState) {
+    private AccountState updateCancelMortgage(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
             return accountState;
@@ -662,7 +662,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setBalance(balance);
         account.setMortgage(mortgage);
         account.setNonce(tx.nonce);
-        account.setBlockHeight(tx.height);
+        account.setBlockHeight(height);
         accountState.setAccount(account);
         return accountState;
     }
