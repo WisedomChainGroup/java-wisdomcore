@@ -166,7 +166,7 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public boolean hasAssetCodeAt(byte[] blockHash, int type, String code) {
+    public boolean hasAssetCodeAt(byte[] blockHash, byte[] code) {
         return false;
     }
 
