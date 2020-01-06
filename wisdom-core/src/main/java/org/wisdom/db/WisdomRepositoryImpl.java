@@ -194,7 +194,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
         Optional<Block> o = chainCache.get(bhash).map(ChainedWrapper::get);
         if (!o.isPresent()) return bc.getAncestorBlocks(bhash, anum);
-        ChainCache<BlockWrapper> ret = new ChainCache<>();
+        ChainCache<BlockWrapper> ret =
+                new ChainCache<>(Integer.MAX_VALUE, this::compareBlockWrapper);
 
         List<BlockWrapper> blocks = chainCache.getAncestors(bhash)
                 .stream().filter(bl -> bl.get().nHeight >= anum).collect(toList());
@@ -543,9 +544,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         triesSyncManager.commit(block);
 
         // 写入事务索引
-        if (!transactionIndex.containsKey(block.getHash())) {
-            transactionIndex.put(block.getHash(), new ByteArraySet());
-        }
+
+        transactionIndex.put(block.getHash(), new ByteArraySet());
 
         block.body.forEach(t -> {
             t.height = block.nHeight;
@@ -556,7 +556,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
         leastConfirms.put(block.getHash(),
                 (int) Math.ceil(
-                        candidateStateTrie.getProposers(getBlock(block.hashPrevBlock)).size()
+                        getProposersByParent(getBlock(block.hashPrevBlock))
+                                .size()
                                 * 2.0 / 3
                 )
         );
@@ -566,9 +567,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                         .stream().map(BlockWrapper::get).collect(toList());
 
         for (Block b : ancestors) {
-            if (!confirms.containsKey(b.getHash())) {
-                confirms.put(b.getHash(), new ByteArraySet());
-            }
+
+            confirms.putIfAbsent(b.getHash(), new ByteArraySet());
+
             // 区块不能确认自己
             if (Arrays.equals(b.getHash(), block.getHash())) {
                 continue;
