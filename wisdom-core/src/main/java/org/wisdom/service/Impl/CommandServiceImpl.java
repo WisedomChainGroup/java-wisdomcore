@@ -83,7 +83,10 @@ public class CommandServiceImpl implements CommandService {
                 return apiResult;
             }
             if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
-                List<String> list = repository.getCurrentBestCandidates().stream().map(x -> Hex.encodeHexString(x.getPublicKeyHash().getBytes())).collect(Collectors.toList());
+                List<String> list = repository.getLatestTopCandidates()
+                        .stream().map(x -> x.getPublicKeyHash().toHex())
+                        .collect(Collectors.toList());
+
                 byte[] fromPublicHash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (list.size() > 0 && list.contains(Hex.encodeHexString(fromPublicHash))) {
                     apiResult.setCode(5000);

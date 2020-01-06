@@ -1,7 +1,5 @@
 package org.wisdom.db;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.contract.AssetDefinition.Asset;
@@ -24,18 +22,20 @@ public class AssetCodeUpdater extends AbstractStateUpdater<Boolean> {
 
     @Override
     Set<byte[]> getRelatedKeys(Transaction transaction) {
-        if(transaction.type!=Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType()!=0) Collections.emptySet();
+        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType() != 0)
+            return Collections.emptySet();
         ByteArraySet set = new ByteArraySet();
-        Asset asset=Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
+        Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
         set.add(asset.getCode());
         return set;
     }
 
     @Override
     Boolean update(byte[] id, Boolean state, Block block, Transaction transaction) {
-        if(transaction.type!=Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType()!=0) return state;
-        Asset asset=Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
-        if(Arrays.equals(id, asset.getCode())) return true;
+        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType() != 0)
+            return state;
+        Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
+        if (Arrays.equals(id, asset.getCode())) return true;
         return state;
     }
 

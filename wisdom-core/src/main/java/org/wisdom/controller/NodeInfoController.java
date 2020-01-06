@@ -11,10 +11,7 @@ import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.AccountState;
-import org.wisdom.db.Candidate;
-import org.wisdom.db.CandidateStateTrie;
-import org.wisdom.db.WisdomRepository;
+import org.wisdom.db.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeerServer;
@@ -105,10 +102,10 @@ public class NodeInfoController {
         } else {
             res.put("enableMinerJoins", false);
         }
-        List<CandidateStateTrie.CandidateInfo> proposers = repository.getCurrentBestCandidates();
-        List<CandidateStateTrie.CandidateInfo> blocksList = repository.getCurrentBlockList();
+        List<CandidateInfo> proposers = repository.getLatestTopCandidates();
+        List<CandidateInfo> blocksList = repository.getLatestBlockedCandidates();
         res.put("proposers", proposers.stream()
-                .map(CandidateStateTrie.CandidateInfo::getPublicKeyHash)
+                .map(CandidateInfo::getPublicKeyHash)
                 .toArray()
         );
         res.put("blockList", blocksList.stream().map(this::toProposer).toArray());
@@ -116,7 +113,7 @@ public class NodeInfoController {
         return res;
     }
 
-    private Map<String, Object> toProposer(CandidateStateTrie.CandidateInfo candidate){
+    private Map<String, Object> toProposer(CandidateInfo candidate){
         Map<String, Object> m = new HashMap<>();
         m.put("publicKeyHash", candidate.getPublicKeyHash());
         m.put("amount", candidate.getAmount());
@@ -168,10 +165,10 @@ public class NodeInfoController {
         if (!o.isPresent()) {
             return "invalid account";
         }
-        long currentEra = repository.getCurrentEra();
+        long currentEra = repository.getLatestEra();
         PublicKeyHash publicKeyHash = o.get();
         Candidate candidate = repository
-                .getCurrentCandidate(publicKeyHash.getPublicKeyHash())
+                .getLatestCandidate(publicKeyHash.getPublicKeyHash())
                 .get();
         return  candidate.getReceivedVotes()
                 .values().stream()
@@ -193,9 +190,9 @@ public class NodeInfoController {
     public Object getAccumulatedByAddress(@PathVariable("transactionHash") String transactionHash) throws Exception{
         Block best = repository.getBestBlock();
         Transaction tx = repository.getLatestTransaction(Hex.decodeHex(transactionHash)).get();
-        long currentEra = repository.getCurrentEra();
+        long currentEra = repository.getLatestEra();
         Candidate candidate = repository
-                .getCurrentCandidate(tx.to)
+                .getLatestCandidate(tx.to)
                 .get();
         Map<String, Object> res = new HashMap<>();
         res.put("transactionHash", transactionHash);

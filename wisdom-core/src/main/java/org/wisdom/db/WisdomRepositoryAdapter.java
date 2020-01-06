@@ -41,7 +41,7 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public Block findAncestorHeader(byte[] hash, long h) {
+    public Block getAncestorHeader(byte[] hash, long h) {
         return null;
     }
 
@@ -66,7 +66,7 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
+    public boolean containsTransactionAt(byte[] blockHash, byte[] transactionHash) {
         return false;
     }
 
@@ -86,22 +86,22 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
+    public List<CandidateInfo> getLatestTopCandidates() {
         return null;
     }
 
     @Override
-    public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
+    public List<CandidateInfo> getLatestBlockedCandidates() {
         return null;
     }
 
     @Override
-    public long getCurrentEra() {
+    public long getLatestEra() {
         return 0;
     }
 
     @Override
-    public Optional<Candidate> getCurrentCandidate(byte[] _) {
+    public Optional<Candidate> getLatestCandidate(byte[] _) {
         return Optional.empty();
     }
 
@@ -111,7 +111,7 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload) {
+    public boolean containsPayloadAt(byte[] blockHash, int type, byte[] payload) {
         return false;
     }
 
@@ -166,17 +166,17 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
-    public boolean hasAssetCodeAt(byte[] blockHash, byte[] code) {
+    public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
         return false;
     }
 
     @Override
-    public double averageBlocksInterval() {
+    public double getAverageBlocksInterval() {
         return 0;
     }
 
     @Override
-    public long averageFee() {
+    public long getAverageFee() {
         return 0;
     }
 

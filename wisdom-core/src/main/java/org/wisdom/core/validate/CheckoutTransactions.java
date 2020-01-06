@@ -212,7 +212,7 @@ public class CheckoutTransactions {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb中是否有重复的代币合约code存在
-            if (wisdomRepository.hasAssetCodeAt(parenthash, asset.getCode())) {
+            if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode())) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
             }
@@ -442,7 +442,7 @@ public class CheckoutTransactions {
         switch (Transaction.Type.values()[tx.type]) {
             case EXIT_VOTE: {
                 // 投票没有撤回过
-                if (wisdomRepository.hasPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)) {
+                if (wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)) {
                     peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
@@ -450,7 +450,7 @@ public class CheckoutTransactions {
             }
             case EXIT_MORTGAGE: {
                 // 抵押没有撤回过
-                if (wisdomRepository.hasPayloadAt(parenthash, EXIT_MORTGAGE.ordinal(), tx.payload)) {
+                if (wisdomRepository.containsPayloadAt(parenthash, EXIT_MORTGAGE.ordinal(), tx.payload)) {
                     peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the mortgage transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
@@ -458,7 +458,7 @@ public class CheckoutTransactions {
             }
             case EXTRACT_COST: {
                 //本金没有被撤回过
-                if (wisdomRepository.hasPayloadAt(parenthash, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
+                if (wisdomRepository.containsPayloadAt(parenthash, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
                     peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the incubate transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }

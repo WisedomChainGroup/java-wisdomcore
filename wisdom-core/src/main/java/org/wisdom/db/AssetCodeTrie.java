@@ -13,6 +13,6 @@ public class AssetCodeTrie extends AbstractStateTrie<Boolean>  {
 
     @Override
     protected String getPrefix() {
-        return "assetcode";
+        return "asset-code";
     }
 }

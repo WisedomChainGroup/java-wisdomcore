@@ -270,7 +270,7 @@ public class PackageCache {
                 return;
             }
             //判断forkdb中是否有重复的代币合约code存在
-            if (repository.hasAssetCodeAt(parenthash, asset.getCode())) {
+            if (repository.containsAssetCodeAt(parenthash, asset.getCode())) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
@@ -292,7 +292,7 @@ public class PackageCache {
     }
 
     private boolean CheckRepetition(Transaction tx) {
-        return repository.hasTransactionAt(parenthash, tx.getHash());
+        return repository.containsTransactionAt(parenthash, tx.getHash());
     }
 
     private boolean CheckMapRedo(String publicKeyHash) throws DecoderException {
@@ -322,13 +322,13 @@ public class PackageCache {
 
     private void CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
         if (tx.type == 12) {
-            if (repository.hasPayloadAt(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
+            if (repository.containsPayloadAt(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
         }
         if (tx.type == 15) {
-            if (repository.hasPayloadAt(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
+            if (repository.containsPayloadAt(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
@@ -394,7 +394,7 @@ public class PackageCache {
         } else if (tx.type == 2) {
             accountList = updateVote(fromaccount, toaccount, tx);
         } else {
-            if (repository.hasPayloadAt(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)) {
+            if (repository.containsPayloadAt(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }

@@ -2,17 +2,13 @@ package org.wisdom.db;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.tdf.common.util.*;
 import org.wisdom.consensus.pow.Proposer;
-import org.wisdom.contract.AssetCode;
-import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.BigEndian;
-import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -23,8 +19,6 @@ import static java.util.stream.Collectors.toSet;
 @Slf4j
 public class WisdomRepositoryImpl implements WisdomRepository {
     private ChainCache<BlockWrapper> chainCache;
-
-    private PriorityQueue<BlockWrapper> blockQueue;
 
     // block confirms
     private Map<byte[], Set<byte[]>> confirms = new ByteArrayMap<>();
@@ -72,13 +66,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.bc = bc;
         this.targetCache = targetCache;
         this.targetCache.setRepository(this);
-        chainCache = new ChainCache<>();
-        this.chainCache = chainCache
-                .withComparator((x, y) -> compareBlock(x.get(), y.get()));
+        chainCache = new ChainCache<>(Integer.MAX_VALUE, this::compareBlockWrapper);
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
         this.assetCodeTrie = assetCodeTrie;
-        this.blockQueue = new PriorityQueue<>((x, y) -> -compareBlock(x.get(), y.get()));
         this.triesSyncManager = triesSyncManager;
         this.triesSyncManager.setRepository(this);
         this.triesSyncManager.sync();
@@ -87,12 +78,15 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     private void deleteCache(Block b) {
-        chainCache.remove(b.getHash());
+        chainCache.remove(new BlockWrapper(b));
         confirms.remove(b.getHash());
         leastConfirms.remove(b.getHash());
         transactionIndex.remove(b.getHash());
-        blockQueue.remove(new BlockWrapper(b));
         b.body.forEach(t -> transactionCache.remove(t.getHash()));
+    }
+
+    private int compareBlockWrapper(BlockWrapper a, BlockWrapper b){
+        return compareBlock(a.get(), b.get());
     }
 
     private int compareBlock(Block a, Block b) {
@@ -117,8 +111,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     @Override
     public Block getBestBlock() {
-        if (blockQueue.size() == 0) return latestConfirmed;
-        return blockQueue.peek().get();
+        return chainCache.isEmpty() ?
+                latestConfirmed :
+                chainCache.last().get();
     }
 
     public Block getHeader(byte[] blockHash) {
@@ -134,7 +129,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
-    public long getCurrentEra() {
+    public long getLatestEra() {
         Block best = getBestBlock();
         if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
             return eraLinker.getEraAtBlockNumber(best.nHeight) + 1;
@@ -149,26 +144,28 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             return Collections.emptyList();
         }
 
-        ChainCache<BlockWrapper> c = new ChainCache<>();
-
-        List<Block> blocks = new ArrayList<>();
+        ChainCache<BlockWrapper> c = new ChainCache<>(
+                Integer.MAX_VALUE,
+                this::compareBlockWrapper
+        );
 
         // 从数据库获取一部分
         if (startHeight < latestConfirmed.nHeight) {
-            blocks.addAll(
-                    bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial));
+            c.addAll(
+                    bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial)
+                    .stream().map(BlockWrapper::new)
+                    .collect(toList())
+            );
         }
 
-        blocks.add(latestConfirmed);
-
         // 从 forkdb 获取一部分
-        blocks.stream().filter((b) -> b.nHeight >= startHeight && b.nHeight <= stopHeight)
-                .forEach(b -> c.put(new BlockWrapper(b)));
+        chainCache.stream().filter((b) -> b.get().nHeight >= startHeight
+                && b.get().nHeight <= stopHeight)
+                .forEach(c::add);
 
         // 按需进行裁剪
-        List<Block> all = c.getAll().stream()
+        List<Block> all = c.stream()
                 .map(BlockWrapper::get)
-                .sorted(this::compareBlock)
                 .collect(toList());
 
         if (sizeLimit > all.size() || sizeLimit < 0) {
@@ -180,7 +177,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         return all.subList(0, sizeLimit);
     }
 
-    public Block findAncestorHeader(byte[] hash, long height) {
+    public Block getAncestorHeader(byte[] hash, long height) {
         Block bHeader = getHeader(hash);
         if (bHeader.nHeight < height) {
             return null;
@@ -201,12 +198,12 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
         List<BlockWrapper> blocks = chainCache.getAncestors(bhash)
                 .stream().filter(bl -> bl.get().nHeight >= anum).collect(toList());
-        ret.put(blocks);
-        bc.getAncestorBlocks(ret.getAll().get(0).get().hashPrevBlock, anum)
+        ret.addAll(blocks);
+        bc.getAncestorBlocks(ret.first().get().hashPrevBlock, anum)
                 .stream().map(BlockWrapper::new)
-                .forEach(ret::put);
+                .forEach(ret::add);
 
-        return ret.getAll().stream().map(BlockWrapper::get).collect(toList());
+        return ret.stream().map(BlockWrapper::get).collect(toList());
     }
 
     public boolean isStaged(byte[] hash) {
@@ -215,11 +212,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     @Override
     public List<Block> getStaged() {
-        return chainCache.getAll().stream().map(BlockWrapper::get).collect(toList());
+        return chainCache.stream()
+                .map(BlockWrapper::get)
+                .collect(toList());
     }
 
     public boolean isConfirmed(byte[] hash) {
-        return !chainCache.contains(hash) && (
+        return !chainCache.containsHash(hash) && (
                 FastByteComparisons.equal(latestConfirmed.getHash(), hash) ||
                         bc.hasBlock(hash)
         );
@@ -231,7 +230,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     // the block or the ancestor has the transaction
-    public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
+    public boolean containsTransactionAt(byte[] blockHash, byte[] transactionHash) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
             return bc.hasTransaction(transactionHash);
         }
@@ -244,7 +243,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 && transactionIndex.get(blockHash).contains(transactionHash)) {
             return true;
         }
-        return hasTransactionAt(b.hashPrevBlock, transactionHash);
+        return containsTransactionAt(b.hashPrevBlock, transactionHash);
     }
 
     // get transaction from block or the ancestor
@@ -262,7 +261,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         return getTransactionAt(parent, txHash);
     }
 
-    public boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload) {
+    public boolean containsPayloadAt(byte[] blockHash, int type, byte[] payload) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
             return bc.hasPayload(type, payload);
         }
@@ -274,10 +273,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 return true;
             }
         }
-        return hasPayloadAt(b.hashPrevBlock, type, payload);
+        return containsPayloadAt(b.hashPrevBlock, type, payload);
     }
 
-    public boolean hasAssetCodeAt(byte[] blockHash, byte[] code) {
+    public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
         return assetCodeTrie.get(blockHash,code).orElse(false);
     }
 
@@ -307,7 +306,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
-    public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
+    public List<CandidateInfo> getLatestTopCandidates() {
         Block best = getBestBlock();
         byte[] key;
         if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
@@ -321,7 +320,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
-    public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
+    public List<CandidateInfo> getLatestBlockedCandidates() {
         Block best = getBestBlock();
         byte[] key;
         if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
@@ -335,12 +334,12 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
-    public Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash) {
+    public Optional<Candidate> getLatestCandidate(byte[] publicKeyHash) {
         return candidateStateTrie.get(getBestBlock().getHash(), publicKeyHash);
     }
 
     // average blocks interval
-    public double averageBlocksInterval() {
+    public double getAverageBlocksInterval() {
             List<Block> best = chainCache.getAllForks().get(0).stream().map(ChainedWrapper::get).collect(toList());
             if (best.size() >= 10) {
                 best = best.subList(0, 10);
@@ -354,7 +353,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
 
-    public long averageFee() {
+    public long getAverageFee() {
         List<Block> list = getBestChain(10);
         List<Transaction> transactionList = new ArrayList<>();
         list.stream().map(m -> m.body).filter(Objects::nonNull).forEach(transactionList::addAll);
@@ -380,7 +379,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     // count blocks after timestamp
     public long countBlocksAfter(long timestamp) {
-            return chainCache.getAll().stream().filter(x -> x.get().nTime >= timestamp).count() +
+            return chainCache
+                    .stream().filter(x -> x.get().nTime >= timestamp)
+                    .count() +
                     bc.countBlocksAfter(timestamp);
     }
 
@@ -530,15 +531,15 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
         // filter orphans
         if (!FastByteComparisons.equal(this.latestConfirmed.getHash(), block.hashPrevBlock)
-                && !chainCache.contains(block.hashPrevBlock)) {
+                && !chainCache.containsHash(block.hashPrevBlock)) {
             return;
         }
         // had written
-        if (chainCache.contains(block.getHash())) {
+        if (chainCache.containsHash(block.getHash())) {
             return;
         }
 
-        chainCache.put(new BlockWrapper(block));
+        chainCache.add(new BlockWrapper(block));
         triesSyncManager.commit(block);
 
         // 写入事务索引

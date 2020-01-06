@@ -3,7 +3,6 @@ package org.wisdom.db;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.consensus.pow.Proposer;
-import org.wisdom.contract.AssetCode;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -100,10 +99,10 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public Block findAncestorHeader(byte[] hash, long h) {
+    public Block getAncestorHeader(byte[] hash, long h) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.findAncestorHeader(hash, h);
+            return delegate.getAncestorHeader(hash, h);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -150,20 +149,20 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public boolean isStagedOrConfirmed(byte[] hash) {
+    public boolean containsBlock(byte[] hash) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.isStagedOrConfirmed(hash);
+            return delegate.containsBlock(hash);
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash) {
+    public boolean containsTransactionAt(byte[] blockHash, byte[] transactionHash) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.hasTransactionAt(blockHash, transactionHash);
+            return delegate.containsTransactionAt(blockHash, transactionHash);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -201,40 +200,40 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates() {
+    public List<CandidateInfo> getLatestTopCandidates() {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getCurrentBestCandidates();
+            return delegate.getLatestTopCandidates();
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public List<CandidateStateTrie.CandidateInfo> getCurrentBlockList() {
+    public List<CandidateInfo> getLatestBlockedCandidates() {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getCurrentBlockList();
+            return delegate.getLatestBlockedCandidates();
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public long getCurrentEra() {
+    public long getLatestEra() {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getCurrentEra();
+            return delegate.getLatestEra();
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash) {
+    public Optional<Candidate> getLatestCandidate(byte[] publicKeyHash) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getCurrentCandidate(publicKeyHash);
+            return delegate.getLatestCandidate(publicKeyHash);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -251,10 +250,10 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload) {
+    public boolean containsPayloadAt(byte[] blockHash, int type, byte[] payload) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.hasPayloadAt(blockHash, type, payload);
+            return delegate.containsPayloadAt(blockHash, type, payload);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -461,30 +460,30 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public boolean hasAssetCodeAt(byte[] blockHash, byte[] code) {
+    public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.hasAssetCodeAt(blockHash, code);
+            return delegate.containsAssetCodeAt(blockHash, code);
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public double averageBlocksInterval() {
+    public double getAverageBlocksInterval() {
         readWriteLock.readLock().lock();
         try {
-            return delegate.averageBlocksInterval();
+            return delegate.getAverageBlocksInterval();
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public long averageFee() {
+    public long getAverageFee() {
         readWriteLock.readLock().lock();
         try {
-            return delegate.averageFee();
+            return delegate.getAverageFee();
         } finally {
             readWriteLock.readLock().unlock();
         }

@@ -22,10 +22,10 @@ public interface WisdomRepository {
 
     Block getHeader(byte[] hash);
 
-    long getCurrentEra();
+    long getLatestEra();
 
     // get ancestor at height h of block
-    Block findAncestorHeader(byte[] hash, long h);
+    Block getAncestorHeader(byte[] hash, long h);
 
     // get ancestors after(inclusive) height h of block(inclusive)
     List<Block> getAncestorBlocks(byte[] hash, long height);
@@ -40,12 +40,12 @@ public interface WisdomRepository {
     boolean isConfirmed(byte[] hash);
 
     // block has staged or confirmed
-    default boolean isStagedOrConfirmed(byte[] hash) {
+    default boolean containsBlock(byte[] hash) {
         return isStaged(hash) || isConfirmed(hash);
     }
 
     // the block or any ancestor of the block has transaction
-    boolean hasTransactionAt(byte[] blockHash, byte[] transactionHash);
+    boolean containsTransactionAt(byte[] blockHash, byte[] transactionHash);
 
     byte[] getTargetByParent(Block parent);
 
@@ -53,11 +53,11 @@ public interface WisdomRepository {
 
     Optional<Proposer> getProposerByParentAndEpoch(Block parent, long epochSecond);
 
-    List<CandidateStateTrie.CandidateInfo> getCurrentBestCandidates();
+    List<CandidateInfo> getLatestTopCandidates();
 
-    List<CandidateStateTrie.CandidateInfo> getCurrentBlockList();
+    List<CandidateInfo> getLatestBlockedCandidates();
 
-    Optional<Candidate> getCurrentCandidate(byte[] publicKeyHash);
+    Optional<Candidate> getLatestCandidate(byte[] publicKeyHash);
 
     // get transaction from block or the ancestor
     Optional<Transaction> getTransactionAt(byte[] blockHash, byte[] txHash);
@@ -66,7 +66,7 @@ public interface WisdomRepository {
         return getTransactionAt(getBestBlock().getHash(), txHash);
     }
 
-    boolean hasPayloadAt(byte[] blockHash, int type, byte[] payload);
+    boolean containsPayloadAt(byte[] blockHash, int type, byte[] payload);
 
     Optional<AccountState> getAccountStateAt(byte[] blockHash, byte[] publicKeyHash);
 
@@ -129,12 +129,15 @@ public interface WisdomRepository {
 
     void writeBlock(Block block);
 
-    boolean hasAssetCodeAt(byte[] blockHash, byte[] code);
+    boolean containsAssetCodeAt(byte[] blockHash, byte[] code);
 
-    double averageBlocksInterval();
+    // average blocks interval of latest 10 blocks
+    double getAverageBlocksInterval();
 
-    long averageFee();
+    // average fee of latest 10 blocks
+    long getAverageFee();
 
+    // get the best block and its ancestors with at most
     List<Block> getBestChain(int limit);
 
     long countBlocksAfter(long timestamp);

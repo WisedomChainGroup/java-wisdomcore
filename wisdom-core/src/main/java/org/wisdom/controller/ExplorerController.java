@@ -63,8 +63,8 @@ public class ExplorerController {
         try {
             long blocksCount = repository.countBlocksAfter(System.currentTimeMillis() / 1000 - 24 * 60 * 60);
             String target = Hex.encodeHexString(repository.getBestBlock().nBits);
-            double avgInterval = repository.averageBlocksInterval();
-            long averageFee = repository.averageFee();
+            double avgInterval = repository.getAverageBlocksInterval();
+            long averageFee = repository.getAverageFee();
             int adoptcount = adoptTransPool.size();
             int pengcount = peningTransPool.Unpacksize();
             long lastConfirmedHeight = wisdomBlockChain.getCurrentTotalWeight();
