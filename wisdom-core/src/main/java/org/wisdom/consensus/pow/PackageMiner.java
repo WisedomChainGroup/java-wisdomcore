@@ -1,7 +1,6 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
@@ -45,20 +44,11 @@ public class PackageMiner {
         }
         PackageCache packageCache = new PackageCache();
         packageCache.init(peningTransPool, wisdomRepository, merkleRule, waitCount, rateTable,
-                convertAccountStateMap(accountStateMap), maps, parenthash, block, height, block.size());
+                accountStateMap, maps, parenthash, block, height, block.size());
         List<Transaction> packageTransaction = packageCache.getRightTransactions();
         if (packageTransaction == null) {
             return new ArrayList<>();
         }
         return packageTransaction;
     }
-
-    private Map<String, AccountState> convertAccountStateMap(Map<byte[], AccountState> accountStateMap){
-        Map<String, AccountState> map = new HashMap<>();
-        for(Map.Entry<byte[], AccountState> entry:accountStateMap.entrySet()){
-            map.put(Hex.encodeHexString(entry.getKey()),entry.getValue());
-        }
-        return map;
-    }
-
 }

@@ -1,6 +1,5 @@
 package org.wisdom.core.validate;
 
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
@@ -247,11 +246,7 @@ public class CheckoutTransactions {
                 map.put(publicKeyHash, accountState);
             } else {
                 toaccountState.setAccount(account);
-                try {
-                    map.put(Hex.decodeHex(toaccount.getKey()), toaccountState);
-                } catch (DecoderException e) {
-                    e.printStackTrace();
-                }
+                map.put(toaccount.getPubkeyHash(), toaccountState);
             }
         });
         return Result.SUCCESS;

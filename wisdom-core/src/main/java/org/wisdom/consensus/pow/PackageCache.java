@@ -4,9 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.contract.AssetDefinition.Asset;
@@ -20,7 +22,6 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.AssetCodeTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.pool.TransPool;
@@ -32,7 +33,6 @@ import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
 import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
-import static org.wisdom.core.account.Transaction.Type.DEPLOY_CONTRACT;
 import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.CHANGEOWNER;
 import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.TRANSFER;
 
@@ -40,7 +40,7 @@ public class PackageCache {
 
     private static final Logger logger = LoggerFactory.getLogger(PackageCache.class);
 
-    private Map<String, AccountState> accountStateMap;
+    private Map<byte[], AccountState> accountStateMap;
 
     private IdentityHashMap<String, Long> removemap;
 
@@ -64,7 +64,7 @@ public class PackageCache {
 
     private String publicKeyHash;
 
-    private Map<String, AccountState> newMap;
+    private Map<byte[], AccountState> newMap;
 
     private WisdomRepository repository;
 
@@ -76,8 +76,6 @@ public class PackageCache {
 
     private RateTable rateTable;
 
-    private AssetCodeTrie assetCodeTrie;
-
     public PackageCache() {
         this.removemap = new IdentityHashMap<>();
         this.transactionList = new ArrayList<>();
@@ -87,7 +85,7 @@ public class PackageCache {
     }
 
     public void init(PeningTransPool peningTransPool, WisdomRepository repository, MerkleRule merkleRule,
-                     WaitCount waitCount, RateTable rateTable, Map<String, AccountState> accountStateMap,
+                     WaitCount waitCount, RateTable rateTable, Map<byte[], AccountState> accountStateMap,
                      Map<String, TreeMap<Long, TransPool>> maps, byte[] parenthash,
                      Block block, long height, int size) {
         this.peningTransPool = peningTransPool;
@@ -111,62 +109,66 @@ public class PackageCache {
                 state = false;
                 TransPool transPool = entry1.getValue();
                 Transaction transaction = transPool.getTransaction();
-                //区块大小
-                if (CheckSize(transaction)) {
-                    break;
-                }
-                //防止写入重复事务
-                if (CheckRepetition(transaction)) {
-                    continue;
-                }
-                //没有获取到 AccountState
-                if (CheckMapRedo(publicKeyHash)) {
-                    break;
-                }
-                newMap = new HashMap<>();
-                AccountState accountState = accountStateMap.get(publicKeyHash);
-                Account fromaccount = accountState.getAccount();
-                long nowNonce = fromaccount.getNonce();
+                try{
+                    //区块大小
+                    if (CheckSize(transaction)) {
+                        break;
+                    }
+                    //防止写入重复事务
+                    if (CheckRepetition(transaction)) {
+                        continue;
+                    }
+                    //没有获取到 AccountState
+                    if (CheckMapRedo(publicKeyHash)) {
+                        break;
+                    }
+                    newMap = new ByteArrayMap<>();
+                    AccountState accountState = accountStateMap.get(publicKeyHash);
+                    Account fromaccount = accountState.getAccount();
+                    long nowNonce = fromaccount.getNonce();
 
-                // nonce是否合法
-                if (fromaccount.getNonce() >= transaction.nonce) {
+                    // nonce是否合法
+                    if (fromaccount.getNonce() >= transaction.nonce) {
+                        removemap.put(new String(entry.getKey()), transaction.nonce);
+                        continue;
+                    }
+                    switch (transaction.type) {
+                        case 1://转账
+                        case 2://投票
+                        case 13://撤回投票
+                            CheckFirstKind(accountState, fromaccount, transaction, publicKeyHash);
+                            break;
+                        case 3://存证事务,只需要扣除手续费
+                        case 9://孵化事务
+                        case 10://提取利息
+                        case 11://提取分享
+                        case 12://本金
+                        case 14://抵押
+                        case 15://撤回抵押
+                            CheckOtherKind(accountState, fromaccount, transaction, publicKeyHash);
+                            break;
+                        case 7://部署合约
+                            CheckDeployContract(transaction);
+                            break;
+                        case 8://调用合约
+                            CheckCallContract(accountState, fromaccount, transaction, publicKeyHash);
+                            break;
+                    }
+                    if (state) {
+                        continue;
+                    }
+                    //nonce是否跳号
+                    if (nowNonce + 1 != transaction.nonce) {
+                        if (!updateWaitCount(publicKeyHash, transaction.nonce)) break;
+                    }
+                    //更新缓存
+                    accountStateMap.putAll(newMap);
+                    transaction.height = height;
+                    size += transaction.size();
+                    transactionList.add(transaction);
+                }catch (Exception e){
                     removemap.put(new String(entry.getKey()), transaction.nonce);
-                    continue;
                 }
-                switch (transaction.type) {
-                    case 1://转账
-                    case 2://投票
-                    case 13://撤回投票
-                        CheckFirstKind(accountState, fromaccount, transaction, publicKeyHash);
-                        break;
-                    case 3://存证事务,只需要扣除手续费
-                    case 9://孵化事务
-                    case 10://提取利息
-                    case 11://提取分享
-                    case 12://本金
-                    case 14://抵押
-                    case 15://撤回抵押
-                        CheckOtherKind(accountState, fromaccount, transaction, publicKeyHash);
-                        break;
-                    case 7://部署合约
-                        CheckDeployContract(transaction);
-                        break;
-                    case 8://调用合约
-                        CheckCallContract(accountState, fromaccount, transaction, publicKeyHash);
-                        break;
-                }
-                if (state) {
-                    continue;
-                }
-                //nonce是否跳号
-                if (nowNonce + 1 != transaction.nonce) {
-                    if (!updateWaitCount(publicKeyHash, transaction.nonce)) break;
-                }
-                //更新缓存
-                accountStateMap.putAll(newMap);
-                transaction.height = height;
-                size += transaction.size();
-                transactionList.add(transaction);
             }
             if (exit) {//内循环退出
                 break;
@@ -177,7 +179,7 @@ public class PackageCache {
         return transactionList;
     }
 
-    private void CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
+    private void CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
         long balance = fromaccount.getBalance();
         balance -= tx.getFee();
         if (balance < 0) {
@@ -209,7 +211,7 @@ public class PackageCache {
                 }
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
-                newMap.put(Hex.encodeHexString(tx.to), assetaccountstate);
+                newMap.put(tx.to, assetaccountstate);
             } else if (tx.getMethodType() == TRANSFER.ordinal()) {//资产转账
                 AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
                 Map<byte[], Long> maps = accountState.getTokensMap();
@@ -232,7 +234,7 @@ public class PackageCache {
                 tobalance += assetTransfer.getValue();
                 tomaps.put(tx.to, tobalance);
                 toaccountstate.setTokensMap(tomaps);
-                newMap.put(Hex.encodeHexString(assetTransfer.getTo()), toaccountstate);
+                newMap.put(assetTransfer.getTo(), toaccountstate);
             } else {//increased
                 if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
                         || Arrays.equals(asset.getOwner(), new byte[32])) {
@@ -248,7 +250,7 @@ public class PackageCache {
                 }
                 asset.setTotalamount(totalamount);
                 assetaccountstate.setContract(asset.RLPserialization());
-                newMap.put(Hex.encodeHexString(tx.to), assetaccountstate);
+                newMap.put(tx.to, assetaccountstate);
 
                 Map<byte[], Long> tokensmap = accountState.getTokensMap();
                 long tokensbalance = tokensmap.get(tx.to);
@@ -257,7 +259,7 @@ public class PackageCache {
                 accountState.setTokensMap(tokensmap);
             }
         }
-        newMap.put(publicKeyHash, accountState);
+        newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
     }
 
     private void CheckDeployContract(Transaction tx) {
@@ -293,14 +295,13 @@ public class PackageCache {
         return repository.hasTransactionAt(parenthash, tx.getHash());
     }
 
-    private boolean CheckMapRedo(String publicKeyHash) {
-        return !accountStateMap.containsKey(publicKeyHash);
+    private boolean CheckMapRedo(String publicKeyHash) throws DecoderException {
+        return !accountStateMap.containsKey(Hex.decodeHex(publicKeyHash.toCharArray()));
     }
 
     private AccountState getKeyAccounState(byte[] key) {
-        String keyHex = Hex.encodeHexString(key);
-        if (accountStateMap.containsKey(keyHex)) {
-            return accountStateMap.get(keyHex);
+        if (accountStateMap.containsKey(key)) {
+            return accountStateMap.get(key);
         } else {
             return repository.getAccountStateAt(parenthash, key).get();
         }
@@ -312,14 +313,14 @@ public class PackageCache {
 
     private AccountState getIncubatorTotal() {
         byte[] totalhash = IncubatorAddress.resultpubhash();
-        if (accountStateMap.containsKey(Hex.encodeHexString(totalhash))) {
-            return accountStateMap.get(Hex.encodeHexString(totalhash));
+        if (accountStateMap.containsKey(totalhash)) {
+            return accountStateMap.get(totalhash);
         } else {
             return repository.getAccountStateAt(parenthash, totalhash).get();
         }
     }
 
-    private void CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
+    private void CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
         if (tx.type == 12) {
             if (repository.hasPayloadAt(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
@@ -348,7 +349,7 @@ public class PackageCache {
             AddRemoveMap(publicKeyHash, tx.nonce);
             return;
         }
-        newMap.put(publicKeyHash, accountState);
+        newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
     }
 
     private void AddRemoveMap(String key, long nonce) {
@@ -376,7 +377,7 @@ public class PackageCache {
                 }
                 account.setBalance(balance);
                 totalaccountState.setAccount(account);
-                newMap.put(Hex.encodeHexString(IncubatorAddress.resultpubhash()), totalaccountState);
+                newMap.put(IncubatorAddress.resultpubhash(), totalaccountState);
             } catch (Exception e) {
                 return true;
             }
@@ -384,7 +385,7 @@ public class PackageCache {
         return false;
     }
 
-    private void CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) {
+    private void CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
         AccountState toaccountState = getMapAccountState(tx);
         Account toaccount = toaccountState.getAccount();
         List<Account> accountList = null;
@@ -403,15 +404,15 @@ public class PackageCache {
             AddRemoveMap(publicKeyHash, tx.nonce);
             return;
         }
-        accountList.forEach(account -> {
+        for(Account account:accountList){
             if (account.getKey().equals(publicKeyHash)) {
                 accountState.setAccount(account);
-                newMap.put(publicKeyHash, accountState);
+                newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
             } else {
                 toaccountState.setAccount(account);
-                newMap.put(toaccount.getKey(), toaccountState);
+                newMap.put(toaccount.getPubkeyHash(), toaccountState);
             }
-        });
+        }
     }
 
     public static List<Account> UpdateCancelVote(Account fromaccount, Account votetoccount, Transaction transaction) {
