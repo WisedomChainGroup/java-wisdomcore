@@ -22,6 +22,7 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.orm.TransactionMapper;
@@ -30,10 +31,14 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.wisdom.db.AccountState;
+import org.wisdom.db.Candidate;
+import org.wisdom.db.Vote;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 @Setter
@@ -153,7 +158,7 @@ public class AccountDB {
         try {
             String sql = "select c.* from account c where c.pubkeyhash=? and c.blockheight=(\n" +
                     "select a.blockheight from account a where a.pubkeyhash=? and a.blockheight<=? order by a.blockheight desc limit 1)";
-            return tmpl.queryForObject(sql, new Object[]{pubkeyhash, pubkeyhash, height},  new BeanPropertyRowMapper<>(Account.class));
+            return tmpl.queryForObject(sql, new Object[]{pubkeyhash, pubkeyhash, height}, new BeanPropertyRowMapper<>(Account.class));
         } catch (Exception e) {
 //            e.printStackTrace();
             return null;
@@ -281,71 +286,71 @@ public class AccountDB {
         }
     }
 
-    public List<Map<String,Object>> selectlistVote(int height, int type) {
-        try{
+    public List<Map<String, Object>> selectlistVote(int height, int type) {
+        try {
             String sql = "select encode(t.to::bytea,'hex') as \"toAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",encode(t.from::bytea,'hex') as \"coinAddress\" \n" +
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height=? and t.type=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public List<Map<String,Object>> selectlistCancelVote(int height, int type) {
-        try{
+    public List<Map<String, Object>> selectlistCancelVote(int height, int type) {
+        try {
             String sql = "select encode(t.to::bytea,'hex') as \"toAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",encode(t.from::bytea,'hex') as \"coinAddress\",encode(t.payload::bytea,'hex') as \"tradeHash\"\n" +
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height=? and t.type=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public List<Map<String,Object>> selectlistMortgage(int height, int type) {
-        try{
+    public List<Map<String, Object>> selectlistMortgage(int height, int type) {
+        try {
             String sql = "select encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\"\n" +
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height=? and t.type=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public List<Map<String,Object>> selectlistCancelMortgage(int height, int type) {
-        try{
+    public List<Map<String, Object>> selectlistCancelMortgage(int height, int type) {
+        try {
             String sql = "select encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",encode(t.payload::bytea,'hex') as \"tradeHash\"\n" +
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height=? and t.type=? ";
             return tmpl.queryForList(sql, new Object[]{height, type});
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
     public List<Map<String, Object>> selectlistCoinBase(int height) {
-        try{
+        try {
             String sql = "select encode(t.to::bytea,'hex') as \"coinAddress\",t.amount as \"amount\",encode(t.tx_hash::bytea,'hex') as \"coinHash\",h.height as \"coinHeigth\",t.\"type\"\n" +
                     "from transaction t\n" +
                     "left join transaction_index i on t.tx_hash=i.tx_hash\n" +
                     "left join header h on h.block_hash=i.block_hash\n" +
                     "where  h.height=? ";
             return tmpl.queryForList(sql, new Object[]{height});
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
@@ -410,29 +415,69 @@ public class AccountDB {
         }
     }
 
-    public AccountState getAccounstate(byte[] pubkeyHash,long height){
-        AccountState accountState=new AccountState(pubkeyHash);
-        Account account=getHeightAccount(pubkeyHash,height);
-        if(account!=null){
+    public AccountState getAccounstate(byte[] pubkeyHash, long height) {
+        AccountState accountState = new AccountState(pubkeyHash);
+        Account account = getHeightAccount(pubkeyHash, height);
+        if (account != null) {
             accountState.setAccount(account);
         }
 
-        Map<byte[],Incubator> interestMap=new ByteArrayMap<>();
-        List<Incubator> incubatorList=incubatorDB.getList(pubkeyHash,height);
-        incubatorList.forEach(l->{
-                    interestMap.put(l.getTxid_issue(),new Incubator(pubkeyHash,l.getTxid_issue()
-                    ,l.getHeight(),l.getCost(),l.getInterest_amount(),l.getLast_blockheight_interest(),0));
+        Map<byte[], Incubator> interestMap = new ByteArrayMap<>();
+        List<Incubator> incubatorList = incubatorDB.getList(pubkeyHash, height);
+        incubatorList.forEach(l -> {
+                    interestMap.put(l.getTxid_issue(), new Incubator(pubkeyHash, l.getTxid_issue()
+                            , l.getHeight(), l.getCost(), l.getInterest_amount(), l.getLast_blockheight_interest(), 0));
                 }
         );
         accountState.setInterestMap(interestMap);
 
-        Map<byte[],Incubator> shareMap=new ByteArrayMap<>();
-        List<Incubator> shareList=incubatorDB.getShareList(pubkeyHash,height);
-        shareList.forEach(l->{
-                    shareMap.put(l.getTxid_issue(),new Incubator(pubkeyHash,l.getTxid_issue(),l.getHeight()
-                    ,l.getCost(),0,l.getShare_amount(),l.getLast_blockheight_share()));
-                });
+        Map<byte[], Incubator> shareMap = new ByteArrayMap<>();
+        List<Incubator> shareList = incubatorDB.getShareList(pubkeyHash, height);
+        shareList.forEach(l -> {
+            shareMap.put(l.getTxid_issue(), new Incubator(pubkeyHash, l.getTxid_issue(), l.getHeight()
+                    , l.getCost(), 0, l.getShare_amount(), l.getLast_blockheight_share()));
+        });
         accountState.setShareMap(shareMap);
         return accountState;
     }
+
+    public List<Transaction> getHeightVotes(byte[] pubkeyhash, long height) {
+        try {
+            String sql = "select t.* from transaction t inner join \"transaction_index\" as ti on t.tx_hash = ti.tx_hash inner join \"header\" as h on h.block_hash = ti.block_hash and h.height <=? and h.height > 0 where t.\"to\" =? and t.type = 2";
+            return tmpl.query(sql, new Object[]{height, pubkeyhash}, new TransactionMapper());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Transaction> getHeightMortgage(byte[] pubkeyhash, long height) {
+        try {
+            String sql = "select t.* from transaction t inner join \"transaction_index\" as ti on t.tx_hash = ti.tx_hash inner join \"header\" as h on h.block_hash = ti.block_hash and h.height <=? and h.height > 0 where t.\"to\" =? and t.type = 14";
+            return tmpl.query(sql, new Object[]{height, pubkeyhash}, new TransactionMapper());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public Candidate getCandidate(byte[] pubkeyHash, long height, int switchEra) {
+        Candidate candidate = new Candidate();
+        candidate.setPublicKeyHash(HexBytes.fromBytes(pubkeyHash));
+        List<Transaction> mortgages = getHeightMortgage(pubkeyHash, height);
+        long mortgageMoney = mortgages.stream().filter(mortgage -> !hasExitMortgage(mortgage.payload)).map(p -> p.amount).reduce(Long::sum).get();
+        candidate.setMortgage(mortgageMoney);
+        List<Transaction> votes = getHeightVotes(pubkeyHash, height);
+        Map<byte[], Vote> receivedVotes = votes.stream().filter(vote -> !hasExitVote(vote.payload))
+                .collect(Collectors.toMap(x -> x.to, x -> {
+                    Vote vote = new Vote();
+                    vote.setAmount(x.amount);
+                    vote.setFrom(x.from);
+                    vote.setEra((height - x.height) / switchEra + 1);
+                    return vote;
+                }));
+        candidate.setReceivedVotes(receivedVotes);
+        return candidate;
+    }
+
 }

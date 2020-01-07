@@ -53,7 +53,7 @@ public class TriesSyncManager {
             CandidateStateTrie candidateStateTrie,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
             WisdomBlockChain bc
-    ) throws Exception{
+    ) {
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
         this.statusStore = new StoreWrapper<>(
