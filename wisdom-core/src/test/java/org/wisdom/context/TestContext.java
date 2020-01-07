@@ -191,12 +191,13 @@ public class TestContext {
             CandidateStateTrie candidateStateTrie,
             BlockStreamBuilder blockStreamBuilder,
             AccountDB accountDB,
-            WisdomBlockChain wisdomBlockChain
+            WisdomBlockChain wisdomBlockChain,
+            @Value("${wisdom.block-interval-switch-era}") int switchEra
     ) {
         return new GenesisDump(
                 testConfig.getGenesisDumpOut(), jdbcTemplate, validatorState,
                 candidateStateTrie, testConfig.getGenesisDumpHeight(), blockStreamBuilder,
-                accountDB, wisdomBlockChain
+                accountDB, wisdomBlockChain, switchEra
         );
     }
 
@@ -324,13 +325,14 @@ public class TestContext {
     }
 
     @Bean
-    public EventEmitter eventEmitter(ApplicationContext applicationContext){
+    public EventEmitter eventEmitter(ApplicationContext applicationContext) {
         return new EventEmitter(applicationContext);
     }
 
     @AllArgsConstructor
-    public static class EventEmitter implements ApplicationListener<NewBestBlockEvent>{
+    public static class EventEmitter implements ApplicationListener<NewBestBlockEvent> {
         private ApplicationContext applicationContext;
+
         @Override
         public void onApplicationEvent(NewBestBlockEvent event) {
             applicationContext.publishEvent(new AccountUpdatedEvent(this, event.getBlock()));

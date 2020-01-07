@@ -48,8 +48,9 @@ public class GenesisDump {
     private AccountDB accountDB;
 
     private WisdomBlockChain wisdomBlockChain;
-    private @Value("${wisdom.block-interval-switch-era}")
-    int switchEra;
+
+    private int switchEra;
+
 
     public void dump() throws Exception {
 
@@ -63,7 +64,6 @@ public class GenesisDump {
                 Paths.get(genesisDirectory,
                         String.format("genesis.%d.rlp", genesisDumpHeight)
                 );
-
         Block block = Objects.requireNonNull(wisdomBlockChain.getCanonicalBlock(genesisDumpHeight));
         RLPElement newGenesisAccounts = RLPElement.readRLPTree(all);
         Map<byte[], Long> miners = getValidators();
