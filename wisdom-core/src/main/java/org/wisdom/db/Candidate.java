@@ -49,7 +49,7 @@ public class Candidate {
 
     // has been blocked
     @RLP(3)
-    private boolean isBlocked;
+    private boolean blocked;
 
     @JsonIgnore
     private Long votesCache;
@@ -77,6 +77,6 @@ public class Candidate {
     }
 
     public Candidate copy() {
-        return new Candidate(publicKeyHash, mortgage, new ByteArrayMap<>(receivedVotes), isBlocked, null, null);
+        return new Candidate(publicKeyHash, mortgage, new ByteArrayMap<>(receivedVotes), blocked, null, null);
     }
 }
