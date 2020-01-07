@@ -37,7 +37,7 @@ public class MultTransfer implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        MultTransfer multTransfer= RLPCodec.decode(payload,MultTransfer.class);
+        MultTransfer multTransfer= RLPElement.fromEncoded(payload).as(MultTransfer.class);
         if(multTransfer==null){
             return false;
         }
@@ -47,7 +47,7 @@ public class MultTransfer implements AnalysisContract {
         this.signatures=multTransfer.getSignatures();
         this.to=multTransfer.getTo();
         this.value=multTransfer.getValue();
-        return false;
+        return true;
     }
 
     @Override

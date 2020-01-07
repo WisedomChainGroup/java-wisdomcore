@@ -26,9 +26,9 @@ import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
 
 import java.util.*;
@@ -119,7 +119,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private Set<byte[]> getTransactionPayload(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
-        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        byte[] fromhash = Address.publicKeyToHash(tx.from);
         bytes.add(fromhash);
         if (tx.getContractType() == 0) {//代币
             byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
@@ -140,13 +140,13 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private Set<byte[]> getTransactionHash(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
         bytes.add(RipemdUtility.ripemd160(tx.getHash()));
-        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        byte[] fromhash = Address.publicKeyToHash(tx.from);
         bytes.add(fromhash);
         if (tx.getContractType() == 0) {//代币
             byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
             Asset asset = Asset.getAsset(rlpbyte);
-            if (!Arrays.equals(fromhash, RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())))) {
-                bytes.add(RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())));
+            if (!Arrays.equals(fromhash, Address.publicKeyToHash(asset.getOwner()))) {
+                bytes.add(Address.publicKeyToHash(asset.getOwner()));
             }
         }
         return bytes;
@@ -173,7 +173,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private Set<byte[]> getTransactionFromTo(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
-        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        byte[] fromhash = Address.publicKeyToHash(tx.from);
         bytes.add(fromhash);
         if (!Arrays.equals(fromhash, tx.to)) {
             bytes.add(tx.to);
@@ -183,7 +183,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private Set<byte[]> getTransactionFrom(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
-        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        byte[] fromhash = Address.publicKeyToHash(tx.from);
         bytes.add(fromhash);
         return bytes;
     }
@@ -214,7 +214,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateTransfer(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
-        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance -= tx.amount;
             balance -= tx.getFee();
@@ -236,7 +236,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
-        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance -= tx.amount;
             balance -= tx.getFee();
@@ -257,7 +257,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private AccountState updateDeposit(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
-        if (!Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+        if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             return accountState;
         }
         long balance = account.getBalance();
@@ -271,33 +271,50 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private AccountState updateDeployContract(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
-        if (tx.getContractType() == 0) {//代币
-            byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-            Asset asset = Asset.getAsset(rlpbyte);
+        switch (tx.getContractType()) {
+            case 0:
+                byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+                Asset asset = Asset.getAsset(rlpbyte);
 
-            byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
-            if (Arrays.equals(fromhash, account.getPubkeyHash()) &&
-                    Arrays.equals(fromhash, RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())))) {//from和owner相同
-                long balance = account.getBalance();
-                balance -= tx.getFee();
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(height);
-                accountState.setAccount(account);
+                byte[] fromhash = Address.publicKeyToHash(tx.from);
+                if (Arrays.equals(fromhash, account.getPubkeyHash()) &&
+                        Arrays.equals(fromhash, Address.publicKeyToHash(asset.getOwner()))) {//from和owner相同
+                    long balance = account.getBalance();
+                    balance -= tx.getFee();
+                    account.setBalance(balance);
+                    account.setNonce(tx.nonce);
+                    account.setBlockHeight(height);
+                    accountState.setAccount(account);
 
-                Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
-                accountState.setTokensMap(tokensmap);
-            }
-            if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
-                accountState.setType(1);
-                accountState.setContract(rlpbyte);
-            }
-            if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(asset.getOwner())), account.getPubkeyHash())) {//owner
-                Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
-                accountState.setTokensMap(tokensmap);
-            }
+                    Map<byte[], Long> tokensmap = accountState.getTokensMap();
+                    tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
+                    accountState.setTokensMap(tokensmap);
+                }
+                if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
+                    accountState.setType(1);
+                    accountState.setContract(rlpbyte);
+                }
+                if (Arrays.equals(Address.publicKeyToHash(asset.getOwner()), account.getPubkeyHash())) {//owner
+                    Map<byte[], Long> tokensmap = accountState.getTokensMap();
+                    tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
+                    accountState.setTokensMap(tokensmap);
+                }
+                break;
+            case 1://多签
+                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                    long balance = account.getBalance();
+                    balance -= tx.getFee();
+                    account.setBalance(balance);
+                    account.setNonce(tx.nonce);
+                    account.setBlockHeight(height);
+                    accountState.setAccount(account);
+                }
+                if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
+                    byte[] mulrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+                    accountState.setType(2);
+                    accountState.setContract(mulrlpbyte);
+                }
+                break;
         }
         return accountState;
     }
@@ -305,7 +322,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateCallContract(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-        byte[] fromhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from));
+        byte[] fromhash = Address.publicKeyToHash(tx.from);
         if (tx.getContractType() == 0) {//合约代币
             switch (tx.getMethodType()) {
                 case 0://更改所有者
@@ -328,24 +345,26 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     break;
                 case 1://转发资产
                     AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
-                    if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
+                    if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
                         long balance = account.getBalance();
                         balance -= tx.getFee();
                         account.setBalance(balance);
                         account.setNonce(tx.nonce);
                         account.setBlockHeight(height);
                         accountState.setAccount(account);
-                    }
-                    if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
+
                         Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        long balance = tokensmap.get(tx.to);
-                        balance -= assetTransfer.getValue();
-                        tokensmap.put(tx.to, balance);
+                        long tokenbalance = tokensmap.get(tx.to);
+                        tokenbalance -= assetTransfer.getValue();
+                        tokensmap.put(tx.to, tokenbalance);
                         accountState.setTokensMap(tokensmap);
                     }
                     if (Arrays.equals(assetTransfer.getTo(), account.getPubkeyHash())) {//to
                         Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        long balance = tokensmap.get(tx.to);
+                        long balance = 0;
+                        if (tokensmap.containsKey(tx.to)) {
+                            balance = tokensmap.get(tx.to);
+                        }
                         balance += assetTransfer.getValue();
                         tokensmap.put(tx.to, balance);
                         accountState.setTokensMap(tokensmap);
@@ -362,7 +381,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                         accountState.setAccount(account);
 
                         Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        long tokenbalance = tokensmap.get(tx.to);
+                        long tokenbalance = 0;
+                        if (tokensmap.containsKey(tx.to)) {
+                            tokenbalance = tokensmap.get(tx.to);
+                        }
                         tokenbalance += assetIncreased.getAmount();
                         tokensmap.put(tx.to, tokenbalance);
                         accountState.setTokensMap(tokensmap);
@@ -612,7 +634,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateCancelVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
-        if (Arrays.equals(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)), account.getPubkeyHash())) {
+        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
             balance -= tx.getFee();

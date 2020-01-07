@@ -9,12 +9,12 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tdf.common.util.ByteArrayMap;
-import org.tdf.common.util.ByteArraySet;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -110,7 +110,7 @@ public class PackageCache {
                 state = false;
                 TransPool transPool = entry1.getValue();
                 Transaction transaction = transPool.getTransaction();
-                try{
+                try {
                     //区块大小
                     if (CheckSize(transaction)) {
                         break;
@@ -149,7 +149,7 @@ public class PackageCache {
                             CheckOtherKind(accountState, fromaccount, transaction, publicKeyHash);
                             break;
                         case 7://部署合约
-                            CheckDeployContract(transaction);
+                            CheckDeployContract(accountState, fromaccount, transaction, publicKeyHash);
                             break;
                         case 8://调用合约
                             CheckCallContract(accountState, fromaccount, transaction, publicKeyHash);
@@ -167,7 +167,7 @@ public class PackageCache {
                     transaction.height = height;
                     size += transaction.size();
                     transactionList.add(transaction);
-                }catch (Exception e){
+                } catch (Exception e) {
                     removemap.put(new String(entry.getKey()), transaction.nonce);
                 }
             }
@@ -254,7 +254,10 @@ public class PackageCache {
                 newMap.put(tx.to, assetaccountstate);
 
                 Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                long tokensbalance = tokensmap.get(tx.to);
+                long tokensbalance=0;
+                if(tokensmap.containsKey(tx.to)){
+                    tokensbalance = tokensmap.get(tx.to);
+                }
                 tokensbalance += assetIncreased.getAmount();
                 tokensmap.put(tx.to, tokensbalance);
                 accountState.setTokensMap(tokensmap);
@@ -263,25 +266,44 @@ public class PackageCache {
         newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
     }
 
-    private void CheckDeployContract(Transaction tx) {
-        if (tx.getContractType() == 0) {//代币
-            Asset asset = new Asset();
-            if (!asset.RLPdeserialization(ByteUtil.bytearrayridfirst(tx.payload))) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
-                return;
-            }
-            //判断forkdb中是否有重复的代币合约code存在
-            if (repository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
-                return;
-            }
-            //同一区块是否重复 Asset code
-            if (AssetcodeSet.contains(asset.getCode())) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
-                return;
-            }
-            AssetcodeSet.add(asset.getCode());
+    private void CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
+        long balance = fromaccount.getBalance();
+        balance -= tx.getFee();
+        if (balance < 0) {
+            AddRemoveMap(publicKeyHash, tx.nonce);
+            return;
         }
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(tx.nonce);
+        accountState.setAccount(fromaccount);
+        switch (tx.getContractType()) {
+            case 0://代币
+                Asset asset = new Asset();
+                if (!asset.RLPdeserialization(ByteUtil.bytearrayridfirst(tx.payload))) {
+                    AddRemoveMap(publicKeyHash, tx.nonce);
+                    return;
+                }
+                //判断forkdb中是否有重复的代币合约code存在
+                if (repository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
+                    AddRemoveMap(publicKeyHash, tx.nonce);
+                    return;
+                }
+                //同一区块是否重复 Asset code
+                if (AssetcodeSet.contains(asset.getCode())) {
+                    AddRemoveMap(publicKeyHash, tx.nonce);
+                    return;
+                }
+                AssetcodeSet.add(asset.getCode());
+                break;
+            case 1://多签
+                Multiple multiple = new Multiple();
+                if (!multiple.RLPdeserialization(ByteUtil.bytearrayridfirst(tx.payload))) {
+                    AddRemoveMap(publicKeyHash, tx.nonce);
+                    return;
+                }
+                break;
+        }
+        newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
     }
 
     private boolean CheckSize(Transaction tx) {
@@ -405,7 +427,7 @@ public class PackageCache {
             AddRemoveMap(publicKeyHash, tx.nonce);
             return;
         }
-        for(Account account:accountList){
+        for (Account account : accountList) {
             if (account.getKey().equals(publicKeyHash)) {
                 accountState.setAccount(account);
                 newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);

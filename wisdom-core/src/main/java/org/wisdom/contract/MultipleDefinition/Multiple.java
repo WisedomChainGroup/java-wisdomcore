@@ -21,11 +21,11 @@ public class Multiple implements AnalysisContract {
     @RLP(0)
     private byte[] assetHash;
     @RLP(1)
-    private int min;
-    @RLP(2)
     private int max;
+    @RLP(2)
+    private int min;
     @RLP(3)
-    private List<byte[]> pubList;//公钥hash
+    private List<byte[]> pubList;//公钥
     @RLP(4)
     private long amount;
 
@@ -36,29 +36,29 @@ public class Multiple implements AnalysisContract {
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
-        Multiple multiple= RLPCodec.decode(payload,Multiple.class);
-        if(multiple==null){
+        Multiple multiple = RLPElement.fromEncoded(payload).as(Multiple.class);
+        if (multiple == null) {
             return false;
         }
-        this.assetHash=multiple.getAssetHash();
-        this.min=multiple.getMin();
-        this.max=multiple.getMax();
-        this.pubList=multiple.getPubList();
-        this.amount=multiple.getAmount();
+        this.assetHash = multiple.getAssetHash();
+        this.max = multiple.getMax();
+        this.min = multiple.getMin();
+        this.pubList = multiple.getPubList();
+        this.amount = multiple.getAmount();
         return true;
     }
 
     @Override
     public byte[] RLPserialization() {
         return RLPCodec.encode(Multiple.builder()
-                            .assetHash(this.assetHash)
-                            .min(this.min)
-                            .max(this.max)
-                            .pubList(this.pubList)
-                            .amount(this.amount).build());
+                .assetHash(this.assetHash)
+                .max(this.max)
+                .min(this.min)
+                .pubList(this.pubList)
+                .amount(this.amount).build());
     }
 
-    public static Multiple getMultiple(byte[] Rlpbyte){
+    public static Multiple getMultiple(byte[] Rlpbyte) {
         return RLPElement.fromEncoded(Rlpbyte).as(Multiple.class);
     }
 }
