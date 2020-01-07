@@ -2,7 +2,6 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
-import org.tdf.common.util.ByteArraySet;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.command.TransactionCheck;

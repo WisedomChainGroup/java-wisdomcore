@@ -30,11 +30,11 @@ import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
 import org.wisdom.db.AccountState;
@@ -44,7 +44,7 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
-import org.wisdom.util.Address;
+import org.wisdom.service.Impl.CommandServiceImpl;
 import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
@@ -69,10 +69,10 @@ public class TransactionCheck {
     AccountDB accountDB;
 
     @Autowired
-    IncubatorDB incubatorDB;
+    WisdomRepository wisdomRepository;
 
     @Autowired
-    WisdomRepository wisdomRepository;
+    WisdomBlockChain wisdomBlockChain;
 
     @Autowired
     RateTable rateTable;
@@ -243,34 +243,32 @@ public class TransactionCheck {
             int type = transaction.type;
             //balance
             long tranbalance = transaction.amount;
-            if (account != null) {
-                long nowbalance = account.getBalance();
-                if (type == 0x01 || type == 0x09) {
-                    if ((tranbalance + transaction.getFee()) > nowbalance) {
-                        apiResult.setCode(5000);
-                        apiResult.setMessage("Not sufficient funds");
-                        return apiResult;
-                    }
-                } else if (type == 0x03 || type == 0x0a || type == 0x0b || type == 0x0c
-                        || type == 0x0d || type == 0x0f || type == 0x07 || type == 0x08) {
-                    if (transaction.getFee() > nowbalance) {
-                        apiResult.setCode(5000);
-                        apiResult.setMessage("Not sufficient funds");
-                        return apiResult;
-                    }
-                } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
-                    if ((tranbalance + transaction.getFee()) > nowbalance) {
-                        apiResult.setCode(5000);
-                        apiResult.setMessage("Not sufficient funds");
-                        return apiResult;
-                    }
-                    //求余
-                    long remainder = tranbalance % EconomicModel.WDC;
-                    if (remainder != 0) {
-                        apiResult.setCode(5000);
-                        apiResult.setMessage("The amount must be an integer");
-                        return apiResult;
-                    }
+            long nowbalance = account.getBalance();
+            if (type == 0x01 || type == 0x09) {
+                if ((tranbalance + transaction.getFee()) > nowbalance) {
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Not sufficient funds");
+                    return apiResult;
+                }
+            } else if (type == 0x03 || type == 0x0a || type == 0x0b || type == 0x0c
+                    || type == 0x0d || type == 0x0f || type == 0x07 || type == 0x08) {
+                if (transaction.getFee() > nowbalance) {
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Not sufficient funds");
+                    return apiResult;
+                }
+            } else if (type == 0x02 || type == 0x0e) {//vote、mortgage
+                if ((tranbalance + transaction.getFee()) > nowbalance) {
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("Not sufficient funds");
+                    return apiResult;
+                }
+                //求余
+                long remainder = tranbalance % EconomicModel.WDC;
+                if (remainder != 0) {
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("The amount must be an integer");
+                    return apiResult;
                 }
             }
             //payload
@@ -597,7 +595,7 @@ public class TransactionCheck {
             //本金校验
             if (amount < 30000000000L) {
                 apiResult.setCode(5000);
-                apiResult.setMessage("Minimum incubation amount: 300wdc");
+                apiResult.setMessage("Minimum incubation amount: 300WDC");
                 return apiResult;
             }
             HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(payload);
@@ -633,7 +631,13 @@ public class TransactionCheck {
                 }
             }
             //查询总地址余额
-            long total = accountDB.getBalance(IncubatorAddress.resultpubhash());
+            Optional<AccountState> accountStateOptional= wisdomRepository.getConfirmedAccountState(IncubatorAddress.resultpubhash());
+            if(!accountStateOptional.isPresent()){
+                apiResult.setCode(5000);
+                apiResult.setMessage("Hatch total account abnormal");
+                return apiResult;
+            }
+            long total = accountStateOptional.get().getAccount().getBalance();
             if (total < interest) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The incubation amount is paid out");
@@ -657,13 +661,12 @@ public class TransactionCheck {
                 apiResult.setMessage("Incorrect transaction hash format");
                 return apiResult;
             }
-            Optional<Transaction> transactionOptional = wisdomRepository.getLatestTransaction(payload);
-            if (!transactionOptional.isPresent()) {
+            Transaction transaction =wisdomBlockChain.getTransaction(payload);
+            if (transaction==null) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The initial incubation transaction could not be queried");
                 return apiResult;
             }
-            Transaction transaction=transactionOptional.get();
             byte[] tranpayload = transaction.payload;
             HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tranpayload);
             int days = payloadproto.getType();
@@ -847,13 +850,12 @@ public class TransactionCheck {
             apiResult.setMessage("The vote has been withdrawn");
             return apiResult;
         }
-        Optional<Transaction> transactionOptional = wisdomRepository.getLatestTransaction(payload);
-        if (!transactionOptional.isPresent()) {
+        Transaction transaction =wisdomBlockChain.getTransaction(payload);
+        if (transaction==null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
-        Transaction transaction=transactionOptional.get();
         if (transaction.type != Transaction.Type.VOTE.ordinal()) {
             apiResult.setCode(5000);
             apiResult.setMessage("The type of withdrawal is not a vote");
@@ -904,13 +906,12 @@ public class TransactionCheck {
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
         }
-        Optional<Transaction> transactionOptional = wisdomRepository.getLatestTransaction(payload);
-        if (!transactionOptional.isPresent()) {
+        Transaction transaction =wisdomBlockChain.getTransaction(payload);
+        if (transaction==null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
             return apiResult;
         }
-        Transaction transaction=transactionOptional.get();
         if (transaction.type != Transaction.Type.MORTGAGE.ordinal()) {
             apiResult.setCode(5000);
             apiResult.setMessage("The type of withdrawal is not mortgage");
@@ -943,12 +944,12 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    public boolean checkoutPool(Transaction t, Incubator incubator) {
-        Account account = accountDB.selectaccount(Address.publicKeyToHash(t.from));
-        if (account == null) {
+    public boolean checkoutPool(Transaction t, AccountState accountState) {
+        if(accountState.getAccount()==null){
             return false;
         }
-        APIResult apiResult = TransactionVerify(t, account, incubator);
+        Incubator incubator= CommandServiceImpl.getIncubator(accountState,t.type,t.payload);
+        APIResult apiResult = TransactionVerify(t, accountState.getAccount(), incubator);
         if (apiResult.getCode() == 5000) {
             logger.info("Queued to Pending, memory pool check error, tx:" + t.getHashHexString() + ", " + apiResult.getMessage());
             return false;

@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.ipc.IpcConfig;
-import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.util.Address;
 
 import java.util.*;
 
@@ -32,13 +32,13 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
     PeningTransPool peningTransPool;
 
     @Autowired
+    WisdomRepository wisdomRepository;
+
+    @Autowired
     WisdomBlockChain wisdomBlockChain;
 
     @Autowired
     Configuration configuration;
-
-    @Autowired
-    AccountDB accountDB;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
@@ -50,9 +50,9 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
                 Transaction t = transPool.getTransaction();
                 long nonce = t.nonce;
                 byte[] from = t.from;
-                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(from));
+                byte[] frompubhash = Address.publicKeyToHash(from);
                 //nonce
-                long nownonce = accountDB.getNonce(frompubhash);
+                long nownonce = getAccountNonce(frompubhash);
                 if (nownonce >= nonce) {
                     maps.put(new String(Hex.encodeHexString(frompubhash)), adoptTransPool.getKeyTrans(t));
                     continue;
@@ -79,9 +79,9 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
                 Transaction t = transPool.getTransaction();
                 long nonce = t.nonce;
                 byte[] from = t.from;
-                byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(from));
+                byte[] frompubhash = Address.publicKeyToHash(from);
                 //nonce
-                long nownonce = accountDB.getNonce(frompubhash);
+                long nownonce = getAccountNonce(frompubhash);
                 if (nownonce >= nonce) {
                     map.put(new String(Hex.encodeHexString(frompubhash)), t.nonce);
                     continue;
@@ -129,5 +129,13 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
             CronTrigger trigger = new CronTrigger(ipcConfig.getClearCycle());
             return trigger.nextExecutionTime(triggerContext);
         });
+    }
+
+    public long getAccountNonce(byte[] pubhash) {
+        Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(pubhash);
+        if (!accountStateOptional.isPresent()) {
+            return 0;
+        }
+        return accountStateOptional.get().getAccount().getNonce();
     }
 }
