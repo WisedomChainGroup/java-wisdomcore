@@ -25,6 +25,7 @@ import org.wisdom.pool.PeningTransPool;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.*;
@@ -45,7 +46,7 @@ public class CheckoutTransactions {
 
     private long height;
 
-    private Set<byte[]> AssetcodeSet;
+    private Set<String> AssetcodeSet;
 
     private WisdomRepository wisdomRepository;
 
@@ -64,7 +65,7 @@ public class CheckoutTransactions {
         this.pendingList = new ArrayList<>();
         this.map = new ByteArrayMap<>();
         this.fromaccountstate = new AccountState();
-        this.AssetcodeSet = new ByteArraySet();
+        this.AssetcodeSet = new HashSet<>();
     }
 
     public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
@@ -212,7 +213,7 @@ public class CheckoutTransactions {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb中是否有重复的代币合约code存在
-            if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode())) {
+            if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
             }

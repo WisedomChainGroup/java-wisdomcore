@@ -24,14 +24,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
-import org.wisdom.contract.AssetCode;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
@@ -39,6 +37,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.ed25519.Ed25519PublicKey;
+import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -50,9 +49,11 @@ import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -71,16 +72,10 @@ public class TransactionCheck {
     IncubatorDB incubatorDB;
 
     @Autowired
-    WisdomBlockChain wisdomBlockChain;
-
-    @Autowired
     WisdomRepository wisdomRepository;
 
     @Autowired
     RateTable rateTable;
-
-    @Autowired
-    AssetCode assetCode;
 
     public static final String WX="WX";
     public static final String WR="WR";
@@ -231,7 +226,6 @@ public class TransactionCheck {
     public APIResult TransactionVerify(Transaction transaction, Account account, Incubator incubator) {
         APIResult apiResult = new APIResult();
         try {
-            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
             //nonce
             long trannonce = transaction.nonce;
             long nownonce;
@@ -381,7 +375,8 @@ public class TransactionCheck {
             Matcher matcher = pattern.matcher(asset.getCode());
             //TODO 查询是否有重复code 异常处理
             if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher.matches()  && !asset.getCode().equals("WDC")){
-                if (assetCode.isContainsKey(asset.getCode()))return APIResult.newFailed("asset code already exists");
+                byte[] blockhash=wisdomRepository.getBestBlock().getHash();
+                if (!wisdomRepository.containsAssetCodeAt(blockhash,asset.getCode().getBytes(StandardCharsets.UTF_8))) return APIResult.newFailed("asset code already exists");
             }else{
                 return APIResult.newFailed("Assets code format check error");
             }
@@ -662,12 +657,13 @@ public class TransactionCheck {
                 apiResult.setMessage("Incorrect transaction hash format");
                 return apiResult;
             }
-            Transaction transaction = wisdomBlockChain.getTransaction(payload);
-            if (transaction == null) {
+            Optional<Transaction> transactionOptional = wisdomRepository.getLatestTransaction(payload);
+            if (!transactionOptional.isPresent()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The initial incubation transaction could not be queried");
                 return apiResult;
             }
+            Transaction transaction=transactionOptional.get();
             byte[] tranpayload = transaction.payload;
             HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tranpayload);
             int days = payloadproto.getType();
@@ -821,7 +817,13 @@ public class TransactionCheck {
             apiResult.setMessage("Wrong amount of principal withdrawal");
             return apiResult;
         }
-        Account account = accountDB.selectaccount(topubkeyhash);
+        Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(topubkeyhash);
+        if(!accountState.isPresent()){
+            apiResult.setCode(5000);
+            apiResult.setMessage("This account is abnormal");
+            return apiResult;
+        }
+        Account account=accountState.get().getAccount();
         if (account.getIncubatecost() < 0 || account.getIncubatecost() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -845,12 +847,13 @@ public class TransactionCheck {
             apiResult.setMessage("The vote has been withdrawn");
             return apiResult;
         }
-        Transaction transaction = wisdomBlockChain.getTransaction(payload);
-        if (transaction == null) {
+        Optional<Transaction> transactionOptional = wisdomRepository.getLatestTransaction(payload);
+        if (!transactionOptional.isPresent()) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
         }
+        Transaction transaction=transactionOptional.get();
         if (transaction.type != Transaction.Type.VOTE.ordinal()) {
             apiResult.setCode(5000);
             apiResult.setMessage("The type of withdrawal is not a vote");
@@ -867,12 +870,13 @@ public class TransactionCheck {
             apiResult.setMessage("The number of votes is not correct");
             return apiResult;
         }
-        Account account = accountDB.selectaccount(transaction.to);
-        if (account == null) {
+        Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(topubkeyhash);
+        if (!accountStateOptional.isPresent()) {
             apiResult.setCode(5000);
-            apiResult.setMessage("Unable to withdraw");
+            apiResult.setMessage("This account is abnormal");
             return apiResult;
         }
+        Account account=accountStateOptional.get().getAccount();
         if (account.getVote() < 0 || account.getVote() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -900,12 +904,13 @@ public class TransactionCheck {
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
         }
-        Transaction transaction = wisdomBlockChain.getTransaction(payload);
-        if (transaction == null) {
+        Optional<Transaction> transactionOptional = wisdomRepository.getLatestTransaction(payload);
+        if (!transactionOptional.isPresent()) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
             return apiResult;
         }
+        Transaction transaction=transactionOptional.get();
         if (transaction.type != Transaction.Type.MORTGAGE.ordinal()) {
             apiResult.setCode(5000);
             apiResult.setMessage("The type of withdrawal is not mortgage");
@@ -921,12 +926,13 @@ public class TransactionCheck {
             apiResult.setMessage("The number of mortgage is not correct");
             return apiResult;
         }
-        Account account = accountDB.selectaccount(topubkeyhash);
-        if (account == null) {
+        Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(topubkeyhash);
+        if (!accountStateOptional.isPresent()) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to withdraw");
             return apiResult;
         }
+        Account account=accountStateOptional.get().getAccount();
         if (account.getMortgage() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");

@@ -29,6 +29,7 @@ import org.wisdom.pool.WaitCount;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
@@ -48,7 +49,7 @@ public class PackageCache {
 
     private List<Transaction> transactionList;
 
-    private Set<byte[]> AssetcodeSet;
+    private Set<String> AssetcodeSet;
 
     private boolean exit;
 
@@ -79,7 +80,7 @@ public class PackageCache {
     public PackageCache() {
         this.removemap = new IdentityHashMap<>();
         this.transactionList = new ArrayList<>();
-        this.AssetcodeSet = new ByteArraySet();
+        this.AssetcodeSet = new HashSet<>();
         this.exit = false;
         this.state = false;
     }
@@ -270,7 +271,7 @@ public class PackageCache {
                 return;
             }
             //判断forkdb中是否有重复的代币合约code存在
-            if (repository.containsAssetCodeAt(parenthash, asset.getCode())) {
+            if (repository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
                 AddRemoveMap(publicKeyHash, tx.nonce);
                 return;
             }
