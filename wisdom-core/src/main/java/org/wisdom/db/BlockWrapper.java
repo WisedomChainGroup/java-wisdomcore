@@ -14,6 +14,10 @@ public class BlockWrapper extends ChainedWrapper<Block> {
         this.hashCode = Arrays.hashCode(block.getHash());
     }
 
+    public BlockWrapper(byte[] hash) {
+        this.hashCode = Arrays.hashCode(hash);
+    }
+
     @Override
     public int hashCode() {
         return hashCode;
