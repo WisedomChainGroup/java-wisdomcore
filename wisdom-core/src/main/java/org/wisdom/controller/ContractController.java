@@ -24,18 +24,26 @@ public class ContractController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/RLPContractTx")
-    public Object getRLPContractTx(@RequestParam(value = "txhash") String txhash) {
+    public Object RLPContractTx(@RequestParam(value = "txhash") String txhash) {
         if (txhash.equals("") || txhash == "") {
             return APIResult.newFailed("The transaction hash cannot be null");
         }
         return contractService.getRLPContractTx(txhash.trim());
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "/ParseContractAddress")
-    public Object ParseContractAddress(@RequestParam(value = "address") String address) {
+    @RequestMapping(method = RequestMethod.GET, value = "/TokenBalance")
+    public Object TokenBalance(@RequestParam(value = "address") String address,@RequestParam(value = "code") String code){
         if(KeystoreAction.verifyAddress(address)!=0){
             return APIResult.newFailed("Invalid address");
         }
-        return contractService.getParseContractAddress(KeystoreAction.addressToPubkeyHash(address));
+        return contractService.getTokenBalance(KeystoreAction.addressToPubkeyHash(address),code);
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/ParseAssetAddress")
+    public Object ParseAssetAddress(@RequestParam(value = "address") String address) {
+        if(KeystoreAction.verifyAddress(address)!=0){
+            return APIResult.newFailed("Invalid address");
+        }
+        return contractService.getParseAssetAddress(KeystoreAction.addressToPubkeyHash(address));
     }
 }

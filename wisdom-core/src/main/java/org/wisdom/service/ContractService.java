@@ -6,5 +6,7 @@ public interface ContractService {
 
     Object getRLPContractTx(String txhash);
 
-    Object getParseContractAddress(byte[] addressToPubkeyHash);
+    Object getParseAssetAddress(byte[] addressToPubkeyHash);
+
+    Object getTokenBalance(byte[] addressToPubkeyHash, String code);
 }
