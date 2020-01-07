@@ -62,6 +62,7 @@ public class TriesSyncManager {
     ) {
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
+        this.candidateStateTrie = candidateStateTrie;
         this.statusStore = new StoreWrapper<>(
                 factory.create(DB_STATUS, false),
                 Codecs.STRING,
