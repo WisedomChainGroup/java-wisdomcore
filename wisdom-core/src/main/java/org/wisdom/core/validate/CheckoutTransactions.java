@@ -2,7 +2,6 @@ package org.wisdom.core.validate;
 
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
-import org.tdf.common.util.ByteArraySet;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.command.TransactionCheck;
@@ -25,6 +24,7 @@ import org.wisdom.pool.PeningTransPool;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.*;
@@ -45,7 +45,7 @@ public class CheckoutTransactions {
 
     private long height;
 
-    private Set<byte[]> AssetcodeSet;
+    private Set<String> AssetcodeSet;
 
     private WisdomRepository wisdomRepository;
 
@@ -64,7 +64,7 @@ public class CheckoutTransactions {
         this.pendingList = new ArrayList<>();
         this.map = new ByteArrayMap<>();
         this.fromaccountstate = new AccountState();
-        this.AssetcodeSet = new ByteArraySet();
+        this.AssetcodeSet = new HashSet<>();
     }
 
     public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
@@ -118,7 +118,7 @@ public class CheckoutTransactions {
                     result = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
                     break;
                 case 7://部署合约
-                    result = CheckDeployContract(tx, pubkeyhash);
+                    result = CheckDeployContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
                     break;
                 case 8://调用合约
                     result = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
@@ -138,7 +138,7 @@ public class CheckoutTransactions {
         balance -= tx.getFee();
         if (balance < 0) {
             peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
-            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
+            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
         }
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tx.nonce);
@@ -198,7 +198,10 @@ public class CheckoutTransactions {
                 map.put(tx.to, assetaccountstate);
 
                 Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                long tokensbalance = tokensmap.get(tx.to);
+                long tokensbalance = 0;
+                if (tokensmap.containsKey(tx.to)) {
+                    tokensbalance = tokensmap.get(tx.to);
+                }
                 tokensbalance += assetIncreased.getAmount();
                 tokensmap.put(tx.to, tokensbalance);
                 accountState.setTokensMap(tokensmap);
@@ -208,11 +211,11 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckDeployContract(Transaction tx, byte[] publicKeyHash) {
+    private Result CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb中是否有重复的代币合约code存在
-            if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode())) {
+            if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
             }
@@ -222,6 +225,16 @@ public class CheckoutTransactions {
             }
             AssetcodeSet.add(asset.getCode());
         }
+        long balance = fromaccount.getBalance();
+        balance -= tx.getFee();
+        if (balance < 0) {
+            peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+        }
+        fromaccount.setBalance(balance);
+        fromaccount.setNonce(tx.nonce);
+        accountState.setAccount(fromaccount);
+        map.put(publicKeyHash, accountState);
         return Result.SUCCESS;
     }
 

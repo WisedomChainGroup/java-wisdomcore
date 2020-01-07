@@ -24,21 +24,22 @@ import org.springframework.stereotype.Service;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.core.account.Account;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.service.CommandService;
+import org.wisdom.util.Address;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,9 +47,6 @@ public class CommandServiceImpl implements CommandService {
 
     @Autowired
     AccountDB accountDB;
-
-    @Autowired
-    IncubatorDB incubatorDB;
 
     @Autowired
     RateTable rateTable;
@@ -76,17 +74,17 @@ public class CommandServiceImpl implements CommandService {
                 return apiResult;
             }
             tran = (Transaction) apiResult.getData();
-            Account account = accountDB.selectaccount(RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from)));
-            if (account == null) {
+            Optional<AccountState> accountStateOptional= repository.getConfirmedAccountState(Address.publicKeyToHash(tran.from));
+            if (!accountStateOptional.isPresent()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The from account does not exist");
                 return apiResult;
             }
+            AccountState accountState=accountStateOptional.get();
             if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
                 List<String> list = repository.getLatestTopCandidates()
                         .stream().map(x -> x.getPublicKeyHash().toHex())
                         .collect(Collectors.toList());
-
                 byte[] fromPublicHash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (list.size() > 0 && list.contains(Hex.encodeHexString(fromPublicHash))) {
                     apiResult.setCode(5000);
@@ -94,11 +92,8 @@ public class CommandServiceImpl implements CommandService {
                     return apiResult;
                 }
             }
-            Incubator incubator = null;
-            if (tran.type == 0x0a || tran.type == 0x0b || tran.type == 0x0c) {
-                incubator = incubatorDB.selectIncubator(tran.payload);
-            }
-            apiResult = transactionCheck.TransactionVerify(tran, account, incubator);
+            Incubator incubator = getIncubator(accountState,tran.type,tran.payload);
+            apiResult = transactionCheck.TransactionVerify(tran, accountState.getAccount(), incubator);
             if (apiResult.getCode() == 5000) {
                 return apiResult;
             }
@@ -132,5 +127,20 @@ public class CommandServiceImpl implements CommandService {
     public Object getTransactionBlcok(byte[] blockhash, int type) {
         List<Map<String, Object>> transactionList = accountDB.getTranBlockList(blockhash, type);
         return APIResult.newFailResult(2000, "SUCCESS", transactionList);
+    }
+
+    public static Incubator getIncubator(AccountState accountState,int type,byte[] payload){
+        if(type==0x0a || type==0x0c){
+            Map<byte[],Incubator> incubatorMap=accountState.getInterestMap();
+            if(incubatorMap.containsKey(payload)){
+                return incubatorMap.get(payload);
+            }
+        }else if(type==0x0b){
+            Map<byte[],Incubator> ShareMap=accountState.getShareMap();
+            if(ShareMap.containsKey(payload)){
+                return ShareMap.get(payload);
+            }
+        }
+        return null;
     }
 }

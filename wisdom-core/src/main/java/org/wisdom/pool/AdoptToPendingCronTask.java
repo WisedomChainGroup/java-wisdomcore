@@ -10,10 +10,11 @@ import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.ipc.IpcConfig;
+import org.wisdom.util.Address;
 
 import java.util.*;
 
@@ -38,7 +39,7 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
     AccountDB accountDB;
 
     @Autowired
-    IncubatorDB incubatorDB;
+    WisdomRepository repository;
 
     @Autowired
     RateTable rateTable;
@@ -63,11 +64,8 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                         Transaction transaction = transPool.getTransaction();
 //                        if (pendingNonce.getNonce() < transaction.nonce) {
 //                        }
-                        Incubator incubator=null;
-                        if(transaction.type==0x0a || transaction.type==0x0b || transaction.type==0x0c){
-                            incubator=incubatorDB.selectIncubator(transaction.payload);
-                        }
-                        if (transactionCheck.checkoutPool(transaction,incubator)) {
+                        AccountState accountState = repository.getConfirmedAccountState(Address.publicKeyToHash(transaction.from)).get();
+                        if (transactionCheck.checkoutPool(transaction, accountState)) {
                             //超过pending上限
                             if (index > configuration.getMaxpending()) {
                                 state = true;

@@ -7,6 +7,7 @@ import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.util.ByteUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class AssetCodeUpdater extends AbstractStateUpdater<Boolean> {
             return Collections.emptySet();
         ByteArraySet set = new ByteArraySet();
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
-        set.add(asset.getCode());
+        set.add(asset.getCode().getBytes(StandardCharsets.UTF_8));
         return set;
     }
 
@@ -35,8 +36,8 @@ public class AssetCodeUpdater extends AbstractStateUpdater<Boolean> {
         if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType() != 0)
             return state;
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
-        if (Arrays.equals(id, asset.getCode())) return true;
-        return state;
+        if (Arrays.equals(id, asset.getCode().getBytes(StandardCharsets.UTF_8))) return state;
+        return true;
     }
 
     @Override
