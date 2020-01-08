@@ -6,6 +6,10 @@ import java.util.List;
 
 public interface AnalysisContract extends RLPBeanInterface {
 
+    enum MethodRule {
+        CHANGEOWNER, ASSETTRANSFER, INCREASED, MULTTRANSFER
+    }
+
     List<AccountState> update(List<AccountState> accountStateList);
 
 }

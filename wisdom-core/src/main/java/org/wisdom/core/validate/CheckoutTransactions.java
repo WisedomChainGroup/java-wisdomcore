@@ -28,8 +28,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.*;
-import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.CHANGEOWNER;
-import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.TRANSFER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 
 public class CheckoutTransactions {
 
@@ -157,7 +157,7 @@ public class CheckoutTransactions {
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
                 map.put(tx.to, assetaccountstate);
-            } else if (tx.getMethodType() == TRANSFER.ordinal()) {//资产转账
+            } else if (tx.getMethodType() == ASSETTRANSFER.ordinal()) {//资产转账
                 AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
                 Map<byte[], Long> maps = accountState.getTokensMap();
                 long tokenbalance = maps.get(tx.to);

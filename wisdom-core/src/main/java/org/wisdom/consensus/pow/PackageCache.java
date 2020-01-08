@@ -34,8 +34,8 @@ import java.util.*;
 
 import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
 import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
-import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.CHANGEOWNER;
-import static org.wisdom.contract.AssetDefinition.Asset.AssetRule.TRANSFER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 
 public class PackageCache {
 
@@ -213,7 +213,7 @@ public class PackageCache {
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
                 newMap.put(tx.to, assetaccountstate);
-            } else if (tx.getMethodType() == TRANSFER.ordinal()) {//资产转账
+            } else if (tx.getMethodType() == ASSETTRANSFER.ordinal()) {//资产转账
                 AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
                 Map<byte[], Long> maps = accountState.getTokensMap();
                 long tokenbalance = maps.get(tx.to);
