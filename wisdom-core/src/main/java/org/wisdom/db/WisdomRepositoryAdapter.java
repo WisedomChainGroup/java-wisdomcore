@@ -1,7 +1,7 @@
 package org.wisdom.db;
 
 import org.wisdom.consensus.pow.Proposer;
-import org.wisdom.contract.AssetcodeInfo;
+import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
@@ -172,8 +172,8 @@ public class WisdomRepositoryAdapter implements WisdomRepository {
     }
 
     @Override
-    public AssetcodeInfo getAssetCodeAt(byte[] blockHash, byte[] code) {
-        return null;
+    public Optional<AssetCodeInfo> getAssetCodeAt(byte[] blockHash, byte[] code) {
+        return Optional.empty();
     }
 
     @Override

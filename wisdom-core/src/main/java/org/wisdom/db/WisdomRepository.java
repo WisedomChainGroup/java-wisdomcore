@@ -1,7 +1,7 @@
 package org.wisdom.db;
 
 import org.wisdom.consensus.pow.Proposer;
-import org.wisdom.contract.AssetcodeInfo;
+import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
@@ -130,9 +130,11 @@ public interface WisdomRepository {
 
     void writeBlock(Block block);
 
-    boolean containsAssetCodeAt(byte[] blockHash, byte[] code);
+    default boolean containsAssetCodeAt(byte[] blockHash, byte[] code){
+        return getAssetCodeAt(blockHash, code).isPresent();
+    }
 
-    AssetcodeInfo getAssetCodeAt(byte[] blockHash, byte[] code);
+    Optional<AssetCodeInfo> getAssetCodeAt(byte[] blockHash, byte[] code);
 
     // average blocks interval of latest 10 blocks
     double getAverageBlocksInterval();

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AssetcodeInfo {
+public class AssetCodeInfo {
     private byte[] code;
     private byte[] asset160hash;
 

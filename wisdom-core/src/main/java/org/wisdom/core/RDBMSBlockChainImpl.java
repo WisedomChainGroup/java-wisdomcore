@@ -350,7 +350,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
 
     @Override
-    public Block findAncestorHeader(byte[] blockHash, long ancestorHeight) {
+    public Block getAncestorHeader(byte[] blockHash, long ancestorHeight) {
         Block b = getAncestorHeaders(blockHash, ancestorHeight).get(0);
         if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(b.nHeight == ancestorHeight, "wrong ancestor height");
@@ -359,8 +359,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public Block findAncestorBlock(byte[] blockHash, long minimumAncestorHeight) {
-        return getBlockFromHeader(findAncestorHeader(blockHash, minimumAncestorHeight));
+    public Block getAncestorBlock(byte[] blockHash, long minimumAncestorHeight) {
+        return getBlockFromHeader(getAncestorHeader(blockHash, minimumAncestorHeight));
     }
 
     @Override
@@ -369,9 +369,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (block == null) {
             return new ArrayList<>();
         }
-        List<Block> blocks = new BlocksCache(getHeadersBetween(block.nHeight - minimumAncestorHeight + 1, block.nHeight)).getAncestors(block);
+        List<Block> blocks = new BlocksCache(getHeadersBetween(minimumAncestorHeight, block.nHeight)).getAncestors(block);
         if (Start.ENABLE_ASSERTION) {
-            Assert.isTrue(blocks.size() == block.nHeight - minimumAncestorHeight + 1, "ancestors height invalid");
             Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
         }
         return blocks;

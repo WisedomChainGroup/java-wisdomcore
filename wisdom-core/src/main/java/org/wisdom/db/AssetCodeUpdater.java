@@ -3,7 +3,7 @@ package org.wisdom.db;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.contract.AssetDefinition.Asset;
-import org.wisdom.contract.AssetcodeInfo;
+import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -16,10 +16,10 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
-public class AssetCodeUpdater extends AbstractStateUpdater<AssetcodeInfo> {
+public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
 
     @Override
-    Map<byte[], AssetcodeInfo> getGenesisStates() {
+    Map<byte[], AssetCodeInfo> getGenesisStates() {
         return Collections.emptyMap();
     }
 
@@ -34,7 +34,7 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetcodeInfo> {
     }
 
     @Override
-    AssetcodeInfo update(byte[] id, AssetcodeInfo state, Block block, Transaction transaction) {
+    AssetCodeInfo update(byte[] id, AssetCodeInfo state, Block block, Transaction transaction) {
         if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.contractType != 0)
             return state;
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
@@ -45,13 +45,13 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetcodeInfo> {
                 Arrays.equals(RipemdUtility.ripemd160(transaction.getHash()), state.getAsset160hash())) {
             return state;
         }
-        return AssetcodeInfo.builder()
+        return AssetCodeInfo.builder()
                 .code(asset.getCode().getBytes(StandardCharsets.UTF_8))
                 .asset160hash(RipemdUtility.ripemd160(transaction.getHash())).build();
     }
 
     @Override
-    AssetcodeInfo createEmpty(byte[] id) {
-        return AssetcodeInfo.builder().build();
+    AssetCodeInfo createEmpty(byte[] id) {
+        return AssetCodeInfo.builder().build();
     }
 }

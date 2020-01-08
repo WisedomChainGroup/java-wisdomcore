@@ -67,10 +67,10 @@ public interface WisdomBlockChain {
     boolean writeBlock(Block block);
 
     // find b's ancestor header at height of anum
-    Block findAncestorHeader(byte[] bhash, long anum);
+    Block getAncestorHeader(byte[] bhash, long anum);
 
     // find b's ancestor block at height of anum
-    Block findAncestorBlock(byte[] bhash, long anum);
+    Block getAncestorBlock(byte[] bhash, long anum);
 
     // find b's ancestor blocks until height of anum, both inclusive
     List<Block> getAncestorHeaders(byte[] bhash, long anum);

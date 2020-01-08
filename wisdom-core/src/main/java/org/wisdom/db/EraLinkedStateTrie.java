@@ -73,7 +73,10 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
             return;
         }
         if (getRootStore().containsKey(block.getHash())) return;
-        List<Block> ancestors = getRepository().getAncestorBlocks(block.getHash(), eraLinker.getBlocksPerEra());
+        List<Block> ancestors = getRepository().getAncestorBlocks(
+                block.getHash(),
+                block.nHeight - eraLinker.getBlocksPerEra() + 1
+        );
         commit(ancestors);
     }
 

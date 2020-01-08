@@ -177,7 +177,7 @@ public abstract class WisdomChainTest {
             bc.writeBlock(b);
         }
         Block currentHeader = bc.currentHeader();
-        Block foundHeader = bc.findAncestorHeader(currentHeader.getHash(), 0);
+        Block foundHeader = bc.getAncestorHeader(currentHeader.getHash(), 0);
         assert foundHeader != null;
         assert foundHeader.nHeight == 0;
     }
@@ -203,7 +203,7 @@ public abstract class WisdomChainTest {
             bc.writeBlock(b);
         }
         Block currentHeader = bc.currentHeader();
-        Block b = bc.findAncestorBlock(currentHeader.getHash(), 0);
+        Block b = bc.getAncestorBlock(currentHeader.getHash(), 0);
         assert b != null;
         assert Arrays.areEqual(getGenesis().getHash(), b.getHash());
     }
@@ -216,7 +216,7 @@ public abstract class WisdomChainTest {
             bc.writeBlock(b);
         }
         Block currentHeader = bc.currentHeader();
-        Block b = bc.findAncestorBlock(currentHeader.getHash(), 0);
+        Block b = bc.getAncestorBlock(currentHeader.getHash(), 0);
         assert b != null;
         assert Arrays.areEqual(getGenesis().getHash(), b.getHash());
     }
