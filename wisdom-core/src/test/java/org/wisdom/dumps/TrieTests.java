@@ -66,6 +66,7 @@ public class TrieTests {
                     if (era.size() < blocksPerEra) return;
                     System.out.println(b.nHeight);
                     candidateStateTrie.commit(era);
+
                     genesisProposersState.updateBlocks(era);
 
                     final long nextEra = (b.nHeight - 1) / blocksPerEra + 1;
