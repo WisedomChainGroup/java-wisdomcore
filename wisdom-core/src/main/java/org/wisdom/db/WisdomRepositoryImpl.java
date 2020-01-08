@@ -277,7 +277,11 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
-        return assetCodeTrie.get(blockHash, code).orElse(false);
+        return assetCodeTrie.get(blockHash, code).get().length > 0 ? true : false;
+    }
+
+    public byte[] getAssetCodeAt(byte[] blockHash, byte[] code) {
+        return assetCodeTrie.get(blockHash, code).get();
     }
 
     @Override

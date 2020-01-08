@@ -14,10 +14,10 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
-public class AssetCodeUpdater extends AbstractStateUpdater<Boolean> {
+public class AssetCodeUpdater extends AbstractStateUpdater<byte[]> {
 
     @Override
-    Map<byte[], Boolean> getGenesisStates() {
+    Map<byte[], byte[]> getGenesisStates() {
         return Collections.emptyMap();
     }
 
@@ -32,16 +32,16 @@ public class AssetCodeUpdater extends AbstractStateUpdater<Boolean> {
     }
 
     @Override
-    Boolean update(byte[] id, Boolean state, Block block, Transaction transaction) {
-        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType() != 0)
+    byte[] update(byte[] id, byte[] state, Block block, Transaction transaction) {
+        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.contractType != 0)
             return state;
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
-        if (Arrays.equals(id, asset.getCode().getBytes(StandardCharsets.UTF_8))) return state;
-        return true;
+        if (Arrays.equals(id, asset.getCode().getBytes(StandardCharsets.UTF_8))) return transaction.getHash();
+        return state;
     }
 
     @Override
-    Boolean createEmpty(byte[] id) {
-        return false;
+    byte[] createEmpty(byte[] id) {
+        return new byte[0];
     }
 }

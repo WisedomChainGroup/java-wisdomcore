@@ -393,10 +393,10 @@ public class Transaction {
     }
 
     @JsonIgnore
-    private int contractType;//合约 0:代币,1:多重签名
+    public int contractType;//合约 0:代币,1:多重签名
 
     @JsonIgnore
-    private int methodType;//调用合约方法类型
+    public int methodType;//调用合约方法类型
 
     public int getMethodType() {
         return methodType;

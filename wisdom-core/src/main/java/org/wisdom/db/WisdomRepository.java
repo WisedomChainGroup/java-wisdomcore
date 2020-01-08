@@ -131,6 +131,8 @@ public interface WisdomRepository {
 
     boolean containsAssetCodeAt(byte[] blockHash, byte[] code);
 
+    byte[] getAssetCodeAt(byte[] blockHash, byte[] code);
+
     // average blocks interval of latest 10 blocks
     double getAverageBlocksInterval();
 

@@ -470,6 +470,16 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
+    public byte[] getAssetCodeAt(byte[] blockHash, byte[] code) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getAssetCodeAt(blockHash, code);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
     public double getAverageBlocksInterval() {
         readWriteLock.readLock().lock();
         try {

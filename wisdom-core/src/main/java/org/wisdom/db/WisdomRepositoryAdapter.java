@@ -171,6 +171,11 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     }
 
     @Override
+    public byte[] getAssetCodeAt(byte[] blockHash, byte[] code) {
+        return new byte[0];
+    }
+
+    @Override
     public double getAverageBlocksInterval() {
         return 0;
     }
