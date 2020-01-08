@@ -33,8 +33,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     // block hash -> transaction hashes
     private Map<byte[], Set<byte[]>> transactionIndex = new ByteArrayMap<>();
 
-    private Map<byte[], Transaction> transactionCache = new ByteArrayMap<>();
-
     private WisdomBlockChain bc;
 
     private TriesSyncManager triesSyncManager;
@@ -84,7 +82,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         confirms.remove(b.getHash());
         leastConfirms.remove(b.getHash());
         transactionIndex.remove(b.getHash());
-        b.body.forEach(t -> transactionCache.remove(t.getHash()));
     }
 
     private int compareBlockWrapper(BlockWrapper a, BlockWrapper b) {
@@ -237,8 +234,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
             return bc.hasTransaction(transactionHash);
         }
-        if (!transactionCache.containsKey(transactionHash))
-            return bc.hasTransaction(transactionHash);
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)
                 .orElseThrow(() -> new RuntimeException("unreachable"));
@@ -256,7 +251,16 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
         Set<byte[]> txs = transactionIndex.get(blockHash);
         if (txs == null) throw new RuntimeException("unreachable");
-        if (txs.contains(txHash)) return Optional.of(transactionCache.get(txHash));
+        if (txs.contains(txHash)) {
+            Optional<Transaction> o = chainCache.get(blockHash)
+                    .map(BlockWrapper::get)
+                    .flatMap(b -> b.body.stream()
+                            .filter(tx -> FastByteComparisons.equal(tx.getHash(), txHash))
+                            .findFirst());
+            if(!o.isPresent()) throw new RuntimeException("unexpected");
+            return o;
+        }
+
         byte[] parent = chainCache.get(blockHash)
                 .map(BlockWrapper::get)
                 .map(b -> b.hashPrevBlock)
@@ -548,7 +552,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             t.height = block.nHeight;
             t.blockHash = block.getHash();
             transactionIndex.get(block.getHash()).add(t.getHash());
-            transactionCache.put(t.getHash(), t);
         });
 
         leastConfirms.put(block.getHash(),
@@ -568,7 +571,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             confirms.putIfAbsent(b.getHash(), new ByteArraySet());
 
             // 区块不能确认自己
-            if (Arrays.equals(b.getHash(), block.getHash())) {
+            if (FastByteComparisons.equal(b.getHash(), block.getHash())) {
                 continue;
             }
             confirms.get(b.getHash()).add(block.body.get(0).to);
@@ -606,6 +609,18 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 continue;
             }
             log.info("write block at height " + b.nHeight + " to db success");
+
+            // 删除孤块
+            chainCache
+                    .getChildren(latestConfirmed.getHash())
+                    .stream()
+                    .filter(x -> !FastByteComparisons.equal(x.get().getHash(), b.getHash()))
+                    .flatMap(x -> chainCache.getDescendants(x.getHash().getBytes()).stream())
+                    .forEach(w -> deleteCache(w.get()));
+
+            // 确认的区块不需要放在缓存中
+            deleteCache(b);
+
             i++;
             this.latestConfirmed = b;
         }
