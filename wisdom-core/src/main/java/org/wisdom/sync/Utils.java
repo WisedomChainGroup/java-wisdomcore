@@ -40,6 +40,13 @@ public class Utils {
         t.payload = tx.getPayload().toByteArray();
         t.to = tx.getTo().toByteArray();
         t.signature = tx.getSignature().toByteArray();
+        if(t.type==Transaction.Type.DEPLOY_CONTRACT.ordinal()){
+            t.contractType=t.payload[0];
+        }
+        if(t.type==Transaction.Type.CALL_CONTRACT.ordinal()){
+            t.methodType=t.payload[0];
+            t.contractType=Transaction.getContract(t.methodType);
+        }
         return t;
     }
 
