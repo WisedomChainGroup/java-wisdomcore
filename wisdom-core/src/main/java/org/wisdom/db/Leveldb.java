@@ -158,24 +158,8 @@ public class Leveldb implements DatabaseStore {
     }
 
     @Override
-    public void putAll(Map<byte[], byte[]> rows) {
-        resetDbLock.readLock().lock();
-        try {
-            try {
-                updateBatchInternal(rows);
-            } catch (Exception e) {
-                log.error("Error, retrying one more time...", e);
-                // try one more time
-                try {
-                    updateBatchInternal(rows);
-                } catch (Exception e1) {
-                    log.error("Error", e);
-                    throw new RuntimeException(e);
-                }
-            }
-        } finally {
-            resetDbLock.readLock().unlock();
-        }
+    public void putAll(Collection<? extends Map.Entry<? extends byte[], ? extends byte[]>> collection) {
+        
     }
 
     private void updateBatchInternal(Map<byte[], byte[]> rows) throws IOException {

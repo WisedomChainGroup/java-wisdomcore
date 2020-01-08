@@ -5,16 +5,18 @@ import lombok.Getter;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.CachedStore;
+import org.tdf.common.store.NoDeleteBatchStore;
 import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
-import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -44,17 +46,9 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         ROOTS = getPrefix() + "-trie-roots";
         this.updater = updater;
         rootStore = factory.create(ROOTS, reset);
-        if (logDeletes) {
-            trieStore = new NoDeleteStore<>(
-                    factory.create(TRIE, reset),
-                    factory.create(DELETED, reset)
-            );
-        } else {
-            trieStore = new NoDeleteStore<>(
-                    factory.create(TRIE, reset),
-                    Store.getNop()
-            );
-        }
+
+        trieStore = new NoDeleteBatchStore<>(factory.create(TRIE, reset));
+
         Trie.Builder<byte[], T> builder = Trie.builder();
         trie =  builder.hashFunction(HashUtil::keccak256)
                 .store(trieStore)
@@ -95,14 +89,14 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     }
 
     protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data) {
-        Store<byte[], byte[]> cache = new CachedStore<>(
-                getTrieStore(),
-                ByteArrayMap::new,
-                HexBytes.EMPTY_BYTES
-        );
-        Trie<byte[], T> trie = getTrie().revert(parentRoot, cache);
+        Trie<byte[], T> trie = getTrie().revert(parentRoot);
         for (Map.Entry<byte[], T> entry : data.entrySet()) {
             trie.put(entry.getKey(), entry.getValue());
+        }
+        try{
+            Files.write(Paths.get("data.rlp"), RLPCodec.encode(data));
+        }catch (Exception ignored){
+            System.out.println("========");
         }
         byte[] newRoot = trie.commit();
         trie.flush();
