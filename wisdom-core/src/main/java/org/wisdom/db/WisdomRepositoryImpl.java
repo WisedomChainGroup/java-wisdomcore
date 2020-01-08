@@ -542,6 +542,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
 
         chainCache.add(new BlockWrapper(block));
+        // 写入状态存储
         triesSyncManager.commit(block);
 
         // 写入事务索引

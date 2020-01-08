@@ -49,8 +49,8 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
         trieStore = new NoDeleteBatchStore<>(factory.create(TRIE, reset));
 
-        Trie.Builder<byte[], T> builder = Trie.builder();
-        trie =  builder.hashFunction(HashUtil::keccak256)
+        trie = Trie.<byte[], T>builder()
+                .hashFunction(HashUtil::keccak256)
                 .store(trieStore)
                 .keyCodec(Codec.identity())
                 .valueCodec(
@@ -90,21 +90,14 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data) {
         Trie<byte[], T> trie = getTrie().revert(parentRoot);
-        for (Map.Entry<byte[], T> entry : data.entrySet()) {
-            trie.put(entry.getKey(), entry.getValue());
-        }
-        try{
-            Files.write(Paths.get("data.rlp"), RLPCodec.encode(data));
-        }catch (Exception ignored){
-            System.out.println("========");
-        }
+        data.forEach(trie::put);
         byte[] newRoot = trie.commit();
         trie.flush();
         getRootStore().put(blockHash, newRoot);
         return trie;
     }
 
-    public Trie<byte[], T> getTrie(byte[] blockHash){
+    public Trie<byte[], T> getTrie(byte[] blockHash) {
         return getTrie().revert(
                 getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unexpected"))
         );

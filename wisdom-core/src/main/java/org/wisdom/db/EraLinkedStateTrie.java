@@ -48,7 +48,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         if (last.nHeight % eraLinker.getBlocksPerEra() != 0)
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
 
-        if (getRootStore().containsKey(last.getHash())) throw new RuntimeException("has commit");
+        if (getRootStore().containsKey(last.getHash())) throw new RuntimeException("unexpected");
         Trie<byte[], T> prevTrie = getRootStore()
                 .get(blocks.get(0).hashPrevBlock)
                 .map(getTrie()::revert)
