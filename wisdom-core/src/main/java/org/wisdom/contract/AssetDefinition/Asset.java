@@ -6,12 +6,14 @@ import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
+import org.wisdom.keystore.wallet.KeystoreAction;
 
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Asset implements AnalysisContract {
 
     public enum AssetRule {
@@ -32,6 +34,10 @@ public class Asset implements AnalysisContract {
     private int allowincrease;
     @RLP(6)
     private String info;
+
+    private String createuserAddress;
+
+    private String ownerAddress;
 
     @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
@@ -56,22 +62,32 @@ public class Asset implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPCodec.encode(new Asset(
-                this.getCode(),
-                this.getOffering(),
-                this.getTotalamount(),
-                this.getCreateuser(),
-                this.getOwner(),
-                this.getAllowincrease(),
-                this.getInfo()
-        ));
+        return RLPCodec.encode(Asset.builder()
+                .code(this.code)
+                .offering(this.offering)
+                .totalamount(this.totalamount)
+                .createuser(this.createuser)
+                .owner(this.owner)
+                .allowincrease(this.allowincrease)
+                .info(this.info).build());
     }
 
-    public Asset copy() {
-        return new Asset(code, offering, totalamount, createuser, owner, allowincrease,info);
+    private String HexCreateuserAddress(){
+        return KeystoreAction.pubkeyHashToAddress(this.createuser,(byte)0x00,"WX");
+    }
+
+    private String HexOwnerAddress(){
+        return KeystoreAction.pubkeyHashToAddress(this.owner,(byte)0x00,"WX");
     }
 
     public static Asset getAsset(byte[] Rlpbyte) {
         return RLPElement.fromEncoded(Rlpbyte).as(Asset.class);
+    }
+
+    public static Asset getConvertAsset(byte[] Rlpbyte){
+        Asset asset=getAsset(Rlpbyte);
+        asset.setCreateuserAddress(asset.HexCreateuserAddress());
+        asset.setOwnerAddress(asset.HexOwnerAddress());
+        return asset;
     }
 }

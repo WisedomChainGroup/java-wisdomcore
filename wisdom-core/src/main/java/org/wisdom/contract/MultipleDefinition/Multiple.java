@@ -4,12 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.bouncycastle.util.encoders.Hex;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 import org.wisdom.db.AccountState;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -28,6 +30,10 @@ public class Multiple implements AnalysisContract {
     private List<byte[]> pubList;//公钥
     @RLP(4)
     private long amount;
+
+    private String assetHashHex;
+
+    private List<String> pubListHex;
 
     @Override
     public List<AccountState> update(List<AccountState> accountStateList) {
@@ -58,7 +64,26 @@ public class Multiple implements AnalysisContract {
                 .amount(this.amount).build());
     }
 
+    private String HexAssetHash(){
+        return Hex.toHexString(this.assetHash);
+    }
+
+    private List<String> HexPubList(){
+        List<String> list=new ArrayList<>();
+        this.pubList.stream().forEach(publist->{
+            list.add(Hex.toHexString(publist));
+        });
+        return list;
+    }
+
     public static Multiple getMultiple(byte[] Rlpbyte) {
         return RLPElement.fromEncoded(Rlpbyte).as(Multiple.class);
+    }
+
+    public static Multiple getConvertMultiple(byte[] Rlpbyte){
+        Multiple multiple=getMultiple(Rlpbyte);
+        multiple.setAssetHashHex(multiple.HexAssetHash());
+        multiple.setPubListHex(multiple.HexPubList());
+        return multiple;
     }
 }

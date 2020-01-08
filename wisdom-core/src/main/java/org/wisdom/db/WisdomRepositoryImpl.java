@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 @Slf4j
 public class WisdomRepositoryImpl implements WisdomRepository {
@@ -85,7 +84,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         b.body.forEach(t -> transactionCache.remove(t.getHash()));
     }
 
-    private int compareBlockWrapper(BlockWrapper a, BlockWrapper b){
+    private int compareBlockWrapper(BlockWrapper a, BlockWrapper b) {
         return compareBlock(a.get(), b.get());
     }
 
@@ -153,8 +152,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         if (startHeight < latestConfirmed.nHeight) {
             c.addAll(
                     bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial)
-                    .stream().map(BlockWrapper::new)
-                    .collect(toList())
+                            .stream().map(BlockWrapper::new)
+                            .collect(toList())
             );
         }
 
@@ -278,7 +277,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
-        return assetCodeTrie.get(blockHash,code).orElse(false);
+        return assetCodeTrie.get(blockHash, code).orElse(false);
     }
 
     @Override
@@ -341,36 +340,32 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     // average blocks interval
     public double getAverageBlocksInterval() {
-            List<Block> best = chainCache.getAllForks().get(0).stream().map(ChainedWrapper::get).collect(toList());
-            if (best.size() >= 10) {
-                best = best.subList(0, 10);
-                BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - best.get(0).nTime) / (9.0));
-                return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-            }
-            long toFetch = 10 - best.size();
-            List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
-            BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0));
-            return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+        List<Block> best = getBestChain(10);
+
+        BigDecimal bd = BigDecimal.valueOf((best.get(best.size() - 1).nTime - best.get(0).nTime) / (9.0));
+        return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
 
 
     public long getAverageFee() {
         List<Block> list = getBestChain(10);
-        List<Transaction> transactionList = new ArrayList<>();
-        list.stream().map(m -> m.body).filter(Objects::nonNull).forEach(transactionList::addAll);
-        Set<Long> longSet = transactionList.stream()
-                .filter(transaction -> transaction.type != Transaction.Type.COINBASE.ordinal())
-                .map(Transaction::getFee).collect(toSet());
-        if (longSet.size() == 0) {
-            return 0;
-        }
-        long total = longSet.stream().reduce(Long::sum).orElse(0L);
-        return total / longSet.size();
+
+        int[] txCount = new int[1];
+        long total = list.stream()
+                .flatMap(b -> b.body.stream())
+                .filter(tx -> tx.type != Transaction.Type.COINBASE.ordinal())
+                .peek(tx -> txCount[0]++)
+                .map(Transaction::getFee)
+                .reduce(0L, Long::sum);
+        return txCount[0] == 0 ? 0 : (total / txCount[0]);
     }
 
     // get the best chain of forkdb
     public List<Block> getBestChain(int limit) {
-        List<Block> blocks = chainCache.getAllForks().get(0).stream().map(ChainedWrapper::get).collect(toList());
+        List<Block> blocks = chainCache
+                .getAncestors(chainCache.last().getHash().getBytes())
+                .stream().map(BlockWrapper::get)
+                .collect(toList());
         if (blocks.size() >= limit) return blocks.subList(0, limit);
         long toFetch = limit - blocks.size();
         List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
@@ -380,12 +375,11 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     // count blocks after timestamp
     public long countBlocksAfter(long timestamp) {
-            return chainCache
-                    .stream().filter(x -> x.get().nTime >= timestamp)
-                    .count() +
-                    bc.countBlocksAfter(timestamp);
+        return chainCache
+                .stream().filter(x -> x.get().nTime >= timestamp)
+                .count() +
+                bc.countBlocksAfter(timestamp);
     }
-
 
 
     @Override
