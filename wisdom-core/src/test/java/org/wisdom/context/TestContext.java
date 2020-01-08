@@ -341,6 +341,18 @@ public class TestContext {
     }
 
     @Bean
+    public TriesSyncManager triesSyncManager(
+            AccountStateTrie accountStateTrie,
+            ValidatorStateTrie validatorStateTrie,
+            DatabaseStoreFactory factory,
+            CandidateStateTrie candidateStateTrie,
+            AssetCodeTrie assetCodeTrie,
+            @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
+            WisdomBlockChain bc) {
+        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory, candidateStateTrie, assetCodeTrie, preBuiltGenesis, bc);
+    }
+
+    @Bean
     public WisdomRepository wisdomRepository(
             WisdomBlockChain bc,
             TriesSyncManager triesSyncManager,
@@ -349,7 +361,7 @@ public class TestContext {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) throws Exception{
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) throws Exception {
         return new WisdomRepositoryWrapper(bc, triesSyncManager, accountStateTrie,
                 validatorStateTrie, candidateStateTrie, assetCodeTrie,
                 targetCache, blocksPerEra
@@ -357,7 +369,7 @@ public class TestContext {
     }
 
     @Bean
-    public AssetCodeTrie assetCodeTrie(Block genesis, DatabaseStoreFactory factory){
+    public AssetCodeTrie assetCodeTrie(Block genesis, DatabaseStoreFactory factory) {
         return new AssetCodeTrie(genesis, factory);
     }
 
