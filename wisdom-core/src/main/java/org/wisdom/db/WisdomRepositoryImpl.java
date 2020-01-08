@@ -208,7 +208,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public boolean isStaged(byte[] hash) {
-        return chainCache.contains(hash);
+        return chainCache.contains(new BlockWrapper(hash));
     }
 
     @Override
