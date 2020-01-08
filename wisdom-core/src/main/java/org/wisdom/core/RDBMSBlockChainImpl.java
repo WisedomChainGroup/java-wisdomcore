@@ -28,7 +28,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
-import org.wisdom.pool.TransPool;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
@@ -260,8 +259,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, startHeight + headersCount - 1, headersCount}, new BlockMapper());
     }
 
-    private List<Block> getHeaders(long startHeight, long stopHeight) {
-        return tmpl.query("select * from header where height > ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
+    private List<Block> getHeadersBetween(long startHeight, long stopHeight) {
+        return tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
     }
 
     @Override
@@ -370,7 +369,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (block == null) {
             return new ArrayList<>();
         }
-        List<Block> blocks = new BlocksCache(getHeaders(block.nHeight - minimumAncestorHeight, block.nHeight)).getAncestors(block);
+        List<Block> blocks = new BlocksCache(getHeadersBetween(block.nHeight - minimumAncestorHeight + 1, block.nHeight)).getAncestors(block);
         if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(blocks.size() == block.nHeight - minimumAncestorHeight + 1, "ancestors height invalid");
             Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
