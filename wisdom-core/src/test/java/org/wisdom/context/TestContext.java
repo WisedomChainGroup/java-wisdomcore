@@ -339,4 +339,26 @@ public class TestContext {
             applicationContext.publishEvent(new AccountUpdatedEvent(this, event.getBlock()));
         }
     }
+
+    @Bean
+    public WisdomRepository wisdomRepository(
+            WisdomBlockChain bc,
+            TriesSyncManager triesSyncManager,
+            AccountStateTrie accountStateTrie,
+            ValidatorStateTrie validatorStateTrie,
+            CandidateStateTrie candidateStateTrie,
+            AssetCodeTrie assetCodeTrie,
+            TargetCache targetCache,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) throws Exception{
+        return new WisdomRepositoryWrapper(bc, triesSyncManager, accountStateTrie,
+                validatorStateTrie, candidateStateTrie, assetCodeTrie,
+                targetCache, blocksPerEra
+        );
+    }
+
+    @Bean
+    public AssetCodeTrie assetCodeTrie(Block genesis, DatabaseStoreFactory factory){
+        return new AssetCodeTrie(genesis, factory);
+    }
+
 }
