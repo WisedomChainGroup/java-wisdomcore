@@ -40,6 +40,13 @@ public class Utils {
         t.payload = tx.getPayload().toByteArray();
         t.to = tx.getTo().toByteArray();
         t.signature = tx.getSignature().toByteArray();
+        if (t.type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
+            t.contractType = t.payload[0];
+        }
+        if (t.type == Transaction.Type.CALL_CONTRACT.ordinal()) {
+            t.methodType = t.payload[0];
+            t.contractType = Transaction.getContract(t.methodType);
+        }
         return t;
     }
 
@@ -185,7 +192,7 @@ public class Utils {
 
     // before encode 14127.549 kb
     // after encode 11639.101 kb
-    public static void main(String[] args)throws Exception{
+    public static void main(String[] args) throws Exception {
         Resource resource = new ClassPathResource("genesis/wisdom-genesis-generator.json");
         Genesis g = new JSONEncodeDecoder().decode(IOUtils.toByteArray(resource.getInputStream()), Genesis.class);
         Block b = new Block(g);

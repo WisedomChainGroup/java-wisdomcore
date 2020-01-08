@@ -16,10 +16,6 @@ import java.util.List;
 @Builder
 public class Asset implements AnalysisContract {
 
-    public enum AssetRule {
-        CHANGEOWNER, TRANSFER, INCREASED
-    }
-
     @RLP(0)
     private String code;
     @RLP(1)
