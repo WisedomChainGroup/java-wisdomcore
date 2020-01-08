@@ -49,11 +49,7 @@ public class TransactionMapper implements RowMapper<Transaction> {
         }
         if (tx.type == Transaction.Type.CALL_CONTRACT.ordinal()) {
             tx.methodType = tx.payload[0];
-            if (tx.methodType >= 0 && tx.methodType < 3) {
-                tx.contractType = 0;
-            } else if (tx.methodType > 2) {
-                tx.contractType = 1;
-            }
+            tx.contractType = Transaction.getContract(tx.methodType);
         }
         if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(Arrays.equals(tx.getHash(), rs.getBytes("tx_hash")), "transaction in database had been modified");
