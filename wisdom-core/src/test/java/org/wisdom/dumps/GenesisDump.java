@@ -1,13 +1,13 @@
 package org.wisdom.dumps;
 
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPList;
+import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.core.Block;
@@ -23,10 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 // genesis =
@@ -49,11 +46,10 @@ public class GenesisDump {
 
     private WisdomBlockChain wisdomBlockChain;
 
-    private int switchEra;
+    private int blocksPerEra;
 
 
     public void dump() throws Exception {
-
         List<AccountState> all = getAllPublicKeyHashes()
                 .stream()
                 .map(k -> accountDB.getAccounstate(k, genesisDumpHeight))
@@ -68,6 +64,7 @@ public class GenesisDump {
         RLPElement newGenesisAccounts = RLPElement.readRLPTree(all);
         Map<byte[], Long> miners = getValidators();
         RLPElement validators = RLPElement.readRLPTree(miners);
+        System.out.println(miners.toString());
         RLPElement newGenesisData = RLPList.createEmpty(4);
         newGenesisData.add(RLPElement.readRLPTree(block));
         newGenesisData.add(newGenesisAccounts);
@@ -83,6 +80,8 @@ public class GenesisDump {
         long count;
     }
 
+    private ProposersState genesisProposersState;
+
     static class ValidatorMapper implements RowMapper<Validator> {
 
         @Override
@@ -95,23 +94,32 @@ public class GenesisDump {
     }
 
     private Map<byte[], Candidate> getCandidates() {
-        return getAllCandidatePublicKeyHashes().stream()
-                .map(x -> accountDB.getCandidate(x, genesisDumpHeight, switchEra))
-                .filter(x -> x.getMortgage() != 0 || x.getReceivedVotes().size() > 0)
-                .collect(Collectors.toMap(x -> x.getPublicKeyHash().getBytes(), x -> x));
-    }
+        List<Block> era = new ArrayList<>(blocksPerEra);
+        blockStreamBuilder.getBlocks()
+                .filter(block -> block.getnHeight() <= genesisDumpHeight)
+                .forEach(b -> {
+                    if (b.nHeight == 0) return;
+                    era.add(b);
+                    if (era.size() < blocksPerEra) return;
+                    System.out.println(b.nHeight);
+                    candidateStateTrie.commit(era);
+                    genesisProposersState.updateBlocks(era);
 
-    private Set<byte[]> getAllCandidatePublicKeyHashes() {
-        Set<byte[]> expected = new ByteArraySet();
-        List<byte[]> list;
-        try {
-            String sql = "select DISTINCT(t.\"to\") from \"transaction\" t\n inner join \"transaction_index\" as ti on t.tx_hash = ti.tx_hash inner join \"header\" as h on h.block_hash = ti.block_hash and h.height <=? and h.height > 0 where  t.\"type\" = 2 or t.\"type\" = 14";
-            list = jdbcTemplate.queryForList(sql, new Object[]{genesisDumpHeight}, byte[].class);
-            expected.addAll(list);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return expected;
+                    final long nextEra = (b.nHeight - 1) / blocksPerEra + 1;
+                    candidateStateTrie.getTrie()
+                            .revert(candidateStateTrie.getRootStore().get(b.getHash()).get())
+                            .values()
+                            .forEach(c -> {
+                                if (c.getAccumulated(nextEra) !=
+                                        genesisProposersState.getAll()
+                                                .get(c.getPublicKeyHash().toHex()).getAccumulated()) {
+                                    throw new RuntimeException("assertion failed");
+                                }
+                            });
+                    era.clear();
+                });
+        Block block = Objects.requireNonNull(wisdomBlockChain.getCanonicalBlock(genesisDumpHeight));
+        return candidateStateTrie.getTrie(block.getHash()).asMap();
     }
 
     private Map<byte[], Long> getValidators() {

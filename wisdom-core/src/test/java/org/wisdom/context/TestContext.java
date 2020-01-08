@@ -192,12 +192,13 @@ public class TestContext {
             BlockStreamBuilder blockStreamBuilder,
             AccountDB accountDB,
             WisdomBlockChain wisdomBlockChain,
-            @Value("${wisdom.block-interval-switch-era}") int switchEra
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            ProposersState genesisProposersState
     ) {
         return new GenesisDump(
                 testConfig.getGenesisDumpOut(), jdbcTemplate, validatorState,
                 candidateStateTrie, testConfig.getGenesisDumpHeight(), blockStreamBuilder,
-                accountDB, wisdomBlockChain, switchEra
+                accountDB, wisdomBlockChain, blocksPerEra, genesisProposersState
         );
     }
 

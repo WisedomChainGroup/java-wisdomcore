@@ -72,9 +72,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.assetCodeTrie = assetCodeTrie;
         this.triesSyncManager = triesSyncManager;
         this.triesSyncManager.setRepository(this);
-        this.triesSyncManager.sync();
         this.candidateStateTrie = candidateStateTrie;
         this.candidateStateTrie.setRepository(this);
+        this.triesSyncManager.sync();
     }
 
     private void deleteCache(Block b) {
