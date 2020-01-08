@@ -71,9 +71,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.assetCodeTrie = assetCodeTrie;
         this.triesSyncManager = triesSyncManager;
         this.triesSyncManager.setRepository(this);
-        this.triesSyncManager.sync();
         this.candidateStateTrie = candidateStateTrie;
         this.candidateStateTrie.setRepository(this);
+        this.triesSyncManager.sync();
     }
 
     private void deleteCache(Block b) {
@@ -207,7 +207,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public boolean isStaged(byte[] hash) {
-        return chainCache.contains(new BlockWrapper(hash));
+        return chainCache.contains(hash);
     }
 
     @Override
