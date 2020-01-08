@@ -3,6 +3,7 @@ package org.wisdom.db;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.contract.AssetcodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -464,6 +465,16 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
         readWriteLock.readLock().lock();
         try {
             return delegate.containsAssetCodeAt(blockHash, code);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public AssetcodeInfo getAssetCodeAt(byte[] blockHash, byte[] code) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getAssetCodeAt(blockHash, code);
         } finally {
             readWriteLock.readLock().unlock();
         }

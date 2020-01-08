@@ -1,6 +1,7 @@
 package org.wisdom.db;
 
 import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.contract.AssetcodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
@@ -9,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class WisdomRepositoryAdapter implements WisdomRepository{
+public class WisdomRepositoryAdapter implements WisdomRepository {
     @Override
     public Block getLatestConfirmed() {
         return null;
@@ -168,6 +169,11 @@ public class WisdomRepositoryAdapter implements WisdomRepository{
     @Override
     public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
         return false;
+    }
+
+    @Override
+    public AssetcodeInfo getAssetCodeAt(byte[] blockHash, byte[] code) {
+        return null;
     }
 
     @Override

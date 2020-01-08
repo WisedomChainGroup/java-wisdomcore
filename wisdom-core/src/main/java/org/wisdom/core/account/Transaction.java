@@ -166,10 +166,11 @@ public class Transaction {
         res.amount = tx.getAmount();
         if (tx.getPayload() != null) {
             res.payload = tx.getPayload().toByteArray();
-            if(res.type == Type.DEPLOY_CONTRACT.ordinal()){
-                res.contractType=res.payload[0];
-            }else if(res.type == Type.CALL_CONTRACT.ordinal()){
-                res.methodType=res.payload[0];
+            if (res.type == Type.DEPLOY_CONTRACT.ordinal()) {
+                res.contractType = res.payload[0];
+            } else if (res.type == Type.CALL_CONTRACT.ordinal()) {
+                res.methodType = res.payload[0];
+                res.contractType = getContract(res.methodType);
             }
         }
         if (tx.getTo() != null) {
@@ -179,6 +180,16 @@ public class Transaction {
             res.signature = tx.getSignature().toByteArray();
         }
         return res;
+    }
+
+    public static int getContract(int methodType) {
+        if (methodType >= 0 && methodType < 3) {
+            return 0;
+        }
+        if (methodType > 2) {
+            return 1;
+        }
+        throw new RuntimeException("Illegal invocation contract " + methodType + " type");
     }
 
     // 防止 jackson 解析时报错
@@ -393,10 +404,10 @@ public class Transaction {
     }
 
     @JsonIgnore
-    private int contractType;//合约 0:代币,1:多重签名
+    public int contractType;//合约 0:代币,1:多重签名
 
     @JsonIgnore
-    private int methodType;//调用合约方法类型
+    public int methodType;//调用合约方法类型
 
     public int getMethodType() {
         return methodType;
@@ -431,11 +442,12 @@ public class Transaction {
 //            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
 //        }
         transaction.payload = reader.read((int) payloadLength);
-        if(transaction.type == Type.DEPLOY_CONTRACT.ordinal()){//部署合约
+        if (transaction.type == Type.DEPLOY_CONTRACT.ordinal()) {//部署合约
             transaction.contractType = transaction.payload[0];
         }
-        if(transaction.type == Type.CALL_CONTRACT.ordinal()){//调用合约
+        if (transaction.type == Type.CALL_CONTRACT.ordinal()) {//调用合约
             transaction.methodType = transaction.payload[0];
+            transaction.contractType = getContract(transaction.methodType);
         }
         return transaction;
     }

@@ -1,6 +1,7 @@
 package org.wisdom.db;
 
 import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.contract.AssetcodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
@@ -62,7 +63,7 @@ public interface WisdomRepository {
     // get transaction from block or the ancestor
     Optional<Transaction> getTransactionAt(byte[] blockHash, byte[] txHash);
 
-    default Optional<Transaction> getLatestTransaction(byte[] txHash){
+    default Optional<Transaction> getLatestTransaction(byte[] txHash) {
         return getTransactionAt(getBestBlock().getHash(), txHash);
     }
 
@@ -123,13 +124,15 @@ public interface WisdomRepository {
         return getTransactionsAtByTypeFromAndTo(getBestBlock().getHash(), type, from, to, offset, limit);
     }
 
-    default List<Transaction> getLatestTransactionsByTypeAndFrom(byte[] blockHash, int type, byte[] from, int offset, int limit){
+    default List<Transaction> getLatestTransactionsByTypeAndFrom(byte[] blockHash, int type, byte[] from, int offset, int limit) {
         return getTransactionsAtByTypeAndFrom(getBestBlock().getHash(), type, from, offset, limit);
     }
 
     void writeBlock(Block block);
 
     boolean containsAssetCodeAt(byte[] blockHash, byte[] code);
+
+    AssetcodeInfo getAssetCodeAt(byte[] blockHash, byte[] code);
 
     // average blocks interval of latest 10 blocks
     double getAverageBlocksInterval();

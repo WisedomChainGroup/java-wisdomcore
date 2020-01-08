@@ -43,6 +43,8 @@ public class TriesSyncManager {
 
     private CandidateStateTrie candidateStateTrie;
 
+    private AssetCodeTrie assetCodeTrie;
+
     private Store<String, Long> statusStore;
 
     private String preBuiltGenesis;
@@ -57,12 +59,14 @@ public class TriesSyncManager {
             ValidatorStateTrie validatorStateTrie,
             DatabaseStoreFactory factory,
             CandidateStateTrie candidateStateTrie,
+            AssetCodeTrie assetCodeTrie,
             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
             WisdomBlockChain bc
     ) {
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
         this.candidateStateTrie = candidateStateTrie;
+        this.assetCodeTrie = assetCodeTrie;
         this.statusStore = new StoreWrapper<>(
                 factory.create(DB_STATUS, false),
                 Codecs.STRING,
@@ -153,5 +157,6 @@ public class TriesSyncManager {
         accountStateTrie.commit(block);
         validatorStateTrie.commit(block);
         candidateStateTrie.commit(block);
+        assetCodeTrie.commit(block);
     }
 }
