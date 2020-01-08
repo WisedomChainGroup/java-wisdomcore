@@ -74,8 +74,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.triesSyncManager.setRepository(this);
         this.candidateStateTrie = candidateStateTrie;
         this.candidateStateTrie.setRepository(this);
+        this.latestConfirmed = bc.getLastConfirmedBlock();
         this.triesSyncManager.sync();
     }
+
 
     private void deleteCache(Block b) {
         chainCache.remove(new BlockWrapper(b));
@@ -609,6 +611,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             }
             log.info("write block at height " + b.nHeight + " to db success");
             i++;
+            this.latestConfirmed = b;
         }
     }
 }

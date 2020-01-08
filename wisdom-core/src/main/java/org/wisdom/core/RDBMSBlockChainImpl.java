@@ -28,6 +28,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
+import org.wisdom.pool.TransPool;
 import org.wisdom.util.Arrays;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
@@ -260,7 +261,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     private List<Block> getHeaders(long startHeight, long stopHeight) {
-        return tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
+        return tmpl.query("select * from header where height > ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
     }
 
     @Override
@@ -369,8 +370,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         if (block == null) {
             return new ArrayList<>();
         }
-        List<Block> blocks = new BlocksCache(getHeaders(minimumAncestorHeight, block.nHeight)).getAncestors(block);
-
+        List<Block> blocks = new BlocksCache(getHeaders(block.nHeight - minimumAncestorHeight, block.nHeight)).getAncestors(block);
         if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(blocks.size() == block.nHeight - minimumAncestorHeight + 1, "ancestors height invalid");
             Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
@@ -437,13 +437,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     @Override
     public List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit) {
         return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
-                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.from = ? order by height, ti.tx_index offset ? limit ?", new Object[]{publicKey, offset, limit}, new TransactionMapper());
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.from = ? order by height, ti.tx_index offset ? limit ?", new Object[]{publicKey, offset, limit}, new TransactionMapper());
     }
 
     @Override
     public List<Transaction> getTransactionsByTypeAndFrom(int type, byte[] publicKey, int offset, int limit) {
         return tmpl.query("select tx.*, ti.block_hash as block_hash, h.height as height from transaction as tx inner join transaction_index as ti " +
-                    "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type = ? and  tx.from = ?  order by height, ti.tx_index offset ? limit ?", new Object[]{type, publicKey, offset, limit}, new TransactionMapper());
+                "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.type = ? and  tx.from = ?  order by height, ti.tx_index offset ? limit ?", new Object[]{type, publicKey, offset, limit}, new TransactionMapper());
     }
 
     @Override

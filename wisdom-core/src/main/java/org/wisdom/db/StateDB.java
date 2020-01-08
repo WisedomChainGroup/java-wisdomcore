@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
-import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.command.IncubatorAddress;
@@ -48,7 +47,6 @@ import static java.util.stream.Collectors.*;
 
 @Deprecated
 // use WisdomRepository instead
-@Component
 @Setter
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
