@@ -46,7 +46,6 @@ public class TransactionMapper implements RowMapper<Transaction> {
         tx.blockHash = rs.getBytes("block_hash");
         if (tx.type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
             tx.contractType = tx.payload[0];
-            tx.payload = ByteUtil.bytearrayridfirst(tx.payload);
         }
         if (tx.type == Transaction.Type.CALL_CONTRACT.ordinal()) {
             tx.methodType = tx.payload[0];

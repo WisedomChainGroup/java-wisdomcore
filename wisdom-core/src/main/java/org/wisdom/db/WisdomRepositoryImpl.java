@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.tdf.common.util.*;
 import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.contract.AssetcodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -277,11 +278,11 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
-        return assetCodeTrie.get(blockHash, code).get().length > 0 ? true : false;
+        return getAssetCodeAt(blockHash, code).isEmpty();
     }
 
-    public byte[] getAssetCodeAt(byte[] blockHash, byte[] code) {
-        return assetCodeTrie.get(blockHash, code).get();
+    public AssetcodeInfo getAssetCodeAt(byte[] blockHash, byte[] code) {
+        return assetCodeTrie.get(blockHash, code).orElse(AssetcodeInfo.builder().build());
     }
 
     @Override
