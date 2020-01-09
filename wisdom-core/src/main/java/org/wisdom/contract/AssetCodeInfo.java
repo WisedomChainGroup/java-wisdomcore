@@ -12,11 +12,4 @@ import lombok.NoArgsConstructor;
 public class AssetCodeInfo {
     private byte[] code;
     private byte[] asset160hash;
-
-    public boolean isEmpty() {
-        if (this.code == null || this.asset160hash == null) {
-            return false;
-        }
-        return true;
-    }
 }
