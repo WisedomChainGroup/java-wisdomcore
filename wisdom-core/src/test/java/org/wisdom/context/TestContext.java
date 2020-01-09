@@ -30,6 +30,7 @@ import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.*;
 import org.wisdom.dumps.BlocksDump;
@@ -126,8 +127,8 @@ public class TestContext {
     }
 
     @Bean
-    public DatabaseStoreFactory databaseStoreFactory() {
-        return new DatabaseStoreFactory("memory", 512, "memory");
+    public DatabaseStoreFactory databaseStoreFactory(@Value("${wisdom.database.type}") String type) {
+        return new DatabaseStoreFactory("memory", 512, type);
     }
 
     @Bean
@@ -269,8 +270,8 @@ public class TestContext {
                                              WisdomBlockChain bc,
                                              Genesis genesisJSON,
                                              AccountStateUpdater accountStateUpdater,
-                                             @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis) throws Exception {
-        return new AccountStateTrie(factory, genesis, bc, genesisJSON, accountStateUpdater, preBuiltGenesis);
+                                             @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory) throws Exception {
+        return new AccountStateTrie(factory, genesis, bc, genesisJSON, accountStateUpdater, fastSyncDirectory);
     }
 
     @Bean
@@ -347,10 +348,17 @@ public class TestContext {
             DatabaseStoreFactory factory,
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
-            @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
-            WisdomBlockChain bc) {
-        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory, candidateStateTrie, assetCodeTrie, preBuiltGenesis, bc);
+            @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory,
+            WisdomBlockChain bc,
+            CheckPointRule checkPointRule) {
+        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory, candidateStateTrie, assetCodeTrie, fastSyncDirectory, bc, checkPointRule);
     }
+
+    @Bean
+    public CheckPointRule checkPointRule(@Value("${wisdom.open-check-point}") boolean openCheckPoint){
+        return new CheckPointRule(openCheckPoint);
+    }
+
 
     @Bean
     public WisdomRepository wisdomRepository(

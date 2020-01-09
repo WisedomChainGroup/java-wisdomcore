@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: 'jdbc:postgresql://192.168.1.40:5433/postgres'
-    username: 'replica'
-    password: 'replica'
+    url: 'jdbc:postgresql://localhost:5432/postgres'
+    username: 'postgres'
+    password: '123123liu'
     type: 'org.apache.commons.dbcp2.BasicDataSource'
 
 
@@ -18,16 +18,20 @@ wisdom:
     genesis: 'E:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator2.json'
     block-interval: '30'
     blocks-per-era: '120'
-    pre-built-genesis-directory: 'E:\java-wisdomcore\wisdom-core\src\test\resources'
+    fast-sync:
+      directory: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis'
+  database:
+    type: 'leveldb'
+  open-check-point: 'true'
 miner:
   validators: 'E:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
 
 node-character: 'default'
 
 wisdom-test:
-  blocks-directory: 'C:\Users\Sal\Desktop\dumps\blocks'
-  genesis-dump-out: 'C:\Users\Sal\Desktop\dumps\genesis'
-  genesis-dump-height: '120'
+  blocks-directory: 'D:\dump'
+  genesis-dump-out: 'D:\dumps\genesis'
+  genesis-dump-height: '800040'
 
 transaction:
   day:

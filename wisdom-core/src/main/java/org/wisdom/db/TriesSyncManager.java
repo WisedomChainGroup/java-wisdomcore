@@ -3,7 +3,6 @@ package org.wisdom.db;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.serialize.Codec;
@@ -18,14 +17,19 @@ import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.Raw;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.pool.TransPool;
+import org.wisdom.core.validate.CheckPointRule;
+import org.wisdom.core.validate.Result;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 // helper to keep all state trie synced
 @Component
@@ -47,9 +51,11 @@ public class TriesSyncManager {
 
     private Store<String, Long> statusStore;
 
-    private String preBuiltGenesis;
+    private String fastSyncDirectory;
 
     private WisdomBlockChain bc;
+
+    private CheckPointRule checkPointRule;
 
     @Setter
     private WisdomRepository repository;
@@ -60,8 +66,9 @@ public class TriesSyncManager {
             DatabaseStoreFactory factory,
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
-            @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis,
-            WisdomBlockChain bc
+            @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory,
+            WisdomBlockChain bc,
+            CheckPointRule checkPointRule
     ) {
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
@@ -73,19 +80,17 @@ public class TriesSyncManager {
                 Codec.newInstance(RLPCodec::encode, RLPCodec::decodeLong)
         );
         this.bc = bc;
-        this.preBuiltGenesis = preBuiltGenesis;
+        this.fastSyncDirectory = fastSyncDirectory;
+        this.checkPointRule = checkPointRule;
     }
 
     public void setRepository(WisdomRepository repository) {
         this.repository = repository;
     }
 
-    void sync() throws Exception {
-        // query for had been written
-        long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).orElse(-1L);
-
-        File file = Paths.get(preBuiltGenesis).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(preBuiltGenesis + " is not a valid directory");
+    public RLPElement readPreBuiltGenesis() throws IOException {
+        File file = Paths.get(fastSyncDirectory).toFile();
+        if (!file.isDirectory()) throw new RuntimeException(fastSyncDirectory + " is not a valid directory");
         File[] files = file.listFiles();
         if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
         File lastGenesis = Arrays.stream(files)
@@ -94,6 +99,32 @@ public class TriesSyncManager {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("unreachable"));
         RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(lastGenesis.toPath()));
+        return el;
+    }
+
+    public Stream<Block> readBlocks() {
+        File file = Paths.get(fastSyncDirectory).toFile();
+        if (!file.isDirectory()) throw new RuntimeException(fastSyncDirectory + " is not a valid directory");
+        File[] files = file.listFiles();
+        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
+        return Arrays.stream(files)
+                .filter(f -> f.getName().contains("blocks-dump"))
+                .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
+                .flatMap(x -> {
+                    try {
+                        byte[] bytes = Files.readAllBytes(x.toPath());
+                        return Arrays.stream(RLPElement.fromEncoded(bytes).as(Block[].class));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
+    void sync() throws Exception {
+        // query for had been written
+        long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).orElse(-1L);
+
+        RLPElement el = readPreBuiltGenesis();
         Block genesis = el.get(0).as(Block.class);
 
         // put pre built genesis file
@@ -133,6 +164,19 @@ public class TriesSyncManager {
             byte[] newRootCandidateStateTrie = emptyCandidateStateTrie.commit();
             emptyCandidateStateTrie.flush();
             candidateStateTrie.getRootStore().put(genesis.getHash(), newRootCandidateStateTrie);
+            candidateStateTrie.generateProposers(Stream.of(genesis).collect(Collectors.toList()), emptyCandidateStateTrie);
+
+            // write blocks to db
+            readBlocks().filter(block -> block.getnHeight() <= genesis.getnHeight()).forEach(
+                    block -> {
+                        if (bc.hasBlock(block.getHash())) {
+                            return;
+                        }
+                        if (checkPointRule.validateBlock(block) == Result.SUCCESS) {
+                            bc.writeBlock(block);
+                        }
+                    }
+            );
 
             lastSyncedHeight = genesis.nHeight;
         }
@@ -157,6 +201,6 @@ public class TriesSyncManager {
         accountStateTrie.commit(block);
         validatorStateTrie.commit(block);
         candidateStateTrie.commit(block);
-        assetCodeTrie.commit(block);
+//        assetCodeTrie.commit(block);
     }
 }

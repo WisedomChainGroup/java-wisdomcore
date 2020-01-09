@@ -37,7 +37,7 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
             WisdomBlockChain bc,
             Genesis genesisJSON,
             AccountStateUpdater accountStateUpdater,
-            @Value("${wisdom.consensus.pre-built-genesis-directory}") String preBuiltGenesis
+            @Value("${wisdom.consensus.fast-sync.directory}") String preBuiltGenesis
     ) throws Exception {
         super(AccountState.class, accountStateUpdater, genesis, factory, true, false);
         this.bc = bc;
