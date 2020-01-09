@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.tdf.common.util.*;
+import org.tdf.rlp.RLPElement;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
@@ -72,10 +73,17 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.triesSyncManager.setRepository(this);
         this.candidateStateTrie = candidateStateTrie;
         this.candidateStateTrie.setRepository(this);
-        this.latestConfirmed = bc.getLastConfirmedBlock();
+        initLatestConfirmed();
         this.triesSyncManager.sync();
     }
 
+    private Block genesis;
+
+    private void initLatestConfirmed() throws Exception {
+        RLPElement el = this.triesSyncManager.readPreBuiltGenesis();
+        genesis = el.get(0).as(Block.class);
+        this.latestConfirmed = genesis.getnHeight() > bc.getLastConfirmedBlock().getnHeight() ? genesis : bc.getLastConfirmedBlock();
+    }
 
     private void deleteCache(Block b) {
         chainCache.remove(new BlockWrapper(b));
@@ -116,12 +124,18 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public Block getHeader(byte[] blockHash) {
+        if (FastByteComparisons.equal(genesis.getHash(), blockHash)) {
+            return genesis;
+        }
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
                 .orElse(bc.getHeader(blockHash));
     }
 
     public Block getBlock(byte[] blockHash) {
+        if (FastByteComparisons.equal(genesis.getHash(), blockHash)) {
+            return genesis;
+        }
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
                 .orElse(bc.getBlock(blockHash));
@@ -257,7 +271,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                     .flatMap(b -> b.body.stream()
                             .filter(tx -> FastByteComparisons.equal(tx.getHash(), txHash))
                             .findFirst());
-            if(!o.isPresent()) throw new RuntimeException("unexpected");
+            if (!o.isPresent()) throw new RuntimeException("unexpected");
             return o;
         }
 
@@ -603,7 +617,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         for (int i = 0; i < confirmedAncestors.size(); ) {
             Block b = confirmedAncestors.get(i);
             // CAS 锁，等待上一个区块状态更新成功
-            boolean writeResult = bc.writeBlock(b);
+            boolean writeResult;
+            if (FastByteComparisons.equal(b.hashPrevBlock, genesis.getHash())) {
+                writeResult = bc.writeBlock(b, genesis);
+            } else {
+                writeResult = bc.writeBlock(b);
+            }
+
             if (!writeResult) {
                 // 数据库 写入失败 重试写入
                 log.error("write block to database failed, retrying...");
