@@ -16,7 +16,7 @@ import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 
-// TODO: add history transaction hash set 
+// TODO: create fast sync manager
 @Slf4j
 public class WisdomRepositoryImpl implements WisdomRepository {
     private ChainCache<BlockWrapper> chainCache;
