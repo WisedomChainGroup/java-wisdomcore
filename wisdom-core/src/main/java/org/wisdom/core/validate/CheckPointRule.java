@@ -59,6 +59,7 @@ public class CheckPointRule implements BlockRule {
         return Result.SUCCESS;
     }
 
+    // TODO: reduce this io !!!!
     // validateDBBlock 校验数据库中的检查点
     public Result validateDBCheckPoint() {
         if (!openCheckPoint) {
