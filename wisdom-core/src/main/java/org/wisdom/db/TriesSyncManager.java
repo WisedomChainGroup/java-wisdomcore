@@ -190,10 +190,10 @@ public class TriesSyncManager {
         validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
         candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
 
-        // TODO: generate cache for latest, not for prebuilt genesis
+        // TODO: generate cache for candidateStateTrielatestSyncHeight, not for prebuilt genesis
         candidateStateTrie.generateCache(preBuiltGenesis.getBlock(), preBuiltGenesis.getCandidateStates());
 
-        // TODO: get last sync height by binary search
+      
         long accountStateTrieLastSyncHeight =
                 getLastSyncedHeight(
                         preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
@@ -209,11 +209,14 @@ public class TriesSyncManager {
                         preBuiltGenesis.block.nHeight, currentHeight, candidateStateTrie.getRootStore()
                 );
 
+        // TODO: 根据最小io原则，找到这三个long的最小值 Arrsys.stream().min
+        // 从这个最小值开始同步状态
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(accountStateTrieLastSyncHeight + 1, blocksPerUpdate);
             for (Block block : blocks) {
-                // get all related accounts
+                // get all related accounts 
+                // TODO: 针对每棵树有不同的最新状态高度，如果可以确定这个区块高度同步过可以跳过
                 accountStateTrie.commit(block);
                 validatorStateTrie.commit(block);
                 candidateStateTrie.commit(block);
