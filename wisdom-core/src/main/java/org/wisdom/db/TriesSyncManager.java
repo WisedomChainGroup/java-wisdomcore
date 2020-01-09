@@ -140,7 +140,7 @@ public class TriesSyncManager {
     private void syncBlockDatabase(
             PreBuiltGenesis preBuiltGenesis
     ) {
-        long currentHeight = bc.getLastConfirmedBlock().nHeight;
+        long currentHeight = bc.currentHeader().nHeight;
         if (currentHeight >= preBuiltGenesis.getBlock().nHeight) {
             if (!FastByteComparisons.equal(
                     bc.getCanonicalHeader(preBuiltGenesis.getBlock().nHeight).getHash(),
@@ -175,28 +175,26 @@ public class TriesSyncManager {
 
         syncBlockDatabase(preBuiltGenesis);
 
-        if (bc.getLastConfirmedBlock().nHeight < preBuiltGenesis.getBlock().nHeight)
+        if (bc.currentHeader().nHeight < preBuiltGenesis.getBlock().nHeight)
             throw new RuntimeException("missing blocks to fast sync, please ensure at least "
                     + preBuiltGenesis.getBlock().nHeight +
                     " blocks in fast sync directory");
 
-        // put pre built genesis file
+        // put pre built states
         // TODO: hard code trie roots
-        if (genesis.nHeight > lastSyncedHeight) {
 
-            Map<byte[], AccountState> accountStates = new ByteArrayMap<>();
 
-            preBuiltGenesis.getAccountStates()
-                    .forEach(a -> accountStates.put(a.getAccount().getPubkeyHash(), a));
+        Map<byte[], AccountState> accountStates = new ByteArrayMap<>();
+        preBuiltGenesis.getAccountStates()
+                .forEach(a -> accountStates.put(a.getAccount().getPubkeyHash(), a));
 
-            accountStateTrie.commit(accountStates, preBuiltGenesis.block.getHash());
-            validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
-            candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
-            candidateStateTrie.generateCache(preBuiltGenesis.getBlock(), preBuiltGenesis.getCandidateStates());
+        accountStateTrie.commit(accountStates, preBuiltGenesis.block.getHash());
+        validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
+        candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
 
-            // write blocks to db
-            lastSyncedHeight = genesis.nHeight;
-        }
+        // TODO: generate cache for latest, not for prebuilt genesis
+        candidateStateTrie.generateCache(preBuiltGenesis.getBlock(), preBuiltGenesis.getCandidateStates());
+
 
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
@@ -219,5 +217,12 @@ public class TriesSyncManager {
         validatorStateTrie.commit(block);
         candidateStateTrie.commit(block);
 //        assetCodeTrie.commit(block);
+    }
+
+    public Block getLastSynced(long start, Store<byte[], byte[]> rootStore, Block h) {
+        if (!rootStore.containsKey(h.getHash()) && rootStore.containsKey(h.hashPrevBlock)) {
+            return h;
+        }
+        return getLastSynced(start, rootStore, bc.getCanonicalBlock((h.nHeight + start) / 2));
     }
 }

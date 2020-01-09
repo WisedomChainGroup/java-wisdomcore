@@ -105,6 +105,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     @Override
     public void commit(Map<byte[], T> states, byte[] blockHash) {
+        if(getRootStore().containsKey(blockHash)) return;
         Trie<byte[], T> empty = getTrie().revert();
         states.forEach(empty::put);
         getRootStore().put(blockHash, empty.commit());
