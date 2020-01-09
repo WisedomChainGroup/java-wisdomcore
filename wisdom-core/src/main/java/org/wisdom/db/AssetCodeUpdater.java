@@ -35,6 +35,9 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
 
     @Override
     AssetCodeInfo update(byte[] id, AssetCodeInfo state, Block block, Transaction transaction) {
+        if (state != null) {
+            throw new RuntimeException("AssetCodeInfo is not a null exception");
+        }
         if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.contractType != 0)
             return state;
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
@@ -52,6 +55,6 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
 
     @Override
     AssetCodeInfo createEmpty(byte[] id) {
-        return AssetCodeInfo.builder().build();
+        return null;
     }
 }

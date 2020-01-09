@@ -36,6 +36,7 @@ import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
 import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.MULTTRANSFER;
 
 public class PackageCache {
 
@@ -262,6 +263,8 @@ public class PackageCache {
                 tokensmap.put(tx.to, tokensbalance);
                 accountState.setTokensMap(tokensmap);
             }
+        }else if(tx.getContractType() == 1 && tx.getMethodType() == MULTTRANSFER.ordinal()){//多签
+
         }
         newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
     }
