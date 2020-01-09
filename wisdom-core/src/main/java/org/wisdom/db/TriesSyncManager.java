@@ -231,14 +231,14 @@ public class TriesSyncManager {
     }
 
     public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {
+        if(start == end) return end;
         long half = (start + end) / 2;
         Block h = bc.getCanonicalHeader(half);
-        if (!rootStore.containsKey(h.getHash()) && rootStore.containsKey(h.hashPrevBlock)) {
-            return h.nHeight - 1;
+        if (!rootStore.containsKey(h.getHash())) {
+            return getLastSyncedHeight(start, half, rootStore);
         }
-        if (rootStore.containsKey(h.getHash())) {
-            return getLastSyncedHeight(half, end, rootStore);
-        }
-        return getLastSyncedHeight(start, half, rootStore);
+        Block next = bc.getCanonicalHeader(half + 1);
+        if(next == null || !rootStore.containsKey(next.getHash())) return half;
+        return getLastSyncedHeight(half, end, rootStore);
     }
 }
