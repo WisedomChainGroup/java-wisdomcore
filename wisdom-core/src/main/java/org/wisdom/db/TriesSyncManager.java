@@ -156,6 +156,7 @@ public class TriesSyncManager {
             ) {
                 throw new RuntimeException("genesis conflicts");
             }
+            // TODO: 这里断言一下 如果b的高度和prebuiltGenesis相等，那么两者的哈希也必须相等
             if (b.nHeight > currentHeight && b.nHeight <= preBuiltGenesis.getBlock().nHeight) {
                 if (!checkPointRule.validateBlock(b).isSuccess())
                     throw new RuntimeException("invalid block in fast sync directory");
