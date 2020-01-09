@@ -166,23 +166,21 @@ public class TriesSyncManager {
 
     void sync() throws Exception {
         // query for states had been written
-        long lastSyncedHeight = statusStore
-                .get(LAST_SYNCED_HEIGHT)
-                .orElse(-1L);
+
 
         PreBuiltGenesis preBuiltGenesis = readPreBuiltGenesis();
         Block genesis = preBuiltGenesis.getBlock();
 
         syncBlockDatabase(preBuiltGenesis);
 
-        if (bc.currentHeader().nHeight < preBuiltGenesis.getBlock().nHeight)
+        long currentHeight = bc.currentHeader().nHeight;
+        if (currentHeight < preBuiltGenesis.getBlock().nHeight)
             throw new RuntimeException("missing blocks to fast sync, please ensure at least "
                     + preBuiltGenesis.getBlock().nHeight +
                     " blocks in fast sync directory");
 
         // put pre built states
         // TODO: hard code trie roots
-
 
         Map<byte[], AccountState> accountStates = new ByteArrayMap<>();
         preBuiltGenesis.getAccountStates()
@@ -195,10 +193,25 @@ public class TriesSyncManager {
         // TODO: generate cache for latest, not for prebuilt genesis
         candidateStateTrie.generateCache(preBuiltGenesis.getBlock(), preBuiltGenesis.getCandidateStates());
 
+        // TODO: get last sync height by binary search
+        long accountStateTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
+                );
+
+        long validatorStateTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, validatorStateTrie.getRootStore()
+                );
+
+        long candidateStateTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, candidateStateTrie.getRootStore()
+                );
 
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(lastSyncedHeight + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getCanonicalBlocks(accountStateTrieLastSyncHeight + 1, blocksPerUpdate);
             for (Block block : blocks) {
                 // get all related accounts
                 accountStateTrie.commit(block);
@@ -207,9 +220,7 @@ public class TriesSyncManager {
             }
             // sync trie here
             if (blocks.size() < blocksPerUpdate) break;
-            lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
         }
-        statusStore.put(LAST_SYNCED_HEIGHT, lastSyncedHeight);
     }
 
     public void commit(Block block) {
@@ -219,10 +230,15 @@ public class TriesSyncManager {
 //        assetCodeTrie.commit(block);
     }
 
-    public Block getLastSynced(long start, Store<byte[], byte[]> rootStore, Block h) {
+    public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {
+        long half = (start + end) / 2;
+        Block h = bc.getCanonicalHeader(half);
         if (!rootStore.containsKey(h.getHash()) && rootStore.containsKey(h.hashPrevBlock)) {
-            return h;
+            return h.nHeight - 1;
         }
-        return getLastSynced(start, rootStore, bc.getCanonicalBlock((h.nHeight + start) / 2));
+        if (rootStore.containsKey(h.getHash())) {
+            return getLastSyncedHeight(half, end, rootStore);
+        }
+        return getLastSyncedHeight(start, half, rootStore);
     }
 }
