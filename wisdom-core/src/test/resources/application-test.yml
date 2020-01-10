@@ -23,6 +23,7 @@ wisdom:
   database:
     type: 'leveldb'
   open-check-point: 'true'
+
 miner:
   validators: 'E:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
 
