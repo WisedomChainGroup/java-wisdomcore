@@ -104,6 +104,4 @@ public interface WisdomBlockChain {
     Block getLastConfirmedBlock();
 
     long countBlocksAfter(long timestamp);
-
-    boolean writeBlock(Block block, Block parentBlock);
 }

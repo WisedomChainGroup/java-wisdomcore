@@ -324,32 +324,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public synchronized boolean writeBlock(Block block) {
-        Block parentHeader = getBlock(block.hashPrevBlock);
-
+        Block parentHeader = getHeader(block.hashPrevBlock);
         if (parentHeader == null) {
             return false;
         }
 
-        long ptw = parentHeader.totalWeight;
-        block.totalWeight = block.weight + ptw;
-
-        Boolean result = txTmpl.execute((TransactionStatus status) -> {
-            try {
-                writeHeader(block);
-                writeBody(block);
-            } catch (Exception e) {
-                e.printStackTrace();
-                status.setRollbackOnly();
-                e.printStackTrace();
-                return false;
-            }
-            return true;
-        });
-        return Optional.ofNullable(result).orElse(false);
-    }
-
-    @Override
-    public synchronized boolean writeBlock(Block block, Block parentHeader) {
         long ptw = parentHeader.totalWeight;
         block.totalWeight = block.weight + ptw;
 

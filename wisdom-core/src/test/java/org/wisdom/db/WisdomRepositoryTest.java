@@ -25,4 +25,5 @@ public class WisdomRepositoryTest {
                 .filter(b -> b.nHeight > 800040)
                 .forEach(repository::writeBlock);
     }
+
 }
