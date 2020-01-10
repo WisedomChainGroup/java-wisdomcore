@@ -18,20 +18,20 @@
 
 package org.wisdom.core;
 
-import org.wisdom.core.event.NewBestBlockEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.wisdom.core.event.NewConfirmedBlockEvent;
 import org.wisdom.pool.PeningTransPool;
 
 @Component
-public class StatetreeUpdate implements ApplicationListener<NewBestBlockEvent> {
+public class StatetreeUpdate implements ApplicationListener<NewConfirmedBlockEvent> {
 
     @Autowired
     PeningTransPool peningTransPool;
 
     @Override
-    public void onApplicationEvent(NewBestBlockEvent event) {
+    public void onApplicationEvent(NewConfirmedBlockEvent event) {
         Block b = event.getBlock();
         peningTransPool.updatePool(b.body, 2, b.nHeight);
     }
