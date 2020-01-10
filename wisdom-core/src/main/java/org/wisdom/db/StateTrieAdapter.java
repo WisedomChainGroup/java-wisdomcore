@@ -111,4 +111,9 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
     }
+
+    public boolean contain(Block block){
+        return getRootStore().asMap().containsKey(block.getHash());
+    }
+
 }

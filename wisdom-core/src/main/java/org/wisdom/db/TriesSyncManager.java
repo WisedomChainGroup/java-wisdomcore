@@ -208,11 +208,14 @@ public class TriesSyncManager {
             long height = Arrays.stream(new long[]{accountStateTrieLastSyncHeight, validatorStateTrieLastSyncHeight, candidateStateTrieLastSyncHeight}).min().getAsLong();
             List<Block> blocks = bc.getCanonicalBlocks(height + 1, blocksPerUpdate);
             for (Block block : blocks) {
-                // get all related accounts 
-                // TODO: 针对每棵树有不同的最新状态高度，如果可以确定这个区块高度同步过可以跳过
-                accountStateTrie.commit(block);
-                validatorStateTrie.commit(block);
-                candidateStateTrie.commit(block);
+                // get all related accounts
+                Stream.of(accountStateTrie, validatorStateTrie, candidateStateTrie).forEach(
+                        x -> {
+                            if (!x.contain(block)) {
+                                x.commit(block);
+                            }
+                        }
+                );
             }
             // sync trie here
             if (blocks.size() < blocksPerUpdate) break;
@@ -231,10 +234,10 @@ public class TriesSyncManager {
         long half = (start + end) / 2;
         Block h = bc.getCanonicalHeader(half);
         if (!rootStore.containsKey(h.getHash())) {
-            return getLastSyncedHeight(start, half, rootStore);
+            return getLastSyncedHeight(start, half - 1, rootStore);
         }
         Block next = bc.getCanonicalHeader(half + 1);
         if (next == null || !rootStore.containsKey(next.getHash())) return half;
-        return getLastSyncedHeight(half, end, rootStore);
+        return getLastSyncedHeight(half + 1, end, rootStore);
     }
 }
