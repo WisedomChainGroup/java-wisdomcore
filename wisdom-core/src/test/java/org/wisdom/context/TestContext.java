@@ -369,10 +369,12 @@ public class TestContext {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) throws Exception {
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            ApplicationContext applicationContext
+            ) throws Exception {
         return new WisdomRepositoryWrapper(bc, triesSyncManager, accountStateTrie,
                 validatorStateTrie, candidateStateTrie, assetCodeTrie,
-                targetCache, blocksPerEra
+                targetCache, blocksPerEra, applicationContext
         );
     }
 
