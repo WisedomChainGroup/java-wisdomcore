@@ -350,8 +350,13 @@ public class TestContext {
             AssetCodeTrie assetCodeTrie,
             @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory,
             WisdomBlockChain bc,
-            CheckPointRule checkPointRule) {
-        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory, candidateStateTrie, assetCodeTrie, fastSyncDirectory, bc, checkPointRule);
+            CheckPointRule checkPointRule,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+    ) {
+        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory,
+                candidateStateTrie, assetCodeTrie, fastSyncDirectory,
+                bc, checkPointRule, blocksPerEra
+        );
     }
 
     @Bean
