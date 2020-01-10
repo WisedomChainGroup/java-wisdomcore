@@ -3,6 +3,7 @@ package org.wisdom.db;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.serialize.Codec;
@@ -29,6 +30,7 @@ import java.util.stream.Stream;
 
 // helper to keep all state trie synced
 @Component
+@Slf4j
 public class TriesSyncManager {
     @Getter(AccessLevel.PACKAGE)
     private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
@@ -144,19 +146,28 @@ public class TriesSyncManager {
             return;
         }
 
-        readBlocks().forEach((b) -> {
-            if (b.nHeight == 0 &&
-                    !FastByteComparisons.equal(b.getHash(), bc.getGenesis().getHash())
-            ) {
-                throw new RuntimeException("genesis conflicts");
-            }
-            // TODO: 这里断言一下 如果b的高度和prebuiltGenesis相等，那么两者的哈希也必须相等
-            if (b.nHeight > currentHeight && b.nHeight <= preBuiltGenesis.getBlock().nHeight) {
-                if (!checkPointRule.validateBlock(b).isSuccess())
-                    throw new RuntimeException("invalid block in fast sync directory");
-                bc.writeBlock(b);
-            }
-        });
+        log.info("current best block height is {}, start fast sync to {}", currentHeight, preBuiltGenesis.getBlock().nHeight);
+        readBlocks()
+                .peek((b) -> {
+                    if (b.nHeight == 0 &&
+                            !FastByteComparisons.equal(b.getHash(), bc.getGenesis().getHash())
+                    ) {
+                        throw new RuntimeException("genesis conflicts");
+                    }
+                })
+                .filter(b -> b.nHeight > currentHeight && b.nHeight <= preBuiltGenesis.getBlock().nHeight)
+                .peek(b -> {
+                    if (!checkPointRule.validateBlock(b).isSuccess())
+                        throw new RuntimeException("invalid block in fast sync directory");
+                    if(b.nHeight % 1000 == 0){
+                        double status = (b.nHeight - currentHeight) * 1.0 / (preBuiltGenesis.getBlock().nHeight - currentHeight);
+                        log.info("fast sync status {}", status);
+                    }
+                })
+                .forEach(bc::writeBlock);
+
+        // TODO: 这里断言一下 如果b的高度和prebuiltGenesis相等，那么两者的哈希也必须相等
+        ;
     }
 
     void sync() throws Exception {
