@@ -264,11 +264,11 @@ public class TriesSyncManager {
                     candidateStateTrie.commit(block);
                 }
             }
+            // sync trie here
+            if (blocks.size() < blocksPerUpdate) break;
             double status = (blocks.get(blocks.size() - 1).nHeight - start) * 1.0 / (currentHeight - start);
             log.info("state sync status {}%", String.format("%.2f", status * 100));
             start += blocksPerUpdate;
-            // sync trie here
-            if (blocks.size() < blocksPerUpdate) break;
         }
 
         log.info("sync status finished");
