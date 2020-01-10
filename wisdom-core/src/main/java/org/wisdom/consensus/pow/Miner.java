@@ -183,7 +183,7 @@ public class Miner implements ApplicationListener {
             throw new RuntimeException(e);
         }
         p.ifPresent(proposer -> {
-            if (FastByteComparisons.equal(proposer.pubkeyHash, consensusConfig.getMinerPubKeyHash())) {
+            if (!FastByteComparisons.equal(proposer.pubkeyHash, consensusConfig.getMinerPubKeyHash())) {
                 return;
             }
             try {
