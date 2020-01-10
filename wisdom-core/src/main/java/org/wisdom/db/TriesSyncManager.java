@@ -16,7 +16,6 @@ import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.validate.CheckPointRule;
-import org.wisdom.core.validate.Result;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +25,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 // helper to keep all state trie synced
@@ -109,10 +107,7 @@ public class TriesSyncManager {
     public PreBuiltGenesis readPreBuiltGenesis() throws IOException {
         File lastGenesis = readFastSyncFiles()
                 .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp"))
-                .max((x, y) -> Long.compare(
-                        Long.parseLong(x.getName().split("\\.")[1]),
-                        Long.parseLong(y.getName().split("\\.")[1])
-                ))
+                .max(Comparator.comparingLong(x -> Long.parseLong(x.getName().split("\\.")[1])))
                 .orElseThrow(() -> new RuntimeException("unreachable"));
         PreBuiltGenesis preBuiltGenesis = RLPElement
                 .fromEncoded(Files.readAllBytes(lastGenesis.toPath()))
@@ -124,8 +119,7 @@ public class TriesSyncManager {
 
     public Stream<Block> readBlocks() {
         return readFastSyncFiles()
-                // TODO: use String.matches full name
-                .filter(f -> f.getName().contains("blocks-dump"))
+                .filter(f -> f.getName().matches("blocks-dump\\.+[0-9]+\\.+[0-9\\-]+[0-9]+\\.rlp"))
                 .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
                 .flatMap(x -> {
                     try {
@@ -170,7 +164,6 @@ public class TriesSyncManager {
 
 
         PreBuiltGenesis preBuiltGenesis = readPreBuiltGenesis();
-        Block genesis = preBuiltGenesis.getBlock();
 
         syncBlockDatabase(preBuiltGenesis);
 
@@ -194,7 +187,7 @@ public class TriesSyncManager {
         // TODO: generate cache for candidateStateTrielatestSyncHeight, not for prebuilt genesis
         candidateStateTrie.generateCache(preBuiltGenesis.getBlock(), preBuiltGenesis.getCandidateStates());
 
-      
+
         long accountStateTrieLastSyncHeight =
                 getLastSyncedHeight(
                         preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
@@ -209,12 +202,11 @@ public class TriesSyncManager {
                 getLastSyncedHeight(
                         preBuiltGenesis.block.nHeight, currentHeight, candidateStateTrie.getRootStore()
                 );
-
-        // TODO: 根据最小io原则，找到这三个long的最小值 Arrsys.stream().min
         // 从这个最小值开始同步状态
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(accountStateTrieLastSyncHeight + 1, blocksPerUpdate);
+            long height = Arrays.stream(new long[]{accountStateTrieLastSyncHeight, validatorStateTrieLastSyncHeight, candidateStateTrieLastSyncHeight}).min().getAsLong();
+            List<Block> blocks = bc.getCanonicalBlocks(height + 1, blocksPerUpdate);
             for (Block block : blocks) {
                 // get all related accounts 
                 // TODO: 针对每棵树有不同的最新状态高度，如果可以确定这个区块高度同步过可以跳过
@@ -235,14 +227,14 @@ public class TriesSyncManager {
     }
 
     public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {
-        if(start == end) return end;
+        if (start == end) return end;
         long half = (start + end) / 2;
         Block h = bc.getCanonicalHeader(half);
         if (!rootStore.containsKey(h.getHash())) {
             return getLastSyncedHeight(start, half, rootStore);
         }
         Block next = bc.getCanonicalHeader(half + 1);
-        if(next == null || !rootStore.containsKey(next.getHash())) return half;
+        if (next == null || !rootStore.containsKey(next.getHash())) return half;
         return getLastSyncedHeight(half, end, rootStore);
     }
 }
