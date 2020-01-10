@@ -66,7 +66,7 @@ public class ConsensusRule implements BlockRule {
                 .orElse(false)) {
             return Result.Error("the proposer cannot propose this block");
         }
-        byte[] target = repository.getTargetByParent(block);
+        byte[] target = repository.getTargetByParent(parent);
         if (BigEndian.decodeUint256(block.nBits).compareTo(BigEndian.decodeUint256(target)) != 0) {
             return Result.Error("block at height " + block.nHeight + " nbits invalid " + Hex.encodeHexString(target) + " expected " + Hex.encodeHexString(block.nBits) + " received");
         }
