@@ -202,7 +202,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     public void generateCache(Block eraLast, Map<byte[], Candidate> candidates) {
-        boolean dropZeroVotes = (eraLast.nHeight - blocksPerEra + 1) > candidateUpdater.getWIP_12_17_HEIGHT()
+        boolean dropZeroVotes = (eraLast.nHeight - blocksPerEra + 1) > candidateUpdater.getWIP_12_17_HEIGHT();
         // 重新生成 proposers
         List<Candidate> blocked = new ArrayList<>();
         Stream<Candidate> candidateStream = candidates
