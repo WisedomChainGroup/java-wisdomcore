@@ -102,4 +102,13 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unexpected"))
         );
     }
+
+    @Override
+    public void commit(Map<byte[], T> states, byte[] blockHash) {
+        if(getRootStore().containsKey(blockHash)) return;
+        Trie<byte[], T> empty = getTrie().revert();
+        states.forEach(empty::put);
+        getRootStore().put(blockHash, empty.commit());
+        empty.flush();
+    }
 }

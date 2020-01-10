@@ -9,12 +9,10 @@ import org.tdf.common.serialize.Codec;
 import org.tdf.common.serialize.Codecs;
 import org.tdf.common.store.Store;
 import org.tdf.common.store.StoreWrapper;
-import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
-import org.tdf.rlp.MapContainer;
+import org.tdf.common.util.FastByteComparisons;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
-import org.tdf.rlp.Raw;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.validate.CheckPointRule;
@@ -60,6 +58,8 @@ public class TriesSyncManager {
     @Setter
     private WisdomRepository repository;
 
+    private int blocksPerEra;
+
     public TriesSyncManager(
             AccountStateTrie accountStateTrie,
             ValidatorStateTrie validatorStateTrie,
@@ -68,7 +68,8 @@ public class TriesSyncManager {
             AssetCodeTrie assetCodeTrie,
             @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory,
             WisdomBlockChain bc,
-            CheckPointRule checkPointRule
+            CheckPointRule checkPointRule,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) {
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
@@ -82,32 +83,48 @@ public class TriesSyncManager {
         this.bc = bc;
         this.fastSyncDirectory = fastSyncDirectory;
         this.checkPointRule = checkPointRule;
+        this.blocksPerEra = blocksPerEra;
+    }
+
+    @Getter
+    private static class PreBuiltGenesis {
+        private Block block;
+        private List<AccountState> accountStates;
+        private Map<byte[], Long> validators;
+        private Map<byte[], Candidate> candidateStates;
     }
 
     public void setRepository(WisdomRepository repository) {
         this.repository = repository;
     }
 
-    public RLPElement readPreBuiltGenesis() throws IOException {
+    private Stream<File> readFastSyncFiles() {
         File file = Paths.get(fastSyncDirectory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(fastSyncDirectory + " is not a valid directory");
         File[] files = file.listFiles();
         if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        File lastGenesis = Arrays.stream(files)
+        return Arrays.stream(files);
+    }
+
+    public PreBuiltGenesis readPreBuiltGenesis() throws IOException {
+        File lastGenesis = readFastSyncFiles()
                 .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp"))
-                .sorted((x, y) -> (int) (Long.parseLong(y.getName().split("\\.")[1]) - Long.parseLong(x.getName().split("\\.")[1])))
-                .findFirst()
+                .max((x, y) -> Long.compare(
+                        Long.parseLong(x.getName().split("\\.")[1]),
+                        Long.parseLong(y.getName().split("\\.")[1])
+                ))
                 .orElseThrow(() -> new RuntimeException("unreachable"));
-        RLPElement el = RLPElement.fromEncoded(Files.readAllBytes(lastGenesis.toPath()));
-        return el;
+        PreBuiltGenesis preBuiltGenesis = RLPElement
+                .fromEncoded(Files.readAllBytes(lastGenesis.toPath()))
+                .as(PreBuiltGenesis.class);
+        if (preBuiltGenesis.getBlock().nHeight % blocksPerEra != 0)
+            throw new RuntimeException("prebuilt genesis must be era last block");
+        return preBuiltGenesis;
     }
 
     public Stream<Block> readBlocks() {
-        File file = Paths.get(fastSyncDirectory).toFile();
-        if (!file.isDirectory()) throw new RuntimeException(fastSyncDirectory + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        return Arrays.stream(files)
+        return readFastSyncFiles()
+                // TODO: use String.matches full name
                 .filter(f -> f.getName().contains("blocks-dump"))
                 .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
                 .flatMap(x -> {
@@ -120,81 +137,94 @@ public class TriesSyncManager {
                 });
     }
 
-    void sync() throws Exception {
-        // query for had been written
-        long lastSyncedHeight = statusStore.get(LAST_SYNCED_HEIGHT).orElse(-1L);
-
-        RLPElement el = readPreBuiltGenesis();
-        Block genesis = el.get(0).as(Block.class);
-
-        // put pre built genesis file
-        // TODO: hard code trie roots
-        if (genesis.nHeight > lastSyncedHeight) {
-            Trie<byte[], AccountState> empty = accountStateTrie.getTrie().revert();
-            Arrays.stream(el.get(1).as(AccountState[].class))
-                    .forEach(a -> empty.put(a.getAccount().getPubkeyHash(), a));
-            byte[] newRoot = empty.commit();
-            empty.flush();
-            accountStateTrie.getRootStore().put(genesis.getHash(), newRoot);
-
-            Trie<byte[], Long> emptyValidatorStateTrie = validatorStateTrie.getTrie().revert();
-            Map<byte[], Long> validators = (Map<byte[], Long>) RLPCodec.decodeContainer(el.get(2).getEncoded(),
-                    MapContainer.builder()
-                            .mapType(ByteArrayMap.class)
-                            .keyType(new Raw(byte[].class))
-                            .valueType(new Raw(Long.class))
-                            .build());
-            for (Map.Entry<byte[], Long> entry : validators.entrySet()) {
-                emptyValidatorStateTrie.put(entry.getKey(), entry.getValue());
+    private void syncBlockDatabase(
+            PreBuiltGenesis preBuiltGenesis
+    ) {
+        long currentHeight = bc.currentHeader().nHeight;
+        if (currentHeight >= preBuiltGenesis.getBlock().nHeight) {
+            if (!FastByteComparisons.equal(
+                    bc.getCanonicalHeader(preBuiltGenesis.getBlock().nHeight).getHash(),
+                    preBuiltGenesis.block.getHash())) {
+                throw new RuntimeException("prebuilt genesis conflicts to block in your database");
             }
-            byte[] newRootValidatorStateTrie = emptyValidatorStateTrie.commit();
-            emptyValidatorStateTrie.flush();
-            validatorStateTrie.getRootStore().put(genesis.getHash(), newRootValidatorStateTrie);
-
-            Trie<byte[], Candidate> emptyCandidateStateTrie = candidateStateTrie.getTrie().revert();
-            Map<byte[], Candidate> candidateStates = (Map<byte[], Candidate>) RLPCodec.decodeContainer(el.get(3).getEncoded(),
-                    MapContainer.builder()
-                            .mapType(ByteArrayMap.class)
-                            .keyType(new Raw(byte[].class))
-                            .valueType(new Raw(Candidate.class))
-                            .build());
-            for (Map.Entry<byte[], Candidate> entry : candidateStates.entrySet()) {
-                emptyCandidateStateTrie.put(entry.getKey(), entry.getValue());
-            }
-            byte[] newRootCandidateStateTrie = emptyCandidateStateTrie.commit();
-            emptyCandidateStateTrie.flush();
-            candidateStateTrie.getRootStore().put(genesis.getHash(), newRootCandidateStateTrie);
-            candidateStateTrie.generateProposers(Stream.of(genesis).collect(Collectors.toList()), emptyCandidateStateTrie);
-
-            // write blocks to db
-            readBlocks().filter(block -> block.getnHeight() <= genesis.getnHeight()).forEach(
-                    block -> {
-                        if (bc.hasBlock(block.getHash())) {
-                            return;
-                        }
-                        if (checkPointRule.validateBlock(block) == Result.SUCCESS) {
-                            bc.writeBlock(block);
-                        }
-                    }
-            );
-
-            lastSyncedHeight = genesis.nHeight;
+            return;
         }
 
+        readBlocks().forEach((b) -> {
+            if (b.nHeight == 0 &&
+                    !FastByteComparisons.equal(b.getHash(), bc.getGenesis().getHash())
+            ) {
+                throw new RuntimeException("genesis conflicts");
+            }
+            // TODO: 这里断言一下 如果b的高度和prebuiltGenesis相等，那么两者的哈希也必须相等
+            if (b.nHeight > currentHeight && b.nHeight <= preBuiltGenesis.getBlock().nHeight) {
+                if (!checkPointRule.validateBlock(b).isSuccess())
+                    throw new RuntimeException("invalid block in fast sync directory");
+                bc.writeBlock(b);
+            }
+        });
+    }
+
+    void sync() throws Exception {
+        // query for states had been written
+
+
+        PreBuiltGenesis preBuiltGenesis = readPreBuiltGenesis();
+        Block genesis = preBuiltGenesis.getBlock();
+
+        syncBlockDatabase(preBuiltGenesis);
+
+        long currentHeight = bc.currentHeader().nHeight;
+        if (currentHeight < preBuiltGenesis.getBlock().nHeight)
+            throw new RuntimeException("missing blocks to fast sync, please ensure at least "
+                    + preBuiltGenesis.getBlock().nHeight +
+                    " blocks in fast sync directory");
+
+        // put pre built states
+        // TODO: hard code trie roots
+
+        Map<byte[], AccountState> accountStates = new ByteArrayMap<>();
+        preBuiltGenesis.getAccountStates()
+                .forEach(a -> accountStates.put(a.getAccount().getPubkeyHash(), a));
+
+        accountStateTrie.commit(accountStates, preBuiltGenesis.block.getHash());
+        validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
+        candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
+
+        // TODO: generate cache for candidateStateTrielatestSyncHeight, not for prebuilt genesis
+        candidateStateTrie.generateCache(preBuiltGenesis.getBlock(), preBuiltGenesis.getCandidateStates());
+
+      
+        long accountStateTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
+                );
+
+        long validatorStateTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, validatorStateTrie.getRootStore()
+                );
+
+        long candidateStateTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, candidateStateTrie.getRootStore()
+                );
+
+        // TODO: 根据最小io原则，找到这三个long的最小值 Arrsys.stream().min
+        // 从这个最小值开始同步状态
         int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(lastSyncedHeight + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getCanonicalBlocks(accountStateTrieLastSyncHeight + 1, blocksPerUpdate);
             for (Block block : blocks) {
-                // get all related accounts
+                // get all related accounts 
+                // TODO: 针对每棵树有不同的最新状态高度，如果可以确定这个区块高度同步过可以跳过
                 accountStateTrie.commit(block);
                 validatorStateTrie.commit(block);
                 candidateStateTrie.commit(block);
             }
             // sync trie here
             if (blocks.size() < blocksPerUpdate) break;
-            lastSyncedHeight = blocks.get(blocks.size() - 1).nHeight;
         }
-        statusStore.put(LAST_SYNCED_HEIGHT, lastSyncedHeight);
     }
 
     public void commit(Block block) {
@@ -202,5 +232,17 @@ public class TriesSyncManager {
         validatorStateTrie.commit(block);
         candidateStateTrie.commit(block);
 //        assetCodeTrie.commit(block);
+    }
+
+    public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {
+        if(start == end) return end;
+        long half = (start + end) / 2;
+        Block h = bc.getCanonicalHeader(half);
+        if (!rootStore.containsKey(h.getHash())) {
+            return getLastSyncedHeight(start, half, rootStore);
+        }
+        Block next = bc.getCanonicalHeader(half + 1);
+        if(next == null || !rootStore.containsKey(next.getHash())) return half;
+        return getLastSyncedHeight(half, end, rootStore);
     }
 }

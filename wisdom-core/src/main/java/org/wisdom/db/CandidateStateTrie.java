@@ -132,7 +132,8 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     @Override
     void updateHook(List<Block> blocks, Trie<byte[], Candidate> trie) {
-        generateProposers(blocks, trie);
+        generateCache(blocks.get(blocks.size() - 1),
+                trie.asMap());
     }
 
     List<byte[]> getProposersByEraLst(byte[] hash, long height) {
@@ -200,12 +201,13 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         ));
     }
 
-    public void generateProposers(List<Block> blocks, Trie<byte[], Candidate> trie) {
+    public void generateCache(Block eraLast, Map<byte[], Candidate> candidates) {
+        boolean dropZeroVotes = (eraLast.nHeight - blocksPerEra + 1) > candidateUpdater.getWIP_12_17_HEIGHT()
         // 重新生成 proposers
         List<Candidate> blocked = new ArrayList<>();
-        Stream<Candidate> candidateStream = trie
+        Stream<Candidate> candidateStream = candidates
+                .values()
                 .stream()
-                .map(Map.Entry::getValue)
                 // 过滤掉黑名单中节点
                 .filter(p -> {
                     boolean ret = !p.isBlocked();
@@ -216,8 +218,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 })
                 // 过滤掉抵押数量不足和投票为零的账户
                 .filter(p -> p.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE);
-        boolean dropZeroVotes = blocks.get(0).getnHeight() > candidateUpdater.getWIP_12_17_HEIGHT();
-        long nextEra = eraLinker.getEraAtBlockNumber(blocks.get(0).nHeight) + 1;
+        long nextEra = eraLinker.getEraAtBlockNumber(eraLast.nHeight) + 1;
         if (dropZeroVotes) {
             candidateStream = candidateStream
                     .filter(x -> x.getAccumulated(nextEra) > 0);
@@ -228,12 +229,12 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 .collect(Collectors.toList());
 
         bestCandidatesCache.put(
-                HexBytes.fromBytes(blocks.get(blocks.size() - 1).getHash()),
+                HexBytes.fromBytes(eraLast.getHash()),
                 proposers.stream().map(c -> CandidateInfo.fromCandidate(c, nextEra))
                         .collect(Collectors.toList())
         );
         blockedCandidatesCache.put(
-                HexBytes.fromBytes(blocks.get(blocks.size() - 1).getHash()),
+                HexBytes.fromBytes(eraLast.getHash()),
                 blocked.stream().map(c -> CandidateInfo.fromCandidate(c, nextEra))
                         .collect(Collectors.toList())
         );
