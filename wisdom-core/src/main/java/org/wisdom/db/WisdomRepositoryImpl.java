@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.tdf.common.util.*;
-import org.tdf.rlp.RLPElement;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
@@ -13,7 +12,6 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.encoding.BigEndian;
-import org.wisdom.pool.PeningTransPool;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -85,11 +83,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.triesSyncManager.sync();
     }
 
-    private Block genesis;
-
     private void initLatestConfirmed() throws Exception {
-        genesis = this.triesSyncManager.readPreBuiltGenesis().getBlock();
-        this.latestConfirmed = genesis.getnHeight() > bc.getLastConfirmedBlock().getnHeight() ? genesis : bc.getLastConfirmedBlock();
+        this.latestConfirmed = bc.getLastConfirmedBlock();
     }
 
     private void deleteCache(Block b) {
@@ -131,18 +126,12 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     public Block getHeader(byte[] blockHash) {
-        if (FastByteComparisons.equal(genesis.getHash(), blockHash)) {
-            return genesis;
-        }
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
                 .orElse(bc.getHeader(blockHash));
     }
 
     public Block getBlock(byte[] blockHash) {
-        if (FastByteComparisons.equal(genesis.getHash(), blockHash)) {
-            return genesis;
-        }
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
                 .orElse(bc.getBlock(blockHash));
@@ -631,11 +620,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             Block b = confirmedAncestors.get(i);
             // CAS 锁，等待上一个区块状态更新成功
             boolean writeResult;
-            if (FastByteComparisons.equal(b.hashPrevBlock, genesis.getHash())) {
-                writeResult = bc.writeBlock(b, genesis);
-            } else {
-                writeResult = bc.writeBlock(b);
-            }
+            writeResult = bc.writeBlock(b);
 
             if (!writeResult) {
                 // 数据库 写入失败 重试写入
