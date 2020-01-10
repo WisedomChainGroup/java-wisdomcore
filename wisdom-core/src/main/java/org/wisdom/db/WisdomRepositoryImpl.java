@@ -10,7 +10,6 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewConfirmedBlockEvent;
 import org.wisdom.encoding.BigEndian;
 
@@ -573,13 +572,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                                 * 2.0 / 3
                 )
         );
-
-        if(FastByteComparisons.equal(
-                chainCache.last().get().getHash(),
-                block.getHash()
-        )){
-          applicationContext.publishEvent(new NewBestBlockEvent(this, block));
-        }
         List<Block> ancestors =
                 chainCache.getAncestors(block.getHash())
                         .stream().map(BlockWrapper::get).collect(toList());
