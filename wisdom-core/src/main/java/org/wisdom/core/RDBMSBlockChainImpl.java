@@ -324,14 +324,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     @Override
     public synchronized boolean writeBlock(Block block) {
-        Block parentHeader = getHeader(block.hashPrevBlock);
-        if (parentHeader == null) {
-            return false;
-        }
-
-        long ptw = parentHeader.totalWeight;
-        block.totalWeight = block.weight + ptw;
-
+        block.totalWeight = block.nHeight;
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
@@ -417,19 +410,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         }
     }
 
-    @Async
-    public void writeBlocksAsync(List<Block> blocks) {
-        for (Block b : blocks) {
-            writeBlock(b);
-        }
-    }
-
     public boolean hasPayload(int type, byte[] payload) {
         return tmpl.queryForObject("select count(*) from transaction as tx where tx.type = ? and tx.payload = ?  limit 1", new Object[]{type, payload}, Integer.class) > 0;
     }
-
-    // 删除孤块
-
 
     @Override
     public List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit) {

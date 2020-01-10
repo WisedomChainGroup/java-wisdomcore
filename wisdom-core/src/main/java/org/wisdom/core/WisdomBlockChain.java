@@ -85,8 +85,6 @@ public interface WisdomBlockChain {
 
     Transaction getTransaction(byte[] txHash);
 
-    void writeBlocksAsync(List<Block> blocks);
-
     Transaction getTransactionByTo(byte[] pubKeyHash);
 
     List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit);

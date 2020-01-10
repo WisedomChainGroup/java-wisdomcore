@@ -147,6 +147,8 @@ public class TriesSyncManager {
         }
 
         log.info("current best block height is {}, start fast sync to {}", currentHeight, preBuiltGenesis.getBlock().nHeight);
+        Block[] parent = new Block[1];
+
         readBlocks()
                 .peek((b) -> {
                     if (b.nHeight == 0 &&
@@ -159,14 +161,20 @@ public class TriesSyncManager {
                 .peek(b -> {
                     if (!checkPointRule.validateBlock(b).isSuccess())
                         throw new RuntimeException("invalid block in fast sync directory");
+                    if (parent[0] != null && !FastByteComparisons.equal(parent[0].getHash(), b.hashPrevBlock)) {
+                        throw new RuntimeException("invalid block in fast sync directory");
+                    }
+                    if(b.nHeight == preBuiltGenesis.block.nHeight
+                            && !FastByteComparisons.equal(b.getHash(), preBuiltGenesis.getBlock().getHash())
+                    ) throw new RuntimeException("prebuilt genesis conflicts to block in dumped block");
                     if (b.nHeight % 1000 == 0) {
                         double status = (b.nHeight - currentHeight) * 1.0 / (preBuiltGenesis.getBlock().nHeight - currentHeight);
                         log.info("fast sync status {}%", String.format("%.2f", status * 100));
                     }
+                    parent[0] = b;
                 })
                 .forEach(bc::writeBlock);
 
-        // TODO: 这里断言一下 如果b的高度和prebuiltGenesis相等，那么两者的哈希也必须相等
         ;
     }
 
