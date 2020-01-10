@@ -18,4 +18,7 @@ public interface StateTrie<T> {
     default void commit(List<Block> blocks){
         blocks.forEach(this::commit);
     }
+
+    // commit pre-generated states
+    void commit(Map<byte[], T> states, byte[] blockHash);
 }
