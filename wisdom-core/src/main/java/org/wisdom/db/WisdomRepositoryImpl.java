@@ -81,8 +81,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     private Block genesis;
 
     private void initLatestConfirmed() throws Exception {
-        RLPElement el = this.triesSyncManager.readPreBuiltGenesis();
-        genesis = el.get(0).as(Block.class);
+        genesis = this.triesSyncManager.readPreBuiltGenesis().getBlock();
         this.latestConfirmed = genesis.getnHeight() > bc.getLastConfirmedBlock().getnHeight() ? genesis : bc.getLastConfirmedBlock();
     }
 

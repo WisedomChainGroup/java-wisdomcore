@@ -87,7 +87,7 @@ public class TriesSyncManager {
     }
 
     @Getter
-    private static class PreBuiltGenesis {
+    public static class PreBuiltGenesis {
         private Block block;
         private List<AccountState> accountStates;
         private Map<byte[], Long> validators;
