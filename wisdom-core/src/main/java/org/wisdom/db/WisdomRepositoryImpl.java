@@ -11,6 +11,7 @@ import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBestBlockEvent;
+import org.wisdom.core.event.NewConfirmedBlockEvent;
 import org.wisdom.encoding.BigEndian;
 
 import java.math.BigDecimal;
@@ -627,7 +628,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 log.error("write block to database failed, retrying...");
                 continue;
             }
-
+            applicationContext.publishEvent(new NewConfirmedBlockEvent(this, b));
             log.info("write block at height " + b.nHeight + " to db success");
 
             // 删除孤块
