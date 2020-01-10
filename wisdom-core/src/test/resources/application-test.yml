@@ -29,9 +29,9 @@ miner:
 node-character: 'default'
 
 wisdom-test:
-  blocks-directory: 'D:\dump'
+  blocks-directory: 'E:\dump'
   genesis-dump-out: 'D:\dumps\genesis'
-  genesis-dump-height: '800040'
+  genesis-dump-height: '240'
 
 transaction:
   day:
