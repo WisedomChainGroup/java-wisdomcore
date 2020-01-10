@@ -22,10 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 // helper to keep all state trie synced
@@ -119,18 +116,31 @@ public class TriesSyncManager {
         return preBuiltGenesis;
     }
 
-    public Stream<Block> readBlocks() {
+    public Stream<Block> readBlocks(long startHeight /* inclusive */) {
         return readFastSyncFiles()
                 .filter(f -> f.getName().matches("blocks-dump\\.+[0-9]+\\.+[0-9\\-]+[0-9]+\\.rlp"))
-                .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
+                .map(f -> new AbstractMap.SimpleImmutableEntry<>(
+                        Integer.parseInt(f.getName().split("\\.")[1]),
+                        f
+                ))
+                // entry.getKey() * 100000 ~  (entry.getKey() + 1) * 100000 - 1
+                // !( (entry.getKey() + 1) * 100000 - 1 < startHeight )
+                // (entry.getKey() + 1) * 100000  >= startHeight + 1
+                // (entry.getKey() + 1) * 100000  > startHeight
+                .sorted((x, y) -> Integer.compare(x.getKey(), y.getKey()))
+                .filter(entry ->
+                        (entry.getKey() + 1) * 100000 > startHeight
+                )
                 .flatMap(x -> {
                     try {
-                        byte[] bytes = Files.readAllBytes(x.toPath());
+                        byte[] bytes = Files.readAllBytes(x.getValue().toPath());
                         return Arrays.stream(RLPElement.fromEncoded(bytes).as(Block[].class));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                });
+                })
+                .filter(b -> b.nHeight >= startHeight)
+                ;
     }
 
     private void syncBlockDatabase(
@@ -149,7 +159,7 @@ public class TriesSyncManager {
         log.info("current best block height is {}, start fast sync to {}", currentHeight, preBuiltGenesis.getBlock().nHeight);
         Block[] parent = new Block[1];
 
-        readBlocks()
+        readBlocks(currentHeight + 1)
                 .peek((b) -> {
                     if (b.nHeight == 0 &&
                             !FastByteComparisons.equal(b.getHash(), bc.getGenesis().getHash())
@@ -157,7 +167,7 @@ public class TriesSyncManager {
                         throw new RuntimeException("genesis conflicts");
                     }
                 })
-                .filter(b -> b.nHeight > currentHeight && b.nHeight <= preBuiltGenesis.getBlock().nHeight)
+                .filter(b -> b.nHeight <= preBuiltGenesis.getBlock().nHeight)
                 .peek(b -> {
                     if (!checkPointRule.validateBlock(b).isSuccess())
                         throw new RuntimeException("invalid block in fast sync directory");

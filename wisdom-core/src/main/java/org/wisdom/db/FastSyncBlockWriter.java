@@ -21,8 +21,7 @@ public class FastSyncBlockWriter {
     private void sync() {
         long bestHeight = wisdomRepository.getBestBlock().nHeight;
         triesSyncManager
-                .readBlocks()
-                .filter(b -> b.nHeight > bestHeight)
+                .readBlocks(bestHeight + 1)
                 .forEach(b -> {
                     if(!compositeBlockRule.validateBlock(b).isSuccess())
                         throw new RuntimeException("validate fast sync block failed, please verify your files");
