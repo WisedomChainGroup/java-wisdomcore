@@ -7,6 +7,7 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.pool.PeningTransPool;
 
 import java.util.Collection;
 import java.util.List;
@@ -30,11 +31,12 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
+            PeningTransPool peningTransPool,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) throws Exception {
         this.delegate =
                 new WisdomRepositoryImpl(bc, triesSyncManager, accountStateTrie,
-                        validatorStateTrie, candidateStateTrie, assetCodeTrie, targetCache,
+                        validatorStateTrie, candidateStateTrie, assetCodeTrie, targetCache,peningTransPool,
                         blocksPerEra
                 );
     }

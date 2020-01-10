@@ -125,7 +125,7 @@ public class PackageCache {
                         break;
                     }
                     newMap = new ByteArrayMap<>();
-                    AccountState accountState = accountStateMap.get(publicKeyHash);
+                    AccountState accountState = accountStateMap.get(Hex.decodeHex(publicKeyHash.toCharArray()));
                     Account fromaccount = accountState.getAccount();
                     long nowNonce = fromaccount.getNonce();
 
@@ -169,6 +169,7 @@ public class PackageCache {
                     size += transaction.size();
                     transactionList.add(transaction);
                 } catch (Exception e) {
+                    e.printStackTrace();
                     removemap.put(new String(entry.getKey()), transaction.nonce);
                 }
             }

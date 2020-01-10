@@ -11,6 +11,7 @@ import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.BigEndian;
+import org.wisdom.pool.PeningTransPool;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -51,6 +52,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     private EraLinker eraLinker;
 
+    private PeningTransPool peningTransPool;
+
     public WisdomRepositoryImpl(
             WisdomBlockChain bc,
             TriesSyncManager triesSyncManager,
@@ -59,11 +62,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
+            PeningTransPool peningTransPool,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) throws Exception {
         this.eraLinker = new EraLinker(blocksPerEra);
         this.eraLinker.setRepository(this);
         this.bc = bc;
+        this.peningTransPool = peningTransPool;
         this.targetCache = targetCache;
         this.targetCache.setRepository(this);
         chainCache = new ChainCache<>(Integer.MAX_VALUE, this::compareBlockWrapper);
@@ -629,6 +634,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 log.error("write block to database failed, retrying...");
                 continue;
             }
+            peningTransPool.updatePool(b.body, 2, b.nHeight);
             log.info("write block at height " + b.nHeight + " to db success");
 
             // 删除孤块
