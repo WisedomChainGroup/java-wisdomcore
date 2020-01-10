@@ -63,3 +63,6 @@ package-lock.json
 
 http-client.env.json
 local
+
+# storage for state trie
+state-db

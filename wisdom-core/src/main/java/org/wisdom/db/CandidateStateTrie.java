@@ -131,8 +131,8 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     @Override
-    void updateHook(List<Block> blocks, Trie<byte[], Candidate> trie) {
-        generateCache(blocks.get(blocks.size() - 1),
+    void updateHook(Block eraLast, Trie<byte[], Candidate> trie) {
+        generateCache(eraLast,
                 trie.asMap());
     }
 

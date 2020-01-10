@@ -24,7 +24,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         this.eraLinker.setRepository(repository);
     }
 
-    abstract void updateHook(List<Block> blocks, Trie<byte[], T> trie);
+    abstract void updateHook(Block eraLast, Trie<byte[], T> trie);
 
     protected EraLinker eraLinker;
 
@@ -43,7 +43,8 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
     }
 
     protected Trie<byte[], T> commitInternal(List<Block> blocks) {
-        if (blocks.size() != eraLinker.getBlocksPerEra()) throw new RuntimeException("not an era size = " + blocks.size());
+        if (blocks.size() != eraLinker.getBlocksPerEra())
+            throw new RuntimeException("not an era size = " + blocks.size());
         Block last = blocks.get(blocks.size() - 1);
         if (last.nHeight % eraLinker.getBlocksPerEra() != 0)
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
@@ -63,7 +64,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
                 last.getHash(),
                 updated
         );
-        updateHook(blocks, after);
+        updateHook(blocks.get(blocks.size() - 1), after);
         return after;
     }
 
@@ -72,7 +73,11 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         if (block.nHeight % eraLinker.getBlocksPerEra() != 0) {
             return;
         }
-        if (getRootStore().containsKey(block.getHash())) return;
+        Optional<byte[]> root = getRootStore().get(block.getHash());
+        if (root.isPresent()) {
+            updateHook(block, getTrie().revert(root.get()));
+            return;
+        }
         List<Block> ancestors = getRepository().getAncestorBlocks(
                 block.getHash(),
                 block.nHeight - eraLinker.getBlocksPerEra() + 1
