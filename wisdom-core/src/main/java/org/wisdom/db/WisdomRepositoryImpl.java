@@ -3,6 +3,7 @@ package org.wisdom.db;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.tdf.common.util.*;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.consensus.pow.Proposer;
@@ -10,7 +11,9 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.encoding.BigEndian;
+import org.wisdom.pool.PeningTransPool;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -51,6 +54,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     private EraLinker eraLinker;
 
+    private ApplicationContext applicationContext;
+
     public WisdomRepositoryImpl(
             WisdomBlockChain bc,
             TriesSyncManager triesSyncManager,
@@ -59,8 +64,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            ApplicationContext applicationContext
     ) throws Exception {
+        this.applicationContext = applicationContext;
         this.eraLinker = new EraLinker(blocksPerEra);
         this.eraLinker.setRepository(this);
         this.bc = bc;
@@ -577,6 +584,12 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 )
         );
 
+        if(FastByteComparisons.equal(
+                chainCache.last().get().getHash(),
+                block.getHash()
+        )){
+          applicationContext.publishEvent(new NewBestBlockEvent(this, block));
+        }
         List<Block> ancestors =
                 chainCache.getAncestors(block.getHash())
                         .stream().map(BlockWrapper::get).collect(toList());
@@ -629,6 +642,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 log.error("write block to database failed, retrying...");
                 continue;
             }
+
             log.info("write block at height " + b.nHeight + " to db success");
 
             // 删除孤块
@@ -641,7 +655,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
             // 确认的区块不需要放在缓存中
             deleteCache(b);
-
             i++;
             this.latestConfirmed = b;
         }

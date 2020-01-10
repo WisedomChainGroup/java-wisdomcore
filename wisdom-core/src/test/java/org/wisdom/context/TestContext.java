@@ -350,8 +350,13 @@ public class TestContext {
             AssetCodeTrie assetCodeTrie,
             @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory,
             WisdomBlockChain bc,
-            CheckPointRule checkPointRule) {
-        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory, candidateStateTrie, assetCodeTrie, fastSyncDirectory, bc, checkPointRule);
+            CheckPointRule checkPointRule,
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+    ) {
+        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory,
+                candidateStateTrie, assetCodeTrie, fastSyncDirectory,
+                bc, checkPointRule, blocksPerEra
+        );
     }
 
     @Bean
@@ -369,10 +374,12 @@ public class TestContext {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) throws Exception {
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            ApplicationContext applicationContext
+            ) throws Exception {
         return new WisdomRepositoryWrapper(bc, triesSyncManager, accountStateTrie,
                 validatorStateTrie, candidateStateTrie, assetCodeTrie,
-                targetCache, blocksPerEra
+                targetCache, blocksPerEra, applicationContext
         );
     }
 

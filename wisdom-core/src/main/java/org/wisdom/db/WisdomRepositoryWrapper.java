@@ -1,12 +1,14 @@
 package org.wisdom.db;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.pool.PeningTransPool;
 
 import java.util.Collection;
 import java.util.List;
@@ -30,12 +32,13 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
             TargetCache targetCache,
-            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
+            @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
+            ApplicationContext applicationContext
     ) throws Exception {
         this.delegate =
                 new WisdomRepositoryImpl(bc, triesSyncManager, accountStateTrie,
                         validatorStateTrie, candidateStateTrie, assetCodeTrie, targetCache,
-                        blocksPerEra
+                        blocksPerEra, applicationContext
                 );
     }
 
