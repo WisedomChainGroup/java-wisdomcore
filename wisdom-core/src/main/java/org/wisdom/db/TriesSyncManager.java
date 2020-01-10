@@ -161,7 +161,7 @@ public class TriesSyncManager {
                         throw new RuntimeException("invalid block in fast sync directory");
                     if(b.nHeight % 1000 == 0){
                         double status = (b.nHeight - currentHeight) * 1.0 / (preBuiltGenesis.getBlock().nHeight - currentHeight);
-                        log.info("fast sync status {}", status);
+                        log.info("fast sync status {}%", String.format("%.2f", status * 100));
                     }
                 })
                 .forEach(bc::writeBlock);
