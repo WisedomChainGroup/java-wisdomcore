@@ -19,8 +19,6 @@ import org.wisdom.core.account.Transaction;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /*
 method calls after writing 2w blocks
@@ -35,6 +33,7 @@ method calls after writing 2w blocks
   "getHeader" : 2399082 缓存命中率 99.16%
 }
  */
+// TODO: monitor average/summary time consuming for each query
 @Component
 public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     private WisdomBlockChain delegate;
@@ -78,28 +77,14 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
             @Value("${clear-data}") boolean clearData,
             BasicDataSource basicDataSource) throws Exception {
         this.delegate = new RDBMSBlockChainImpl(tmpl, txTmpl, genesis, ctx, databaseUserName, clearData, basicDataSource);
-        Executors.newSingleThreadScheduledExecutor()
-                .scheduleAtFixedRate(() -> {
-                    try {
-                        System.out.println(objectMapper.writeValueAsString(callsCounter));
-                    } catch (Exception ignored) {
-
-                    }
-                    // 打印缓存命中率
-                    System.out.println("block cache stats");
-                    System.out.println(blockCache.stats());
-
-                    System.out.println("header cache stats");
-                    System.out.println(headerCache.stats());
-
-                    System.out.println("has block cache stats");
-                    System.out.println(hasBlockCache.stats());
-                }, 0, 5, TimeUnit.SECONDS);
     }
 
     // count method calls
     @Getter
     private Map<String, Long> callsCounter = new HashMap<>();
+
+    // time consuming for each method
+    private Map<String, Long> timeConsuming = new HashMap<>();
 
     public Map<String, CacheStats> getCacheStats() {
         return new HashMap<String, CacheStats>() {{
@@ -121,6 +106,10 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
         callsCounter.put(method, callsCounter.getOrDefault(method, 0L) + 1);
     }
 
+    private void incTimeConsuming(String method, long duration) {
+        timeConsuming.put(method, timeConsuming.getOrDefault(method, 0L) + duration);
+    }
+
     private void clearCache(byte[] hash) {
         currentHeader = null;
         currentBlock = null;
@@ -137,8 +126,15 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
 
     @Override
     public boolean hasBlock(byte[] hash) {
-        incCounter("hasBlock");
-        return hasBlockCache.get(HexBytes.fromBytes(hash), (x) -> delegate.hasBlock(x.getBytes()));
+        final String method = "hasBlock";
+        incCounter(method);
+        long start = System.currentTimeMillis();
+        try {
+            return hasBlockCache.get(HexBytes.fromBytes(hash), (x) -> delegate.hasBlock(x.getBytes()));
+        } finally {
+            long end = System.currentTimeMillis();
+            incTimeConsuming(method, end - start);
+        }
     }
 
     @Override
