@@ -30,7 +30,7 @@ method calls after writing 2w blocks
   "getCanonicalBlocks" : 1,
   "getCanonicalHeader" : 5,
   "getCanonicalBlock" : 1,
-  "getHeader" : 2399082 缓存命中率 99.16
+  "getHeader" : 2399082 缓存命中率 99.16%
 }
  */
 @Component
