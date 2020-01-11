@@ -43,12 +43,19 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
 
     private Cache<HexBytes, Block> blockCache = Caffeine.newBuilder()
             .maximumSize(MAXIMUM_CACHE_SIZE)
+            .recordStats()
             .build();
 
-    private Cache<HexBytes, Block> headerCache = Caffeine.newBuilder().maximumSize(MAXIMUM_CACHE_SIZE)
+    private Cache<HexBytes, Block> headerCache = Caffeine.newBuilder()
+            .maximumSize(MAXIMUM_CACHE_SIZE)
+            .recordStats()
             .build();
 
-    private Cache<HexBytes, Boolean> hasBlockCache = Caffeine.newBuilder().maximumSize(MAXIMUM_CACHE_SIZE).build();
+    private Cache<HexBytes, Boolean> hasBlockCache = Caffeine
+            .newBuilder()
+            .maximumSize(MAXIMUM_CACHE_SIZE)
+            .recordStats()
+            .build();
 
     private Block currentHeader;
 
@@ -75,6 +82,15 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
                     } catch (Exception ignored) {
 
                     }
+                    // 打印缓存命中率
+                    System.out.println("block cache stats");
+                    System.out.println(blockCache.stats());
+
+                    System.out.println("header cache stats");
+                    System.out.println(headerCache.stats());
+
+                    System.out.println("has block cache stats");
+                    System.out.println(hasBlockCache.stats());
                 }, 0, 5, TimeUnit.SECONDS);
     }
 
@@ -206,6 +222,11 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     public boolean writeBlock(Block block) {
         boolean ret = delegate.writeBlock(block);
         clearCache(block.getHash());
+        if (ret) {
+            headerCache.put(HexBytes.fromBytes(block.getHash()), block);
+            blockCache.put(HexBytes.fromBytes(block.getHash()), block);
+            hasBlockCache.put(HexBytes.fromBytes(block.getHash()), true);
+        }
         return ret;
     }
 
