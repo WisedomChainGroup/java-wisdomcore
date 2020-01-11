@@ -23,14 +23,14 @@ import java.util.concurrent.TimeUnit;
 /*
 method calls after writing 2w blocks
 {
-  "getBlock" : 60498,
+  "getBlock" : 60498, 缓存命中率 66.7%
   "currentHeader" : 3,
   "getLastConfirmedBlock" : 1,
   "getAncestorBlocks" : 168,
   "getCanonicalBlocks" : 1,
   "getCanonicalHeader" : 5,
   "getCanonicalBlock" : 1,
-  "getHeader" : 2399082
+  "getHeader" : 2399082 缓存命中率 99.16
 }
  */
 @Component
