@@ -37,7 +37,8 @@ method calls after writing 2w blocks
 public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     private WisdomBlockChain delegate;
 
-    private static Block TRAP_VALUE = new Block();
+    // yet another a null pointer for caching
+    private static final Block TRAP_VALUE = new Block();
 
     private static final int MAXIMUM_CACHE_SIZE = 256;
 
