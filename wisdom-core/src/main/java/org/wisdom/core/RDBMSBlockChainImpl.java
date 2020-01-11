@@ -49,7 +49,6 @@ import java.util.stream.Collectors;
  * @author sal 1564319846@qq.com
  * block query/write based on relational database with concurrently safety
  */
-@Component
 public class RDBMSBlockChainImpl implements WisdomBlockChain {
     private JdbcTemplate tmpl;
     private TransactionTemplate txTmpl;

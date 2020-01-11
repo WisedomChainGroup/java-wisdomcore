@@ -34,7 +34,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     private Block latestConfirmed;
 
     // block hash -> transaction hashes
-    private Map<byte[], Set<byte[]>> transactionIndex = new ByteArrayMap<>();
+    private Map<byte[], Map<byte[], Transaction>> transactionIndex = new ByteArrayMap<>();
+
+    // block hash -> type -> payload
+    private Map<byte[], Map<Integer, Set<byte[]>>> payloadsIndex = new ByteArrayMap<>();
 
     private WisdomBlockChain bc;
 
@@ -92,6 +95,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         confirms.remove(b.getHash());
         leastConfirms.remove(b.getHash());
         transactionIndex.remove(b.getHash());
+        payloadsIndex.remove(b.getHash());
     }
 
     private int compareBlockWrapper(BlockWrapper a, BlockWrapper b) {
@@ -248,7 +252,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 .get(blockHash).map(BlockWrapper::get)
                 .orElseThrow(() -> new RuntimeException("unreachable"));
         if (transactionIndex.containsKey(blockHash)
-                && transactionIndex.get(blockHash).contains(transactionHash)) {
+                && transactionIndex.get(blockHash).containsKey(transactionHash)) {
             return true;
         }
         return containsTransactionAt(b.hashPrevBlock, transactionHash);
@@ -259,17 +263,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
             return Optional.ofNullable(bc.getTransaction(txHash));
         }
-        Set<byte[]> txs = transactionIndex.get(blockHash);
+        Map<byte[], Transaction> txs = transactionIndex.get(blockHash);
         if (txs == null) throw new RuntimeException("unreachable");
-        if (txs.contains(txHash)) {
-            Optional<Transaction> o = chainCache.get(blockHash)
-                    .map(BlockWrapper::get)
-                    .flatMap(b -> b.body.stream()
-                            .filter(tx -> FastByteComparisons.equal(tx.getHash(), txHash))
-                            .findFirst());
-            if (!o.isPresent()) throw new RuntimeException("unexpected");
-            return o;
-        }
+        Transaction tx = txs.get(txHash);
+        if (tx != null) return Optional.of(tx);
 
         byte[] parent = chainCache.get(blockHash)
                 .map(BlockWrapper::get)
@@ -285,10 +282,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)
                 .orElseThrow(() -> new RuntimeException("unreachable"));
-        for (Transaction t : b.body) {
-            if (t.payload != null && t.type == type && FastByteComparisons.equal(t.payload, payload)) {
-                return true;
-            }
+        if (payloadsIndex.get(b.getHash())
+                .getOrDefault(type, Collections.emptySet())
+                .contains(payload)) {
+            return true;
         }
         return containsPayloadAt(b.hashPrevBlock, type, payload);
     }
@@ -557,12 +554,20 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
         // 写入事务索引
 
-        transactionIndex.put(block.getHash(), new ByteArraySet());
+        transactionIndex.put(block.getHash(), new ByteArrayMap<>());
+        payloadsIndex.put(block.getHash(), new HashMap<>());
 
         block.body.forEach(t -> {
             t.height = block.nHeight;
             t.blockHash = block.getHash();
-            transactionIndex.get(block.getHash()).add(t.getHash());
+            transactionIndex.get(block.getHash()).put(t.getHash(), t);
+            if (t.payload != null) {
+                payloadsIndex
+                        .get(block.getHash())
+                        .putIfAbsent(t.type, new ByteArraySet());
+                payloadsIndex.get(block.getHash())
+                        .get(t.type).add(t.payload);
+            }
         });
 
         leastConfirms.put(block.getHash(),
