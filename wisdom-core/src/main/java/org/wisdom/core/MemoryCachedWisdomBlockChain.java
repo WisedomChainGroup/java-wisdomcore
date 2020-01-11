@@ -20,9 +20,24 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/*
+method calls after writing 2w blocks
+{
+  "getBlock" : 60498,
+  "currentHeader" : 3,
+  "getLastConfirmedBlock" : 1,
+  "getAncestorBlocks" : 168,
+  "getCanonicalBlocks" : 1,
+  "getCanonicalHeader" : 5,
+  "getCanonicalBlock" : 1,
+  "getHeader" : 2399082
+}
+ */
 @Component
 public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     private WisdomBlockChain delegate;
+
+    private static Block TRAP_VALUE = new Block();
 
     private static final int MAXIMUM_CACHE_SIZE = 256;
 
@@ -54,13 +69,13 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
             BasicDataSource basicDataSource) throws Exception {
         this.delegate = new RDBMSBlockChainImpl(tmpl, txTmpl, genesis, ctx, databaseUserName, clearData, basicDataSource);
         Executors.newSingleThreadScheduledExecutor()
-                .schedule(() -> {
+                .scheduleAtFixedRate(() -> {
                     try {
                         System.out.println(objectMapper.writeValueAsString(callsCounter));
                     } catch (Exception ignored) {
 
                     }
-                }, 5, TimeUnit.SECONDS);
+                }, 0, 5, TimeUnit.SECONDS);
     }
 
     // count method calls
@@ -70,11 +85,13 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
         callsCounter.put(method, callsCounter.getOrDefault(method, 0L) + 1);
     }
 
-    private void clearCache() {
+    private void clearCache(byte[] hash) {
         currentHeader = null;
         currentBlock = null;
         lastConfirmed = null;
-        hasBlockCache.cleanUp();
+        hasBlockCache.asMap().remove(HexBytes.fromBytes(hash));
+        blockCache.asMap().remove(HexBytes.fromBytes(hash));
+        headerCache.asMap().remove(HexBytes.fromBytes(hash));
     }
 
     @Override
@@ -107,14 +124,22 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     @Override
     public Block getHeader(byte[] blockHash) {
         incCounter("getHeader");
-        return headerCache.get(HexBytes.fromBytes(blockHash), (x) -> delegate.getHeader(x.getBytes()));
+        Block h = headerCache.get(HexBytes.fromBytes(blockHash), (x) -> {
+            Block header = delegate.getHeader(x.getBytes());
+            return header == null ? TRAP_VALUE : header;
+        });
+        return h == TRAP_VALUE ? null : h;
     }
 
     @Override
     @SneakyThrows
     public Block getBlock(byte[] blockHash) {
         incCounter("getBlock");
-        return blockCache.get(HexBytes.fromBytes(blockHash), (x) -> delegate.getBlock(x.getBytes()));
+        Block b = blockCache.get(HexBytes.fromBytes(blockHash), (x) -> {
+            Block block = delegate.getBlock(x.getBytes());
+            return block == null ? TRAP_VALUE : block;
+        });
+        return b == TRAP_VALUE ? null : b;
     }
 
     @Override
@@ -180,7 +205,7 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     @Override
     public boolean writeBlock(Block block) {
         boolean ret = delegate.writeBlock(block);
-        clearCache();
+        clearCache(block.getHash());
         return ret;
     }
 
