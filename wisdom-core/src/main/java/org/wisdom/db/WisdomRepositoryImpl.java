@@ -79,8 +79,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.triesSyncManager.setRepository(this);
         this.candidateStateTrie = candidateStateTrie;
         this.candidateStateTrie.setRepository(this);
-        initLatestConfirmed();
         this.triesSyncManager.sync();
+        initLatestConfirmed();
     }
 
     private void initLatestConfirmed() throws Exception {

@@ -42,14 +42,19 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         return super.batchGet(prevEraLast.getHash(), keys);
     }
 
-    protected Trie<byte[], T> commitInternal(List<Block> blocks) {
+    protected void commitInternal(List<Block> blocks) {
         if (blocks.size() != eraLinker.getBlocksPerEra())
             throw new RuntimeException("not an era size = " + blocks.size());
         Block last = blocks.get(blocks.size() - 1);
         if (last.nHeight % eraLinker.getBlocksPerEra() != 0)
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
 
-        if (getRootStore().containsKey(last.getHash())) throw new RuntimeException("unexpected");
+        Optional<byte[]> root = getRootStore().get(last.getHash());
+        if (root.isPresent()) {
+            updateHook(last, getTrie().revert(root.get()));
+            return;
+        }
+
         Trie<byte[], T> prevTrie = getRootStore()
                 .get(blocks.get(0).hashPrevBlock)
                 .map(getTrie()::revert)
@@ -67,7 +72,6 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
                 updated
         );
         updateHook(blocks.get(blocks.size() - 1), after);
-        return after;
     }
 
     @Override

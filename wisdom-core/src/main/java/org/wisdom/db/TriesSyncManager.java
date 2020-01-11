@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class TriesSyncManager {
     @Getter(AccessLevel.PACKAGE)
-    private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 4096;
+    private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 2048;
 
     private static final String DB_STATUS = "status";
 
@@ -161,8 +161,8 @@ public class TriesSyncManager {
 
         readBlocks(currentHeight + 1)
                 .peek((b) -> {
-                    if (b.nHeight == 0 &&
-                            !FastByteComparisons.equal(b.getHash(), bc.getGenesis().getHash())
+                    if (b.nHeight == 1 &&
+                            !FastByteComparisons.equal(b.hashPrevBlock, bc.getGenesis().getHash())
                     ) {
                         throw new RuntimeException("genesis conflicts");
                     }
@@ -174,7 +174,7 @@ public class TriesSyncManager {
                     if (parent[0] != null && !FastByteComparisons.equal(parent[0].getHash(), b.hashPrevBlock)) {
                         throw new RuntimeException("invalid block in fast sync directory");
                     }
-                    if(b.nHeight == preBuiltGenesis.block.nHeight
+                    if (b.nHeight == preBuiltGenesis.block.nHeight
                             && !FastByteComparisons.equal(b.getHash(), preBuiltGenesis.getBlock().getHash())
                     ) throw new RuntimeException("prebuilt genesis conflicts to block in dumped block");
                     if (b.nHeight % 1000 == 0) {
@@ -184,8 +184,6 @@ public class TriesSyncManager {
                     parent[0] = b;
                 })
                 .forEach(bc::writeBlock);
-
-        ;
     }
 
     void sync() throws Exception {
@@ -224,14 +222,11 @@ public class TriesSyncManager {
                 );
 
         long candidateStateTrieLastSyncHeight =
-                getLastSyncedHeightWithEra(
-                        preBuiltGenesis.block.nHeight, currentHeight - (currentHeight % blocksPerEra),
-                        blocksPerEra,
+                getLastSyncedEra(
+                        preBuiltGenesis.block.nHeight / blocksPerEra,
+                        (currentHeight - (currentHeight % blocksPerEra)) / blocksPerEra,
                         candidateStateTrie.getRootStore()
-                );
-
-        if (candidateStateTrieLastSyncHeight % blocksPerEra != 0)
-            throw new RuntimeException("unexpected");
+                ) * blocksPerEra;
 
         Block candidateLastSynced = bc.getCanonicalBlock(candidateStateTrieLastSyncHeight);
 
@@ -240,35 +235,45 @@ public class TriesSyncManager {
                 candidateStateTrie.getTrie(candidateLastSynced.getHash()).asMap()
         );
 
-        // 从这个最小值开始同步状态
-        int blocksPerUpdate = BLOCKS_PER_UPDATE_LOWER_BOUNDS;
-
         long start = Stream.of(
                 accountStateTrieLastSyncHeight,
                 validatorStateTrieLastSyncHeight,
                 candidateStateTrieLastSyncHeight)
                 .min(Long::compareTo).orElseThrow(() -> new RuntimeException("unexpected"));
 
-        log.info("start sync status from {}", start);
+        start = start - (start % blocksPerEra);
+        final long finalStart = start;
+        log.info("start sync status from {} to {}", start, currentHeight);
+
+        int blocksPerUpdate = 0;
+
+        while (blocksPerUpdate < BLOCKS_PER_UPDATE_LOWER_BOUNDS) {
+            blocksPerUpdate += blocksPerEra;
+        }
 
         while (true) {
             List<Block> blocks = bc.getCanonicalBlocks(start + 1, blocksPerUpdate);
-            for (Block block : blocks) {
-                if (block.nHeight > accountStateTrieLastSyncHeight) {
-                    accountStateTrie.commit(block);
+            boolean cont = blocks.size() == blocksPerUpdate;
+            Block last = blocks.isEmpty() ? null : blocks.get(blocks.size() - 1);
+            blocks.forEach(b -> {
+                if (b.nHeight > accountStateTrieLastSyncHeight) {
+                    accountStateTrie.commit(b);
                 }
-                if (block.nHeight > validatorStateTrieLastSyncHeight) {
-                    validatorStateTrie.commit(block);
+                if (b.nHeight > validatorStateTrieLastSyncHeight) {
+                    validatorStateTrie.commit(b);
                 }
-                if (block.nHeight > candidateStateTrieLastSyncHeight) {
-                    candidateStateTrie.commit(block);
-                }
+            });
+
+            while (blocks.size() >= blocksPerEra) {
+                candidateStateTrie.commit(blocks.subList(0, blocksPerEra));
+                blocks = blocks.subList(blocksPerEra, blocks.size());
             }
             // sync trie here
-            if (blocks.size() < blocksPerUpdate) break;
-            double status = (blocks.get(blocks.size() - 1).nHeight - start) * 1.0 / (currentHeight - start);
-            log.info("state sync status {}%", String.format("%.2f", status * 100));
+            if (!cont) break;
             start += blocksPerUpdate;
+            if (last == null) continue;
+            double status = (last.nHeight - finalStart) * 1.0 / (currentHeight - finalStart);
+            log.info("state sync status {}%", String.format("%.2f", status * 100));
         }
 
         log.info("sync status finished");
@@ -293,16 +298,15 @@ public class TriesSyncManager {
         return getLastSyncedHeight(half + 1, end, rootStore);
     }
 
-    public long getLastSyncedHeightWithEra(long start, long end, int era, Store<byte[], byte[]> rootStore) {
-        if (start == end) return end;
-        long half = (start + end) / 2;
-        half = half - (half % era);
-        Block h = bc.getCanonicalHeader(half);
+    public long getLastSyncedEra(long startEra, long endEra, Store<byte[], byte[]> rootStore) {
+        if (startEra == endEra) return endEra;
+        long half = (startEra + endEra) / 2;
+        Block h = bc.getCanonicalHeader(half * blocksPerEra);
         if (!rootStore.containsKey(h.getHash())) {
-            return getLastSyncedHeightWithEra(start, half - era, era, rootStore);
+            return getLastSyncedEra(startEra, half - 1, rootStore);
         }
-        Block next = bc.getCanonicalHeader(half + era);
+        Block next = bc.getCanonicalHeader((half + 1) * blocksPerEra);
         if (next == null || !rootStore.containsKey(next.getHash())) return half;
-        return getLastSyncedHeightWithEra(half + era, end, era, rootStore);
+        return getLastSyncedEra(half + 1, endEra, rootStore);
     }
 }
