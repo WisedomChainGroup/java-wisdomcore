@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Value;
@@ -96,7 +98,24 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     // count method calls
-    public Map<String, Long> callsCounter = new HashMap<>();
+    @Getter
+    private Map<String, Long> callsCounter = new HashMap<>();
+
+    public Map<String, CacheStats> getCacheStats() {
+        return new HashMap<String, CacheStats>() {{
+            put("blockCache", blockCache.stats());
+            put("headerCache", headerCache.stats());
+            put("hasBlockCache", hasBlockCache.stats());
+        }};
+    }
+
+    public Map<String, Double> getHitRate() {
+        return new HashMap<String, Double>() {{
+            put("blockCache", blockCache.stats().hitRate());
+            put("headerCache", headerCache.stats().hitRate());
+            put("hasBlockCache", hasBlockCache.stats().hitRate());
+        }};
+    }
 
     private void incCounter(String method) {
         callsCounter.put(method, callsCounter.getOrDefault(method, 0L) + 1);

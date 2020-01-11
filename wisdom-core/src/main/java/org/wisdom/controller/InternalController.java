@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
+import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -38,7 +39,7 @@ public class InternalController {
     private WisdomRepository wisdomRepository;
 
     @Autowired
-    private WisdomBlockChain bc;
+    private MemoryCachedWisdomBlockChain bc;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -141,6 +142,19 @@ public class InternalController {
         if (restoreStatus != null) return "restoring... " + restoreStatus;
         if (dumpStatus != null) return "dumping... " + dumpStatus;
         return "no dump task running";
+    }
+
+    @GetMapping(value = "/internal/rdbms-cache-stats")
+    public Object getCacheStats(){
+        Map<String, Object> ret = new HashMap<>();
+        ret.put("cache-stats", bc.getCacheStats());
+        ret.put("hit-rate", bc.getHitRate());
+        return ret;
+    }
+
+    @GetMapping(value = "/internal/query-calls-counter")
+    public Object getQueryCallsCounter(){
+        return bc.getCallsCounter();
     }
 
     private Future<Void> restoreDB(String directory) {
