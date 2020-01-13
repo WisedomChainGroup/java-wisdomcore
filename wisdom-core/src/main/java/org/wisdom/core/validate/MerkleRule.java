@@ -24,23 +24,25 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.core.Block;
-import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
-import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
+import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
+import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -52,7 +54,7 @@ public class MerkleRule implements BlockRule {
     private static final Logger logger = LoggerFactory.getLogger(MerkleRule.class);
 
     @Autowired
-    AccountDB accountDB;
+    AccountStateTrie accountDB;
 
     @Autowired
     IncubatorDB incubatorDB;
@@ -81,7 +83,7 @@ public class MerkleRule implements BlockRule {
             return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
         }
         try {
-            Map<String, Object> merklemap = validateMerkle(block.body, block.nHeight);
+            Map<String, Object> merklemap = validateMerkle(block, block.body, block.nHeight);
             List<Account> accountList = (List<Account>) merklemap.get("account");
             List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
             if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
@@ -100,53 +102,61 @@ public class MerkleRule implements BlockRule {
         return Result.SUCCESS;
     }
 
-    public Map<String, Object> validateMerkle(List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
+    public Map<String, Object> validateMerkle(Block block, List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
         Map<String, Account> accmap = new HashMap<>();
         Map<String, Incubator> incumap = new HashMap<>();
-        Account totalaccount = accountDB.selectaccount(IncubatorAddress.resultpubhash());
+
+        Account totalaccount = accountDB.getTrie(block.hashPrevBlock)
+                .get(IncubatorAddress.resultpubhash())
+                .map(AccountState::getAccount)
+                .orElseThrow(() -> new RuntimeException("unexpected"));
+
         long totalbalance = totalaccount.getBalance();
         boolean isdisplay = false;
         for (Transaction tran : transactionList) {
-            Account toaccount;
-            if (accmap.containsKey(Hex.encodeHexString(tran.to))) {
-                toaccount = accmap.get(Hex.encodeHexString(tran.to));
-            } else {
-                toaccount = Optional.ofNullable(accountDB.selectaccount(tran.to))
-                        .orElse(new Account(nowheight, tran.to, 0, 0, 0, 0, 0));
+            Account toaccount = accmap.get(
+                            HexBytes.encode(tran.to));
+
+            if(toaccount == null){
+                toaccount = accountDB.getTrie(block.hashPrevBlock)
+                        .get(tran.to)
+                        .map(AccountState::getAccount)
+                        .orElse(Account.builder()
+                                .pubkeyHash(tran.to)
+                                .blockHeight(nowheight)
+                                .build()
+                        );
             }
+
+            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+            Account fromaccount = accmap.get(HexBytes.encode(frompubhash));
+
+            if(fromaccount == null){
+                fromaccount = accountDB.getTrie(block.hashPrevBlock)
+                        .get(frompubhash)
+                        .map(AccountState::getAccount)
+                        .orElse(Account.builder()
+                                .pubkeyHash(frompubhash)
+                                .blockHeight(nowheight)
+                                .build()
+                        );
+            }
+
+
             switch (tran.type) {
                 case 0x00://CoinBase
                     Account cionaccount = UpdateCoinBase(tran, toaccount, nowheight);
                     accmap.put(Hex.encodeHexString(tran.to), cionaccount);
                     break;
                 case 0x01://transfer
-                    Account fromaccount = new Account();
-                    byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
                     List<Account> accountList = UpdateTransfer(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    accountList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                    accountList.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
                 case 0x02://Vote
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
                     List<Account> list = UpdateVoteAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    list.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                    list.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
                 case 0x03://Deposit
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
                     Account dopaccount = UpdateDepAccount(tran, fromaccount, nowheight);
                     accmap.put(Hex.encodeHexString(frompubhash), dopaccount);
                     break;
@@ -229,34 +239,16 @@ public class MerkleRule implements BlockRule {
                     incumap.put(Hex.encodeHexString(tran.to), costIncubator);
                     break;
                 case 0x0d://Cancel Vote
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
                     List<Account> celvotelist = UpdateCancelVote(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    celvotelist.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                    celvotelist.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
                 case 0x0e://mortgage
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
                     List<Account> mortgageList = UpdateMortgageAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    mortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                    mortgageList.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
                 case 0x0f:
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
                     List<Account> celMortgageList = UpdateCancelMortgage(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    celMortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                    celMortgageList.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
                     break;
             }
         }

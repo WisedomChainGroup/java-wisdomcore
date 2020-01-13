@@ -18,6 +18,7 @@
 
 package org.wisdom.core.account;
 
+import lombok.Builder;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.rlp.RLP;
 
@@ -42,6 +43,7 @@ public class Account {
     public Account() {
     }
 
+    @Builder
     public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote) {
         this.blockHeight = blockHeight;
         this.pubkeyHash = pubkeyHash;

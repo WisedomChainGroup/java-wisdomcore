@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Setter
+@Deprecated
 public class AccountDB {
     public static final Logger logger = LoggerFactory.getLogger(AccountDB.class);
     @Autowired
