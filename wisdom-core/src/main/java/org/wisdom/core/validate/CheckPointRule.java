@@ -68,7 +68,7 @@ public class CheckPointRule implements BlockRule {
         long height = accountDB.getBestHeight();
         List<Long> heights = confirms.keySet().stream().filter(h -> h <= height).collect(Collectors.toList());
         for (long h : heights) {
-            Block b = wisdomBlockChain.getCanonicalBlock(h);
+            Block b = wisdomBlockChain.getBlockByHeight(h);
             String blockHash = confirms.get(h);
             if (!b.getHashHexString().equals(blockHash)) {
                 return Result.Error("db has been written to forking blocks");

@@ -122,23 +122,23 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public boolean hasBlock(byte[] hash) {
-        final String method = "hasBlock";
+    public boolean containsBlock(byte[] hash) {
+        final String method = "containsBlock";
         long start = System.currentTimeMillis();
         try {
-            return hasBlockCache.get(HexBytes.fromBytes(hash), (x) -> delegate.hasBlock(x.getBytes()));
+            return hasBlockCache.get(HexBytes.fromBytes(hash), (x) -> delegate.containsBlock(x.getBytes()));
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public Block currentHeader() {
-        final String method = "currentHeader";
+    public Block getTopHeader() {
+        final String method = "getTopHeader";
         long start = System.currentTimeMillis();
         try {
             if (currentHeader != null) return currentHeader;
-            currentHeader = delegate.currentHeader();
+            currentHeader = delegate.getTopHeader();
             return currentHeader;
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
@@ -146,12 +146,12 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public Block currentBlock() {
-        final String method = "currentBlock";
+    public Block getTopBlock() {
+        final String method = "getTopBlock";
         long start = System.currentTimeMillis();
         try {
             if (currentBlock != null) return currentBlock;
-            currentBlock = delegate.currentBlock();
+            currentBlock = delegate.getTopBlock();
             return currentBlock;
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
@@ -159,12 +159,12 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public Block getHeader(byte[] blockHash) {
-        final String method = "getHeader";
+    public Block getHeaderByHash(byte[] blockHash) {
+        final String method = "getHeaderByHash";
         long start = System.currentTimeMillis();
         try {
             Block h = headerCache.get(HexBytes.fromBytes(blockHash), (x) -> {
-                Block header = delegate.getHeader(x.getBytes());
+                Block header = delegate.getHeaderByHash(x.getBytes());
                 return header == null ? TRAP_VALUE : header;
             });
             return h == TRAP_VALUE ? null : h;
@@ -174,12 +174,12 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public Block getBlock(byte[] blockHash) {
-        final String method = "getBlock";
+    public Block getBlockByHash(byte[] blockHash) {
+        final String method = "getBlockByHash";
         long start = System.currentTimeMillis();
         try {
             Block b = blockCache.get(HexBytes.fromBytes(blockHash), (x) -> {
-                Block block = delegate.getBlock(x.getBytes());
+                Block block = delegate.getBlockByHash(x.getBytes());
                 return block == null ? TRAP_VALUE : block;
             });
             return b == TRAP_VALUE ? null : b;
@@ -211,88 +211,55 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight) {
-        final String method = "getBlocks long long";
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight) {
+        final String method = "getBlocksBetween long long";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getBlocks(startHeight, stopHeight);
+            return delegate.getBlocksBetween(startHeight, stopHeight);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit) {
-        final String method = "getBlocks long long int";
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit) {
+        final String method = "getBlocksBetween long long int";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getBlocks(startHeight, stopHeight, sizeLimit);
+            return delegate.getBlocksBetween(startHeight, stopHeight, sizeLimit);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
-        final String method = "getBlocks long long int boolean";
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        final String method = "getBlocksBetween long long int boolean";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
+            return delegate.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public Block getCanonicalHeader(long height) {
-        final String method = "getCanonicalHeader";
+    public Block getHeaderByHeight(long height) {
+        final String method = "getHeaderByHeight";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getCanonicalHeader(height);
+            return delegate.getHeaderByHeight(height);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public List<Block> getCanonicalHeaders(long startHeight, int headersCount) {
-        final String method = "getCanonicalHeaders long int";
+    public Block getBlockByHeight(long height) {
+        final String method = "getBlockByHeight";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getCanonicalHeaders(startHeight, headersCount);
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
-    }
-
-    @Override
-    public Block getCanonicalBlock(long height) {
-        final String method = "getCanonicalBlock";
-        long start = System.currentTimeMillis();
-        try {
-            return delegate.getCanonicalBlock(height);
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
-    }
-
-    @Override
-    public List<Block> getCanonicalBlocks(long startHeight, int headersCount) {
-        final String method = "getCanonicalBlocks";
-        long start = System.currentTimeMillis();
-        try {
-            return delegate.getCanonicalBlocks(startHeight, headersCount);
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
-    }
-
-    @Override
-    public boolean isCanonical(byte[] hash) {
-        final String method = "isCanonical";
-        long start = System.currentTimeMillis();
-        try {
-            return delegate.isCanonical(hash);
+            return delegate.getBlockByHeight(height);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
@@ -308,28 +275,6 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
             hasBlockCache.put(HexBytes.fromBytes(block.getHash()), true);
         }
         return ret;
-    }
-
-    @Override
-    public Block getAncestorHeader(byte[] bhash, long anum) {
-        final String method = "getAncestorHeader";
-        long start = System.currentTimeMillis();
-        try {
-            return delegate.getAncestorHeader(bhash, anum);
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
-    }
-
-    @Override
-    public Block getAncestorBlock(byte[] bhash, long anum) {
-        final String method = "getAncestorBlock";
-        long start = System.currentTimeMillis();
-        try {
-            return delegate.getAncestorBlock(bhash, anum);
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
     }
 
     @Override
@@ -355,33 +300,33 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public long getCurrentTotalWeight() {
-        final String method = "getCurrentTotalWeight";
+    public long getTopHeight() {
+        final String method = "getTopHeight";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getCurrentTotalWeight();
+            return delegate.getTopHeight();
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public boolean hasTransaction(byte[] txHash) {
+    public boolean containsTransaction(byte[] txHash) {
         final String method = "hasTransaction";
         long start = System.currentTimeMillis();
         try {
-            return delegate.hasTransaction(txHash);
+            return delegate.containsTransaction(txHash);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public boolean hasPayload(int type, byte[] payload) {
-        final String method = "hasPayload";
+    public boolean containsPayload(int type, byte[] payload) {
+        final String method = "containsPayload";
         long start = System.currentTimeMillis();
         try {
-            return delegate.hasPayload(type, payload);
+            return delegate.containsPayload(type, payload);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
@@ -437,19 +382,6 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     @Override
     public List<Transaction> getTransactionsByTypeFromAndTo(int type, byte[] from, byte[] to, int offset, int limit) {
         return delegate.getTransactionsByTypeFromAndTo(type, from, to, offset, limit);
-    }
-
-    @Override
-    public Block getLastConfirmedBlock() {
-        final String method = "getLastConfirmedBlock";
-        long start = System.currentTimeMillis();
-        try {
-            if (lastConfirmed != null) return lastConfirmed;
-            lastConfirmed = delegate.getLastConfirmedBlock();
-            return lastConfirmed;
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
     }
 
     @Override

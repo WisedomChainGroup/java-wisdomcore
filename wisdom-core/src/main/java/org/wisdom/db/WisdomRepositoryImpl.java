@@ -87,7 +87,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     private void initLatestConfirmed() throws Exception {
-        this.latestConfirmed = bc.getLastConfirmedBlock();
+        this.latestConfirmed = bc.getTopBlock();
     }
 
     private void deleteCache(Block b) {
@@ -132,13 +132,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     public Block getHeader(byte[] blockHash) {
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
-                .orElse(bc.getHeader(blockHash));
+                .orElse(bc.getHeaderByHash(blockHash));
     }
 
     public Block getBlock(byte[] blockHash) {
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
-                .orElse(bc.getBlock(blockHash));
+                .orElse(bc.getBlockByHash(blockHash));
     }
 
     @Override
@@ -152,7 +152,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     // 获取包含未确认的区块
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         if (sizeLimit == 0 || startHeight > stopHeight) {
             return Collections.emptyList();
         }
@@ -165,7 +165,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         // 从数据库获取一部分
         if (startHeight < latestConfirmed.nHeight) {
             c.addAll(
-                    bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial)
+                    bc.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial)
                             .stream().map(BlockWrapper::new)
                             .collect(toList())
             );
@@ -234,7 +234,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     public boolean isConfirmed(byte[] hash) {
         return !chainCache.containsHash(hash) && (
                 FastByteComparisons.equal(latestConfirmed.getHash(), hash) ||
-                        bc.hasBlock(hash)
+                        bc.containsBlock(hash)
         );
     }
 
@@ -246,7 +246,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     // the block or the ancestor has the transaction
     public boolean containsTransactionAt(byte[] blockHash, byte[] transactionHash) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasTransaction(transactionHash);
+            return bc.containsTransaction(transactionHash);
         }
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)
@@ -277,7 +277,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     public boolean containsPayloadAt(byte[] blockHash, int type, byte[] payload) {
         if (FastByteComparisons.equal(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasPayload(type, payload);
+            return bc.containsPayload(type, payload);
         }
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)

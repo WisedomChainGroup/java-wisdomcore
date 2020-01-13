@@ -90,6 +90,6 @@ public class PendingBlocksManager {
             return true;
         }
         byte[] hash = chain.get(chain.size() - 1).getHash();
-        return wisdomRepository.getBlock(hash) != null || bc.hasBlock(hash);
+        return wisdomRepository.getBlock(hash) != null || bc.containsBlock(hash);
     }
 }

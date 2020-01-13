@@ -26,7 +26,7 @@ public class FastSyncBlockWriter {
     }
 
     private void sync() {
-        long bestHeight = bc.currentHeader().nHeight;
+        long bestHeight = bc.getTopHeight();
         triesSyncManager
                 .readBlocks(bestHeight + 1)
                 .forEach(b -> {

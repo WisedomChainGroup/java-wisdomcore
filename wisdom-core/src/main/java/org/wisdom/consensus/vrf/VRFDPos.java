@@ -52,7 +52,7 @@ public class VRFDPos implements Engine {
         if (header == null) {
             return false;
         }
-        Block currentHeader = blockChain.currentHeader();
+        Block currentHeader = blockChain.getTopHeader();
         return true;
     }
 

@@ -26,62 +26,47 @@ public interface WisdomBlockChain {
 
     Block getGenesis();
 
-    boolean hasBlock(byte[] hash);
+    boolean containsBlock(byte[] hash);
 
     // currentHeader retrieves the current head header of the canonical chain
-    Block currentHeader();
+    Block getTopHeader();
 
     // currentBlock retrieves the current head Block of the canonical chain
-    Block currentBlock();
+    Block getTopBlock();
 
     // getHeader retrieves a block header from the database by hash
-    Block getHeader(byte[] blockHash);
+    Block getHeaderByHash(byte[] blockHash);
 
-    Block getBlock(byte[] blockHash);
+    Block getBlockByHash(byte[] blockHash);
 
     List<Block> getHeaders(long startHeight, int headersCount);
 
     List<Block> getBlocks(long startHeight, int headersCount);
 
-    List<Block> getBlocks(long startHeight, long stopHeight);
+    List<Block> getBlocksBetween(long startHeight, long stopHeight);
 
-    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit);
+    List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit);
 
-    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+    List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
 
     // retrieves the header assigned to a canonical block number
-    Block getCanonicalHeader(long height);
-
-    List<Block> getCanonicalHeaders(long startHeight, int headersCount);
+    Block getHeaderByHeight(long height);
 
     // retrieves the block assigned to a canonical block number
-    Block getCanonicalBlock(long height);
-
-    // retrieves canonical blocks starts from the block number
-    List<Block> getCanonicalBlocks(long startHeight, int headersCount);
-
-    // lookup the whether the block is canonical
-    boolean isCanonical(byte[] hash);
+    Block getBlockByHeight(long height);
 
     // write the block to the database
     boolean writeBlock(Block block);
 
-    // find b's ancestor header at height of anum
-    Block getAncestorHeader(byte[] bhash, long anum);
+    List<Block> getAncestorHeaders(byte[] hash, long ancestorHeight);
 
-    // find b's ancestor block at height of anum
-    Block getAncestorBlock(byte[] bhash, long anum);
+    List<Block> getAncestorBlocks(byte[] hash, long ancestorHeight);
 
-    // find b's ancestor blocks until height of anum, both inclusive
-    List<Block> getAncestorHeaders(byte[] bhash, long anum);
+    long getTopHeight();
 
-    List<Block> getAncestorBlocks(byte[] bhash, long anum);
+    boolean containsTransaction(byte[] txHash);
 
-    long getCurrentTotalWeight();
-
-    boolean hasTransaction(byte[] txHash);
-
-    boolean hasPayload(int type, byte[] payload);
+    boolean containsPayload(int type, byte[] payload);
 
     Transaction getTransaction(byte[] txHash);
 
@@ -98,8 +83,6 @@ public interface WisdomBlockChain {
     List<Transaction> getTransactionsByFromAndTo(byte[] from, byte[] to, int offset, int limit);
 
     List<Transaction> getTransactionsByTypeFromAndTo(int type, byte[] from, byte[] to, int offset, int limit);
-
-    Block getLastConfirmedBlock();
 
     long countBlocksAfter(long timestamp);
 }

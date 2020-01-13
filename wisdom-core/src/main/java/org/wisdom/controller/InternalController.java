@@ -107,7 +107,7 @@ public class InternalController {
     public Object getBlocksByHeight(String height) {
         try {
             long h = Long.parseLong(height);
-            return codec.encodeBlocks(wisdomRepository.getBlocks(h, h, Integer.MAX_VALUE, false));
+            return codec.encodeBlocks(wisdomRepository.getBlocksBetween(h, h));
         } catch (Exception e) {
             return "invalid block path variable " + height;
         }
@@ -201,7 +201,7 @@ public class InternalController {
         File file = Paths.get(directory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
         dumpStatus = 0.0;
-        int last = (int) bc.getLastConfirmedBlock().nHeight;
+        int last = (int) bc.getTopHeight();
         return CompletableFuture
                 .runAsync(() -> {
                     int blocksPerDump = 100000;
@@ -212,7 +212,7 @@ public class InternalController {
 
                         List<Block> all = new ArrayList<>();
                         do {
-                            List<Block> lists = bc.getCanonicalBlocks(start, 1000);
+                            List<Block> lists = bc.getBlocks(start, 1000);
                             all.addAll(lists);
                             start += 1000;
                         } while (start < blocksPerDumpIndex);

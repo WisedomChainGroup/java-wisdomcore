@@ -146,10 +146,10 @@ public class TriesSyncManager {
     private void syncBlockDatabase(
             PreBuiltGenesis preBuiltGenesis
     ) {
-        long currentHeight = bc.currentHeader().nHeight;
+        long currentHeight = bc.getTopHeight();
         if (currentHeight >= preBuiltGenesis.getBlock().nHeight) {
             if (!FastByteComparisons.equal(
-                    bc.getCanonicalHeader(preBuiltGenesis.getBlock().nHeight).getHash(),
+                    bc.getHeaderByHeight(preBuiltGenesis.getBlock().nHeight).getHash(),
                     preBuiltGenesis.block.getHash())) {
                 throw new RuntimeException("prebuilt genesis conflicts to block in your database");
             }
@@ -194,7 +194,7 @@ public class TriesSyncManager {
 
         syncBlockDatabase(preBuiltGenesis);
 
-        long currentHeight = bc.currentHeader().nHeight;
+        long currentHeight = bc.getTopHeight();
         if (currentHeight < preBuiltGenesis.getBlock().nHeight)
             throw new RuntimeException("missing blocks to fast sync, please ensure at least "
                     + preBuiltGenesis.getBlock().nHeight +
@@ -228,7 +228,7 @@ public class TriesSyncManager {
                         candidateStateTrie.getRootStore()
                 ) * blocksPerEra;
 
-        Block candidateLastSynced = bc.getCanonicalBlock(candidateStateTrieLastSyncHeight);
+        Block candidateLastSynced = bc.getBlockByHeight(candidateStateTrieLastSyncHeight);
 
         candidateStateTrie.generateCache(
                 candidateLastSynced,
@@ -252,7 +252,7 @@ public class TriesSyncManager {
         }
 
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(start + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getBlocks(start + 1, blocksPerUpdate);
             boolean cont = blocks.size() == blocksPerUpdate;
             Block last = blocks.isEmpty() ? null : blocks.get(blocks.size() - 1);
             blocks.forEach(b -> {
@@ -289,11 +289,11 @@ public class TriesSyncManager {
     public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {
         if (start == end) return end;
         long half = (start + end) / 2;
-        Block h = bc.getCanonicalHeader(half);
+        Block h = bc.getHeaderByHeight(half);
         if (!rootStore.containsKey(h.getHash())) {
             return getLastSyncedHeight(start, half - 1, rootStore);
         }
-        Block next = bc.getCanonicalHeader(half + 1);
+        Block next = bc.getHeaderByHeight(half + 1);
         if (next == null || !rootStore.containsKey(next.getHash())) return half;
         return getLastSyncedHeight(half + 1, end, rootStore);
     }
@@ -301,11 +301,11 @@ public class TriesSyncManager {
     public long getLastSyncedEra(long startEra, long endEra, Store<byte[], byte[]> rootStore) {
         if (startEra == endEra) return endEra;
         long half = (startEra + endEra) / 2;
-        Block h = bc.getCanonicalHeader(half * blocksPerEra);
+        Block h = bc.getHeaderByHeight(half * blocksPerEra);
         if (!rootStore.containsKey(h.getHash())) {
             return getLastSyncedEra(startEra, half - 1, rootStore);
         }
-        Block next = bc.getCanonicalHeader((half + 1) * blocksPerEra);
+        Block next = bc.getHeaderByHeight((half + 1) * blocksPerEra);
         if (next == null || !rootStore.containsKey(next.getHash())) return half;
         return getLastSyncedEra(half + 1, endEra, rootStore);
     }

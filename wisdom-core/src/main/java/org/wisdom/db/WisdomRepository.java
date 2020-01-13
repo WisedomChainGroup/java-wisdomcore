@@ -19,7 +19,15 @@ public interface WisdomRepository {
 
     Block getBlock(byte[] hash);
 
-    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+    List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+
+    default List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit) {
+        return getBlocksBetween(startHeight, stopHeight, sizeLimit, false);
+    }
+
+    default List<Block> getBlocksBetween(long startHeight, long stopHeight) {
+        return getBlocksBetween(startHeight, stopHeight, Integer.MAX_VALUE);
+    }
 
     Block getHeader(byte[] hash);
 
@@ -130,7 +138,7 @@ public interface WisdomRepository {
 
     void writeBlock(Block block);
 
-    default boolean containsAssetCodeAt(byte[] blockHash, byte[] code){
+    default boolean containsAssetCodeAt(byte[] blockHash, byte[] code) {
         return getAssetCodeAt(blockHash, code).isPresent();
     }
 

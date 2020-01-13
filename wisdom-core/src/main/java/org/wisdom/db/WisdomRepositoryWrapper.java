@@ -8,7 +8,6 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.pool.PeningTransPool;
 
 import java.util.Collection;
 import java.util.List;
@@ -83,10 +82,10 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
+            return delegate.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial);
         } finally {
             readWriteLock.readLock().unlock();
         }

@@ -32,7 +32,7 @@ public class WisdomRepositoryAdapter implements WisdomRepository {
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         return null;
     }
 

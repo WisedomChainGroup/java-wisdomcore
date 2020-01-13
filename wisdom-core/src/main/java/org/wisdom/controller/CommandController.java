@@ -144,7 +144,7 @@ public class CommandController {
             if (height < 0) {
                 b = wisdomRepository.getBestBlock();
             } else {
-                b = bc.getCanonicalBlock(height);
+                b = bc.getBlockByHeight(height);
             }
             if (b == null) {
                 return ConsensusResult.ERROR("cannot find block at height = " + height);
@@ -161,7 +161,7 @@ public class CommandController {
     private Object handleGetBlockByHash(String hash) {
         try {
             byte[] h = Hex.decodeHex(hash);
-            Block b = bc.getBlock(h);
+            Block b = bc.getBlockByHash(h);
             if (b != null) {
                 return encodeDecoder.encodeBlock(b);
             }
@@ -201,14 +201,14 @@ public class CommandController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/height")
     public Object getCurrentHeight() {
-        Block current = bc.currentHeader();
+        Block current = bc.getTopHeader();
         return APIResult.newFailResult(APIResult.SUCCESS, "success", current.nHeight);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/transactionConfirmed")
     public Object getConfirms(@RequestParam("txHash") String hash) {
         try {
-            Block current = bc.currentHeader();
+            Block current = bc.getTopHeader();
             Transaction tx = bc.getTransaction(Hex.decodeHex(hash));
             long res = NOT_CONFIRMED;
             if (current.nHeight - tx.height > 2) {

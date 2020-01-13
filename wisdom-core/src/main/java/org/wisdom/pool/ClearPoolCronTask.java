@@ -100,9 +100,9 @@ public class ClearPoolCronTask implements SchedulingConfigurer {
                 //高度
                 if (transPool.getState() == 1) {
                     long height = transPool.getHeight();
-                    long nowheight = wisdomBlockChain.getCurrentTotalWeight();
+                    long nowheight = wisdomBlockChain.getTopHeight();
                     if (nowheight >= height) {
-                        Block b = wisdomBlockChain.getCanonicalBlock(height);
+                        Block b = wisdomBlockChain.getBlockByHeight(height);
                         if (b != null) {
                             boolean state = true;
                             for (Transaction tx : b.body) {
