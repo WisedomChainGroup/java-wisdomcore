@@ -302,7 +302,7 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
 
     @Override
     public boolean containsTransaction(byte[] txHash) {
-        final String method = "hasTransaction";
+        final String method = "containsTransaction";
         long start = System.currentTimeMillis();
         try {
             return delegate.containsTransaction(txHash);

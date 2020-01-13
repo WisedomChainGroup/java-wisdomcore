@@ -136,6 +136,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 trie.asMap());
     }
 
+    // height = 0, 120, 240 ...
     List<byte[]> getProposersByEraLst(byte[] hash, long height) {
         if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
 
@@ -150,8 +151,10 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             return initialProposers;
         }
 
-        List<byte[]> res = bestCandidatesCache.get(HexBytes.fromBytes(hash))
-                .stream().map(CandidateInfo::getPublicKeyHash)
+        List<byte[]> res = bestCandidatesCache
+                .get(HexBytes.fromBytes(hash))
+                .stream()
+                .map(CandidateInfo::getPublicKeyHash)
                 .map(HexBytes::getBytes)
                 .collect(Collectors.toList());
 
