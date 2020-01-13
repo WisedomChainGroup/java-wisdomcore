@@ -180,7 +180,7 @@ public class TestContext {
 
     @Bean
     public BlocksDump blocksDump(TestConfig testConfig, WisdomBlockChain wisdomBlockChain) {
-        return new BlocksDump(0.0, testConfig.getBlocksDirectory(), wisdomBlockChain);
+        return new BlocksDump(testConfig.getBlocksDirectory(), wisdomBlockChain);
     }
 
     @Bean
@@ -219,13 +219,13 @@ public class TestContext {
     @Bean
     public AccountStateUpdater accountStateUpdater(
             RateTable rateTable,
-            MerkleRule merkleRule,
             Genesis genesisJSON,
-            Block block) {
+            Block block,
+            WisdomBlockChain wisdomBlockChain) {
         AccountStateUpdater updater = new AccountStateUpdater();
         updater.setGenesis(block);
         updater.setGenesisJSON(genesisJSON);
-        updater.setMerkleRule(merkleRule);
+        updater.setWisdomBlockChain(wisdomBlockChain);
         updater.setRateTable(rateTable);
         return updater;
     }
@@ -233,7 +233,7 @@ public class TestContext {
     @Bean
     public MerkleRule merkleRule(
             @Value("${node-character}") String character,
-            AccountDB accountDB,
+            AccountStateTrie accountDB,
             IncubatorDB incubatorDB,
             RateTable rateTable,
             WisdomBlockChain wisdomBlockChain,
