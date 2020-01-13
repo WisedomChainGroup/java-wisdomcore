@@ -14,6 +14,7 @@ import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
+import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.validate.CheckPointRule;
@@ -89,6 +90,8 @@ public class TriesSyncManager {
         private List<AccountState> accountStates;
         private Map<byte[], Long> validators;
         private Map<byte[], Candidate> candidateStates;
+        private Map<byte[], AssetCodeInfo> assetCodeInfos;
+
     }
 
     public void setRepository(WisdomRepository repository) {
@@ -210,7 +213,8 @@ public class TriesSyncManager {
         accountStateTrie.commit(accountStates, preBuiltGenesis.block.getHash());
         validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
         candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
-        
+        assetCodeTrie.commit(preBuiltGenesis.getAssetCodeInfos(), preBuiltGenesis.block.getHash());
+
         long accountStateTrieLastSyncHeight =
                 getLastSyncedHeight(
                         preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
@@ -221,12 +225,18 @@ public class TriesSyncManager {
                         preBuiltGenesis.block.nHeight, currentHeight, validatorStateTrie.getRootStore()
                 );
 
+        long assetCodeTrieLastSyncHeight =
+                getLastSyncedHeight(
+                        preBuiltGenesis.block.nHeight, currentHeight, assetCodeTrie.getRootStore()
+                );
+
         long candidateStateTrieLastSyncHeight =
                 getLastSyncedEra(
                         preBuiltGenesis.block.nHeight / blocksPerEra,
                         (currentHeight - (currentHeight % blocksPerEra)) / blocksPerEra,
                         candidateStateTrie.getRootStore()
                 ) * blocksPerEra;
+
 
         Block candidateLastSynced = bc.getBlockByHeight(candidateStateTrieLastSyncHeight);
 
@@ -261,6 +271,9 @@ public class TriesSyncManager {
                 }
                 if (b.nHeight > validatorStateTrieLastSyncHeight) {
                     validatorStateTrie.commit(b);
+                }
+                if(b.nHeight > assetCodeTrieLastSyncHeight){
+                    assetCodeTrie.commit(b);
                 }
             });
 
