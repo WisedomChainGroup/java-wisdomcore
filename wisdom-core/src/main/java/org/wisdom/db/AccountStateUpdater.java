@@ -88,7 +88,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     throw new Exception("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
             }
         } catch (Exception e) {
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
@@ -492,7 +492,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             totalState.setAccount(totalaccount);
             AccountStateMap.put(totalState.getKey(), totalState);
         } catch (Exception e) {
-            return null;
+            throw new RuntimeException(e);
         }
         return new ByteArrayMap<>(AccountStateMap);
     }
