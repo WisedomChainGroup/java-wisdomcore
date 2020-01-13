@@ -17,6 +17,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.AccountStateUpdater;
+import org.wisdom.db.BlocksDump;
 
 import java.io.File;
 import java.nio.file.Files;
