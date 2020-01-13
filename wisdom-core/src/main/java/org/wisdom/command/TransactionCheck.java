@@ -45,6 +45,7 @@ import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.service.Impl.CommandServiceImpl;
+import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
@@ -292,7 +293,7 @@ public class TransactionCheck {
         byte[] payload = transaction.payload;
         int type = transaction.type;
         long amount = transaction.amount;
-        byte[] frompubhash = transaction.from;
+        byte[] frompubhash = Address.publicKeyToHash(transaction.from);
         byte[] topubkeyhash = transaction.to;
         switch (type) {
             case 0x09://孵化器
@@ -376,7 +377,7 @@ public class TransactionCheck {
             //TODO 查询是否有重复code 异常处理
             if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher.matches()  && !asset.getCode().equals("WDC")){
                 byte[] blockhash=wisdomRepository.getLatestConfirmed().getHash();
-                if (!wisdomRepository.containsAssetCodeAt(blockhash,asset.getCode().getBytes(StandardCharsets.UTF_8)))
+                if (wisdomRepository.containsAssetCodeAt(blockhash,asset.getCode().getBytes(StandardCharsets.UTF_8)))
                     return APIResult.newFailed("asset code already exists");
             }else{
                 return APIResult.newFailed("Assets code format check error");
@@ -403,7 +404,7 @@ public class TransactionCheck {
             if (!Arrays.equals(frompubhash, asset.getCreateuser()))
                 return APIResult.newFailed("Create and frompubhash are different");
 
-            if (asset.getAllowincrease() != 0 || asset.getAllowincrease() != 1)
+            if (asset.getAllowincrease() != 0 && asset.getAllowincrease() != 1)
                 return APIResult.newFailed("Allowincrease error");
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");

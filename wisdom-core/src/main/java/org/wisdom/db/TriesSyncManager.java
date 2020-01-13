@@ -248,7 +248,8 @@ public class TriesSyncManager {
         long start = Stream.of(
                 accountStateTrieLastSyncHeight,
                 validatorStateTrieLastSyncHeight,
-                candidateStateTrieLastSyncHeight)
+                candidateStateTrieLastSyncHeight,
+                assetCodeTrieLastSyncHeight)
                 .min(Long::compareTo).orElseThrow(() -> new RuntimeException("unexpected"));
 
         start = start - (start % blocksPerEra);
