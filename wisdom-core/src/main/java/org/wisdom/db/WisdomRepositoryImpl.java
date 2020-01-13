@@ -15,6 +15,7 @@ import org.wisdom.encoding.BigEndian;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.BiFunction;
 
 import static java.util.stream.Collectors.toList;
 
@@ -129,13 +130,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 chainCache.last().get();
     }
 
-    public Block getHeader(byte[] blockHash) {
+    public Block getHeaderByHash(byte[] blockHash) {
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
                 .orElse(bc.getHeaderByHash(blockHash));
     }
 
-    public Block getBlock(byte[] blockHash) {
+    public Block getBlockByHash(byte[] blockHash) {
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
                 .orElse(bc.getBlockByHash(blockHash));
@@ -151,8 +152,11 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
     }
 
-    // 获取包含未确认的区块
-    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+    public interface BlocksProvider {
+        List<Block> apply(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+    }
+
+    private List<Block> getBlocksBetweenInternal(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial, BlocksProvider blocksProvider){
         if (sizeLimit == 0 || startHeight > stopHeight) {
             return Collections.emptyList();
         }
@@ -165,8 +169,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         // 从数据库获取一部分
         if (startHeight < latestConfirmed.nHeight) {
             c.addAll(
-                    bc.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial)
-                            .stream().map(BlockWrapper::new)
+                    blocksProvider.apply(startHeight, stopHeight, sizeLimit, clipInitial)
+                            .stream()
+                            .map(BlockWrapper::new)
                             .collect(toList())
             );
         }
@@ -190,34 +195,53 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         return all.subList(0, sizeLimit);
     }
 
+    // 获取包含未确认的区块
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        return getBlocksBetweenInternal(startHeight, stopHeight, sizeLimit, clipInitial, bc::getBlocksBetween);
+    }
+
+    @Override
+    public List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        return getBlocksBetweenInternal(startHeight, stopHeight, sizeLimit, clipInitial, bc::getHeadersBetween);
+    }
+
     public Block getAncestorHeader(byte[] hash, long height) {
-        Block bHeader = getHeader(hash);
+        Block bHeader = getHeaderByHash(hash);
         if (bHeader.nHeight < height) {
             return null;
         }
         while (bHeader != null && bHeader.nHeight != height) {
-            bHeader = getHeader(bHeader.hashPrevBlock);
+            bHeader = getHeaderByHash(bHeader.hashPrevBlock);
         }
         return bHeader;
     }
 
-    public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
+    private List<Block> getAncestorsInternal(byte[] bhash, long anum, BiFunction<byte[], Long, List<Block>> provider) {
         if (FastByteComparisons.equal(bhash, latestConfirmed.getHash())) {
-            return bc.getAncestorBlocks(bhash, anum);
+            return provider.apply(bhash, anum);
         }
         Optional<Block> o = chainCache.get(bhash).map(ChainedWrapper::get);
-        if (!o.isPresent()) return bc.getAncestorBlocks(bhash, anum);
+        if (!o.isPresent()) return provider.apply(bhash, anum);
         ChainCache<BlockWrapper> ret =
                 new ChainCache<>(Integer.MAX_VALUE, this::compareBlockWrapper);
 
         List<BlockWrapper> blocks = chainCache.getAncestors(bhash)
                 .stream().filter(bl -> bl.get().nHeight >= anum).collect(toList());
         ret.addAll(blocks);
-        bc.getAncestorBlocks(ret.first().get().hashPrevBlock, anum)
+        provider.apply(ret.first().get().hashPrevBlock, anum)
                 .stream().map(BlockWrapper::new)
                 .forEach(ret::add);
 
         return ret.stream().map(BlockWrapper::get).collect(toList());
+    }
+
+    public List<Block> getAncestorBlocks(byte[] bhash, long anum) {
+        return getAncestorsInternal(bhash, anum, bc::getAncestorBlocks);
+    }
+
+    @Override
+    public List<Block> getAncestorHeaders(byte[] hash, long height) {
+        return getAncestorsInternal(hash, height, bc::getAncestorHeaders);
     }
 
     public boolean isStaged(byte[] hash) {
@@ -382,7 +406,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 .collect(toList());
         if (blocks.size() >= limit) return blocks.subList(0, limit);
         long toFetch = limit - blocks.size();
-        List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
+        List<Block> fetched = bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
         fetched.addAll(blocks);
         return fetched;
     }
@@ -572,7 +596,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
         leastConfirms.put(block.getHash(),
                 (int) Math.ceil(
-                        getProposersByParent(getBlock(block.hashPrevBlock))
+                        getProposersByParent(getBlockByHash(block.hashPrevBlock))
                                 .size()
                                 * 2.0 / 3
                 )

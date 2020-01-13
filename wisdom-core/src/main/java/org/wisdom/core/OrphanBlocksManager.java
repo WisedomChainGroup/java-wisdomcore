@@ -73,7 +73,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     private boolean isOrphan(Block block) {
-        return repository.getBlock(block.hashPrevBlock) == null;
+        return repository.getBlockByHash(block.hashPrevBlock) == null;
     }
 
     public void addBlock(Block block) {
@@ -131,7 +131,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     public void clearOrphans() {
         Block lastConfirmed = repository.getLatestConfirmed();
         orphans.getAll().stream()
-                .filter(b -> b.nHeight <= lastConfirmed.nHeight || repository.getBlock(b.getHash()) != null)
+                .filter(b -> b.nHeight <= lastConfirmed.nHeight || repository.getBlockByHash(b.getHash()) != null)
                 .forEach(b -> orphans.deleteBlock(b));
     }
 

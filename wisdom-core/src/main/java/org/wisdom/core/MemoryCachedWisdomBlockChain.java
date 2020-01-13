@@ -189,52 +189,42 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    public List<Block> getHeaders(long startHeight, int headersCount) {
-        final String method = "getHeaders";
+    public List<Block> getHeadersSince(long startHeight, int headersCount) {
+        final String method = "getHeadersSince";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getHeaders(startHeight, headersCount);
+            return delegate.getHeadersSince(startHeight, headersCount);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, int headersCount) {
-        final String method = "getBlocks long int";
+    public List<Block> getBlocksSince(long startHeight, int headersCount) {
+        final String method = "getBlocksSince";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getBlocks(startHeight, headersCount);
+            return delegate.getBlocksSince(startHeight, headersCount);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
     @Override
-    public List<Block> getBlocksBetween(long startHeight, long stopHeight) {
-        final String method = "getBlocksBetween long long";
+    public List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        final String method = "getHeadersBetween";
         long start = System.currentTimeMillis();
         try {
-            return delegate.getBlocksBetween(startHeight, stopHeight);
+            return delegate.getHeadersBetween(startHeight, stopHeight, sizeLimit, clipInitial);
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
     }
 
-    @Override
-    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit) {
-        final String method = "getBlocksBetween long long int";
-        long start = System.currentTimeMillis();
-        try {
-            return delegate.getBlocksBetween(startHeight, stopHeight, sizeLimit);
-        } finally {
-            recordMetric(method, System.currentTimeMillis() - start);
-        }
-    }
 
     @Override
     public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
-        final String method = "getBlocksBetween long long int boolean";
+        final String method = "getBlocksBetween";
         long start = System.currentTimeMillis();
         try {
             return delegate.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial);

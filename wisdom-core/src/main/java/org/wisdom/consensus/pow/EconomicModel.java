@@ -18,12 +18,14 @@
 
 package org.wisdom.consensus.pow;
 
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.state.EraLinkedStateFactory;
 
 
 @Component
+@Setter
 public class EconomicModel {
     public static final long WDC = 100000000;
 

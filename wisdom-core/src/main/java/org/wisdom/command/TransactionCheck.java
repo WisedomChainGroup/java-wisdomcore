@@ -17,6 +17,7 @@
  */
 package org.wisdom.command;
 
+import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
+@Setter
 public class TransactionCheck {
     private static final Logger logger = LoggerFactory.getLogger(TransactionCheck.class);
 

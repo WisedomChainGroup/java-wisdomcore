@@ -65,7 +65,7 @@ public class PendingBlocksManager {
             logger.info("try to write blocks to local storage, size = " + chain.size());
             Block lastConfirmed = wisdomRepository.getLatestConfirmed();
             for (Block b : chain) {
-                if (b.nHeight <= lastConfirmed.nHeight || wisdomRepository.getBlock(b.getHash()) != null) {
+                if (b.nHeight <= lastConfirmed.nHeight || wisdomRepository.getBlockByHash(b.getHash()) != null) {
                     logger.info("the block has written");
                     continue;
                 }
@@ -90,6 +90,6 @@ public class PendingBlocksManager {
             return true;
         }
         byte[] hash = chain.get(chain.size() - 1).getHash();
-        return wisdomRepository.getBlock(hash) != null || bc.containsBlock(hash);
+        return wisdomRepository.getBlockByHash(hash) != null || bc.containsBlock(hash);
     }
 }

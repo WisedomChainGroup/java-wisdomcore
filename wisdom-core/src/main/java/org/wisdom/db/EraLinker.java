@@ -25,7 +25,7 @@ public class EraLinker {
         }
         long lastHeaderNumber = getEraAtBlockNumber(target.nHeight) * blocksPerEra;
         if (lastHeaderNumber == target.nHeight - 1) {
-            return repository.getHeader(target.hashPrevBlock);
+            return repository.getHeaderByHash(target.hashPrevBlock);
         }
         return repository.getAncestorHeader(target.hashPrevBlock, lastHeaderNumber);
     }

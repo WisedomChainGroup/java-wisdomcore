@@ -39,15 +39,29 @@ public interface WisdomBlockChain {
 
     Block getBlockByHash(byte[] blockHash);
 
-    List<Block> getHeaders(long startHeight, int headersCount);
+    List<Block> getHeadersSince(long startHeight, int headersCount);
 
-    List<Block> getBlocks(long startHeight, int headersCount);
+    List<Block> getBlocksSince(long startHeight, int headersCount);
 
-    List<Block> getBlocksBetween(long startHeight, long stopHeight);
+    List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
 
-    List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit);
+    default List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit){
+        return getHeadersBetween(startHeight, stopHeight, sizeLimit, false);
+    }
+
+    default List<Block> getHeadersBetween(long startHeight, long stopHeight){
+        return getHeadersBetween(startHeight, stopHeight, Integer.MAX_VALUE);
+    }
 
     List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+
+    default List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit){
+        return getBlocksBetween(startHeight, stopHeight, sizeLimit, false);
+    }
+
+    default List<Block> getBlocksBetween(long startHeight, long stopHeight){
+        return getBlocksBetween(startHeight, stopHeight, Integer.MAX_VALUE);
+    }
 
     // retrieves the header assigned to a canonical block number
     Block getHeaderByHeight(long height);

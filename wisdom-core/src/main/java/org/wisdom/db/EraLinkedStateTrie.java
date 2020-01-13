@@ -30,14 +30,14 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
 
     @Override
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash) {
-        Block b = getRepository().getBlock(blockHash);
+        Block b = getRepository().getBlockByHash(blockHash);
         Block prevEraLast = eraLinker.getPrevEraLast(b);
         return super.get(prevEraLast.getHash(), publicKeyHash);
     }
 
     @Override
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
-        Block b = getRepository().getBlock(blockHash);
+        Block b = getRepository().getBlockByHash(blockHash);
         Block prevEraLast = eraLinker.getPrevEraLast(b);
         return super.batchGet(prevEraLast.getHash(), keys);
     }

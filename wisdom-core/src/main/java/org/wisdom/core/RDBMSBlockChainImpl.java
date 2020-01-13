@@ -20,25 +20,23 @@ package org.wisdom.core;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
-import org.springframework.util.Assert;
-import org.wisdom.Start;
-import org.wisdom.util.Arrays;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.orm.BlockMapper;
-import org.wisdom.core.orm.TransactionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.orm.BlockMapper;
+import org.wisdom.core.orm.TransactionMapper;
+import org.wisdom.util.Arrays;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -250,40 +248,30 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public List<Block> getHeaders(long startHeight, int headersCount) {
+    public List<Block> getHeadersSince(long startHeight, int headersCount) {
         return tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, startHeight + headersCount - 1, headersCount}, new BlockMapper());
     }
 
-    private List<Block> getHeadersBetween(long startHeight, long stopHeight) {
-        return tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
+    @Override
+    public List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        String sql = String.format(
+                "select * from header where height >= ? and height <= ? order by height %s limit ?",
+                clipInitial ? "desc" : "asc"
+        );
+
+        List<Block> ret = tmpl.query(sql, new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper());
+        if (clipInitial) Collections.reverse(ret);
+        return ret;
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, int headersCount) {
-        return getBlocksFromHeaders(getHeaders(startHeight, headersCount));
-    }
-
-    @Override
-    public List<Block> getBlocksBetween(long startHeight, long stopHeight) {
-        return getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper()));
-    }
-
-    @Override
-    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit) {
-        return getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));
+    public List<Block> getBlocksSince(long startHeight, int headersCount) {
+        return getBlocksFromHeaders(getHeadersSince(startHeight, headersCount));
     }
 
     @Override
     public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
-        if (!clipInitial) {
-            return getBlocksBetween(startHeight, stopHeight, sizeLimit);
-        }
-        List<Block> blocks = getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height desc limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));
-        if (blocks.size() == 0) {
-            return blocks;
-        }
-        Collections.reverse(blocks);
-        return blocks;
+        return getBlocksFromHeaders(getHeadersBetween(startHeight, stopHeight, sizeLimit, clipInitial));
     }
 
     @Override

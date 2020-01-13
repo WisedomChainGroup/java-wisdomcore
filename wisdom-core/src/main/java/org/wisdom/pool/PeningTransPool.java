@@ -2,6 +2,7 @@ package org.wisdom.pool;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@Setter
 public class PeningTransPool {
 
     private static final Logger logger = LoggerFactory.getLogger(PeningTransPool.class);

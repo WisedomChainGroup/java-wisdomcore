@@ -16,27 +16,30 @@ import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.command.Configuration;
-import org.wisdom.consensus.pow.ProposersFactory;
-import org.wisdom.consensus.pow.ProposersState;
-import org.wisdom.consensus.pow.TargetState;
+import org.wisdom.command.TransactionCheck;
 import org.wisdom.consensus.pow.ValidatorState;
+import org.wisdom.consensus.pow.*;
 import org.wisdom.contract.AssetCode;
 import org.wisdom.core.Block;
 import org.wisdom.core.RDBMSBlockChainImpl;
-import org.wisdom.core.StatetreeUpdate;
+import org.wisdom.core.WhitelistTransaction;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.event.AccountUpdatedEvent;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
-import org.wisdom.core.validate.CheckPointRule;
-import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.core.validate.*;
 import org.wisdom.db.*;
 import org.wisdom.dumps.BlocksDump;
 import org.wisdom.dumps.GenesisDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
+import org.wisdom.pool.AdoptTransPool;
+import org.wisdom.pool.PeningTransPool;
+import org.wisdom.pool.TraceCeoAddress;
+
+import java.io.IOException;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration
@@ -353,15 +356,21 @@ public class TestContext {
             CheckPointRule checkPointRule,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra
     ) {
-        return new TriesSyncManager(accountStateTrie, validatorStateTrie, factory,
+        TriesSyncManager triesSyncManager = new TriesSyncManager(accountStateTrie, validatorStateTrie, factory,
                 candidateStateTrie, assetCodeTrie, fastSyncDirectory,
                 bc, checkPointRule, blocksPerEra
         );
+        return triesSyncManager;
     }
 
     @Bean
-    public CheckPointRule checkPointRule(@Value("${wisdom.open-check-point}") boolean openCheckPoint){
-        return new CheckPointRule(openCheckPoint);
+    public CheckPointRule checkPointRule(@Value("${wisdom.open-check-point}") boolean openCheckPoint,
+                                         AccountDB accountDB,
+                                         WisdomBlockChain wisdomBlockChain) {
+        CheckPointRule checkPointRule = new CheckPointRule(openCheckPoint);
+        checkPointRule.setAccountDB(accountDB);
+        checkPointRule.setWisdomBlockChain(wisdomBlockChain);
+        return checkPointRule;
     }
 
 
@@ -376,7 +385,7 @@ public class TestContext {
             TargetCache targetCache,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             ApplicationContext applicationContext
-            ) throws Exception {
+    ) throws Exception {
         return new WisdomRepositoryWrapper(bc, triesSyncManager, accountStateTrie,
                 validatorStateTrie, candidateStateTrie, assetCodeTrie,
                 targetCache, blocksPerEra, applicationContext
@@ -386,6 +395,146 @@ public class TestContext {
     @Bean
     public AssetCodeTrie assetCodeTrie(Block genesis, DatabaseStoreFactory factory) {
         return new AssetCodeTrie(genesis, factory);
+    }
+
+    @Bean
+    public BasicRule basicRule(Block genesis, @Value("${node-character}") String character) {
+        return new BasicRule(genesis, character);
+    }
+
+    @Bean
+    public AddressRule addressRule() {
+        return new AddressRule();
+    }
+
+    @Bean
+    public EconomicModel economicModel(@Value("${wisdom.consensus.block-interval}") int blockInterval,
+                                       @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra,
+                                       @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,
+                                       @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra) {
+        EconomicModel economicModel = new EconomicModel();
+        economicModel.setBlockInterval(blockInterval);
+        economicModel.setBlockIntervalSwitchEra(blockIntervalSwitchEra);
+        economicModel.setBlockIntervalSwitchTo(blockIntervalSwitchTo);
+        economicModel.setBlocksPerEra(blocksPerEra);
+        return economicModel;
+    }
+
+    @Bean
+    public CoinbaseRule coinbaseRule(WisdomRepository repository, EconomicModel economicModel) {
+        CoinbaseRule coinbaseRule = new CoinbaseRule();
+        coinbaseRule.setEconomicModel(economicModel);
+        coinbaseRule.setRepository(repository);
+        return coinbaseRule;
+    }
+
+    @Bean
+    public ConsensusConfig consensusConfig(JSONEncodeDecoder codec,
+                                           @Value("${miner.coinbase}") String coinbase,
+                                           @Value("${miner.validators}") String validatorsFile,
+                                           @Value("${wisdom.consensus.enable-mining}") boolean enableMining) throws Exception {
+
+        return new ConsensusConfig(codec, coinbase, validatorsFile, enableMining);
+    }
+
+    @Bean
+    public ConsensusRule consensusRule(ConsensusConfig consensusConfig, WisdomRepository repository) {
+        ConsensusRule consensusRule = new ConsensusRule();
+        consensusRule.setConsensusConfig(consensusConfig);
+        consensusRule.setRepository(repository);
+        return consensusRule;
+    }
+
+    @Bean
+    public TraceCeoAddress traceCeoAddress(@Value("${wisdom.ceo.trace}") boolean type, @Value("${wisdom.trace.address}") String CeoFrom) {
+        return new TraceCeoAddress(type, CeoFrom);
+    }
+
+    @Bean
+    public AdoptTransPool adoptTransPool(DatabaseStoreFactory factory,
+                                         Configuration configuration,
+                                         TraceCeoAddress traceCeoAddress,
+                                         @Value("${wisdom.ceo.trace}") boolean type) {
+        AdoptTransPool adoptTransPool = new AdoptTransPool(factory);
+        adoptTransPool.setConfiguration(configuration);
+        adoptTransPool.setTraceCeoAddress(traceCeoAddress);
+        adoptTransPool.setType(type);
+        return adoptTransPool;
+    }
+
+    @Bean
+    public PeningTransPool peningTransPool(DatabaseStoreFactory factory,
+                                           AdoptTransPool adoptTransPool,
+                                           WisdomBlockChain wisdomBlockChain,
+                                           @Value("${wisdom.ceo.trace}") boolean type,
+                                           TraceCeoAddress traceCeoAddress
+    ) {
+        PeningTransPool peningTransPool = new PeningTransPool(factory);
+        peningTransPool.setType(type);
+        peningTransPool.setTraceCeoAddress(traceCeoAddress);
+        peningTransPool.setWisdomBlockChain(wisdomBlockChain);
+        peningTransPool.setAdoptTransPool(adoptTransPool);
+        return peningTransPool;
+    }
+
+    @Bean
+    public TransactionCheck transactionCheck(Configuration configuration,
+                                             AccountDB accountDB,
+                                             WisdomRepository wisdomRepository,
+                                             WisdomBlockChain wisdomBlockChain,
+                                             RateTable rateTable) {
+        TransactionCheck transactionCheck = new TransactionCheck();
+        transactionCheck.setAccountDB(accountDB);
+        transactionCheck.setConfiguration(configuration);
+        transactionCheck.setRateTable(rateTable);
+        transactionCheck.setWisdomBlockChain(wisdomBlockChain);
+        transactionCheck.setWisdomRepository(wisdomRepository);
+        return transactionCheck;
+    }
+
+    @Bean
+    public WhitelistTransaction whitelistTransaction() throws IOException {
+        return new WhitelistTransaction();
+    }
+
+    @Bean
+    public AccountRule accountRule(RateTable rateTable,
+                                   PeningTransPool peningTransPool,
+                                   WisdomRepository wisdomRepository,
+                                   TransactionCheck transactionCheck,
+                                   WhitelistTransaction whitelistTransaction,
+                                   MerkleRule merkleRule,
+                                   @Value("${node-character}") String character) {
+        AccountRule accountRule = new AccountRule(character);
+        accountRule.setMerkleRule(merkleRule);
+        accountRule.setPeningTransPool(peningTransPool);
+        accountRule.setRateTable(rateTable);
+        accountRule.setTransactionCheck(transactionCheck);
+        accountRule.setWisdomRepository(wisdomRepository);
+        accountRule.setWhitelistTransaction(whitelistTransaction);
+        return accountRule;
+    }
+
+    @Bean
+    public SignatureRule signatureRule() {
+        return new SignatureRule();
+    }
+
+    @Bean
+    public CompositeBlockRule compositeBlockRule(BasicRule basicRule,
+                                                 AddressRule addressRule,
+                                                 CoinbaseRule coinbaseRule,
+                                                 ConsensusRule consensusRule,
+                                                 AccountRule accountRule,
+                                                 SignatureRule signatureRule) {
+        CompositeBlockRule rule = new CompositeBlockRule();
+        rule.setAccountRule(accountRule);
+        rule.setAddressRule(addressRule);
+        rule.setBasicRule(basicRule);
+        rule.setConsensusRule(consensusRule);
+        rule.setSignatureRule(signatureRule);
+        rule.setCoinbaseRule(coinbaseRule);
+        return rule;
     }
 
 }

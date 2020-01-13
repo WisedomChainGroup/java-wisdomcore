@@ -17,9 +17,11 @@ public interface WisdomRepository {
 
     Block getBestBlock();
 
-    Block getBlock(byte[] hash);
+    Block getBlockByHash(byte[] hash);
 
     List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+
+    List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
 
     default List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit) {
         return getBlocksBetween(startHeight, stopHeight, sizeLimit, false);
@@ -29,12 +31,15 @@ public interface WisdomRepository {
         return getBlocksBetween(startHeight, stopHeight, Integer.MAX_VALUE);
     }
 
-    Block getHeader(byte[] hash);
+    Block getHeaderByHash(byte[] hash);
 
     long getLatestEra();
 
     // get ancestor at height h of block
     Block getAncestorHeader(byte[] hash, long h);
+
+    // get ancestors after(inclusive) height h of block(inclusive)
+    List<Block> getAncestorHeaders(byte[] hash, long height);
 
     // get ancestors after(inclusive) height h of block(inclusive)
     List<Block> getAncestorBlocks(byte[] hash, long height);
