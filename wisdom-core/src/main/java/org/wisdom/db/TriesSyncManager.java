@@ -87,9 +87,9 @@ public class TriesSyncManager {
     private Stream<File> readFastSyncFiles() {
         File file = Paths.get(fastSyncDirectory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(fastSyncDirectory + " is not a valid directory");
-        File[] files = file.listFiles();
-        if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
-        return Arrays.stream(files);
+        return Optional.ofNullable(file.listFiles())
+                .map(Arrays::stream)
+                .orElse(Stream.empty());
     }
 
     public Optional<PreBuiltGenesis> readPreBuiltGenesis() {
