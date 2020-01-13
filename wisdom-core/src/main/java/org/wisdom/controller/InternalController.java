@@ -10,7 +10,6 @@ import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -144,17 +143,30 @@ public class InternalController {
         return "no dump task running";
     }
 
-    @GetMapping(value = "/internal/rdbms-cache-stats")
-    public Object getCacheStats(){
+    @GetMapping(value = "/internal/metric/cache")
+    public Object getCacheMetric() {
         Map<String, Object> ret = new HashMap<>();
         ret.put("cache-stats", bc.getCacheStats());
         ret.put("hit-rate", bc.getHitRate());
         return ret;
     }
 
-    @GetMapping(value = "/internal/query-calls-counter")
-    public Object getQueryCallsCounter(){
-        return bc.getCallsCounter();
+    @GetMapping(value = "/internal/metric/query")
+    public Object getQueryMetric() {
+        Map<String, Long> calls = bc.getCallsCounter();
+        Map<String, Long> consumings = bc.getTimeConsuming();
+        Map<String, String> ret = new HashMap<>();
+        calls.forEach((k, v) -> {
+            ret.put(k,
+                    String.format(
+                            "calls %d, total time consuming %d ms, average time consuming %f ms",
+                            calls.get(k),
+                            consumings.get(k),
+                            consumings.get(k) * 1.0 / calls.get(k)
+                    )
+            );
+        });
+        return ret;
     }
 
     private Future<Void> restoreDB(String directory) {
