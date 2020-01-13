@@ -38,16 +38,16 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
         if (state != null) {
             throw new RuntimeException("AssetCodeInfo is not a null exception");
         }
-        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.contractType != 0)
-            return state;
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
-        if (asset == null) {
-            return state;
-        }
-        if (Arrays.equals(asset.getCode().getBytes(StandardCharsets.UTF_8), state.getCode()) &&
-                Arrays.equals(RipemdUtility.ripemd160(transaction.getHash()), state.getAsset160hash())) {
-            return state;
-        }
+//        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.contractType != 0)
+//            return state;
+//        if (asset == null) {
+//            return state;
+//        }
+//        if (Arrays.equals(asset.getCode().getBytes(StandardCharsets.UTF_8), state.getCode()) &&
+//                Arrays.equals(RipemdUtility.ripemd160(transaction.getHash()), state.getAsset160hash())) {
+//            return state;
+//        }
         return AssetCodeInfo.builder()
                 .code(asset.getCode().getBytes(StandardCharsets.UTF_8))
                 .asset160hash(RipemdUtility.ripemd160(transaction.getHash())).build();

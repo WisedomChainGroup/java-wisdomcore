@@ -78,16 +78,17 @@ public class CommandController {
     IpcConfig ipcConfig;
 
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
-            "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
+            "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote",
+            "/sendDeployContract", "/sendCallContract"})
     public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
         try {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
             APIResult result = commandService.verifyTransfer(traninfos);
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
-                if(ipcConfig.getP2pMode().equals("rest")){
+                if (ipcConfig.getP2pMode().equals("rest")) {
                     RPCClient.broadcastTransactions(Collections.singletonList(t));
-                }else{
+                } else {
                     transactionHandler.broadcastTransactions(Collections.singletonList(t));
                 }
             }
