@@ -17,6 +17,7 @@
  */
 package org.wisdom.core.validate;
 
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 // 1. 一个区块内一个只能有一个 from 的事务
 // 2. nonce 校验
 @Component
+@Setter
 public class AccountRule implements BlockRule {
 
     @Autowired

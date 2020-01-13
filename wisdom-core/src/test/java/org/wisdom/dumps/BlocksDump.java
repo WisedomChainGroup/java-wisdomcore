@@ -29,7 +29,7 @@ public class BlocksDump {
         File file = Paths.get(directory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
         dumpStatus = 0.0;
-        int last = (int) wisdomBlockChain.getLastConfirmedBlock().nHeight;
+        int last = (int) wisdomBlockChain.getTopBlock().nHeight;
 
         int blocksPerDump = 100000;
         int blocksPerFetch = 4096;
@@ -58,7 +58,7 @@ public class BlocksDump {
             int cursor = start;
             while (true) {
                 List<Block> lists =
-                        wisdomBlockChain.getCanonicalBlocks(cursor, blocksPerFetch)
+                        wisdomBlockChain.getBlocksBetween(cursor, blocksPerFetch)
                                 .stream().filter(x -> x.getnHeight() < end).collect(Collectors.toList());
                 all.addAll(lists);
                 cursor += blocksPerFetch;

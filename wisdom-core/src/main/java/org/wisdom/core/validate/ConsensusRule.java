@@ -18,6 +18,7 @@
 
 package org.wisdom.core.validate;
 
+import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,7 @@ import java.util.Optional;
 // 3. 区块高度正确
 // 4. 时间戳递增
 @Component
+@Setter
 public class ConsensusRule implements BlockRule {
 
     @Autowired
