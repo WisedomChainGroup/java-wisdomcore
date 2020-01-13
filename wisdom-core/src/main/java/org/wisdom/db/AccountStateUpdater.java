@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
+import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.contract.AssetDefinition.Asset;
@@ -18,6 +19,7 @@ import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
@@ -31,6 +33,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Component
@@ -42,13 +45,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private RateTable rateTable;
 
     @Autowired
-    private MerkleRule merkleRule;
-
-    @Autowired
     private Genesis genesisJSON;
 
     @Autowired
     private Block genesis;
+
+    @Autowired
+    Configuration configuration;
+
+    @Autowired
+    private WisdomBlockChain wisdomBlockChain;
 
     @Override
     public AccountState update(byte[] id, AccountState state, Block block, Transaction transaction) {
@@ -554,13 +560,57 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         private long balance;
     }
 
+    public Incubator UpdateExtIncuator(Transaction tran, long nowheight, Incubator incubator) {
+        Transaction transaction = wisdomBlockChain.getTransaction(tran.payload);
+        int days = transaction.getdays();
+        String rate = rateTable.selectrate(transaction.height, days);//利率
+        if (tran.type == 0x0a) {//interset
+            BigDecimal amounbig = BigDecimal.valueOf(transaction.amount);
+            BigDecimal ratebig = new BigDecimal(rate);
+            long dayinterset = ratebig.multiply(amounbig).longValue();
+            long lastheight = incubator.getLast_blockheight_interest();
+            if (dayinterset > tran.amount) {
+                lastheight += configuration.getDay_count(nowheight);
+            } else {
+                int extractday = (int) (tran.amount / dayinterset);
+                long extractheight = extractday * configuration.getDay_count(nowheight);
+                lastheight += extractheight;
+            }
+            long lastinterset = incubator.getInterest_amount();
+            lastinterset -= tran.amount;
+            incubator.setHeight(nowheight);
+            incubator.setInterest_amount(lastinterset);
+            incubator.setLast_blockheight_interest(lastheight);
+        } else {//share
+            BigDecimal amounbig = BigDecimal.valueOf(transaction.amount);
+            BigDecimal ratebig = new BigDecimal(rate);
+            BigDecimal onemul = amounbig.multiply(ratebig);
+            BigDecimal bl = BigDecimal.valueOf(0.1);
+            long dayinterset = onemul.multiply(bl).longValue();
+            long lastheight = incubator.getLast_blockheight_share();
+            if (dayinterset > tran.amount) {
+                lastheight += configuration.getDay_count(nowheight);
+            } else {
+                int extractday = (int) (tran.amount / dayinterset);
+                long extractheight = extractday * configuration.getDay_count(nowheight);
+                lastheight += extractheight;
+            }
+            long lastshare = incubator.getShare_amount();
+            lastshare -= tran.amount;
+            incubator.setHeight(nowheight);
+            incubator.setShare_amount(lastshare);
+            incubator.setLast_blockheight_share(lastheight);
+        }
+        return incubator;
+    }
+
     private AccountState updateExtractInterest(Transaction tx, AccountState accountState, long height) {
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
             throw new RuntimeException("Update extract interest error,tx:" + tx.getHashHexString());
         }
-        incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
+        incubator = UpdateExtIncuator(tx, tx.height, incubator);
         map.put(tx.payload, incubator);
         accountState.setInterestMap(map);
 
@@ -585,7 +635,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (incubator == null) {
             throw new RuntimeException("Update extract share error,tx:" + tx.getHashHexString());
         }
-        incubator = merkleRule.UpdateExtIncuator(tx, height, incubator);
+        incubator = UpdateExtIncuator(tx, height, incubator);
         map.put(tx.payload, incubator);
         accountState.setShareMap(map);
 
