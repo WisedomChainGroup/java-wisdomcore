@@ -210,7 +210,7 @@ public class TriesSyncManager {
         accountStateTrie.commit(accountStates, preBuiltGenesis.block.getHash());
         validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
         candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
-
+        
         long accountStateTrieLastSyncHeight =
                 getLastSyncedHeight(
                         preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
@@ -283,7 +283,7 @@ public class TriesSyncManager {
         accountStateTrie.commit(block);
         validatorStateTrie.commit(block);
         candidateStateTrie.commit(block);
-//        assetCodeTrie.commit(block);
+        assetCodeTrie.commit(block);
     }
 
     public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {
