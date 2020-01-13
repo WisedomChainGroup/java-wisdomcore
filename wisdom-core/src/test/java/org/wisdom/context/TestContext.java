@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -183,6 +184,7 @@ public class TestContext {
     }
 
     @Bean
+    @Scope("prototype")
     public ValidatorState validatorState(Block genesis) {
         return new ValidatorState(genesis);
     }
