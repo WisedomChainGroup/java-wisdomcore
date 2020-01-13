@@ -98,7 +98,7 @@ public class InternalController {
         }
         try {
             byte[] hash = Hex.decodeHex(blockInfo);
-            return wisdomRepository.getBlock(hash);
+            return wisdomRepository.getBlockByHash(hash);
         } catch (Exception e) {
             return getBlocksByHeight(blockInfo);
         }
@@ -212,7 +212,7 @@ public class InternalController {
 
                         List<Block> all = new ArrayList<>();
                         do {
-                            List<Block> lists = bc.getBlocks(start, 1000);
+                            List<Block> lists = bc.getBlocksSince(start, 1000);
                             all.addAll(lists);
                             start += 1000;
                         } while (start < blocksPerDumpIndex);

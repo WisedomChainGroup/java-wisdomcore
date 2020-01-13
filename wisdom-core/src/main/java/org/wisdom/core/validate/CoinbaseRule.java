@@ -53,7 +53,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         if (coinbase.type != Transaction.Type.COINBASE.ordinal()) {
             return Result.Error("the first transaction of block body must be coin base");
         }
-        Block parent = repository.getBlock(block.hashPrevBlock);
+        Block parent = repository.getBlockByHash(block.hashPrevBlock);
         if (parent == null) {
             return Result.Error("cannot find parent" + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
         }

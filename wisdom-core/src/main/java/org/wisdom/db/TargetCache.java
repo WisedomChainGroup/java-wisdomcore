@@ -48,7 +48,7 @@ public class TargetCache {
         if (parentBlock.nHeight < eraLinker.getBlocksPerEra()) return genesisTarget;
         if(parentBlock.nHeight % eraLinker.getBlocksPerEra() != 0) return parentBlock.nBits;
         List<Block> updates = repository
-                .getAncestorBlocks(parentBlock.getHash(), parentBlock.nHeight - eraLinker.getBlocksPerEra() + 1);
+                .getAncestorHeaders(parentBlock.getHash(), parentBlock.nHeight - eraLinker.getBlocksPerEra() + 1);
         return updateBlocks(parentBlock.nBits, updates);
     }
 

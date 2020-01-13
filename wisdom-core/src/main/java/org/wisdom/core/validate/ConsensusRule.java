@@ -50,7 +50,7 @@ public class ConsensusRule implements BlockRule {
 
     @Override
     public Result validateBlock(Block block) {
-        Block parent = repository.getBlock(block.hashPrevBlock);
+        Block parent = repository.getBlockByHash(block.hashPrevBlock);
         // 不接受孤块
         if (parent == null) {
             return Result.Error("failed to find parent block");

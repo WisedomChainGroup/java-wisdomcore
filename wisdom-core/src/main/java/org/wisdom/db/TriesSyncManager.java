@@ -248,8 +248,9 @@ public class TriesSyncManager {
         long start = Stream.of(
                 accountStateTrieLastSyncHeight,
                 validatorStateTrieLastSyncHeight,
-                candidateStateTrieLastSyncHeight)
-                .min(Long::compareTo).orElseThrow(() -> new RuntimeException("unexpected"));
+                candidateStateTrieLastSyncHeight,
+                assetCodeTrieLastSyncHeight
+        ).min(Long::compareTo).orElseThrow(() -> new RuntimeException("unexpected"));
 
         start = start - (start % blocksPerEra);
         final long finalStart = start;
@@ -262,7 +263,7 @@ public class TriesSyncManager {
         }
 
         while (true) {
-            List<Block> blocks = bc.getBlocks(start + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getBlocksSince(start + 1, blocksPerUpdate);
             boolean cont = blocks.size() == blocksPerUpdate;
             Block last = blocks.isEmpty() ? null : blocks.get(blocks.size() - 1);
             blocks.forEach(b -> {

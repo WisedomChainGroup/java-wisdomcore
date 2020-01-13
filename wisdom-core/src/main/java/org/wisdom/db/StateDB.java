@@ -206,7 +206,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             blocksPerUpdate += blocksPerEra;
         }
         while (true) {
-            List<Block> blocks = bc.getBlocks(last.nHeight + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getBlocksSince(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
             if (size < blocksPerEra) {
                 break;
@@ -723,7 +723,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             List<Block> blocks = blocksCache.getAllForks().get(0);
             if (blocks.size() >= limit) return blocks.subList(0, limit);
             long toFetch = limit - blocks.size();
-            List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
+            List<Block> fetched = bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
             fetched.addAll(blocks);
             return fetched;
         } finally {
@@ -753,7 +753,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
             }
             long toFetch = 10 - best.size();
-            List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
+            List<Block> fetched = bc.getHeadersSince(best.get(0).nHeight - toFetch, (int) toFetch);
             BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0));
             return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
         } finally {
