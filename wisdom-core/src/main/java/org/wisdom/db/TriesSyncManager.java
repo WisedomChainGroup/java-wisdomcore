@@ -6,13 +6,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.tdf.common.serialize.Codec;
-import org.tdf.common.serialize.Codecs;
 import org.tdf.common.store.Store;
-import org.tdf.common.store.StoreWrapper;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
-import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
@@ -34,8 +30,6 @@ public class TriesSyncManager {
 
     private static final String DB_STATUS = "status";
 
-    private static final String LAST_SYNCED_HEIGHT = "last-confirmed";
-
     private AccountStateTrie accountStateTrie;
 
     private ValidatorStateTrie validatorStateTrie;
@@ -43,8 +37,6 @@ public class TriesSyncManager {
     private CandidateStateTrie candidateStateTrie;
 
     private AssetCodeTrie assetCodeTrie;
-
-    private Store<String, Long> statusStore;
 
     private String fastSyncDirectory;
 
@@ -72,11 +64,6 @@ public class TriesSyncManager {
         this.validatorStateTrie = validatorStateTrie;
         this.candidateStateTrie = candidateStateTrie;
         this.assetCodeTrie = assetCodeTrie;
-        this.statusStore = new StoreWrapper<>(
-                factory.create(DB_STATUS, false),
-                Codecs.STRING,
-                Codec.newInstance(RLPCodec::encode, RLPCodec::decodeLong)
-        );
         this.bc = bc;
         this.fastSyncDirectory = fastSyncDirectory;
         this.checkPointRule = checkPointRule;
