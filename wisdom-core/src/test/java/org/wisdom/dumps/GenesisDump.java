@@ -60,7 +60,7 @@ public class GenesisDump {
                 Paths.get(genesisDirectory,
                         String.format("genesis.%d.rlp", genesisDumpHeight)
                 );
-        Block block = Objects.requireNonNull(wisdomBlockChain.getCanonicalBlock(genesisDumpHeight));
+        Block block = Objects.requireNonNull(wisdomBlockChain.getBlockByHeight(genesisDumpHeight));
         RLPElement newGenesisAccounts = RLPElement.readRLPTree(all);
         Map<byte[], Long> miners = getValidators();
         RLPElement validators = RLPElement.readRLPTree(miners);
@@ -118,7 +118,7 @@ public class GenesisDump {
                             });
                     era.clear();
                 });
-        Block block = Objects.requireNonNull(wisdomBlockChain.getCanonicalBlock(genesisDumpHeight));
+        Block block = Objects.requireNonNull(wisdomBlockChain.getBlockByHeight(genesisDumpHeight));
         return candidateStateTrie.getTrie(block.getHash()).asMap();
     }
 
