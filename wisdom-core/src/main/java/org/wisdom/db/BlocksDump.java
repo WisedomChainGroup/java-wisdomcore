@@ -1,6 +1,9 @@
 package org.wisdom.db;
 
-import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -17,13 +20,23 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@AllArgsConstructor
+@Component
 public class BlocksDump {
+    @Getter
+    @Setter
     private Double dumpStatus;
 
     private String directory;
 
     private WisdomBlockChain wisdomBlockChain;
+
+    public BlocksDump(
+            @Value("wisdom.consensus.fast-sync.directory") String directory,
+            WisdomBlockChain wisdomBlockChain
+    ) {
+        this.directory = directory;
+        this.wisdomBlockChain = wisdomBlockChain;
+    }
 
     private static final String PREFIX = "blocks-dump.";
 

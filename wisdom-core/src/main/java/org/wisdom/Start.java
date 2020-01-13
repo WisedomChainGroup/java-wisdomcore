@@ -85,4 +85,5 @@ public class Start {
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
 
+
 }
