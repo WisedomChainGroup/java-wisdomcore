@@ -31,6 +31,7 @@ import java.util.List;
 
 @Component
 @Setter
+@Deprecated
 public class IncubatorDB {
 
     @Autowired
