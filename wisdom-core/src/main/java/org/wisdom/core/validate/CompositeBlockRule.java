@@ -18,6 +18,7 @@
 
 package org.wisdom.core.validate;
 
+import lombok.Setter;
 import org.wisdom.core.Block;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Component
+@Setter
 public class CompositeBlockRule implements BlockRule {
 
     private List<BlockRule> rulers;

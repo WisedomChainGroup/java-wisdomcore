@@ -18,6 +18,7 @@
 
 package org.wisdom.core.validate;
 
+import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.db.WisdomRepository;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Component;
 
 // Coinbase 校验规则
 @Component
+@Setter
 public class CoinbaseRule implements BlockRule, TransactionRule {
 
     @Autowired
