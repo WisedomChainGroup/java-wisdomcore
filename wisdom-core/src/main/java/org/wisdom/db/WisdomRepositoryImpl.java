@@ -10,6 +10,8 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.core.event.NewBestBlockEvent;
+import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.event.NewConfirmedBlockEvent;
 import org.wisdom.encoding.BigEndian;
 
@@ -156,7 +158,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         List<Block> apply(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
     }
 
-    private List<Block> getBlocksBetweenInternal(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial, BlocksProvider blocksProvider){
+    private List<Block> getBlocksBetweenInternal(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial, BlocksProvider blocksProvider) {
         if (sizeLimit == 0 || startHeight > stopHeight) {
             return Collections.emptyList();
         }
@@ -601,6 +603,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                                 * 2.0 / 3
                 )
         );
+
+        applicationContext.publishEvent(new NewBlockEvent(this, block));
+
+        if (chainCache.last().getHash().equals(HexBytes.fromBytes(block.getHash()))) {
+            applicationContext.publishEvent(new NewBestBlockEvent(this, block));
+        }
+
         List<Block> ancestors =
                 chainCache.getAncestors(block.getHash())
                         .stream().map(BlockWrapper::get).collect(toList());
