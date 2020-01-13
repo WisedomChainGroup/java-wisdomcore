@@ -20,7 +20,6 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.validate.CheckPointRule;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -106,17 +105,26 @@ public class TriesSyncManager {
         return Arrays.stream(files);
     }
 
-    public PreBuiltGenesis readPreBuiltGenesis() throws IOException {
-        File lastGenesis = readFastSyncFiles()
+    public Optional<PreBuiltGenesis> readPreBuiltGenesis() {
+        Optional<PreBuiltGenesis> ret = readFastSyncFiles()
                 .filter(f -> f.getName().matches("genesis\\.[0-9]+\\.rlp"))
                 .max(Comparator.comparingLong(x -> Long.parseLong(x.getName().split("\\.")[1])))
-                .orElseThrow(() -> new RuntimeException("unreachable"));
-        PreBuiltGenesis preBuiltGenesis = RLPElement
-                .fromEncoded(Files.readAllBytes(lastGenesis.toPath()))
-                .as(PreBuiltGenesis.class);
-        if (preBuiltGenesis.getBlock().nHeight % blocksPerEra != 0)
+                .map(f -> {
+                    try {
+                        return Files.readAllBytes(f.toPath());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .map(RLPElement::fromEncoded)
+                .map(el -> el.as(PreBuiltGenesis.class));
+
+        boolean invalid = ret.map(x -> x.getBlock())
+                .map(b -> b.nHeight % blocksPerEra != 0)
+                .orElse(false);
+        if (invalid)
             throw new RuntimeException("prebuilt genesis must be era last block");
-        return preBuiltGenesis;
+        return ret;
     }
 
     public Stream<Block> readBlocks(long startHeight /* inclusive */) {
@@ -193,8 +201,14 @@ public class TriesSyncManager {
         // query for states had been written
 
 
-        PreBuiltGenesis preBuiltGenesis = readPreBuiltGenesis();
+        Optional<PreBuiltGenesis> o = readPreBuiltGenesis();
 
+        if (!o.isPresent()) {
+            syncStatus();
+            return;
+        }
+
+        PreBuiltGenesis preBuiltGenesis = o.get();
         syncBlockDatabase(preBuiltGenesis);
 
         long currentHeight = bc.getTopHeight();
@@ -215,24 +229,30 @@ public class TriesSyncManager {
         candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
         assetCodeTrie.commit(preBuiltGenesis.getAssetCodeInfos(), preBuiltGenesis.block.getHash());
 
+        syncStatus();
+    }
+
+    private void syncStatus() {
+        long currentHeight = bc.getTopHeight();
+
         long accountStateTrieLastSyncHeight =
                 getLastSyncedHeight(
-                        preBuiltGenesis.block.nHeight, currentHeight, accountStateTrie.getRootStore()
+                        0, currentHeight, accountStateTrie.getRootStore()
                 );
 
         long validatorStateTrieLastSyncHeight =
                 getLastSyncedHeight(
-                        preBuiltGenesis.block.nHeight, currentHeight, validatorStateTrie.getRootStore()
+                        0, currentHeight, validatorStateTrie.getRootStore()
                 );
 
         long assetCodeTrieLastSyncHeight =
                 getLastSyncedHeight(
-                        preBuiltGenesis.block.nHeight, currentHeight, assetCodeTrie.getRootStore()
+                        0, currentHeight, assetCodeTrie.getRootStore()
                 );
 
         long candidateStateTrieLastSyncHeight =
                 getLastSyncedEra(
-                        preBuiltGenesis.block.nHeight / blocksPerEra,
+                        0,
                         (currentHeight - (currentHeight % blocksPerEra)) / blocksPerEra,
                         candidateStateTrie.getRootStore()
                 ) * blocksPerEra;
@@ -273,7 +293,7 @@ public class TriesSyncManager {
                 if (b.nHeight > validatorStateTrieLastSyncHeight) {
                     validatorStateTrie.commit(b);
                 }
-                if(b.nHeight > assetCodeTrieLastSyncHeight){
+                if (b.nHeight > assetCodeTrieLastSyncHeight) {
                     assetCodeTrie.commit(b);
                 }
             });
