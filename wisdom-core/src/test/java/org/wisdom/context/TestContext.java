@@ -31,7 +31,7 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.core.validate.*;
 import org.wisdom.db.*;
-import org.wisdom.dumps.BlocksDump;
+import org.wisdom.db.BlocksDump;
 import org.wisdom.dumps.GenesisDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;

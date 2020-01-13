@@ -1,7 +1,6 @@
-package org.wisdom.dumps;
+package org.wisdom.db;
 
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -16,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @AllArgsConstructor
 public class BlocksDump {
@@ -25,7 +25,9 @@ public class BlocksDump {
 
     private WisdomBlockChain wisdomBlockChain;
 
-    public void dump() throws Exception{
+    private static final String PREFIX = "blocks-dump.";
+
+    public void dump() throws Exception {
         File file = Paths.get(directory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
         dumpStatus = 0.0;
@@ -34,24 +36,29 @@ public class BlocksDump {
         int blocksPerDump = 100000;
         int blocksPerFetch = 4096;
         int i = 0;
+        int finalI = i;
         File[] files = file.listFiles();
         while (true) {
-            if(files != null){
-                int finalI = i;
-                Optional<File> o = Arrays.stream(files).filter(f -> f.getName().matches("blocks-dump\\." + finalI + "\\..+")).findFirst();
-                Optional<Block[]> preDumped = o.map(f -> {
-                    try{
-                        return Files.readAllBytes(f.toPath());
-                    }catch (Exception e){
-                        throw new RuntimeException(e);
-                    }
-                }).map(data -> RLPCodec.decode(data, Block[].class))
-                ;
-                if(preDumped.map(x -> x.length >= blocksPerDump).orElse(false)){
-                    i++;
-                    continue;
+            Optional<File> o =
+                    Optional.ofNullable(files)
+                    .map(Arrays::stream)
+                    .orElse(Stream.empty())
+                    .filter(f -> f.getName().startsWith(PREFIX + finalI))
+                    .findFirst();
+
+            Optional<Block[]> preDumped = o.map(f -> {
+                try {
+                    return Files.readAllBytes(f.toPath());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
+            }).map(data -> RLPCodec.decode(data, Block[].class));
+
+            if (preDumped.map(x -> x.length >= blocksPerDump).orElse(false)) {
+                i++;
+                continue;
             }
+
             List<Block> all = new ArrayList<>(blocksPerDump);
             int start = i * blocksPerDump;
             final int end = start + blocksPerDump;
@@ -64,10 +71,15 @@ public class BlocksDump {
                 cursor += blocksPerFetch;
                 if (lists.size() < blocksPerFetch) break;
             }
+
+            o.map(File::delete);
+
             Path path =
                     Paths.get(directory,
-                            String.format("blocks-dump.%d.%d-%d.rlp", i, all.get(0).nHeight, all.get(all.size() - 1).nHeight + 1)
+                            String.format("%s%d.%d-%d.rlp", PREFIX, i, all.get(0).nHeight,
+                            all.get(all.size() - 1).nHeight + 1)
                     );
+
             Files.write(path, RLPCodec.encode(all), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
             if (all.size() < blocksPerDump) {
                 break;
