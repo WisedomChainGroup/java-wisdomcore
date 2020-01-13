@@ -131,7 +131,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
-        List<Block> blocksToSend = repository.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        List<Block> blocksToSend = repository.getBlocksBetween(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend == null || blocksToSend.size() == 0) {
             return;
         }

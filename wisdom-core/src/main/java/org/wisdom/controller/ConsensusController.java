@@ -90,7 +90,7 @@ public class ConsensusController {
 
         logger.info("get blocks received start height = " + start + " stop height = " + stop);
 
-        List<Block> blocksToSend = bc.getBlocks(query.start, query.stop, MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
+        List<Block> blocksToSend = bc.getBlocksBetween(query.start, query.stop, MAX_BLOCKS_IN_TRANSIT_PER_PEER, clipFromStop);
         if (blocksToSend != null && blocksToSend.size() > 0) {
             return new String(codec.encodeBlocks(blocksToSend));
         }
@@ -100,7 +100,7 @@ public class ConsensusController {
     @GetMapping(value = "/consensus/status", produces = "application/json")
     public Object getStatus() {
         ConsensuEntity.Status status = new ConsensuEntity.Status();
-        Block best = bc.currentHeader();
+        Block best = bc.getTopHeader();
         status.version = best.nVersion;
         status.currentHeight = best.nHeight;
         status.bestBlockHash = best.getHash();
@@ -110,7 +110,7 @@ public class ConsensusController {
 
     @PostMapping(value = "/consensus/status", produces = "application/json")
     public Object handleStatus(@RequestBody byte[] body, HttpServletRequest request) {
-        Block header = bc.currentHeader();
+        Block header = bc.getTopHeader();
         Status status = codec.decode(body, Status.class);
         if (status == null) {
             logger.error("invalid request accepted from " + request.getRemoteAddr());
@@ -123,7 +123,7 @@ public class ConsensusController {
         if (header.nHeight > status.currentHeight) {
             return SUCCESS("received");
         }
-        if (header.nHeight == status.currentHeight && bc.hasBlock(status.bestBlockHash)) {
+        if (header.nHeight == status.currentHeight && bc.containsBlock(status.bestBlockHash)) {
             return SUCCESS("received");
         }
 

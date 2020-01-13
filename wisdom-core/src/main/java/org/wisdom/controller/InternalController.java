@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
+import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -38,7 +38,7 @@ public class InternalController {
     private WisdomRepository wisdomRepository;
 
     @Autowired
-    private WisdomBlockChain bc;
+    private MemoryCachedWisdomBlockChain bc;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -98,7 +98,7 @@ public class InternalController {
         }
         try {
             byte[] hash = Hex.decodeHex(blockInfo);
-            return wisdomRepository.getBlock(hash);
+            return wisdomRepository.getBlockByHash(hash);
         } catch (Exception e) {
             return getBlocksByHeight(blockInfo);
         }
@@ -107,7 +107,7 @@ public class InternalController {
     public Object getBlocksByHeight(String height) {
         try {
             long h = Long.parseLong(height);
-            return codec.encodeBlocks(wisdomRepository.getBlocks(h, h, Integer.MAX_VALUE, false));
+            return codec.encodeBlocks(wisdomRepository.getBlocksBetween(h, h));
         } catch (Exception e) {
             return "invalid block path variable " + height;
         }
@@ -143,6 +143,32 @@ public class InternalController {
         return "no dump task running";
     }
 
+    @GetMapping(value = "/internal/metric/cache")
+    public Object getCacheMetric() {
+        Map<String, Object> ret = new HashMap<>();
+        ret.put("cache-stats", bc.getCacheStats());
+        ret.put("hit-rate", bc.getHitRate());
+        return ret;
+    }
+
+    @GetMapping(value = "/internal/metric/query")
+    public Object getQueryMetric() {
+        Map<String, Long> calls = bc.getCallsCounter();
+        Map<String, Long> consumings = bc.getTimeConsuming();
+        Map<String, String> ret = new HashMap<>();
+        calls.forEach((k, v) -> {
+            ret.put(k,
+                    String.format(
+                            "calls %d, total time consuming %d ms, average time consuming %f ms",
+                            calls.get(k),
+                            consumings.get(k),
+                            consumings.get(k) * 1.0 / calls.get(k)
+                    )
+            );
+        });
+        return ret;
+    }
+
     private Future<Void> restoreDB(String directory) {
         File file = Paths.get(directory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
@@ -175,7 +201,7 @@ public class InternalController {
         File file = Paths.get(directory).toFile();
         if (!file.isDirectory()) throw new RuntimeException(directory + " is not a valid directory");
         dumpStatus = 0.0;
-        int last = (int) bc.getLastConfirmedBlock().nHeight;
+        int last = (int) bc.getTopHeight();
         return CompletableFuture
                 .runAsync(() -> {
                     int blocksPerDump = 100000;
@@ -186,7 +212,7 @@ public class InternalController {
 
                         List<Block> all = new ArrayList<>();
                         do {
-                            List<Block> lists = bc.getCanonicalBlocks(start, 1000);
+                            List<Block> lists = bc.getBlocksSince(start, 1000);
                             all.addAll(lists);
                             start += 1000;
                         } while (start < blocksPerDumpIndex);

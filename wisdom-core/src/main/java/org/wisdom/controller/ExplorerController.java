@@ -67,7 +67,7 @@ public class ExplorerController {
             long averageFee = repository.getAverageFee();
             int adoptcount = adoptTransPool.size();
             int pengcount = peningTransPool.Unpacksize();
-            long lastConfirmedHeight = wisdomBlockChain.getCurrentTotalWeight();
+            long lastConfirmedHeight = wisdomBlockChain.getTopHeight();
             long bestHeight = repository.getBestBlock().nHeight;
             return APIResult.newFailResult(2000, "SUCCESS", new ExploreResult(blocksCount, target, avgInterval, averageFee, pengcount, adoptcount, lastConfirmedHeight, bestHeight));
         } catch (Exception e) {

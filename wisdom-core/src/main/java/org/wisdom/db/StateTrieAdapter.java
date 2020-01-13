@@ -10,6 +10,7 @@ import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
@@ -62,7 +63,10 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         if (rootStore.containsKey(genesis.getHash())) return;
 
         // sync to genesis
-        Trie<byte[], T> tmp = trie.revert();
+        Trie<byte[], T> tmp =
+                trie
+                        .revert(trie.getNullHash(), new CachedStore<>(trieStore, ByteArrayMap::new));
+
         updater.getGenesisStates().forEach(tmp::put);
         byte[] root = tmp.commit();
         tmp.flush();
@@ -89,7 +93,8 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     }
 
     protected Trie<byte[], T> commitInternal(byte[] parentRoot, byte[] blockHash, Map<byte[], T> data) {
-        Trie<byte[], T> trie = getTrie().revert(parentRoot);
+        Trie<byte[], T> trie = getTrie()
+                .revert(parentRoot, new CachedStore<>(trieStore, ByteArrayMap::new));
         data.forEach(trie::put);
         byte[] newRoot = trie.commit();
         trie.flush();

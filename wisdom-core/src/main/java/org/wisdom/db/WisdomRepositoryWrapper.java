@@ -8,7 +8,6 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.pool.PeningTransPool;
 
 import java.util.Collection;
 import java.util.List;
@@ -73,30 +72,40 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
-    public Block getBlock(byte[] hash) {
+    public Block getBlockByHash(byte[] hash) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getBlock(hash);
+            return delegate.getBlockByHash(hash);
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial);
+            return delegate.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial);
         } finally {
             readWriteLock.readLock().unlock();
         }
     }
 
     @Override
-    public Block getHeader(byte[] hash) {
+    public List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         readWriteLock.readLock().lock();
         try {
-            return delegate.getHeader(hash);
+            return delegate.getHeadersBetween(startHeight, stopHeight, sizeLimit, clipInitial);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public Block getHeaderByHash(byte[] hash) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getHeaderByHash(hash);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -107,6 +116,16 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
         readWriteLock.readLock().lock();
         try {
             return delegate.getAncestorHeader(hash, h);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<Block> getAncestorHeaders(byte[] hash, long height) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getAncestorHeaders(hash, height);
         } finally {
             readWriteLock.readLock().unlock();
         }

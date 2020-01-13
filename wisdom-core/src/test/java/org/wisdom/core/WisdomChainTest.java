@@ -71,7 +71,7 @@ public abstract class WisdomChainTest {
     public void testHasBlock() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.hasBlock(getHeightOne().getHash());
+        assert bc.containsBlock(getHeightOne().getHash());
     }
 
     @Test

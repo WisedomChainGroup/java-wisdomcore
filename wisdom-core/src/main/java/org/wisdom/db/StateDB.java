@@ -199,14 +199,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         validatorStateFactory.setStateDB(this);
         targetStateFactory.setStateDB(this);
 
-        this.latestConfirmed = bc.getLastConfirmedBlock();
+        this.latestConfirmed = bc.getTopBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
         while (blocksPerUpdate < BLOCKS_PER_UPDATE_LOWER_BOUNDS) {
             blocksPerUpdate += blocksPerEra;
         }
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getBlocksSince(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
             if (size < blocksPerEra) {
                 break;
@@ -261,7 +261,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return this.latestConfirmed;
         }
         return Optional.ofNullable(blocksCache.getBlock(hash))
-                .orElseGet(() -> bc.getHeader(hash));
+                .orElseGet(() -> bc.getHeaderByHash(hash));
     }
 
     public Block getHeader(byte[] hash) {
@@ -346,7 +346,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return this.latestConfirmed;
             }
             return Optional.ofNullable(blocksCache.getBlock(hash))
-                    .orElseGet(() -> bc.getBlock(hash));
+                    .orElseGet(() -> bc.getBlockByHash(hash));
         } finally {
             this.readWriteLock.readLock().unlock();
         }
@@ -358,7 +358,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         try {
             return blocksCache.hasBlock(hash) ||
                     Arrays.equals(latestConfirmed.getHash(), hash) ||
-                    bc.hasBlock(hash);
+                    bc.containsBlock(hash);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -375,7 +375,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private boolean hasTransactionUnsafe(byte[] blockHash, byte[] transactionHash) {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasTransaction(transactionHash);
+            return bc.containsTransaction(transactionHash);
         }
         String key = Hex.encodeHexString(blockHash);
         Block b = blocksCache.getBlock(blockHash);
@@ -455,7 +455,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private boolean hasPayloadUnsafe(byte[] blockHash, int type, byte[] payload) {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasPayload(type, payload);
+            return bc.containsPayload(type, payload);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
@@ -577,7 +577,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             BlocksCache c = new BlocksCache();
             // 从数据库获取一部分
             if (startHeight < latestConfirmed.nHeight) {
-                c.addBlocks(bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial));
+                c.addBlocks(bc.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial));
             }
             List<Block> blocks = blocksCache.getAll();
             blocks.add(latestConfirmed);
@@ -723,7 +723,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             List<Block> blocks = blocksCache.getAllForks().get(0);
             if (blocks.size() >= limit) return blocks.subList(0, limit);
             long toFetch = limit - blocks.size();
-            List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
+            List<Block> fetched = bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
             fetched.addAll(blocks);
             return fetched;
         } finally {
@@ -753,7 +753,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
             }
             long toFetch = 10 - best.size();
-            List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
+            List<Block> fetched = bc.getHeadersSince(best.get(0).nHeight - toFetch, (int) toFetch);
             BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0));
             return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
         } finally {

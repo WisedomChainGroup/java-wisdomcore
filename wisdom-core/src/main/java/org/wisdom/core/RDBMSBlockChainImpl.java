@@ -20,27 +20,23 @@ package org.wisdom.core;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
-import org.springframework.util.Assert;
-import org.wisdom.Start;
-import org.wisdom.util.Arrays;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.orm.BlockMapper;
-import org.wisdom.core.orm.TransactionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.orm.BlockMapper;
+import org.wisdom.core.orm.TransactionMapper;
+import org.wisdom.util.Arrays;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,7 +45,6 @@ import java.util.stream.Collectors;
  * @author sal 1564319846@qq.com
  * block query/write based on relational database with concurrently safety
  */
-@Component
 public class RDBMSBlockChainImpl implements WisdomBlockChain {
     private JdbcTemplate tmpl;
     private TransactionTemplate txTmpl;
@@ -187,7 +182,7 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     }
 
-    public boolean hasBlock(byte[] hash) {
+    public boolean containsBlock(byte[] hash) {
         return tmpl.queryForObject("select count(*) from header where block_hash = ? limit 1", new Object[]{hash}, Integer.class) > 0;
     }
 
@@ -221,89 +216,72 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         // 重构表
         // refactorTables();
 
+        // 发现数据库的创世区块和配置文件的创世区块不一样
+        Block dbGenesis = getHeaderByHeight(0);
+        if (dbGenesis != null && !Arrays.areEqual(dbGenesis.getHash(), genesis.getHash())) {
+            throw new Exception("the genesis in db and genesis in config is not equal");
+        }
 
         if (!dbHasGenesis()) {
             writeGenesis(genesis);
-            return;
-        }
-
-        // 发现数据库的创世区块和配置文件的创世区块不一样
-        Block dbGenesis = getCanonicalHeader(0);
-        if (!Arrays.areEqual(dbGenesis.getHash(), genesis.getHash())) {
-            throw new Exception("the genesis in db and genesis in config is not equal");
         }
     }
 
     @Override
-    public Block currentHeader() {
+    public Block getTopHeader() {
         return getOne(tmpl.query("select * from header order by total_weight desc limit 1", new BlockMapper()));
     }
 
     @Override
-    public Block currentBlock() {
-        return getBlockFromHeader(currentHeader());
+    public Block getTopBlock() {
+        return getBlockFromHeader(getTopHeader());
     }
 
     @Override
-    public Block getHeader(byte[] hash) {
+    public Block getHeaderByHash(byte[] hash) {
         return getOne(tmpl.query("select * from header where block_hash = ?", new Object[]{hash}, new BlockMapper()));
     }
 
     @Override
-    public Block getBlock(byte[] hash) {
-        return getBlockFromHeader(getHeader(hash));
+    public Block getBlockByHash(byte[] hash) {
+        return getBlockFromHeader(getHeaderByHash(hash));
     }
 
     @Override
-    public List<Block> getHeaders(long startHeight, int headersCount) {
+    public List<Block> getHeadersSince(long startHeight, int headersCount) {
         return tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, startHeight + headersCount - 1, headersCount}, new BlockMapper());
     }
 
-    private List<Block> getHeadersBetween(long startHeight, long stopHeight) {
-        return tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper());
+    @Override
+    public List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        String sql = String.format(
+                "select * from header where height >= ? and height <= ? order by height %s limit ?",
+                clipInitial ? "desc" : "asc"
+        );
+
+        List<Block> ret = tmpl.query(sql, new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper());
+        if (clipInitial) Collections.reverse(ret);
+        return ret;
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, int headersCount) {
-        return getBlocksFromHeaders(getHeaders(startHeight, headersCount));
+    public List<Block> getBlocksSince(long startHeight, int headersCount) {
+        return getBlocksFromHeaders(getHeadersSince(startHeight, headersCount));
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight) {
-        return getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height", new Object[]{startHeight, stopHeight}, new BlockMapper()));
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        return getBlocksFromHeaders(getHeadersBetween(startHeight, stopHeight, sizeLimit, clipInitial));
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit) {
-        return getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));
-    }
-
-    @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
-        if (!clipInitial) {
-            return getBlocks(startHeight, stopHeight, sizeLimit);
-        }
-        List<Block> blocks = getBlocksFromHeaders(tmpl.query("select * from header where height >= ? and height <= ? order by height desc limit ?", new Object[]{startHeight, stopHeight, sizeLimit}, new BlockMapper()));
-        if (blocks.size() == 0) {
-            return blocks;
-        }
-        Collections.reverse(blocks);
-        return blocks;
-    }
-
-    @Override
-    public Block getCanonicalHeader(long num) {
+    public Block getHeaderByHeight(long num) {
         return getOne(tmpl.query("select * from header where height = ?", new Object[]{num}, new BlockMapper()));
     }
 
     @Override
-    public List<Block> getCanonicalHeaders(long start, int size) {
-        return tmpl.query("select * from header where height < ? and height >= ? order by height", new Object[]{start + size, start}, new BlockMapper());
-    }
-
-    @Override
-    public Block getCanonicalBlock(long num) {
-        return getBlockFromHeader(getCanonicalHeader(num));
+    public Block getBlockByHeight(long num) {
+        return getBlockFromHeader(getHeaderByHeight(num));
     }
 
     @Override
@@ -312,26 +290,8 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public List<Block> getCanonicalBlocks(long start, int size) {
-        List<Block> headers = getCanonicalHeaders(start, size);
-        return getBlocksFromHeaders(headers);
-    }
-
-    @Override
-    public boolean isCanonical(byte[] hash) {
-        return tmpl.queryForObject("select is_canonical from header where block_hash = ?", new Object[]{hash}, Boolean.class);
-    }
-
-    @Override
     public synchronized boolean writeBlock(Block block) {
-        Block parentHeader = getHeader(block.hashPrevBlock);
-        if (parentHeader == null) {
-            return false;
-        }
-
-        long ptw = parentHeader.totalWeight;
-        block.totalWeight = block.weight + ptw;
-
+        block.totalWeight = block.nHeight;
         Boolean result = txTmpl.execute((TransactionStatus status) -> {
             try {
                 writeHeader(block);
@@ -347,32 +307,13 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
         return Optional.ofNullable(result).orElse(false);
     }
 
-
-    @Override
-    public Block getAncestorHeader(byte[] blockHash, long ancestorHeight) {
-        Block b = getAncestorHeaders(blockHash, ancestorHeight).get(0);
-        if (Start.ENABLE_ASSERTION) {
-            Assert.isTrue(b.nHeight == ancestorHeight, "wrong ancestor height");
-        }
-        return b;
-    }
-
-    @Override
-    public Block getAncestorBlock(byte[] blockHash, long minimumAncestorHeight) {
-        return getBlockFromHeader(getAncestorHeader(blockHash, minimumAncestorHeight));
-    }
-
     @Override
     public List<Block> getAncestorHeaders(byte[] blockHash, long minimumAncestorHeight) {
-        Block block = getHeader(blockHash);
+        Block block = getHeaderByHash(blockHash);
         if (block == null) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
-        List<Block> blocks = new BlocksCache(getHeadersBetween(minimumAncestorHeight, block.nHeight)).getAncestors(block);
-        if (Start.ENABLE_ASSERTION) {
-            Assert.isTrue(blocks.get(0).nHeight == minimumAncestorHeight, "wrong ancestor height");
-        }
-        return blocks;
+        return getHeadersBetween(minimumAncestorHeight, block.nHeight);
     }
 
     @Override
@@ -382,12 +323,12 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
     }
 
     @Override
-    public long getCurrentTotalWeight() {
-        return tmpl.queryForObject("select max(total_weight) from header", null, Long.class);
+    public long getTopHeight() {
+        return tmpl.queryForObject("select max(height) from header", null, Long.class);
     }
 
     @Override
-    public boolean hasTransaction(byte[] txHash) {
+    public boolean containsTransaction(byte[] txHash) {
         return tmpl.queryForObject("select count(*) from transaction as tx " +
                 "where tx.tx_hash = ? limit 1", new Object[]{txHash}, Integer.class) > 0;
     }
@@ -404,32 +345,9 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
                 "on tx.tx_hash = ti.tx_hash inner join header as h on ti.block_hash = h.block_hash where tx.to = ? limit 1", new Object[]{publicKeyHash}, new TransactionMapper()));
     }
 
-    @Override
-    public Block getLastConfirmedBlock() {
-        try {
-            Long height = tmpl.queryForObject("select max(height) from header", Long.class);
-            if (height == null) {
-                return null;
-            }
-            return getCanonicalBlock(height);
-        } catch (Exception e) {
-            return genesis;
-        }
-    }
-
-    @Async
-    public void writeBlocksAsync(List<Block> blocks) {
-        for (Block b : blocks) {
-            writeBlock(b);
-        }
-    }
-
-    public boolean hasPayload(int type, byte[] payload) {
+    public boolean containsPayload(int type, byte[] payload) {
         return tmpl.queryForObject("select count(*) from transaction as tx where tx.type = ? and tx.payload = ?  limit 1", new Object[]{type, payload}, Integer.class) > 0;
     }
-
-    // 删除孤块
-
 
     @Override
     public List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit) {

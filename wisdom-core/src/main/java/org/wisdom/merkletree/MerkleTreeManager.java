@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.p2p.WisdomOuterClass;
 
 import java.util.List;
 import java.util.Map;
@@ -58,7 +57,7 @@ public class MerkleTreeManager {
         for (Map.Entry<String, Block> entry : maps.entrySet()) {
             String blockHash = entry.getKey();
             try {
-                boolean exist = bc.hasBlock(Hex.decodeHex(blockHash.toCharArray()));
+                boolean exist = bc.containsBlock(Hex.decodeHex(blockHash.toCharArray()));
                 if (exist) {
                     cache.removeBlock(blockHash);
                 }

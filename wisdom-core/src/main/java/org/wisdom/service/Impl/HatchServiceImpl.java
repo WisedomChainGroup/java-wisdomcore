@@ -301,7 +301,7 @@ public class HatchServiceImpl implements HatchService {
             int days = payloadproto.getType();
             String nowrate = rateTable.selectrate(transaction.height, days);
             //当前最高高度
-            long maxhieght = wisdomBlockChain.getCurrentTotalWeight();
+            long maxhieght = wisdomBlockChain.getTopHeight();
             long differheight = maxhieght - incubator.getLast_blockheight_interest();
             int differdays = (int) (differheight / configuration.getDay_count(maxhieght));
             if (differdays == 0) {
@@ -365,7 +365,7 @@ public class HatchServiceImpl implements HatchService {
             int days = payloadproto.getType();
             String nowrate = rateTable.selectrate(transaction.height, days);
             //当前最高高度
-            long maxhieght = wisdomBlockChain.getCurrentTotalWeight();
+            long maxhieght = wisdomBlockChain.getTopHeight();
             long differheight = maxhieght - incubator.getLast_blockheight_share();
             int differdays = (int) (differheight / configuration.getDay_count(maxhieght));
             if (differdays == 0) {

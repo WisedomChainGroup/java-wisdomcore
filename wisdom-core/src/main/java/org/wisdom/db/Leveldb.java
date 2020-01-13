@@ -24,6 +24,7 @@ import java.util.function.BiFunction;
 import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
 @Slf4j
+@Deprecated // use org.tdf.common.store.LevelDb instead
 public class Leveldb implements DatabaseStore {
 
     // sub directory under database directory

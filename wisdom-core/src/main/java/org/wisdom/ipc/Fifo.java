@@ -326,7 +326,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private String transactionConfirmed(String txHash) {
-        Block current = bc.currentHeader();
+        Block current = bc.getTopHeader();
         Transaction tx;
         try {
             tx = bc.getTransaction(Hex.decodeHex(txHash));
@@ -379,7 +379,7 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     }
 
     private String getHeight() {
-        Block current = bc.currentHeader();
+        Block current = bc.getTopHeader();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("height", current.nHeight);
         return jsonObject.toJSONString();

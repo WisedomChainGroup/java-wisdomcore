@@ -27,22 +27,32 @@ public class WisdomRepositoryAdapter implements WisdomRepository {
     }
 
     @Override
-    public Block getBlock(byte[] hash) {
+    public Block getBlockByHash(byte[] hash) {
         return null;
     }
 
     @Override
-    public List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+    public List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
         return null;
     }
 
     @Override
-    public Block getHeader(byte[] hash) {
+    public List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial) {
+        return null;
+    }
+
+    @Override
+    public Block getHeaderByHash(byte[] hash) {
         return null;
     }
 
     @Override
     public Block getAncestorHeader(byte[] hash, long h) {
+        return null;
+    }
+
+    @Override
+    public List<Block> getAncestorHeaders(byte[] hash, long height) {
         return null;
     }
 

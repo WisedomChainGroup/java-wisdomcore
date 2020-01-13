@@ -14,6 +14,7 @@ public abstract class AbstractStateTrie<T> extends StateTrieAdapter<T>{
     }
 
 
+    // TODO: avoid root hash conflicts
     @Override
     public void commit(Block block) {
         if(block.nHeight == 0) throw new RuntimeException("cannot commit genesis block");

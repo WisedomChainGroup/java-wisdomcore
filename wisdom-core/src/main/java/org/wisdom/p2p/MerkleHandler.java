@@ -2,8 +2,6 @@ package org.wisdom.p2p;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
@@ -123,7 +121,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     }
 
     private List<WisdomOuterClass.MerkleTransaction> getMerkleTransactions(byte[] blockHash, List<TreeNode> treeNodes) {
-        Block block = bc.getBlock(blockHash);
+        Block block = bc.getBlockByHash(blockHash);
         List<WisdomOuterClass.MerkleTransaction> res = new ArrayList<>();
         if (block != null) {
             List<Transaction> txs = block.body;
@@ -202,7 +200,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         List<TreeNode> parentNodes = Utils.parseTreeNodes(getTreeNodes.getParentNodesList());
         List<TreeNode> treeNodes = new ArrayList<>();
         byte[] blockHash = getTreeNodes.getBlockHash().toByteArray();
-        Block block = bc.getBlock(blockHash);
+        Block block = bc.getBlockByHash(blockHash);
         if (block != null) {
             MerkleTree merkleTree = getMerkleTree(block);
             for (TreeNode parentNode : parentNodes) {

@@ -24,47 +24,54 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         this.eraLinker.setRepository(repository);
     }
 
-    abstract void updateHook(List<Block> blocks, Trie<byte[], T> trie);
+    abstract void updateHook(Block eraLast, Trie<byte[], T> trie);
 
     protected EraLinker eraLinker;
 
     @Override
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash) {
-        Block b = getRepository().getBlock(blockHash);
+        Block b = getRepository().getBlockByHash(blockHash);
         Block prevEraLast = eraLinker.getPrevEraLast(b);
         return super.get(prevEraLast.getHash(), publicKeyHash);
     }
 
     @Override
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
-        Block b = getRepository().getBlock(blockHash);
+        Block b = getRepository().getBlockByHash(blockHash);
         Block prevEraLast = eraLinker.getPrevEraLast(b);
         return super.batchGet(prevEraLast.getHash(), keys);
     }
 
-    protected Trie<byte[], T> commitInternal(List<Block> blocks) {
-        if (blocks.size() != eraLinker.getBlocksPerEra()) throw new RuntimeException("not an era size = " + blocks.size());
+    protected void commitInternal(List<Block> blocks) {
+        if (blocks.size() != eraLinker.getBlocksPerEra())
+            throw new RuntimeException("not an era size = " + blocks.size());
         Block last = blocks.get(blocks.size() - 1);
         if (last.nHeight % eraLinker.getBlocksPerEra() != 0)
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
 
-        if (getRootStore().containsKey(last.getHash())) throw new RuntimeException("unexpected");
+        Optional<byte[]> root = getRootStore().get(last.getHash());
+        if (root.isPresent()) {
+            updateHook(last, getTrie().revert(root.get()));
+            return;
+        }
+
         Trie<byte[], T> prevTrie = getRootStore()
                 .get(blocks.get(0).hashPrevBlock)
                 .map(getTrie()::revert)
                 .orElseThrow(() -> new RuntimeException("not synced"));
+
         Set<byte[]> keys = getUpdater().getRelatedKeys(blocks);
         Map<byte[], T> beforeUpdate = new ByteArrayMap<>();
         keys.forEach(k -> beforeUpdate.put(k, prevTrie.get(k).orElse(getUpdater().createEmpty(k))));
         Map<byte[], T> updated = getUpdater().update(beforeUpdate, blocks);
+
         Trie<byte[], T> after = super.commitInternal(
                 getRootStore().get(blocks.get(0).hashPrevBlock)
                         .orElseThrow(() -> new RuntimeException("unreachable")),
                 last.getHash(),
                 updated
         );
-        updateHook(blocks, after);
-        return after;
+        updateHook(blocks.get(blocks.size() - 1), after);
     }
 
     @Override
@@ -72,7 +79,11 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
         if (block.nHeight % eraLinker.getBlocksPerEra() != 0) {
             return;
         }
-        if (getRootStore().containsKey(block.getHash())) return;
+        Optional<byte[]> root = getRootStore().get(block.getHash());
+        if (root.isPresent()) {
+            updateHook(block, getTrie().revert(root.get()));
+            return;
+        }
         List<Block> ancestors = getRepository().getAncestorBlocks(
                 block.getHash(),
                 block.nHeight - eraLinker.getBlocksPerEra() + 1

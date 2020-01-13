@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "rest")
 @Component
+@Deprecated // use grpc for sync
 public class SyncClient {
     private static final int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 50;
     private static final Logger logger = LoggerFactory.getLogger(SyncClient.class);
@@ -105,7 +106,7 @@ public class SyncClient {
             return;
         }
         ConsensuEntity.Status status = new ConsensuEntity.Status();
-        Block best = bc.currentHeader();
+        Block best = bc.getTopHeader();
         status.version = best.nVersion;
         status.currentHeight = best.nHeight;
         status.bestBlockHash = best.getHash();
@@ -126,7 +127,7 @@ public class SyncClient {
                 logger.error("invalid status received " + new String(resp));
                 return null;
             }
-            Block header = bc.currentHeader();
+            Block header = bc.getTopHeader();
             if (status.currentHeight <= header.nHeight) {
                 return null;
             }
