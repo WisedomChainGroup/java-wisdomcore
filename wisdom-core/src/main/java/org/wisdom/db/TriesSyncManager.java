@@ -191,7 +191,7 @@ public class TriesSyncManager {
         Optional<PreBuiltGenesis> o = readPreBuiltGenesis();
 
         if (!o.isPresent()) {
-            syncStatus();
+            syncStatus(o.orElse(null));
             return;
         }
 
@@ -216,30 +216,32 @@ public class TriesSyncManager {
         candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
         assetCodeTrie.commit(preBuiltGenesis.getAssetCodeInfos(), preBuiltGenesis.block.getHash());
 
-        syncStatus();
+        syncStatus(o.orElse(null));
     }
 
-    private void syncStatus() {
+    private void syncStatus(PreBuiltGenesis preBuiltGenesis) {
         long currentHeight = bc.getTopHeight();
+
+        long lastSync = preBuiltGenesis == null ? 0 : preBuiltGenesis.getBlock().nHeight;
 
         long accountStateTrieLastSyncHeight =
                 getLastSyncedHeight(
-                        0, currentHeight, accountStateTrie.getRootStore()
+                        lastSync, currentHeight, accountStateTrie.getRootStore()
                 );
 
         long validatorStateTrieLastSyncHeight =
                 getLastSyncedHeight(
-                        0, currentHeight, validatorStateTrie.getRootStore()
+                        lastSync, currentHeight, validatorStateTrie.getRootStore()
                 );
 
         long assetCodeTrieLastSyncHeight =
                 getLastSyncedHeight(
-                        0, currentHeight, assetCodeTrie.getRootStore()
+                        lastSync, currentHeight, assetCodeTrie.getRootStore()
                 );
 
         long candidateStateTrieLastSyncHeight =
                 getLastSyncedEra(
-                        0,
+                        lastSync / blocksPerEra,
                         (currentHeight - (currentHeight % blocksPerEra)) / blocksPerEra,
                         candidateStateTrie.getRootStore()
                 ) * blocksPerEra;
