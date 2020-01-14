@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
@@ -366,6 +367,8 @@ public class TransactionCheck {
         Asset asset = new Asset();
         APIResult apiResult = new APIResult();
         if (asset.RLPdeserialization(data)) {
+            byte[] createUserPublicKeyHash = Address.publicKeyToHash(asset.getCreateuser());
+
             //校验
             //amount
             if (amount != 0) return APIResult.newFailed("Amount must be zero");
@@ -403,7 +406,7 @@ public class TransactionCheck {
             boolean verifyOwner = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getOwner(), (byte) 0x00, WX)) == 0);
             if (!verifyOwner) return APIResult.newFailed("Owner format check error");
             //Createuser frompubhash
-            if (!Arrays.equals(frompubhash, asset.getCreateuser()))
+            if (!Arrays.equals(frompubhash, createUserPublicKeyHash))
                 return APIResult.newFailed("Create and frompubhash are different");
 
             if (asset.getAllowincrease() != 0 && asset.getAllowincrease() != 1)

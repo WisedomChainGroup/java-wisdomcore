@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import org.tdf.common.trie.Trie;
 import org.wisdom.core.Block;
 
 import java.util.Collection;
@@ -13,6 +14,9 @@ public interface StateTrie<T> {
     Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys);
     // commit a new block
     void commit(Block block);
+
+    // get a read only trie for query
+    Trie<byte[], T> getTrieByBlockHash(byte[] blockHash);
 
     // commit blocks
     default void commit(List<Block> blocks){

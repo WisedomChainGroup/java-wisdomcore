@@ -11,6 +11,7 @@ import java.util.Arrays;
 
 public class Address {
     public static byte[] publicKeyToHash(byte[] publicKey) {
+        if(publicKey.length != 32) throw new RuntimeException("publicKey must be 32-byte");
         return RipemdUtility.ripemd160(SHA3Utility.keccak256(publicKey));
     }
 
