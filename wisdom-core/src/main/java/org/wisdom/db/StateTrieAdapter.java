@@ -4,7 +4,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.AccessLevel;
 import lombok.Getter;
-import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.CachedStore;
 import org.tdf.common.store.NoDeleteBatchStore;
@@ -19,6 +18,7 @@ import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
 
+import javax.validation.UnexpectedTypeException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -40,6 +40,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     protected abstract String getPrefix();
 
+    // root hash -> Trie
     @Getter
     protected Cache<HexBytes, Trie<byte[], T>> cache = Caffeine
             .newBuilder()
@@ -103,20 +104,24 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         data.forEach(trie::put);
         byte[] newRoot = trie.commit();
         trie.flush();
-        cache.asMap().put(HexBytes.fromBytes(blockHash), ReadOnlyTrie.of(trie));
+        cache.asMap().putIfAbsent(HexBytes.fromBytes(trie.getRootHash()), ReadOnlyTrie.of(trie));
         getRootStore().put(blockHash, newRoot);
         return trie;
     }
 
     // get a read only trie for query
     public Trie<byte[], T> getTrieByBlockHash(byte[] blockHash) {
-        return cache.get(HexBytes.fromBytes(blockHash), x -> this.getTrieByBlockHashInternal(x.getBytes()));
+        byte[] root = getRootStore()
+                .get(blockHash)
+                .orElseThrow(RuntimeException::new);
+
+        return cache.get(HexBytes.fromBytes(root),
+                x -> this.getTrieByRootHash(x.getBytes())
+        );
     }
 
-    public Trie<byte[], T> getTrieByBlockHashInternal(byte[] blockHash) {
-        Trie<byte[], T> ret = getTrie().revert(
-                getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unexpected"))
-        );
+    public Trie<byte[], T> getTrieByRootHash(byte[] rootHash) {
+        Trie<byte[], T> ret = getTrie().revert(rootHash);
         return ReadOnlyTrie.of(ret);
     }
 
@@ -127,6 +132,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         states.forEach(empty::put);
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
-        cache.asMap().put(HexBytes.fromBytes(blockHash), empty);
+        cache.asMap().putIfAbsent(HexBytes.fromBytes(empty.getRootHash()), empty);
     }
 }
