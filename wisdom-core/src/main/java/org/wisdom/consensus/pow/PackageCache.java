@@ -330,7 +330,7 @@ public class PackageCache {
         if (accountStateMap.containsKey(key)) {
             return accountStateMap.get(key);
         } else {
-            return repository.getAccountStateAt(parenthash, key).get();
+            return repository.getAccountStateAt(parenthash, key).orElse(new AccountState(key));
         }
     }
 
