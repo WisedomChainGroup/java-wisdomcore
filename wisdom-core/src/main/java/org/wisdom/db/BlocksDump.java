@@ -31,7 +31,7 @@ public class BlocksDump {
     private WisdomBlockChain wisdomBlockChain;
 
     public BlocksDump(
-            @Value("wisdom.consensus.fast-sync.directory") String directory,
+            @Value("${wisdom.consensus.fast-sync.directory}") String directory,
             WisdomBlockChain wisdomBlockChain
     ) {
         this.directory = directory;

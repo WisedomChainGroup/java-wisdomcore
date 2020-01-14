@@ -116,11 +116,12 @@ public class InternalController {
         CompletableFuture.runAsync(() -> {
             try {
                 blocksDump.dump();
-            } catch (Exception ignored) {
-                blocksDump.setDumpStatus(0.0);
+            } catch (Exception e) {
+                e.printStackTrace();
+                blocksDump.setDumpStatus(null);
             }
         });
-        return 0.0d;
+        return blocksDump.getDumpStatus();
     }
 
 
