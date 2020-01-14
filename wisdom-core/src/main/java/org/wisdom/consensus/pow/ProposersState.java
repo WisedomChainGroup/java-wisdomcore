@@ -31,7 +31,7 @@ import java.util.stream.Stream;
  * 撤回抵押事务
  * 2019-10-11 增加投票衰减功能
  */
-@Component
+//@Component
 public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;

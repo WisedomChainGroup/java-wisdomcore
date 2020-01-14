@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
-@Component
+//@Component
 public class ValidatorState implements State<ValidatorState> {
 
     // public key hash base64 -> nonce
