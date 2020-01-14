@@ -139,7 +139,9 @@ public class InternalController {
         Map<String, Double> hitRate = new HashMap<>();
         Map<String, Long> hits = new HashMap<>();
         Map<String, Long> miss = new HashMap<>();
-        List<String> keys = Arrays.asList("blocksCache", "headerCache", "hasBlockCache", "accountTrieCache", "candidateTrieCache");
+        List<String> keys =
+                Arrays.asList("blocksCache", "headerCache", "hasBlockCache",
+                        "accountTrieCache", "candidateTrieCache");
 
         List<Cache<?, ?>> caches = Arrays.asList(
                 bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache(),
