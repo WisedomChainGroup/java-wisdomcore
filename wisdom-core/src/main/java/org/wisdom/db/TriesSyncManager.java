@@ -251,7 +251,7 @@ public class TriesSyncManager {
 
         candidateStateTrie.generateCache(
                 candidateLastSynced,
-                candidateStateTrie.getTrie(candidateLastSynced.getHash()).asMap()
+                candidateStateTrie.getTrieByBlockHash(candidateLastSynced.getHash()).asMap()
         );
 
         long start = Stream.of(

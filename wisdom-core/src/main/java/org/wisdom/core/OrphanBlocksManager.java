@@ -48,7 +48,10 @@ import java.util.stream.Collectors;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    private BlocksCacheWrapper orphans;
+    private ChainCache<BlockWrapper> orphans
+            = ChainCache.<BlockWrapper>builder()
+            .comparator(BlockWrapper.COMPARATOR)
+            .build();
 
     @Autowired
     private WisdomRepository repository;
@@ -69,16 +72,12 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 , Codecs.STRING, Codecs.STRING);
     }
 
-    public OrphanBlocksManager() {
-        this.orphans = new BlocksCacheWrapper();
-    }
-
     private boolean isOrphan(Block block) {
         return !repository.containsBlock(block.hashPrevBlock);
     }
 
     public void addBlock(Block block) {
-        orphans.addBlock(block);
+        orphans.add(new BlockWrapper(block));
     }
 
     // remove orphans return writable blocks，过滤掉孤块
@@ -101,7 +100,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
             for (BlockWrapper b : descendantBlocks) {
                 if (Math.abs(best.nHeight - b.get().nHeight) < orphanHeightsRange
-                        && !orphans.hasBlock(b.getHash().getBytes())
+                        && !orphans.containsHash(b.getHash().getBytes())
                 ) {
                     logger.info("add block at height = " + b.get().nHeight + " to orphans pool");
                     addBlock(b.get());
@@ -112,19 +111,21 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     public List<Block> getInitials() {
-        return orphans.getInitials();
+        return orphans.getInitials()
+                .stream()
+                .map(BlockWrapper::get)
+                .collect(Collectors.toList());
     }
 
     private void tryWriteNonOrphans() {
-        for (Block ini : orphans.getInitials()) {
-            if (!isOrphan(ini)) {
+        for (BlockWrapper ini : orphans.getInitials()) {
+            if (!isOrphan(ini.get())) {
                 logger.info("writable orphan block found in pool");
-                List<Block> descendants = orphans.getDescendantBlocks(ini);
-                orphans.deleteBlocks(descendants);
+                List<BlockWrapper> descendants = orphans.getDescendants(ini.get().getHash());
+                orphans.removeAll(descendants);
                 pool.addPendingBlocks(
                         ChainCacheImpl.of(
-                                descendants.stream().map(BlockWrapper::new)
-                                        .collect(Collectors.toList())
+                                descendants
                         )
                 );
             }
@@ -141,13 +142,17 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     @Scheduled(fixedRate = 30 * 1000)
     public void clearOrphans() {
         Block lastConfirmed = repository.getLatestConfirmed();
-        orphans.getAll().stream()
+        orphans.stream()
+                .map(BlockWrapper::get)
                 .filter(b -> b.nHeight <= lastConfirmed.nHeight || repository.containsBlock(b.getHash()))
-                .forEach(b -> orphans.deleteBlock(b));
+                .forEach(b -> orphans.removeByHash(b.getHash()));
     }
 
     public List<Block> getOrphans() {
-        return orphans.getAll();
+        return orphans.stream()
+                .map(BlockWrapper::get)
+                .collect(Collectors.toList()
+                );
     }
 
 

@@ -106,7 +106,7 @@ public class MerkleRule implements BlockRule {
         Map<String, Account> accmap = new HashMap<>();
         Map<String, Incubator> incumap = new HashMap<>();
 
-        Account totalaccount = accountDB.getTrie(block.hashPrevBlock)
+        Account totalaccount = accountDB.getTrieByBlockHash(block.hashPrevBlock)
                 .get(IncubatorAddress.resultpubhash())
                 .map(AccountState::getAccount)
                 .orElseThrow(() -> new RuntimeException("unexpected"));
@@ -118,7 +118,7 @@ public class MerkleRule implements BlockRule {
                             HexBytes.encode(tran.to));
 
             if(toaccount == null){
-                toaccount = accountDB.getTrie(block.hashPrevBlock)
+                toaccount = accountDB.getTrieByBlockHash(block.hashPrevBlock)
                         .get(tran.to)
                         .map(AccountState::getAccount)
                         .orElse(Account.builder()
@@ -132,7 +132,7 @@ public class MerkleRule implements BlockRule {
             Account fromaccount = accmap.get(HexBytes.encode(frompubhash));
 
             if(fromaccount == null){
-                fromaccount = accountDB.getTrie(block.hashPrevBlock)
+                fromaccount = accountDB.getTrieByBlockHash(block.hashPrevBlock)
                         .get(frompubhash)
                         .map(AccountState::getAccount)
                         .orElse(Account.builder()

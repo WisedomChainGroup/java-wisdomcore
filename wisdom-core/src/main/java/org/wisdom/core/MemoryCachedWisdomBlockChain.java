@@ -42,19 +42,23 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
 
     private static final int MAXIMUM_CACHE_SIZE = 256;
 
+    @Getter
     private Cache<HexBytes, Block> blockCache = Caffeine.newBuilder()
             .maximumSize(MAXIMUM_CACHE_SIZE)
             .recordStats()
             .build();
 
+    @Getter
     private Cache<HexBytes, Block> headerCache = Caffeine.newBuilder()
             .maximumSize(MAXIMUM_CACHE_SIZE)
             .recordStats()
             .build();
 
+    // since boolean value consume less space
+    @Getter
     private Cache<HexBytes, Boolean> hasBlockCache = Caffeine
             .newBuilder()
-            .maximumSize(MAXIMUM_CACHE_SIZE)
+            .maximumSize(MAXIMUM_CACHE_SIZE * 256)
             .recordStats()
             .build();
 
@@ -85,22 +89,6 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     // time consuming for each method
     @Getter
     private Map<String, Long> timeConsuming = new HashMap<>();
-
-    public Map<String, CacheStats> getCacheStats() {
-        return new HashMap<String, CacheStats>() {{
-            put("blockCache", blockCache.stats());
-            put("headerCache", headerCache.stats());
-            put("hasBlockCache", hasBlockCache.stats());
-        }};
-    }
-
-    public Map<String, Double> getHitRate() {
-        return new HashMap<String, Double>() {{
-            put("blockCache", blockCache.stats().hitRate());
-            put("headerCache", headerCache.stats().hitRate());
-            put("hasBlockCache", hasBlockCache.stats().hitRate());
-        }};
-    }
 
     private void recordMetric(String method, long duration) {
         callsCounter.put(method, callsCounter.getOrDefault(method, 0L) + 1);

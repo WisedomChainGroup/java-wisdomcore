@@ -119,7 +119,7 @@ public class GenesisDump {
                     era.clear();
                 });
         Block block = Objects.requireNonNull(wisdomBlockChain.getBlockByHeight(genesisDumpHeight));
-        return candidateStateTrie.getTrie(block.getHash()).asMap();
+        return candidateStateTrie.getTrieByBlockHash(block.getHash()).asMap();
     }
 
     private Map<byte[], Long> getValidators() {

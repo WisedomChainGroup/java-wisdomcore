@@ -51,14 +51,11 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
 
         Optional<byte[]> root = getRootStore().get(last.getHash());
         if (root.isPresent()) {
-            updateHook(last, getTrie().revert(root.get()));
+            updateHook(last, getTrieByBlockHash(last.getHash()));
             return;
         }
 
-        Trie<byte[], T> prevTrie = getRootStore()
-                .get(blocks.get(0).hashPrevBlock)
-                .map(getTrie()::revert)
-                .orElseThrow(() -> new RuntimeException("not synced"));
+        Trie<byte[], T> prevTrie = getTrieByBlockHash(blocks.get(0).hashPrevBlock);
 
         Set<byte[]> keys = getUpdater().getRelatedKeys(blocks);
         Map<byte[], T> beforeUpdate = new ByteArrayMap<>();

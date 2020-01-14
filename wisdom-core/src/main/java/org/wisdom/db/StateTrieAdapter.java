@@ -1,5 +1,7 @@
 package org.wisdom.db;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.codec.binary.Hex;
@@ -8,8 +10,10 @@ import org.tdf.common.store.CachedStore;
 import org.tdf.common.store.NoDeleteBatchStore;
 import org.tdf.common.store.NoDeleteStore;
 import org.tdf.common.store.Store;
+import org.tdf.common.trie.ReadOnlyTrie;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
@@ -20,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public abstract class StateTrieAdapter<T> implements StateTrie<T> {
+    private static final int MAX_CACHE_SIZE = 8;
     private String TRIE;
     private String DELETED;
     private String ROOTS;
@@ -34,6 +39,13 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     private Trie<byte[], T> trie;
 
     protected abstract String getPrefix();
+
+    @Getter
+    protected Cache<HexBytes, Trie<byte[], T>> cache = Caffeine
+            .newBuilder()
+            .maximumSize(MAX_CACHE_SIZE)
+            .recordStats()
+            .build();
 
     @Getter(AccessLevel.PROTECTED)
     private AbstractStateUpdater<T> updater;
@@ -71,15 +83,11 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     }
 
     public Optional<T> get(byte[] blockHash, byte[] publicKeyHash) {
-        byte[] root = getRootStore().get(blockHash)
-                .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
-        return getTrie().revert(root).get(publicKeyHash);
+        return getTrieByBlockHash(blockHash).get(publicKeyHash);
     }
 
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
-        byte[] root = getRootStore().get(blockHash)
-                .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(blockHash) + " not synced"));
-        Trie<byte[], T> trie = getTrie().revert(root);
+        Trie<byte[], T> trie = getTrieByBlockHash(blockHash);
         ByteArrayMap<T> m = new ByteArrayMap<>();
         keys.forEach(x ->
                 m.put(
@@ -95,27 +103,29 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         data.forEach(trie::put);
         byte[] newRoot = trie.commit();
         trie.flush();
+        cache.asMap().put(HexBytes.fromBytes(blockHash), ReadOnlyTrie.of(trie));
         getRootStore().put(blockHash, newRoot);
         return trie;
     }
 
-    public Trie<byte[], T> getTrie(byte[] blockHash) {
-        return getTrie().revert(
+    // get a read only trie for query
+    public Trie<byte[], T> getTrieByBlockHash(byte[] blockHash) {
+        return cache.get(HexBytes.fromBytes(blockHash), x -> this.getTrieByBlockHashInternal(x.getBytes()));
+    }
+
+    public Trie<byte[], T> getTrieByBlockHashInternal(byte[] blockHash) {
+        Trie<byte[], T> ret = getTrie().revert(
                 getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unexpected"))
         );
+        return ReadOnlyTrie.of(ret);
     }
 
     @Override
     public void commit(Map<byte[], T> states, byte[] blockHash) {
-        if(getRootStore().containsKey(blockHash)) return;
+        if (getRootStore().containsKey(blockHash)) return;
         Trie<byte[], T> empty = getTrie().revert();
         states.forEach(empty::put);
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
     }
-
-    public boolean contain(Block block){
-        return getRootStore().asMap().containsKey(block.getHash());
-    }
-
 }

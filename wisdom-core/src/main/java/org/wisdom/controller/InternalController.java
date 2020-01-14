@@ -1,5 +1,6 @@
 package org.wisdom.controller;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,14 +11,14 @@ import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.BlocksDump;
+import org.wisdom.db.CandidateStateTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.util.Address;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -35,6 +36,12 @@ public class InternalController {
 
     @Autowired
     private MemoryCachedWisdomBlockChain bc;
+
+    @Autowired
+    private AccountStateTrie accountStateTrie;
+
+    @Autowired
+    private CandidateStateTrie candidateStateTrie;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -128,8 +135,19 @@ public class InternalController {
     @GetMapping(value = "/internal/metric/cache")
     public Object getCacheMetric() {
         Map<String, Object> ret = new HashMap<>();
-        ret.put("cache-stats", bc.getCacheStats());
-        ret.put("hit-rate", bc.getHitRate());
+        Map<String, Double> hitRate = new HashMap<>();
+        List<String> keys = Arrays.asList("blocksCache", "headerCache", "hasBlockCache", "accountTrieCache", "candidateTrieCache");
+
+        List<Cache<?, ?>> caches = Arrays.asList(
+                bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache(),
+                accountStateTrie.getCache(), candidateStateTrie.getCache()
+        );
+
+        for (int i = 0; i < keys.size(); i++) {
+            hitRate.put(keys.get(i), caches.get(i).stats().hitRate());
+        }
+
+        ret.put("hitRate", hitRate);
         return ret;
     }
 

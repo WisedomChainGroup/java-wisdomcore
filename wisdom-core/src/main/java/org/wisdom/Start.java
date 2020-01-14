@@ -18,6 +18,8 @@
 
 package org.wisdom;
 
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +53,13 @@ public class Start {
 
     public static void main(String[] args) {
         // 关闭 grpc 日志
+        io.netty.util.internal.logging.InternalLoggerFactory.setDefaultFactory(new InternalLoggerFactory() {
+            @Override
+            protected InternalLogger newInstance(String name) {
+                return new NopLogger();
+            }
+        });
+
         SpringApplication.run(Start.class, args);
     }
 
@@ -84,6 +93,7 @@ public class Start {
         }
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
+
 
 
 }
