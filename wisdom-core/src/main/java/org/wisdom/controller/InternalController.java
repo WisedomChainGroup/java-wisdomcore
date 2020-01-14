@@ -135,7 +135,7 @@ public class InternalController {
 
     @GetMapping(value = "/internal/metric/cache")
     public Object getCacheMetric() {
-        Map<String, Object> ret = new HashMap<>();
+        Map<String, Map<?, ?>> ret = new HashMap<>();
         Map<String, Double> hitRate = new HashMap<>();
         Map<String, Long> hits = new HashMap<>();
         Map<String, Long> miss = new HashMap<>();
