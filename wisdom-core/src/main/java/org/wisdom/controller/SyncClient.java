@@ -8,10 +8,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ChainCache;
 import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.core.*;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
+import org.wisdom.db.BlockWrapper;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
@@ -94,7 +96,7 @@ public class SyncClient {
         }
         if (validBlocks.size() > 0) {
             logger.info("receive blocks startListening from " + validBlocks.get(0).nHeight + " stop at " + validBlocks.get(validBlocks.size() - 1).nHeight);
-            BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
+            ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
             pendingBlocksManager.addPendingBlocks(blocksWritable);
         }
         return null;

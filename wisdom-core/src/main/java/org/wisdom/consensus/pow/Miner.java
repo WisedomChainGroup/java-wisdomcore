@@ -19,6 +19,7 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.ChainCache;
 import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
@@ -201,7 +202,7 @@ public class Miner implements ApplicationListener {
         if (event instanceof NewBlockMinedEvent) {
             Block o = ((NewBlockMinedEvent) event).getBlock();
             logger.info("new block mined event triggered");
-            pendingBlocksManager.addPendingBlocks(new BlocksCache(o));
+            pendingBlocksManager.addPendingBlock(o);
         }
         if (event instanceof NewBestBlockEvent && thread != null) {
             thread.terminate();

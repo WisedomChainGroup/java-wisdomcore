@@ -13,7 +13,6 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.event.NewConfirmedBlockEvent;
-import org.wisdom.encoding.BigEndian;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -77,7 +76,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.bc = bc;
         this.targetCache = targetCache;
         this.targetCache.setRepository(this);
-        chainCache = new ChainCache<>(Integer.MAX_VALUE, this::compareBlockWrapper);
+        chainCache = ChainCache.<BlockWrapper>builder()
+                .comparator(BlockWrapper.COMPARATOR)
+                .build();
+
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
         this.assetCodeTrie = assetCodeTrie;
@@ -99,25 +101,6 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         leastConfirms.remove(b.getHash());
         transactionIndex.remove(b.getHash());
         payloadsIndex.remove(b.getHash());
-    }
-
-    private int compareBlockWrapper(BlockWrapper a, BlockWrapper b) {
-        return compareBlock(a.get(), b.get());
-    }
-
-    private int compareBlock(Block a, Block b) {
-        if (a.nHeight != b.nHeight) {
-            return Long.compare(a.nHeight, b.nHeight);
-        }
-
-        if (a.body.get(0).amount != b.body.get(0).amount) {
-            return (int) (a.body.get(0).amount - b.body.get(0).amount);
-        }
-        // pow 更小的占优势
-        return -BigEndian.decodeUint256(Block.calculatePOWHash(a))
-                .compareTo(
-                        BigEndian.decodeUint256(Block.calculatePOWHash(b))
-                );
     }
 
     @Override
@@ -163,10 +146,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             return Collections.emptyList();
         }
 
-        ChainCache<BlockWrapper> c = new ChainCache<>(
-                Integer.MAX_VALUE,
-                this::compareBlockWrapper
-        );
+        ChainCache<BlockWrapper> c = ChainCache.<BlockWrapper>builder()
+                .comparator(BlockWrapper.COMPARATOR)
+                .build();
 
         // 从数据库获取一部分
         if (startHeight < latestConfirmed.nHeight) {
@@ -225,7 +207,9 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         Optional<Block> o = chainCache.get(bhash).map(ChainedWrapper::get);
         if (!o.isPresent()) return provider.apply(bhash, anum);
         ChainCache<BlockWrapper> ret =
-                new ChainCache<>(Integer.MAX_VALUE, this::compareBlockWrapper);
+                ChainCache.<BlockWrapper>builder()
+                        .comparator(BlockWrapper.COMPARATOR)
+                        .build();
 
         List<BlockWrapper> blocks = chainCache.getAncestors(bhash)
                 .stream().filter(bl -> bl.get().nHeight >= anum).collect(toList());

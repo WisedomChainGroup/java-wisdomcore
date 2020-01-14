@@ -18,14 +18,15 @@
 
 package org.wisdom.core;
 
-import org.wisdom.core.validate.CompositeBlockRule;
-import org.wisdom.core.validate.MerkleRule;
-import org.wisdom.core.validate.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ChainCache;
+import org.wisdom.core.validate.CompositeBlockRule;
+import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.core.validate.Result;
+import org.wisdom.db.BlockWrapper;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.merkletree.MerkleTreeManager;
 
@@ -51,45 +52,48 @@ public class PendingBlocksManager {
     @Autowired
     private MerkleTreeManager merkleTreeManager;
 
+    public void addPendingBlock(Block b) {
+        Block lastConfirmed = wisdomRepository.getLatestConfirmed();
+        if (b.nHeight <= lastConfirmed.nHeight || wisdomRepository.containsBlock(b.getHash())) {
+            logger.info("the block has written");
+            return;
+        }
+        Result res = rule.validateBlock(b);
+        if (!res.isSuccess()) {
+            logger.error("validate the block fail error = " + res.getMessage());
+            return;
+        }
+        Result result = merkleRule.validateBlock(b);
+        if (!result.isSuccess()) {
+            merkleTreeManager.writeBlockToCache(b);
+            return;
+        }
+        b.weight = 1;
+        wisdomRepository.writeBlock(b);
+    }
+
     // 区块的写入全部走这里
-    @Async
-    public void addPendingBlocks(BlocksCache cache) {
+    public void addPendingBlocks(ChainCache<BlockWrapper> cache) {
         while (true) {
-            List<Block> chain = cache.popLongestChain();
-            if (chain == null || chain.size() == 0){
+            List<BlockWrapper> chain = cache.popLongestChain();
+            if (chain == null || chain.size() == 0) {
                 break;
             }
             if (chainHasWritten(chain)) {
                 continue;
             }
             logger.info("try to write blocks to local storage, size = " + chain.size());
-            Block lastConfirmed = wisdomRepository.getLatestConfirmed();
-            for (Block b : chain) {
-                if (b.nHeight <= lastConfirmed.nHeight || wisdomRepository.containsBlock(b.getHash())) {
-                    logger.info("the block has written");
-                    continue;
-                }
-                Result res = rule.validateBlock(b);
-                if (!res.isSuccess()) {
-                    logger.error("validate the block fail error = " + res.getMessage());
-                    return;
-                }
-                Result result = merkleRule.validateBlock(b);
-                if (!result.isSuccess()) {
-                    merkleTreeManager.writeBlockToCache(b);
-                    continue;
-                }
-                b.weight = 1;
-                wisdomRepository.writeBlock(b);
+            for (BlockWrapper w : chain) {
+                Block b = w.get();
+                addPendingBlock(b);
             }
         }
     }
 
-    private boolean chainHasWritten(List<Block> chain) {
-        if (chain == null || chain.size() == 0) {
-            return true;
-        }
-        byte[] hash = chain.get(chain.size() - 1).getHash();
-        return wisdomRepository.containsBlock(hash);
+    private boolean chainHasWritten(List<BlockWrapper> chain) {
+        return chain == null || chain.size() == 0 ||
+                wisdomRepository.containsBlock(
+                        chain.get(chain.size() - 1).getHash().getBytes()
+                );
     }
 }

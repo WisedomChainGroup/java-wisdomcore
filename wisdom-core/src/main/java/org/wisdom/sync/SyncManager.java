@@ -9,11 +9,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ChainCache;
 import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
+import org.wisdom.db.BlockWrapper;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
@@ -206,7 +208,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private synchronized void receiveBlocks(List<Block> blocks) {
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
-        List<Block> validBlocks = new ArrayList<>();
+        List<Block> validBlocks = new ArrayList<>(blocks.size());
         for (Block b : blocks) {
             if (b == null || b.nHeight == 0) {
                 continue;
@@ -224,7 +226,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             validBlocks.add(b);
         }
         if (validBlocks.size() > 0) {
-            BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
+            ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
             pendingBlocksManager.addPendingBlocks(blocksWritable);
         }
     }

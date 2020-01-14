@@ -30,11 +30,13 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.serialize.Codecs;
 import org.tdf.common.store.Store;
 import org.tdf.common.store.StoreWrapper;
+import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.ChainCacheImpl;
 import org.wisdom.core.event.NewBlockEvent;
+import org.wisdom.db.BlockWrapper;
 import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.db.WisdomRepository;
 
-import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -65,7 +67,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
         leveldb = new StoreWrapper<>(
                 factory.create("orphans", false)
                 , Codecs.STRING, Codecs.STRING);
-        loadOrphanBlocks();
     }
 
     public OrphanBlocksManager() {
@@ -73,7 +74,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     private boolean isOrphan(Block block) {
-        return repository.containsBlock(block.hashPrevBlock);
+        return !repository.containsBlock(block.hashPrevBlock);
     }
 
     public void addBlock(Block block) {
@@ -81,28 +82,33 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
     // remove orphans return writable blocks，过滤掉孤块
-    public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
-        Block lastConfirmed = repository.getLatestConfirmed();
-        BlocksCache cache = new BlocksCache(blocks.stream()
-                .filter(b -> b.nHeight > lastConfirmed.nHeight)
-                .collect(Collectors.toList())
-        );
-        BlocksCache res = new BlocksCache();
+    public ChainCache<BlockWrapper> removeAndCacheOrphans(List<Block> blocks) {
+        ChainCache<BlockWrapper> cache =
+                ChainCacheImpl.of(blocks.stream().map(BlockWrapper::new).collect(Collectors.toList()));
+
+        ChainCache<BlockWrapper> ret = ChainCache.<BlockWrapper>builder()
+                .comparator(BlockWrapper.COMPARATOR).build();
+
         Block best = repository.getBestBlock();
-        for (Block init : cache.getInitials()) {
-            List<Block> descendantBlocks = cache.getDescendantBlocks(init);
-            if (!isOrphan(init)) {
-                res.addBlocks(descendantBlocks);
+        for (BlockWrapper init : cache.getInitials()) {
+            List<BlockWrapper> descendantBlocks =
+                    cache.getDescendants(init.getHash().getBytes());
+
+            if (!isOrphan(init.get())) {
+                ret.addAll(descendantBlocks);
                 continue;
             }
-            for (Block b : descendantBlocks) {
-                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange && !orphans.hasBlock(b.getHash())) {
-                    logger.info("add block at height = " + b.nHeight + " to orphans pool");
-                    addBlock(b);
+
+            for (BlockWrapper b : descendantBlocks) {
+                if (Math.abs(best.nHeight - b.get().nHeight) < orphanHeightsRange
+                        && !orphans.hasBlock(b.getHash().getBytes())
+                ) {
+                    logger.info("add block at height = " + b.get().nHeight + " to orphans pool");
+                    addBlock(b.get());
                 }
             }
         }
-        return res;
+        return ret;
     }
 
     public List<Block> getInitials() {
@@ -115,7 +121,12 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 logger.info("writable orphan block found in pool");
                 List<Block> descendants = orphans.getDescendantBlocks(ini);
                 orphans.deleteBlocks(descendants);
-                pool.addPendingBlocks(new BlocksCache(descendants));
+                pool.addPendingBlocks(
+                        ChainCacheImpl.of(
+                                descendants.stream().map(BlockWrapper::new)
+                                        .collect(Collectors.toList())
+                        )
+                );
             }
         }
     }
@@ -140,7 +151,6 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     }
 
 
-    @PreDestroy
     public void saveOrphanBlocks() {
         List<Block> list = getOrphans();
         String json = JSON.toJSONString(list, true);
