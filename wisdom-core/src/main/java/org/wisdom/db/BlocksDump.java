@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 public class BlocksDump {
     @Getter
     @Setter
-    private Double dumpStatus;
+    private volatile Double dumpStatus;
 
     private String directory;
 
@@ -77,12 +77,12 @@ public class BlocksDump {
             final int end = start + blocksPerDump;
             int cursor = start;
             while (true) {
-                List<Block> lists =
-                        wisdomBlockChain.getBlocksBetween(cursor, blocksPerFetch)
+                List<Block> list =
+                        wisdomBlockChain.getBlocksSince(cursor, blocksPerFetch)
                                 .stream().filter(x -> x.getnHeight() < end).collect(Collectors.toList());
-                all.addAll(lists);
+                all.addAll(list);
                 cursor += blocksPerFetch;
-                if (lists.size() < blocksPerFetch) break;
+                if (list.size() < blocksPerFetch) break;
             }
 
             o.map(File::delete);

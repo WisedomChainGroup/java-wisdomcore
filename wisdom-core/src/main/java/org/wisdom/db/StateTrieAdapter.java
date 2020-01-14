@@ -127,5 +127,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         states.forEach(empty::put);
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
+        cache.asMap().put(HexBytes.fromBytes(blockHash), empty);
     }
 }

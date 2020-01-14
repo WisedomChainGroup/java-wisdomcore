@@ -128,7 +128,8 @@ public class InternalController {
                 blocksDump.setDumpStatus(null);
             }
         });
-        return blocksDump.getDumpStatus();
+        status = blocksDump.getDumpStatus();
+        return status == null ? "dump success" : String.format("dump status %.2f %%", status * 100);
     }
 
 
