@@ -106,7 +106,7 @@ public class TriesSyncManager {
                 .map(RLPElement::fromEncoded)
                 .map(el -> el.as(PreBuiltGenesis.class));
 
-        boolean invalid = ret.map(x -> x.getBlock())
+        boolean invalid = ret.map(PreBuiltGenesis::getBlock)
                 .map(b -> b.nHeight % blocksPerEra != 0)
                 .orElse(false);
         if (invalid)
