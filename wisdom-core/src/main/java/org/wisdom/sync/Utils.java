@@ -7,6 +7,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.BlockWrapper;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -51,11 +52,10 @@ public class Utils {
     }
 
     public static List<Block> parseBlocks(List<WisdomOuterClass.Block> bks) {
-        List<Block> res = new ArrayList<>();
-        for (WisdomOuterClass.Block bk : bks) {
-            res.add(parseBlock(bk));
-        }
-        return res;
+        return bks.stream()
+                .map(Utils::parseBlock)
+                .sorted(BlockWrapper::compareBlock)
+                .collect(Collectors.toList());
     }
 
     public static Block parseBlock(WisdomOuterClass.Block bk) {

@@ -216,7 +216,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private synchronized void receiveBlocks(List<Block> blocks) {
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
-        blocks.sort(BlockWrapper::compareBlock);
         List<Block> validBlocks = new ArrayList<>(blocks.size());
         for (Block b : blocks) {
             if (b == null || b.nHeight == 0 || repository.containsBlock(b.getHash())) {
