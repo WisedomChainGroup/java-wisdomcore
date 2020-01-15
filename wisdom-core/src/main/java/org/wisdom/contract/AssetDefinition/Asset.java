@@ -69,11 +69,11 @@ public class Asset implements AnalysisContract {
     }
 
     private String HexCreateuserAddress(){
-        return KeystoreAction.pubkeyHashToAddress(this.createuser,(byte)0x00,"WX");
+        return KeystoreAction.pubkeyToAddress(this.createuser,(byte)0x00,"WX");
     }
 
     private String HexOwnerAddress(){
-        return KeystoreAction.pubkeyHashToAddress(this.owner,(byte)0x00,"WX");
+        return KeystoreAction.pubkeyToAddress(this.owner,(byte)0x00,"WX");
     }
 
     public static Asset getAsset(byte[] Rlpbyte) {

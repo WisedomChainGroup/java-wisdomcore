@@ -24,7 +24,6 @@ import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
-import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.crypto.RipemdUtility;
@@ -342,7 +341,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     }
                     if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
                         AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(rlpbyte);
-
                         byte[] contract = accountState.getContract();
                         Asset asset = Asset.getAsset(contract);
                         asset.setOwner(assetChangeowner.getNewowner());
