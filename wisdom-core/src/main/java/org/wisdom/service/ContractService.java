@@ -8,5 +8,14 @@ public interface ContractService {
 
     Object getParseAssetAddress(byte[] addressToPubkeyHash);
 
+    @Deprecated
     Object getTokenBalance(byte[] addressToPubkeyHash, String code);
+
+    /**
+     *
+     * @param assetCode 资产代号
+     * @param publicKeyHash 用户公钥哈希
+     * @return 用户拥有此类型资产的余额
+     */
+    long getAssetBalance(String assetCode, byte[] publicKeyHash);
 }

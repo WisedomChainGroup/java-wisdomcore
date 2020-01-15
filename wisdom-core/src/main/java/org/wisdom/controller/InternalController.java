@@ -135,9 +135,13 @@ public class InternalController {
 
     @GetMapping(value = "/internal/metric/cache")
     public Object getCacheMetric() {
-        Map<String, Object> ret = new HashMap<>();
+        Map<String, Map<?, ?>> ret = new HashMap<>();
         Map<String, Double> hitRate = new HashMap<>();
-        List<String> keys = Arrays.asList("blocksCache", "headerCache", "hasBlockCache", "accountTrieCache", "candidateTrieCache");
+        Map<String, Long> hits = new HashMap<>();
+        Map<String, Long> miss = new HashMap<>();
+        List<String> keys =
+                Arrays.asList("blocksCache", "headerCache", "hasBlockCache",
+                        "accountTrieCache", "candidateTrieCache");
 
         List<Cache<?, ?>> caches = Arrays.asList(
                 bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache(),
@@ -146,9 +150,13 @@ public class InternalController {
 
         for (int i = 0; i < keys.size(); i++) {
             hitRate.put(keys.get(i), caches.get(i).stats().hitRate());
+            hits.put(keys.get(i), caches.get(i).stats().hitCount());
+            miss.put(keys.get(i), caches.get(i).stats().missCount());
         }
 
         ret.put("hitRate", hitRate);
+        ret.put("hits", hits);
+        ret.put("miss", miss);
         return ret;
     }
 

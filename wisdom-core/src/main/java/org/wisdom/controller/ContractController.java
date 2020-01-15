@@ -32,16 +32,18 @@ public class ContractController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/TokenBalance")
-    public Object TokenBalance(@RequestParam(value = "address") String address,@RequestParam(value = "code") String code){
-        if(KeystoreAction.verifyAddress(address)!=0){
+    public Object TokenBalance(@RequestParam(value = "address") String address, @RequestParam(value = "code") String code) {
+        if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
         }
-        return contractService.getTokenBalance(KeystoreAction.addressToPubkeyHash(address),code);
+        return APIResult.newSuccess(
+                contractService.getAssetBalance(code, KeystoreAction.addressToPubkeyHash(address))
+        );
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/ParseAssetAddress")
     public Object ParseAssetAddress(@RequestParam(value = "address") String address) {
-        if(KeystoreAction.verifyAddress(address)!=0){
+        if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
         }
         return contractService.getParseAssetAddress(KeystoreAction.addressToPubkeyHash(address));

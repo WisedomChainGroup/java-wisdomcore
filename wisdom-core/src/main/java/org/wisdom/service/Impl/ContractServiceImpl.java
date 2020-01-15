@@ -5,12 +5,15 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.core.Block;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.service.ContractService;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 @Service
@@ -61,15 +64,34 @@ public class ContractServiceImpl implements ContractService {
         return APIResult.newSuccess(Asset.getConvertAsset(accountStateOptional.get().getContract()));
     }
 
+    @Deprecated
     @Override
     public Object getTokenBalance(byte[] pubhash, String code) {
-        Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(pubhash);
-        if(!accountStateOptional.isPresent() || accountStateOptional.get().getType()!=0 ){
-            return APIResult.newFailed("Account does not exist or other type of account");
-        }
+        Optional<AccountState> o = wisdomRepository.getConfirmedAccountState(pubhash)
+                .filter(a -> a.getType() == 1);
 
-        return null;
+        if (!o.isPresent())
+            return APIResult.newFailed("Account does not exist or other type of account");
+
+        return APIResult.newSuccess(
+                o.map(AccountState::getTokensMap)
+                        .map(m -> m.get(pubhash))
+                        .orElse(0L)
+        );
     }
 
+    @Override
+    public long getAssetBalance(final String assetCode, byte[] publicKeyHash) {
+        Block best = wisdomRepository.getBestBlock();
+        AssetCodeInfo info =
+                wisdomRepository.getAssetCodeAt(best.getHash(), assetCode.getBytes(StandardCharsets.UTF_8))
+                        .orElseThrow(() -> new RuntimeException("asset " + assetCode + " not found"));
 
+        AccountState asset =
+                wisdomRepository.getConfirmedAccountState(info.getAsset160hash())
+                        .filter(a -> a.getType() == 1)
+                        .orElseThrow(() -> new RuntimeException("asset " + assetCode + " not found"));
+
+        return asset.getTokensMap().getOrDefault(publicKeyHash, 0L);
+    }
 }
