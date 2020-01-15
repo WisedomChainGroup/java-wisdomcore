@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     private ChainCache<BlockWrapper> orphans
             = ChainCache.<BlockWrapper>builder()
+            .concurrentLevel(ChainCache.CONCURRENT_LEVEL_ONE)
             .comparator(BlockWrapper.COMPARATOR)
             .build();
 
@@ -83,7 +84,8 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     // remove orphans return writable blocks，过滤掉孤块
     public ChainCache<BlockWrapper> removeAndCacheOrphans(List<Block> blocks) {
         ChainCache<BlockWrapper> cache =
-                ChainCacheImpl.of(blocks.stream().map(BlockWrapper::new).collect(Collectors.toList()));
+                ChainCache.of(blocks.stream().map(BlockWrapper::new)
+                        .collect(Collectors.toList()));
 
         ChainCache<BlockWrapper> ret = ChainCache.<BlockWrapper>builder()
                 .comparator(BlockWrapper.COMPARATOR).build();
@@ -124,7 +126,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 List<BlockWrapper> descendants = orphans.getDescendants(ini.get().getHash());
                 orphans.removeAll(descendants);
                 pool.addPendingBlocks(
-                        ChainCacheImpl.of(
+                        ChainCache.of(
                                 descendants
                         )
                 );
