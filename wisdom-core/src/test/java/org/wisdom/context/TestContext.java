@@ -192,7 +192,6 @@ public class TestContext {
     public GenesisDump genesisDump(
             TestConfig testConfig,
             JdbcTemplate jdbcTemplate,
-            ValidatorState validatorState,
             CandidateStateTrie candidateStateTrie,
             BlockStreamBuilder blockStreamBuilder,
             AccountDB accountDB,
@@ -201,7 +200,7 @@ public class TestContext {
             ProposersState genesisProposersState
     ) {
         return new GenesisDump(
-                testConfig.getGenesisDumpOut(), jdbcTemplate, validatorState,
+                testConfig.getGenesisDumpOut(), jdbcTemplate,
                 candidateStateTrie, testConfig.getGenesisDumpHeight(), blockStreamBuilder,
                 accountDB, wisdomBlockChain, blocksPerEra, genesisProposersState
         );

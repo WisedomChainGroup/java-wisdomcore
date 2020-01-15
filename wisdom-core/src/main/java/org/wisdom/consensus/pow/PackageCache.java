@@ -1,9 +1,6 @@
 package org.wisdom.consensus.pow;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -625,7 +622,7 @@ public class PackageCache {
     @Setter
     public class VerifyHatch {
         public AccountState accountState;
-        public boolean state;
+        public boolean state=true;
     }
 
     public boolean updateWaitCount(String publicKeyHash, long nonce) {
