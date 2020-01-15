@@ -10,6 +10,7 @@ import org.tdf.rlp.RLPList;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.context.BlockStreamBuilder;
+import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
@@ -33,8 +34,6 @@ public class GenesisDump {
     private String genesisDirectory;
 
     private JdbcTemplate jdbcTemplate;
-
-    private ValidatorState validatorState;
 
     private CandidateStateTrie candidateStateTrie;
 
@@ -65,12 +64,14 @@ public class GenesisDump {
         Map<byte[], Long> miners = getValidators();
         RLPElement validators = RLPElement.readRLPTree(miners);
         System.out.println(miners.toString());
-        RLPElement newGenesisData = RLPList.createEmpty(4);
+        RLPElement newGenesisData = RLPList.createEmpty(5);
         newGenesisData.add(RLPElement.readRLPTree(block));
         newGenesisData.add(newGenesisAccounts);
         newGenesisData.add(validators);
         RLPElement candidates = RLPElement.readRLPTree(getCandidates());
         newGenesisData.add(candidates);
+        Map<byte[], AssetCodeInfo> assetCodeInfoMap = new ByteArrayMap<>();
+        newGenesisData.add(RLPElement.readRLPTree(assetCodeInfoMap));
         Files.write(path, newGenesisData.getEncoded(),
                 StandardOpenOption.SYNC, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
     }
