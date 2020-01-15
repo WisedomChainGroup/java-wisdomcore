@@ -63,11 +63,6 @@ public class PendingBlocksManager {
             logger.error("validate the block fail error = " + res.getMessage());
             return;
         }
-        Result result = merkleRule.validateBlock(b);
-        if (!result.isSuccess()) {
-            merkleTreeManager.writeBlockToCache(b);
-            return;
-        }
         b.weight = 1;
         wisdomRepository.writeBlock(b);
     }
@@ -91,8 +86,7 @@ public class PendingBlocksManager {
     }
 
     private boolean chainHasWritten(List<BlockWrapper> chain) {
-        return chain == null || chain.size() == 0 ||
-                wisdomRepository.containsBlock(
+        return wisdomRepository.containsBlock(
                         chain.get(chain.size() - 1).getHash().getBytes()
                 );
     }

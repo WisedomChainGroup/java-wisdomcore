@@ -14,7 +14,7 @@ public class BlockWrapper extends ChainedWrapper<Block> {
 
     public static final Comparator<BlockWrapper> COMPARATOR = (x, y) -> compareBlock(x.get(), y.get());
 
-    private static int compareBlock(Block a, Block b) {
+    public static int compareBlock(Block a, Block b) {
         if (a.nHeight != b.nHeight) {
             return Long.compare(a.nHeight, b.nHeight);
         }

@@ -57,7 +57,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
         Block parent = repository.getBlockByHash(block.hashPrevBlock);
         if (parent == null) {
-            return Result.Error("cannot find parent" + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
+            return Result.Error("cannot find parent " + Hex.encodeHexString(block.hashPrevBlock) + " " + (block.nHeight-1));
         }
         Result res = validateTransaction(coinbase);
         if (!res.isSuccess()) {

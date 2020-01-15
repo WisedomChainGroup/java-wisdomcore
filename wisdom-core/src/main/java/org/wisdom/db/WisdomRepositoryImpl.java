@@ -118,13 +118,13 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     public Block getHeaderByHash(byte[] blockHash) {
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
-                .orElse(bc.getHeaderByHash(blockHash));
+                .orElseGet(() -> bc.getHeaderByHash(blockHash));
     }
 
     public Block getBlockByHash(byte[] blockHash) {
         return chainCache.get(blockHash)
                 .map(ChainedWrapper::get)
-                .orElse(bc.getBlockByHash(blockHash));
+                .orElseGet(() -> bc.getBlockByHash(blockHash));
     }
 
     @Override

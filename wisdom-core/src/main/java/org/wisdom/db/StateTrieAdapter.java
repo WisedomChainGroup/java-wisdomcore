@@ -18,7 +18,6 @@ import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
 import org.wisdom.crypto.HashUtil;
 
-import javax.validation.UnexpectedTypeException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -92,7 +91,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         ByteArrayMap<T> m = new ByteArrayMap<>();
         keys.forEach(x ->
                 m.put(
-                        x, trie.get(x).orElse(updater.createEmpty(x))
+                        x, trie.get(x).orElseGet(() -> updater.createEmpty(x))
                 )
         );
         return m;
