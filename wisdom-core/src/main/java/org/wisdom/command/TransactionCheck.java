@@ -296,7 +296,7 @@ public class TransactionCheck {
         byte[] payload = transaction.payload;
         int type = transaction.type;
         long amount = transaction.amount;
-        byte[] frompubhash = Address.publicKeyToHash(transaction.from);
+        byte[] from = transaction.from;
         byte[] topubkeyhash = transaction.to;
         switch (type) {
             case 0x09://孵化器
@@ -310,7 +310,7 @@ public class TransactionCheck {
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x07://部署合约
-                apiResult = CheckDeployContract(payload, frompubhash, amount, topubkeyhash);
+                apiResult = CheckDeployContract(payload, from, amount, topubkeyhash);
                 break;
             case 0x08://调用合约
                 apiResult = CheckCallContract(transaction);
@@ -319,7 +319,7 @@ public class TransactionCheck {
                 apiResult = CheckCost(amount, payload, incubator, topubkeyhash);
                 break;
             case 0x0d://撤回投票
-                apiResult = CheckRecallVote(amount, payload, frompubhash, topubkeyhash);
+                apiResult = CheckRecallVote(amount, payload, from, topubkeyhash);
                 break;
             case 0x0f://撤回抵押
                 apiResult = CheckRecallMortgage(amount, payload, topubkeyhash);
@@ -330,7 +330,7 @@ public class TransactionCheck {
 
     private APIResult CheckCallContract(Transaction transaction) {
         byte[] payload = transaction.payload;
-        byte[] frompubhash = transaction.from;
+        byte[] from = transaction.from;
         Long amount = transaction.amount;
         byte type = payload[0];
         byte[] data = ByteUtil.bytearraycopy(payload, 1, payload.length - 1);
@@ -338,11 +338,11 @@ public class TransactionCheck {
         if (amount != 0) return APIResult.newFailed("Amount must be zero");
         switch (type) {
             case 0://更新合约管理员
-                return CheckChangeowner(data, frompubhash);
+                return CheckChangeowner(data, from);
             case 1://合约转账
-                return CheckTransfer(data, frompubhash);
+                return CheckTransfer(data, from);
             case 2://增发
-                return CheckIncreased(data, frompubhash);
+                return CheckIncreased(data, from);
             case 3://多签规则转账
                 return CheckMultTransfer(data, transaction);
             default:
@@ -350,24 +350,24 @@ public class TransactionCheck {
         }
     }
 
-    private APIResult CheckDeployContract(byte[] payload, byte[] frompubhash, Long amount, byte[] topubkeyhash) {
+    private APIResult CheckDeployContract(byte[] payload, byte[] from, Long amount, byte[] topubkeyhash) {
         byte type = payload[0];
         byte[] data = ByteUtil.bytearraycopy(payload, 1, payload.length - 1);
         switch (type) {
             case 0://代币
-                return CheckAsset(data, frompubhash, amount, topubkeyhash);
+                return CheckAsset(data, from, amount, topubkeyhash);
             case 1://多重签名
-                return CheckMultiple(data, frompubhash, amount, topubkeyhash);
+                return CheckMultiple(data, from, amount, topubkeyhash);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
     }
 
-    private APIResult CheckAsset(byte[] data, byte[] frompubhash, Long amount, byte[] topubkeyhash) {
+    private APIResult CheckAsset(byte[] data, byte[] from, Long amount, byte[] topubkeyhash) {
         Asset asset = new Asset();
         APIResult apiResult = new APIResult();
         if (asset.RLPdeserialization(data)) {
-            byte[] createUserPublicKeyHash = Address.publicKeyToHash(asset.getCreateuser());
+            byte[] createUserPublicKey = asset.getCreateuser();
 
             //校验
             //amount
@@ -397,8 +397,8 @@ public class TransactionCheck {
             }
             //TODO 校验hash
             //fromPubkeyHash
-            boolean verifyfromPubkeyHash = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00, WX)) == 0);
-            if (!verifyfromPubkeyHash) return APIResult.newFailed("From format check error");
+            boolean verifyfromPubkey = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(from, (byte) 0x00, WX)) == 0);
+            if (!verifyfromPubkey) return APIResult.newFailed("From format check error");
             //Createuser
             boolean verifyCreateuser = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getCreateuser(), (byte) 0x00, WX)) == 0);
             if (!verifyCreateuser) return APIResult.newFailed("Createuser format check error");
@@ -406,7 +406,7 @@ public class TransactionCheck {
             boolean verifyOwner = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getOwner(), (byte) 0x00, WX)) == 0);
             if (!verifyOwner) return APIResult.newFailed("Owner format check error");
             //Createuser frompubhash
-            if (!Arrays.equals(frompubhash, createUserPublicKeyHash))
+            if (!Arrays.equals(from, createUserPublicKey))
                 return APIResult.newFailed("Create and frompubhash are different");
 
             if (asset.getAllowincrease() != 0 && asset.getAllowincrease() != 1)
@@ -418,7 +418,7 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult CheckMultiple(byte[] data, byte[] frompubhash, Long amount, byte[] topubkeyhash) {
+    private APIResult CheckMultiple(byte[] data, byte[] from, Long amount, byte[] topubkeyhash) {
         Multiple multiple = new Multiple();
         APIResult apiResult = new APIResult();
         if (multiple.RLPdeserialization(data)) {
@@ -450,7 +450,7 @@ public class TransactionCheck {
             if (multiple.getAmount() != 0) return APIResult.newFailed("Amount must be zero");
             if (multiple.getPubList().size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyList does not match max");
-            if (!multiple.getPubList().contains(frompubhash)) return APIResult.newFailed("From must be in payload");
+            if (!multiple.getPubList().contains(from)) return APIResult.newFailed("From must be in payload");
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
             return apiResult;
@@ -458,7 +458,7 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult CheckChangeowner(byte[] data, byte[] frompubhash) {
+    private APIResult CheckChangeowner(byte[] data, byte[] from) {
         AssetChangeowner assetChangeowner = new AssetChangeowner();
         APIResult apiResult = new APIResult();
         if (assetChangeowner.RLPdeserialization(data)) {
@@ -467,7 +467,7 @@ public class TransactionCheck {
                 return APIResult.newFailed("Newowner format check error");
             }
             //fromaddress
-            boolean verifyfrom = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00, "")) == 0);
+            boolean verifyfrom = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(from, (byte) 0x00, "")) == 0);
             if (!verifyfrom) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("From format check error");
@@ -485,7 +485,7 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult CheckTransfer(byte[] data, byte[] frompubhash) {
+    private APIResult CheckTransfer(byte[] data, byte[] from) {
         AssetTransfer assetTransfer = new AssetTransfer();
         APIResult apiResult = new APIResult();
         if (assetTransfer.RLPdeserialization(data)) {
@@ -511,7 +511,7 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult CheckIncreased(byte[] data, byte[] frompubhash) {
+    private APIResult CheckIncreased(byte[] data, byte[] from) {
         AssetIncreased assetIncreased = new AssetIncreased();
         APIResult apiResult = new APIResult();
         if (assetIncreased.RLPdeserialization(data)) {
@@ -858,7 +858,7 @@ public class TransactionCheck {
         return apiResult;
     }
 
-    private APIResult CheckRecallVote(long amount, byte[] payload, byte[] frompubkeyhash, byte[] topubkeyhash) {
+    private APIResult CheckRecallVote(long amount, byte[] payload, byte[] from, byte[] topubkeyhash) {
         APIResult apiResult = new APIResult();
         if (payload.length != 32) {//投票事务哈希
             apiResult.setCode(5000);
@@ -882,8 +882,7 @@ public class TransactionCheck {
             apiResult.setMessage("The type of withdrawal is not a vote");
             return apiResult;
         }
-        byte[] tranfrom = RipemdUtility.ripemd160(SHA3Utility.keccak256(transaction.from));
-        if (!Arrays.equals(tranfrom, frompubkeyhash) || !Arrays.equals(transaction.to, topubkeyhash)) {
+        if (!Arrays.equals(transaction.from, from) || !Arrays.equals(transaction.to, topubkeyhash)) {
             apiResult.setCode(5000);
             apiResult.setMessage("You have to withdraw your vote");
             return apiResult;
