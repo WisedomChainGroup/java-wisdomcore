@@ -1,5 +1,8 @@
 package org.wisdom.sync;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.cache.CacheBuilder;
 import com.google.protobuf.ByteString;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.slf4j.Logger;
@@ -10,6 +13,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
@@ -24,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -38,7 +41,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private static final int CACHE_SIZE = 64;
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
 
-    private ConcurrentMap<String, Boolean> proposalCache;
+    private Cache<HexBytes, Boolean> proposalCache;
 
     @Value("${p2p.max-blocks-per-transfer}")
     private int maxBlocksPerTransfer;
@@ -68,7 +71,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private CheckPointRule checkPointRule;
 
     public SyncManager() {
-        this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
+        this.proposalCache = Caffeine
+                .newBuilder()
+                .maximumSize(CACHE_SIZE).build();
     }
 
     @Override
@@ -157,10 +162,13 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         WisdomOuterClass.Proposal proposal = context.getPayload().getProposal();
         Block block = Utils.parseBlock(proposal.getBlock());
-        if (proposalCache.containsKey(block.getHashHexString())) {
+        if (proposalCache
+                .asMap()
+                .containsKey(HexBytes.fromBytes(block.getHash()))
+        ) {
             return;
         }
-        proposalCache.put(block.getHashHexString(), true);
+        proposalCache.put(HexBytes.fromBytes(block.getHash()), true);
         receiveBlocks(Collections.singletonList(block));
         context.relay();
     }
@@ -208,9 +216,10 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private synchronized void receiveBlocks(List<Block> blocks) {
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
+        blocks.sort(BlockWrapper::compareBlock);
         List<Block> validBlocks = new ArrayList<>(blocks.size());
         for (Block b : blocks) {
-            if (b == null || b.nHeight == 0) {
+            if (b == null || b.nHeight == 0 || repository.containsBlock(b.getHash())) {
                 continue;
             }
             Result res = rule.validateBlock(b);
@@ -236,7 +245,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (server == null) {
             return;
         }
-        proposalCache.put(event.getBlock().getHashHexString(), true);
+        proposalCache.put(HexBytes.fromBytes(event.getBlock().getHash()), true);
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }
