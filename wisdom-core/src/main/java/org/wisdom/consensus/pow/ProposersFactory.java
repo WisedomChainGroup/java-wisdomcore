@@ -127,11 +127,7 @@ public class ProposersFactory extends EraLinkedStateFactory<ProposersState> {
 
     }
 
-    public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
-        List<HexBytes> proposers = getProposers(parentBlock).stream()
-                .map(HexBytes::fromBytes)
-                .collect(Collectors.toList());
-
+    public Optional<Proposer> getProposer(List<HexBytes> proposers, Block parentBlock, long timeStamp) {
         if (timeStamp <= parentBlock.nTime) {
             return Optional.empty();
         }

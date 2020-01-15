@@ -65,14 +65,15 @@ public class ProposerStateTests {
 
 
     @Test
-    public void dump() throws Exception{
+    public void dump() throws Exception {
         List<Block> blocks = new ArrayList<>(blocksPerEra);
 
         blockStreamBuilder.getBlocks()
+                .filter(b -> b.nHeight < 522218)
                 .forEach(b -> {
-                    if(b.nHeight == 0) return;
+                    if (b.nHeight == 0) return;
                     blocks.add(b);
-                    if(blocks.size() < blocksPerEra) return;
+                    if (blocks.size() < blocksPerEra) return;
                     System.out.println(b.nHeight);
                     genesisState.updateBlocks(blocks);
                     blocks.clear();
@@ -83,8 +84,5 @@ public class ProposerStateTests {
 //                StandardOpenOption.WRITE, StandardOpenOption.SYNC, StandardOpenOption.CREATE_NEW
 //        );
     }
-
-
-    static class Foo extends HashMap<String, ProposersState.Proposer>{}
 
 }

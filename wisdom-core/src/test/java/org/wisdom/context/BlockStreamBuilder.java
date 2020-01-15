@@ -23,6 +23,7 @@ public class BlockStreamBuilder {
         File[] files = file.listFiles();
         if (files == null || files.length == 0) throw new RuntimeException("empty directory " + file);
         return Arrays.stream(files)
+                .filter(f -> !f.isDirectory() && f.getName().startsWith("blocks-dump"))
                 .sorted(Comparator.comparingInt(x -> Integer.parseInt(x.getName().split("\\.")[1])))
                 .flatMap(x -> {
                     try {

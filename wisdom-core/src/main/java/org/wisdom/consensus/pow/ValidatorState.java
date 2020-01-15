@@ -24,7 +24,6 @@ import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.State;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +36,7 @@ public class ValidatorState implements State<ValidatorState> {
 
 
     private byte[] getKeyFromPublicKey(byte[] pubKey) {
+        if(pubKey.length == 20) return pubKey;
         return PublicKeyHash.fromPublicKey(pubKey).getPublicKeyHash();
     }
 

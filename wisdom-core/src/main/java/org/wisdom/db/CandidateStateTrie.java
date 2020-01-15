@@ -151,28 +151,29 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             return initialProposers;
         }
 
-        List<byte[]> res = bestCandidatesCache
+        return bestCandidatesCache
                 .get(HexBytes.fromBytes(hash))
                 .stream()
                 .map(CandidateInfo::getPublicKeyHash)
                 .map(HexBytes::getBytes)
                 .collect(Collectors.toList());
-
-        if (height + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
-            res = res.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
-        }
-        if (res.size() > 0) {
-            return res;
-        }
-        return initialProposers;
     }
 
     public List<byte[]> getProposers(Block parentBlock) {
+        List<byte[]> ret;
         if (parentBlock.nHeight % eraLinker.getBlocksPerEra() == 0) {
-            return getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
+            ret =getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
+        }else{
+            Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
+            ret = getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
         }
-        Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
-        return getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
+        if (parentBlock.nHeight + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
+            ret = ret.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
+        }
+        if (ret.size() > 0) {
+            return ret;
+        }
+        return initialProposers;
     }
 
     public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {

@@ -62,7 +62,6 @@ public class TestContext {
     @Bean
     public Genesis genesis(JSONEncodeDecoder codec, @Value("${wisdom.consensus.genesis}") String genesis)
             throws Exception {
-        System.out.println(genesis);
         Resource resource = new FileSystemResource(genesis);
         if (!resource.exists()) {
             resource = new ClassPathResource(genesis);
