@@ -463,7 +463,7 @@ public class TransactionCheck {
         APIResult apiResult = new APIResult();
         if (assetChangeowner.RLPdeserialization(data)) {
             //TODO hash的校验
-            if (assetChangeowner.getNewowner().length != 20) {
+            if (assetChangeowner.getNewowner().length != 32) {
                 return APIResult.newFailed("Newowner format check error");
             }
             //fromaddress

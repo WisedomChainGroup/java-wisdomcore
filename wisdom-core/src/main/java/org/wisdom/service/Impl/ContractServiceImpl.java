@@ -11,6 +11,7 @@ import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
+import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.service.ContractService;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,7 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public Object getParseContractTx(String txhash) {
         try {
-            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(Hex.decodeHex(txhash.toCharArray()));
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(RipemdUtility.ripemd160(Hex.decodeHex(txhash.toCharArray())));
             if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
                 return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
             }
@@ -45,7 +46,7 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public Object getRLPContractTx(String txhash) {
         try {
-            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(Hex.decodeHex(txhash.toCharArray()));
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(RipemdUtility.ripemd160(Hex.decodeHex(txhash.toCharArray())));
             if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
                 return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
             }

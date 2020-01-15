@@ -71,8 +71,12 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getBalance(String pubkeyhash) {
         try {
-            byte[] pubkey = Hex.decodeHex(pubkeyhash.toCharArray());
-            long balance = accountDB.getBalance(pubkey);
+            byte[] pubkeyhashbyte = Hex.decodeHex(pubkeyhash.toCharArray());
+            Optional<AccountState> ao=repository.getConfirmedAccountState(pubkeyhashbyte);
+            if(!ao.isPresent()){
+                return APIResult.newFailResult(2000, "SUCCESS", 0);
+            }
+            long balance = ao.get().getAccount().getBalance();
             return APIResult.newFailResult(2000, "SUCCESS", balance);
         } catch (DecoderException e) {
             return APIResult.newFailResult(5000, "Exception error");
@@ -85,12 +89,11 @@ public class HatchServiceImpl implements HatchService {
             byte[] pubkey = Hex.decodeHex(pubkeyhash.toCharArray());
             Block block = repository.getBestBlock();
             Optional<AccountState> accountState = repository.getAccountStateAt(block.getHash(), pubkey);
-            if (accountState.isPresent()) {
-                long nonce = accountState.get().getAccount().getNonce();
-                return APIResult.newFailResult(2000, "SUCCESS", nonce);
-            } else {
-                return APIResult.newFailResult(5000, "Exception error");
+            if (!accountState.isPresent()) {
+                return APIResult.newFailResult(2000, "0");
             }
+            long nonce = accountState.get().getAccount().getNonce();
+            return APIResult.newFailResult(2000, "SUCCESS", nonce);
         } catch (DecoderException e) {
             return APIResult.newFailResult(5000, "Exception error");
         }
