@@ -321,7 +321,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     @Override
     public List<byte[]> getProposersByParent(Block parent) {
-        return candidateStateTrie.getProposers(parent);
+        return candidateStateTrie.getProposersByParent(parent);
     }
 
     @Override

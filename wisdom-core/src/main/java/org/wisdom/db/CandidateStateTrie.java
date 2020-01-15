@@ -140,17 +140,6 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     List<byte[]> getProposersByEraLst(byte[] hash, long height) {
         if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
 
-        boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
-                eraLinker.getEraAtBlockNumber(height + 1) >= allowMinersJoinEra;
-
-        if (!enableMultiMiners && height >= 9235) {
-            return initialProposers.subList(0, 1);
-        }
-
-        if (!enableMultiMiners) {
-            return initialProposers;
-        }
-
         return bestCandidatesCache
                 .get(HexBytes.fromBytes(hash))
                 .stream()
@@ -159,17 +148,31 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 .collect(Collectors.toList());
     }
 
-    public List<byte[]> getProposers(Block parentBlock) {
+    public List<byte[]> getProposersByParent(Block parentBlock) {
+        boolean enableMultiMiners = allowMinersJoinEra >= 0 &&
+                eraLinker.getEraAtBlockNumber(parentBlock.nHeight + 1) >= allowMinersJoinEra;
+
+        if (!enableMultiMiners && parentBlock.nHeight >= 9235) {
+            return initialProposers.subList(0, 1);
+        }
+
+        if (!enableMultiMiners) {
+            return initialProposers;
+        }
+
         List<byte[]> ret;
+
         if (parentBlock.nHeight % eraLinker.getBlocksPerEra() == 0) {
-            ret =getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
+            ret = getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
         }else{
             Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
             ret = getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
         }
+
         if (parentBlock.nHeight + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
             ret = ret.stream().filter(WHITE_LIST::contains).collect(Collectors.toList());
         }
+
         if (ret.size() > 0) {
             return ret;
         }
@@ -177,7 +180,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     public Optional<Proposer> getProposer(Block parentBlock, long timeStamp) {
-        List<HexBytes> proposers = getProposers(parentBlock).stream()
+        List<HexBytes> proposers = getProposersByParent(parentBlock).stream()
                 .map(HexBytes::fromBytes)
                 .collect(Collectors.toList());
 

@@ -155,7 +155,6 @@ public class TriesSyncManager {
         }
 
         log.info("current best block height is {}, start fast sync to {}", currentHeight, preBuiltGenesis.getBlock().nHeight);
-        Block[] parent = new Block[1];
 
         readBlocks(currentHeight + 1)
                 .peek((b) -> {
@@ -169,7 +168,8 @@ public class TriesSyncManager {
                 .peek(b -> {
                     if (!checkPointRule.validateBlock(b).isSuccess())
                         throw new RuntimeException("invalid block in fast sync directory");
-                    if (parent[0] != null && !FastByteComparisons.equal(parent[0].getHash(), b.hashPrevBlock)) {
+                    Block parent = bc.getHeaderByHash(b.hashPrevBlock);
+                    if (parent == null || !FastByteComparisons.equal(parent.getHash(), b.hashPrevBlock)) {
                         throw new RuntimeException("invalid block in fast sync directory");
                     }
                     if (b.nHeight == preBuiltGenesis.block.nHeight
@@ -179,7 +179,6 @@ public class TriesSyncManager {
                         double status = (b.nHeight - currentHeight) * 1.0 / (preBuiltGenesis.getBlock().nHeight - currentHeight);
                         log.info("fast sync status {}%", String.format("%.2f", status * 100));
                     }
-                    parent[0] = b;
                 })
                 .forEach(bc::writeBlock);
     }
