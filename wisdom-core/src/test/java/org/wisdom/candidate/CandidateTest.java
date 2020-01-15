@@ -1,0 +1,69 @@
+package org.wisdom.candidate;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.tdf.common.util.HexBytes;
+import org.wisdom.context.BlockStreamBuilder;
+import org.wisdom.core.Block;
+import org.wisdom.db.CandidateStateTrie;
+import org.wisdom.dumps.TargetCacheTest;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes = CandidateContext.class)
+public class CandidateTest {
+    @Autowired
+    protected CandidateStateTrie candidateStateTrie;
+
+
+    @Value("${wisdom.consensus.blocks-per-era}")
+    private int blocksPerEra;
+
+
+    @Autowired
+    private BlockStreamBuilder blockStreamBuilder;
+
+    protected TargetCacheTest.MockRepository mockRepository;
+
+
+
+    @Before
+    public void before() {
+        this.mockRepository = new TargetCacheTest.MockRepository();
+        this.candidateStateTrie.setRepository(mockRepository);
+    }
+
+    @Test
+    public void test() {
+        List<Block> era = new ArrayList<>(blocksPerEra);
+        Block[] parent = new Block[1];
+
+        blockStreamBuilder.getBlocks()
+                .forEach(b -> {
+                    if (b.nHeight == 0) {
+                        parent[0] = b;
+                        return;
+                    }
+                    era.add(b);
+                    if(!HexBytes.fromBytes(candidateStateTrie.getProposer(parent[0], b.nTime).get().pubkeyHash).equals(HexBytes.fromBytes(b.body.get(0).to))){
+                        System.out.println("====");
+                    }
+                    parent[0] = b;
+                    if (era.size() < blocksPerEra) return;
+                    mockRepository.setAncestors(era);
+                    if (b.nHeight % 10000 == 0) {
+                        System.out.println(b.nHeight);
+                    }
+                    candidateStateTrie.commit(era);
+
+                    era.clear();
+                });
+    }
+}

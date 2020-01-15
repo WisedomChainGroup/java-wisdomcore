@@ -9,6 +9,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.tdf.common.trie.Trie;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.tdf.common.util.LRUMap;
@@ -51,6 +52,13 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
             throw new RuntimeException(e);
         }
     }).collect(Collectors.toList()));
+
+    // parent block hash -> proposers's public key hash
+    private static final Map<byte[], byte[]> WHITE_MAP = new ByteArrayMap<byte[]>() {
+        {
+//            put(HexBytes.decode(), HexBytes.decode(""));
+        }
+    };
 
     private long allowMinersJoinEra;
 
@@ -120,7 +128,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     @Override
-    protected void setRepository(WisdomRepository repository) {
+    public void setRepository(WisdomRepository repository) {
         super.setRepository(repository);
         candidateUpdater.setRepository(repository);
     }
@@ -164,7 +172,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
         if (parentBlock.nHeight % eraLinker.getBlocksPerEra() == 0) {
             ret = getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
-        }else{
+        } else {
             Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
             ret = getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
         }
