@@ -3,15 +3,17 @@ package org.wisdom.core.validate;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.consensus.pow.PackageCache;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.core.Block;
+import org.wisdom.core.TransactionVerifyUpdate;
 import org.wisdom.core.WhitelistTransaction;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
@@ -31,7 +33,7 @@ import static org.wisdom.core.account.Transaction.Type.*;
 import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 
-public class CheckoutTransactions {
+public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     private List<Transaction> transactionList;
 
@@ -57,7 +59,9 @@ public class CheckoutTransactions {
 
     private RateTable rateTable;
 
-    private MerkleRule merkleRule;
+    private Configuration configuration;
+
+    private WisdomBlockChain wisdomBlockChain;
 
     public CheckoutTransactions() {
         this.transactionList = new ArrayList<>();
@@ -68,7 +72,7 @@ public class CheckoutTransactions {
     }
 
     public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
-                     TransactionCheck transactionCheck, WhitelistTransaction whitelistTransaction, RateTable rateTable, MerkleRule merkleRule) {
+                     TransactionCheck transactionCheck, WhitelistTransaction whitelistTransaction, RateTable rateTable, Configuration configuration, WisdomBlockChain wisdomBlockChain) {
         this.transactionList = block.body;
         this.height = block.nHeight;
         this.parenthash = block.hashPrevBlock;
@@ -78,7 +82,8 @@ public class CheckoutTransactions {
         this.transactionCheck = transactionCheck;
         this.whitelistTransaction = whitelistTransaction;
         this.rateTable = rateTable;
-        this.merkleRule = merkleRule;
+        this.configuration = configuration;
+        this.wisdomBlockChain = wisdomBlockChain;
     }
 
     public Result CheckoutResult() {
@@ -133,7 +138,8 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
+    @Override
+    public Result CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         long balance = fromaccount.getBalance();
         balance -= tx.getFee();
         if (balance < 0) {
@@ -211,7 +217,8 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
+    @Override
+    public Result CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb中是否有重复的代币合约code存在
@@ -238,23 +245,24 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
+    @Override
+    public Result CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         AccountState toaccountState = getMapAccountState(tx);
         Account toaccount = toaccountState.getAccount();
         List<Account> accountList;
         if (tx.type == 1) {
-            accountList = PackageCache.updateTransfer(fromaccount, toaccount, tx);
+            accountList = updateTransfer(fromaccount, toaccount, tx);
         } else if (tx.type == 2) {
-            accountList = PackageCache.updateVote(fromaccount, toaccount, tx);
+            accountList = updateVote(fromaccount, toaccount, tx);
         } else {
-            accountList = PackageCache.UpdateCancelVote(fromaccount, toaccount, tx);
+            accountList = updateCancelVote(fromaccount, toaccount, tx);
         }
         if (accountList == null) {
             peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
             return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Update account cannot be null");
         }
         accountList.forEach(account -> {
-            if (account.getKey().equals(Hex.encodeHexString(publicKeyHash))) {
+            if (Arrays.equals(account.getPubkeyHash(), publicKeyHash)) {
                 accountState.setAccount(account);
                 map.put(publicKeyHash, accountState);
             } else {
@@ -265,7 +273,8 @@ public class CheckoutTransactions {
         return Result.SUCCESS;
     }
 
-    private Result CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
+    @Override
+    public Result CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         Account account = UpdateOtherAccount(fromaccount, tx);
         if (account == null) {
             peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
@@ -286,91 +295,25 @@ public class CheckoutTransactions {
         Map<byte[], Incubator> map = null;
         if (transaction.type == 10) {
             map = accountState.getInterestMap();
-            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            Incubator incubator = updateIncubtor(wisdomBlockChain, rateTable, configuration, map, transaction, nHeight);
             map.put(transaction.payload, incubator);
             accountState.setInterestMap(map);
         } else if (transaction.type == 11) {
             map = accountState.getShareMap();
-            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            Incubator incubator = updateIncubtor(wisdomBlockChain, rateTable, configuration, map, transaction, nHeight);
             map.put(transaction.payload, incubator);
             accountState.setShareMap(map);
         } else if (transaction.type == 12) {
             map = accountState.getInterestMap();
-            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            Incubator incubator = updateIncubtor(wisdomBlockChain, rateTable, configuration, map, transaction, nHeight);
             map.put(transaction.payload, incubator);
             accountState.setInterestMap(map);
         }
         return accountState;
     }
 
-    public Incubator UpdateIncubtor(Map<byte[], Incubator> map, Transaction transaction, long hieght) {
-        Incubator incubator = map.get(transaction.payload);
-        if (transaction.type == 10 || transaction.type == 11) {
-            incubator = merkleRule.UpdateExtIncuator(transaction, hieght, incubator);
-        }
-        if (transaction.type == 12) {
-            incubator = merkleRule.UpdateCostIncubator(incubator, hieght);
-        }
-        return incubator;
-    }
-
-    public Account UpdateOtherAccount(Account fromaccount, Transaction transaction) {
-        boolean state = false;
-        long balance = fromaccount.getBalance();
-        if (transaction.type == 3) {//存证事务,只需要扣除手续费
-            balance -= transaction.getFee();
-        } else if (transaction.type == 9) {//孵化事务
-            balance -= transaction.getFee();
-            balance -= transaction.amount;
-            long incubatecost = fromaccount.getIncubatecost();
-            incubatecost += transaction.amount;
-            fromaccount.setIncubatecost(incubatecost);
-        } else if (transaction.type == 10 || transaction.type == 11) {//提取利息、分享
-            balance -= transaction.getFee();
-            if (balance < 0) {
-                state = true;
-            }
-            balance += transaction.amount;
-        } else if (transaction.type == 12) {//本金
-            balance -= transaction.getFee();
-            if (balance < 0) {
-                state = true;
-            }
-            balance += transaction.amount;
-            long incubatecost = fromaccount.getIncubatecost();
-            incubatecost -= transaction.amount;
-            if (incubatecost < 0) {
-                state = true;
-            }
-            fromaccount.setIncubatecost(incubatecost);
-        } else if (transaction.type == 14) {//抵押
-            balance -= transaction.getFee();
-            balance -= transaction.amount;
-            long mortgage = fromaccount.getMortgage();
-            mortgage += transaction.amount;
-            fromaccount.setMortgage(mortgage);
-        } else if (transaction.type == 15) {//撤回抵押
-            balance -= transaction.getFee();
-            if (balance < 0) {
-                state = true;
-            }
-            balance += transaction.amount;
-            long mortgage = fromaccount.getMortgage();
-            mortgage -= transaction.amount;
-            if (mortgage < 0) {
-                state = true;
-            }
-            fromaccount.setMortgage(mortgage);
-        }
-        if (state || balance < 0) {
-            return null;
-        }
-        fromaccount.setBalance(balance);
-        fromaccount.setNonce(transaction.nonce);
-        return fromaccount;
-    }
-
-    private boolean CheckIncubatorTotal(Transaction transaction) {
+    @Override
+    public boolean CheckIncubatorTotal(Transaction transaction) {
         if (transaction.type == 9) {//孵化总地址校验
             try {
                 HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
@@ -398,7 +341,8 @@ public class CheckoutTransactions {
         return false;
     }
 
-    private AccountState getIncubatorTotal() {
+    @Override
+    public AccountState getIncubatorTotal() {
         byte[] totalhash = IncubatorAddress.resultpubhash();
         if (map.containsKey(totalhash)) {
             return map.get(totalhash);
@@ -407,16 +351,13 @@ public class CheckoutTransactions {
         }
     }
 
-    private AccountState getKeyAccountState(byte[] key) {
+    @Override
+    public AccountState getKeyAccountState(byte[] key) {
         if (map.containsKey(key)) {
             return map.get(key);
         } else {
             return wisdomRepository.getAccountStateAt(parenthash, key).get();
         }
-    }
-
-    private AccountState getMapAccountState(Transaction tx) {
-        return getKeyAccountState(tx.to);
     }
 
     private Result CheckTransaction(Transaction tx, byte[] publichash) {

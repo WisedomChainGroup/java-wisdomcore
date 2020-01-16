@@ -3,10 +3,11 @@ package org.wisdom.consensus.pow;
 import org.apache.commons.codec.DecoderException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.wisdom.command.Configuration;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.RateTable;
-import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
@@ -24,9 +25,6 @@ public class PackageMiner {
     private PeningTransPool peningTransPool;
 
     @Autowired
-    private MerkleRule merkleRule;
-
-    @Autowired
     private WaitCount waitCount;
 
     @Autowired
@@ -34,6 +32,12 @@ public class PackageMiner {
 
     @Autowired
     private WisdomRepository wisdomRepository;
+
+    @Autowired
+    private WisdomBlockChain wisdomBlockChain;
+
+    @Autowired
+    private Configuration configuration;
 
     public List<Transaction> TransferCheck(byte[] parenthash, long height, Block block) throws DecoderException {
         Map<String, TreeMap<Long, TransPool>> maps = peningTransPool.getAllMap();
@@ -43,7 +47,7 @@ public class PackageMiner {
             return new ArrayList<>();
         }
         PackageCache packageCache = new PackageCache();
-        packageCache.init(peningTransPool, wisdomRepository, merkleRule, waitCount, rateTable,
+        packageCache.init(peningTransPool, wisdomRepository, configuration, wisdomBlockChain, waitCount, rateTable,
                 accountStateMap, maps, parenthash, block, height, block.size());
         List<Transaction> packageTransaction = packageCache.getRightTransactions();
         if (packageTransaction == null) {
