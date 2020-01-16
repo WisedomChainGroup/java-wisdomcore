@@ -68,9 +68,7 @@ public class CandidateTest {
 
                     HexBytes actual = HexBytes.fromBytes(b.body.get(0).to);
 
-                    if(!expected.equals(actual)){
-                        System.out.println("===");
-                    }
+                    assert expected.equals(actual);
 
                     parent[0] = b;
                     if (era.size() < blocksPerEra) return;
