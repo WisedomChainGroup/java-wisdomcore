@@ -83,9 +83,12 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     // remove orphans return writable blocks，过滤掉孤块
     public ChainCache<BlockWrapper> removeAndCacheOrphans(List<Block> blocks) {
-        ChainCache<BlockWrapper> cache =
-                ChainCache.of(blocks.stream().map(BlockWrapper::new)
-                        .collect(Collectors.toList()));
+        ChainCache<BlockWrapper> cache = ChainCache.<BlockWrapper>builder()
+                .comparator(BlockWrapper.COMPARATOR)
+                .build();
+
+        cache.addAll(blocks.stream().map(BlockWrapper::new)
+                .collect(Collectors.toList()));
 
         ChainCache<BlockWrapper> ret = ChainCache.<BlockWrapper>builder()
                 .comparator(BlockWrapper.COMPARATOR).build();
