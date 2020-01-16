@@ -14,7 +14,7 @@ public class JpaController {
     @Autowired
     private HeaderDao headerDao;
 
-    @GetMapping(value = {"/version", "/"}, produces = "application/json")
+    @GetMapping(value = {"/entity", "/"}, produces = "application/json")
     public Object getVersion() {
         HeaderEntity entity = headerDao.findByHeight(1L);
         return APIResult.newFailResult(2000, "SUCCESS", entity);
