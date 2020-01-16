@@ -8,10 +8,8 @@ import javax.persistence.Table;
 
 
 @Table(name = TransactionIndexEntity.TABLE_TRANSACTION_INDEX, indexes = {
-        @Index(name = "hash_prev_index", columnList = HeaderEntity.COLUMN_HASH_PREV),
-        @Index(name = "hash_height_index", columnList = HeaderEntity.COLUMN_HEIGHT),
-        @Index(name = "created_at_index", columnList = HeaderEntity.COLUMN_CREATED_AT),
-        @Index(name = "block_hash_index", columnList = HeaderEntity.COLUMN_HASH),
+        @Index(name = "block_hash_index", columnList = TransactionIndexEntity.COLUMN_BLOCK_HASH),
+        @Index(name = "tx_hash_index", columnList = TransactionIndexEntity.COLUMN_TX_HASH),
 })
 public class TransactionIndexEntity {
 
