@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.tdf.common.util.HexBytes;
+import org.wisdom.consensus.pow.Proposer;
+import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.context.BlockStreamBuilder;
 import org.wisdom.core.Block;
 import org.wisdom.db.CandidateStateTrie;
@@ -15,6 +17,7 @@ import org.wisdom.dumps.TargetCacheTest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = CandidateContext.class)
@@ -52,9 +55,21 @@ public class CandidateTest {
                         return;
                     }
                     era.add(b);
-                    if(!HexBytes.fromBytes(candidateStateTrie.getProposer(parent[0], b.nTime).get().pubkeyHash).equals(HexBytes.fromBytes(b.body.get(0).to))){
-                        System.out.println("====");
-                    }
+
+                    List<HexBytes> proposers = candidateStateTrie
+                            .getProposersByParent(parent[0])
+                            .stream().map(HexBytes::fromBytes).collect(Collectors.toList());
+
+                    HexBytes expected = candidateStateTrie
+                            .getProposer(parent[0], b.nTime)
+                            .map(p -> p.pubkeyHash)
+                            .map(HexBytes::fromBytes)
+                            .get();
+
+                    HexBytes actual = HexBytes.fromBytes(b.body.get(0).to);
+
+                    assert expected.equals(actual);
+
                     parent[0] = b;
                     if (era.size() < blocksPerEra) return;
                     mockRepository.setAncestors(era);
