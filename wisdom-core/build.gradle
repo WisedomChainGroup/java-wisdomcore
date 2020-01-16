@@ -331,6 +331,8 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-security:${springbootVersion}"
 
     compile 'com.github.ben-manes.caffeine:caffeine:2.8.0'
+
+    compile "org.springframework.boot:spring-boot-starter-data-jpa:${springbootVersion}"
 }
 
 
