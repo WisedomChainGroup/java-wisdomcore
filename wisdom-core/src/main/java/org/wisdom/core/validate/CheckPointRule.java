@@ -39,6 +39,12 @@ public class CheckPointRule implements BlockRule {
                 put(160000L, "133aa371ee687ed6f18a72584ba91df5eebf985303e9a1e8adfede0ea9060770");
                 put(200000L, "36c450ad56b8978628b97e4fb5b020eb479dd2e5b5867e05db7b8abe498b77f0");
                 put(250000L, "31a835c68c296741793b1517e35359dd2565ef8d711ca95db8b9dc1773a67720");
+                put(300000L, "5387ed5c7dd4edea1247479d562ae89b43f6faf2a8e9be8ce1dade5f89674761");
+                put(400000L, "78a7d913a7c9bcf335a2003c203f0f347c92edee9496f337772f9a8d2ce36e8f");
+                put(500000L, "10ecba1383be2a4aa55f6b7e32bf181dc99d36ec1f7da94fbdb3bbb56266764e");
+                put(600000L, "7d736040823abfc081f5e7981503d3f48dd3c1d5ff422575edd687146da70f1e");
+                put(700000L, "db51d99385a6c81079d8fdf108cec5fd546923faa7895bdc31f673618d54fbe1");
+                put(800000L, "c65ee3dc3ab338edb31511331bc451169797adaa7369d936db9ab4b5eed66364");
             }
         };
     }

@@ -82,23 +82,23 @@ public class MerkleRule implements BlockRule {
         if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
             return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
         }
-        try {
-            Map<String, Object> merklemap = validateMerkle(block, block.body, block.nHeight);
-            List<Account> accountList = (List<Account>) merklemap.get("account");
-            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
-            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
-                return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
-            }
-            // 交易所不校验孵化状态
-            if (!validateIncubator) {
-                return Result.SUCCESS;
-            }
-            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
-                return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
-            }
-        } catch (Exception e) {
-            return Result.Error("error occurs when validate merle hash");
-        }
+//        try {
+//            Map<String, Object> merklemap = validateMerkle(block, block.body, block.nHeight);
+//            List<Account> accountList = (List<Account>) merklemap.get("account");
+//            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
+//            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
+//                return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
+//            }
+//            // 交易所不校验孵化状态
+//            if (!validateIncubator) {
+//                return Result.SUCCESS;
+//            }
+//            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
+//                return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
+//            }
+//        } catch (Exception e) {
+//            return Result.Error("error occurs when validate merle hash");
+//        }
         return Result.SUCCESS;
     }
 
@@ -115,9 +115,9 @@ public class MerkleRule implements BlockRule {
         boolean isdisplay = false;
         for (Transaction tran : transactionList) {
             Account toaccount = accmap.get(
-                            HexBytes.encode(tran.to));
+                    HexBytes.encode(tran.to));
 
-            if(toaccount == null){
+            if (toaccount == null) {
                 toaccount = accountDB.getTrieByBlockHash(block.hashPrevBlock)
                         .get(tran.to)
                         .map(AccountState::getAccount)
@@ -131,7 +131,7 @@ public class MerkleRule implements BlockRule {
             byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
             Account fromaccount = accmap.get(HexBytes.encode(frompubhash));
 
-            if(fromaccount == null){
+            if (fromaccount == null) {
                 fromaccount = accountDB.getTrieByBlockHash(block.hashPrevBlock)
                         .get(frompubhash)
                         .map(AccountState::getAccount)

@@ -63,6 +63,10 @@ public class PendingBlocksManager {
             logger.error("validate the block fail error = " + res.getMessage());
             return;
         }
+        Result result = merkleRule.validateBlock(b);
+        if (!result.isSuccess()) {
+            merkleTreeManager.writeBlockToCache(b);
+        }
         b.weight = 1;
         wisdomRepository.writeBlock(b);
     }
