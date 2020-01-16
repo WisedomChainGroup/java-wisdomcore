@@ -282,8 +282,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 Asset asset = Asset.getAsset(rlpbyte);
 
                 byte[] fromhash = Address.publicKeyToHash(tx.from);
-                if (Arrays.equals(fromhash, account.getPubkeyHash()) &&
-                        Arrays.equals(fromhash, Address.publicKeyToHash(asset.getOwner()))) {//from和owner相同
+                if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
                     long balance = account.getBalance();
                     balance -= tx.getFee();
                     account.setBalance(balance);
@@ -291,9 +290,11 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     account.setBlockHeight(height);
                     accountState.setAccount(account);
 
-                    Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                    tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
-                    accountState.setTokensMap(tokensmap);
+                    if (Arrays.equals(fromhash, Address.publicKeyToHash(asset.getOwner()))) {//from和owner相同
+                        Map<byte[], Long> tokensmap = accountState.getTokensMap();
+                        tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
+                        accountState.setTokensMap(tokensmap);
+                    }
                 }
                 if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
                     accountState.setType(1);

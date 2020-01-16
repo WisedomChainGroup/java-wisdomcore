@@ -89,10 +89,10 @@ public class ContractServiceImpl implements ContractService {
                         .orElseThrow(() -> new RuntimeException("asset " + assetCode + " not found"));
 
         AccountState asset =
-                wisdomRepository.getConfirmedAccountState(info.getAsset160hash())
-                        .filter(a -> a.getType() == 1)
-                        .orElseThrow(() -> new RuntimeException("asset " + assetCode + " not found"));
+                wisdomRepository.getConfirmedAccountState(publicKeyHash)
+                        .filter(a -> a.getType() == 0)
+                        .orElseThrow(() -> new RuntimeException("Account does not exist"));
 
-        return asset.getTokensMap().getOrDefault(publicKeyHash, 0L);
+        return asset.getTokensMap().getOrDefault(info.getAsset160hash(), 0L);
     }
 }
