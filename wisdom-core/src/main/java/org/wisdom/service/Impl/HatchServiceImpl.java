@@ -27,16 +27,15 @@ import org.wisdom.command.Configuration;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
+import org.wisdom.db.SyncTransactionCustomize;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.service.HatchService;
-import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,12 +50,6 @@ import static java.util.stream.Collectors.toList;
 public class HatchServiceImpl implements HatchService {
 
     @Autowired
-    AccountDB accountDB;
-
-    @Autowired
-    IncubatorDB incubatorDB;
-
-    @Autowired
     WisdomBlockChain wisdomBlockChain;
 
     @Autowired
@@ -68,12 +61,15 @@ public class HatchServiceImpl implements HatchService {
     @Autowired
     private WisdomRepository repository;
 
+    @Autowired
+    SyncTransactionCustomize syncTransactionCustomize;
+
     @Override
     public Object getBalance(String pubkeyhash) {
         try {
             byte[] pubkeyhashbyte = Hex.decodeHex(pubkeyhash.toCharArray());
-            Optional<AccountState> ao=repository.getConfirmedAccountState(pubkeyhashbyte);
-            if(!ao.isPresent()){
+            Optional<AccountState> ao = repository.getConfirmedAccountState(pubkeyhashbyte);
+            if (!ao.isPresent()) {
                 return APIResult.newFailResult(2000, "SUCCESS", 0);
             }
             long balance = ao.get().getAccount().getBalance();
@@ -101,7 +97,7 @@ public class HatchServiceImpl implements HatchService {
 
     @Override
     public Object getTransfer(int height) {
-        List<Map<String, Object>> list = accountDB.selectlistTran(height, 1, Transaction.GAS_TABLE[1]);
+        List<Map<String, Object>> list = syncTransactionCustomize.selectlistTran(height, 1, Transaction.GAS_TABLE[1]);
         JSONArray jsonArray = new JSONArray();
         for (Map<String, Object> map : list) {
             byte[] from = (byte[]) map.get("fromAddress");
@@ -116,7 +112,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getHatch(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistHacth(height, 9);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistHacth(height, 9);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 JSONObject json = JSONObject.fromObject(map);
@@ -147,7 +143,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getInterest(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistInterest(height, 10);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistInterest(height, 10);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 byte[] to = (byte[]) map.get("coinAddress");
@@ -155,16 +151,16 @@ public class HatchServiceImpl implements HatchService {
                 //分享者
                 String tranhex = map.get("coinHash").toString();
                 byte[] tranhash = Hex.decodeHex(tranhex.toCharArray());
-                Incubator incubator = incubatorDB.selectIncubator(tranhash);
-                if (incubator != null) {
-                    byte[] share = incubator.getShare_pubkeyhash();
-                    if (share != null && share.length > 0) {
-                        map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(share, (byte) 0x00, ""));
-                    } else {
-                        map.put("inviteAddress", "");
-                    }
+                Transaction transaction = wisdomBlockChain.getTransaction(tranhash);
+                if (transaction == null) {
+                    return APIResult.newFailResult(5000, "Hatching transactions do not exist");
+                }
+                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
+                String sharpub = payloadproto.getSharePubkeyHash();
+                if (sharpub != null && !sharpub.equals("")) {
+                    map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(Hex.decodeHex(sharpub.toCharArray()), (byte) 0x00, ""));
                 } else {
-                    return APIResult.newFailResult(5000, "Error in incubation state acquisition");
+                    map.put("inviteAddress", "");
                 }
                 jsonArray.add(map);
             }
@@ -177,7 +173,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getShare(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistShare(height, 11);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistShare(height, 11);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 byte[] to = (byte[]) map.get("coinAddress");
@@ -195,7 +191,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getCost(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistCost(height, 12);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCost(height, 12);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 String coinAddress = map.get("coinAddress").toString();
@@ -212,7 +208,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getVote(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistVote(height, 2);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistVote(height, 2);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 String coinAddress = map.get("coinAddress").toString();
@@ -232,7 +228,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getCancelVote(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistCancelVote(height, 13);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCancelVote(height, 13);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 String coinAddress = map.get("coinAddress").toString();
@@ -252,7 +248,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getMortgage(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistMortgage(height, 14);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistMortgage(height, 14);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 String toAddress = map.get("coinAddress").toString();
@@ -269,7 +265,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getCancelMortgage(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistCancelMortgage(height, 15);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCancelMortgage(height, 15);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
                 String toAddress = map.get("coinAddress").toString();
@@ -287,18 +283,23 @@ public class HatchServiceImpl implements HatchService {
     public Object getNowInterest(String tranhash) {
         try {
             byte[] trhash = Hex.decodeHex(tranhash.toCharArray());
-            //查询当前孵化记录
-            Incubator incubator = incubatorDB.selectIncubator(trhash);
-            if (incubator == null) {
-                return APIResult.newFailResult(5000, "Error in incubation state acquisition");
-            }
-            if (incubator.getInterest_amount() == 0 || incubator.getCost() == 0) {
-                return APIResult.newFailResult(3000, "There is no interest to be paid");
-            }
             //孵化事务
             Transaction transaction = wisdomBlockChain.getTransaction(trhash);
             if (transaction == null) {
                 return APIResult.newFailResult(5000, "Transaction unavailable. Check transaction hash");
+            }
+            Optional<AccountState> oa = repository.getConfirmedAccountState(transaction.to);
+            if (!oa.isPresent()) {
+                return APIResult.newFailResult(5000, "The account does not exist");
+            }
+            Map<byte[], Incubator> interestMap = oa.get().getInterestMap();
+            if (!interestMap.containsKey(trhash)) {
+                return APIResult.newFailResult(5000, "Error in incubation state acquisition");
+            }
+            //查询当前孵化记录
+            Incubator incubator = interestMap.get(trhash);
+            if (incubator.getInterest_amount() == 0 || incubator.getCost() == 0) {
+                return APIResult.newFailResult(3000, "There is no interest to be paid");
             }
             HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
             int days = payloadproto.getType();
@@ -351,20 +352,28 @@ public class HatchServiceImpl implements HatchService {
     public Object getNowShare(String tranhash) {
         try {
             byte[] trhash = Hex.decodeHex(tranhash.toCharArray());
-            //查询当前孵化记录
-            Incubator incubator = incubatorDB.selectIncubator(trhash);
-            if (incubator == null) {
-                return APIResult.newFailResult(5000, "Error in incubation state acquisition");
-            }
-            if (incubator.getShare_amount() == 0) {
-                return APIResult.newFailResult(3000, "There is no share to be paid");
-            }
             //孵化事务
             Transaction transaction = wisdomBlockChain.getTransaction(trhash);
             if (transaction == null) {
                 return APIResult.newFailResult(5000, "Transaction unavailable. Check transaction hash");
             }
             HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
+            Optional<AccountState> oa = repository.getConfirmedAccountState(Hex.decodeHex(payloadproto.getSharePubkeyHash().toCharArray()));
+            if (!oa.isPresent()) {
+                return APIResult.newFailResult(5000, "The account does not exist");
+            }
+            Map<byte[], Incubator> shareMap = oa.get().getShareMap();
+            if(!shareMap.containsKey(trhash)){
+                return APIResult.newFailResult(5000, "Error in incubation state acquisition");
+            }
+            //查询当前孵化记录
+            Incubator incubator = shareMap.get(trhash);
+            if (incubator == null) {
+                return APIResult.newFailResult(5000, "Error in incubation state acquisition");
+            }
+            if (incubator.getShare_amount() == 0) {
+                return APIResult.newFailResult(3000, "There is no share to be paid");
+            }
             int days = payloadproto.getType();
             String nowrate = rateTable.selectrate(transaction.height, days);
             //当前最高高度
@@ -419,7 +428,7 @@ public class HatchServiceImpl implements HatchService {
             if (KeystoreAction.verifyAddress(address) == 0) {
                 byte[] pubkeyhash = KeystoreAction.addressToPubkeyHash(address);
                 List<Map<String, Object>> list = new ArrayList<>();
-                List<Map<String, Object>> tolist = accountDB.selectTranto(pubkeyhash);
+                List<Map<String, Object>> tolist = syncTransactionCustomize.selectTranto(pubkeyhash);
                 for (Map<String, Object> to : tolist) {
                     Map<String, Object> maps = to;
                     String from = maps.get("from").toString();
@@ -436,7 +445,7 @@ public class HatchServiceImpl implements HatchService {
                     maps.put("type", "+");
                     list.add(maps);
                 }
-                List<Map<String, Object>> fromlist = accountDB.selectTranfrom(pubkeyhash);
+                List<Map<String, Object>> fromlist = syncTransactionCustomize.selectTranfrom(pubkeyhash);
                 for (Map<String, Object> from : fromlist) {
                     Map<String, Object> maps = from;
                     String froms = maps.get("from").toString();
@@ -470,7 +479,7 @@ public class HatchServiceImpl implements HatchService {
     @Override
     public Object getCoinBaseList(int height) {
         try {
-            List<Map<String, Object>> list = accountDB.selectlistCoinBase(height);
+            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCoinBase(height);
             int count = 0;
             Map<String, Object> maps = new HashMap<>();
             for (Map<String, Object> map : list) {

@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
-import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
@@ -47,7 +46,6 @@ import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.service.Impl.CommandServiceImpl;
-import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;

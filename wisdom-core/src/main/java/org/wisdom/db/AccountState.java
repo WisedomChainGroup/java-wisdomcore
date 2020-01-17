@@ -1,7 +1,9 @@
 package org.wisdom.db;
 
+import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.RLP;
+import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPDecoding;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.incubator.Incubator;
@@ -121,6 +123,10 @@ public class AccountState {
         accountState.setContract(Contract);
         accountState.setTokensMap(new ByteArrayMap<>(TokensMap));
         return accountState;
+    }
+
+    public String getHexAccountState(){
+        return Hex.encodeHexString(RLPCodec.encode(this));
     }
 
     public byte[] getKey(){
