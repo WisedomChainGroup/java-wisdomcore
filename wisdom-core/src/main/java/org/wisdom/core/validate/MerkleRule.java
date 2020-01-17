@@ -99,14 +99,17 @@ public class MerkleRule implements BlockRule {
         if (block.getnHeight() < validateHeight) {
             return Result.SUCCESS;
         }
-        Map<byte[],AccountState> accountStateMap=accountStateUpdater.
+        Map<byte[], AccountState> accountStateMap = accountStateUpdater.
                 update(accountDB.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
-                        block.body.stream().map(tx->{
-                            return new TransactionInfo(tx,block.nHeight);
+                        block.body.stream().map(tx -> {
+                            return new TransactionInfo(tx, block.nHeight);
                         }).collect(Collectors.toList()));
         List<AccountState> accountStateList = new ArrayList<>(accountStateMap.values());
         if (!Arrays.equals(block.hashMerkleState, Block.calculateMerkleState(accountStateList))) {
             return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountStateList)));
+        }
+        if (!Arrays.equals(block.hashMerkleIncubate, new byte[32])) {
+            return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(new byte[32]));
         }
         return Result.SUCCESS;
     }
