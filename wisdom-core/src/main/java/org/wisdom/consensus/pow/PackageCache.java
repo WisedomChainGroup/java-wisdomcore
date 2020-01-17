@@ -6,6 +6,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tdf.common.util.ByteArrayMap;
+import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
@@ -13,11 +14,12 @@ import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
+import org.wisdom.core.TransactionVerifyUpdate;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
-import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.PeningTransPool;
@@ -35,7 +37,7 @@ import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.MULTTRANSFER;
 
-public class PackageCache {
+public class PackageCache implements TransactionVerifyUpdate<Object> {
 
     private static final Logger logger = LoggerFactory.getLogger(PackageCache.class);
 
@@ -67,7 +69,9 @@ public class PackageCache {
 
     private WisdomRepository repository;
 
-    private MerkleRule merkleRule;
+    private Configuration configuration;
+
+    private WisdomBlockChain wisdomBlockChain;
 
     private WaitCount waitCount;
 
@@ -83,13 +87,14 @@ public class PackageCache {
         this.state = false;
     }
 
-    public void init(PeningTransPool peningTransPool, WisdomRepository repository, MerkleRule merkleRule,
+    public void init(PeningTransPool peningTransPool, WisdomRepository repository, Configuration configuration, WisdomBlockChain wisdomBlockChain,
                      WaitCount waitCount, RateTable rateTable, Map<byte[], AccountState> accountStateMap,
                      Map<String, TreeMap<Long, TransPool>> maps, byte[] parenthash,
                      Block block, long height, int size) {
         this.peningTransPool = peningTransPool;
         this.repository = repository;
-        this.merkleRule = merkleRule;
+        this.configuration = configuration;
+        this.wisdomBlockChain = wisdomBlockChain;
         this.waitCount = waitCount;
         this.rateTable = rateTable;
         this.accountStateMap = accountStateMap;
@@ -135,7 +140,7 @@ public class PackageCache {
                         case 1://转账
                         case 2://投票
                         case 13://撤回投票
-                            CheckFirstKind(accountState, fromaccount, transaction, publicKeyHash);
+                            CheckFirstKind(accountState, fromaccount, transaction, Hex.decodeHex(publicKeyHash.toCharArray()));
                             break;
                         case 3://存证事务,只需要扣除手续费
                         case 9://孵化事务
@@ -144,13 +149,13 @@ public class PackageCache {
                         case 12://本金
                         case 14://抵押
                         case 15://撤回抵押
-                            CheckOtherKind(accountState, fromaccount, transaction, publicKeyHash);
+                            CheckOtherKind(accountState, fromaccount, transaction, Hex.decodeHex(publicKeyHash.toCharArray()));
                             break;
                         case 7://部署合约
-                            CheckDeployContract(accountState, fromaccount, transaction, publicKeyHash);
+                            CheckDeployContract(accountState, fromaccount, transaction, Hex.decodeHex(publicKeyHash.toCharArray()));
                             break;
                         case 8://调用合约
-                            CheckCallContract(accountState, fromaccount, transaction, publicKeyHash);
+                            CheckCallContract(accountState, fromaccount, transaction, Hex.decodeHex(publicKeyHash.toCharArray()));
                             break;
                     }
                     if (state) {
@@ -179,12 +184,13 @@ public class PackageCache {
         return transactionList;
     }
 
-    private void CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
+    @Override
+    public Object CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         long balance = fromaccount.getBalance();
         balance -= tx.getFee();
         if (balance < 0) {
-            AddRemoveMap(publicKeyHash, tx.nonce);
-            return;
+            AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return null;
         }
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tx.nonce);
@@ -194,20 +200,20 @@ public class PackageCache {
             byte[] contract = assetaccountstate.getContract();
             Asset asset = Asset.getAsset(contract);
             if (asset == null) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 logger.error("Block packaging error, " + Hex.encodeHexString(tx.to) + ": asset definition RLP error");
-                return;
+                return null;
             }
             if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//跟换所有者
                 byte[] owner = asset.getOwner();
                 if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(ByteUtil.bytearrayridfirst(tx.payload));
                 if (Arrays.equals(owner, assetChangeowner.getNewowner())) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 asset.setOwner(assetChangeowner.getNewowner());
                 assetaccountstate.setContract(asset.RLPserialization());
@@ -218,14 +224,14 @@ public class PackageCache {
                 long tokenbalance = maps.get(tx.to);
                 tokenbalance -= assetTransfer.getValue();
                 if (tokenbalance < 0) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 maps.put(tx.to, tokenbalance);
                 accountState.setTokensMap(maps);
 
                 //to
-                AccountState toaccountstate = getKeyAccounState(assetTransfer.getTo());
+                AccountState toaccountstate = getKeyAccountState(assetTransfer.getTo());
                 Map<byte[], Long> tomaps = toaccountstate.getTokensMap();
                 long tobalance = 0;
                 if (tomaps.containsKey(tx.to)) {
@@ -238,41 +244,42 @@ public class PackageCache {
             } else {//increased
                 if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
                         || Arrays.equals(asset.getOwner(), new byte[32])) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
                 long totalamount = asset.getTotalamount();
                 totalamount += assetIncreased.getAmount();
                 if (totalamount <= 0) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 asset.setTotalamount(totalamount);
                 assetaccountstate.setContract(asset.RLPserialization());
                 newMap.put(tx.to, assetaccountstate);
 
                 Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                long tokensbalance=0;
-                if(tokensmap.containsKey(tx.to)){
+                long tokensbalance = 0;
+                if (tokensmap.containsKey(tx.to)) {
                     tokensbalance = tokensmap.get(tx.to);
                 }
                 tokensbalance += assetIncreased.getAmount();
                 tokensmap.put(tx.to, tokensbalance);
                 accountState.setTokensMap(tokensmap);
             }
-        }else if(tx.getContractType() == 1 && tx.getMethodType() == MULTTRANSFER.ordinal()){//多签
+        } else if (tx.getContractType() == 1 && tx.getMethodType() == MULTTRANSFER.ordinal()) {//多签
 
         }
-        newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
+        newMap.put(publicKeyHash, accountState);
+        return null;
     }
 
-    private void CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
+    public Object CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         long balance = fromaccount.getBalance();
         balance -= tx.getFee();
         if (balance < 0) {
-            AddRemoveMap(publicKeyHash, tx.nonce);
-            return;
+            AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return null;
         }
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tx.nonce);
@@ -281,30 +288,31 @@ public class PackageCache {
             case 0://代币
                 Asset asset = new Asset();
                 if (!asset.RLPdeserialization(ByteUtil.bytearrayridfirst(tx.payload))) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 //判断forkdb中是否有重复的代币合约code存在
                 if (repository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 //同一区块是否重复 Asset code
                 if (AssetcodeSet.contains(asset.getCode())) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 AssetcodeSet.add(asset.getCode());
                 break;
             case 1://多签
                 Multiple multiple = new Multiple();
                 if (!multiple.RLPdeserialization(ByteUtil.bytearrayridfirst(tx.payload))) {
-                    AddRemoveMap(publicKeyHash, tx.nonce);
-                    return;
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
                 }
                 break;
         }
-        newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
+        newMap.put(publicKeyHash, accountState);
+        return null;
     }
 
     private boolean CheckSize(Transaction tx) {
@@ -323,7 +331,8 @@ public class PackageCache {
         return !accountStateMap.containsKey(Hex.decodeHex(publicKeyHash.toCharArray()));
     }
 
-    private AccountState getKeyAccounState(byte[] key) {
+    @Override
+    public AccountState getKeyAccountState(byte[] key) {
         if (accountStateMap.containsKey(key)) {
             return accountStateMap.get(key);
         } else {
@@ -331,11 +340,8 @@ public class PackageCache {
         }
     }
 
-    private AccountState getMapAccountState(Transaction tx) {
-        return getKeyAccounState(tx.to);
-    }
-
-    private AccountState getIncubatorTotal() {
+    @Override
+    public AccountState getIncubatorTotal() {
         byte[] totalhash = IncubatorAddress.resultpubhash();
         if (accountStateMap.containsKey(totalhash)) {
             return accountStateMap.get(totalhash);
@@ -344,36 +350,38 @@ public class PackageCache {
         }
     }
 
-    private void CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
+    @Override
+    public Object CheckOtherKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         if (tx.type == 12) {
             if (repository.containsPayloadAt(block.hashPrevBlock, Transaction.Type.EXTRACT_COST.ordinal(), tx.payload)) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
-                return;
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
             }
         }
         if (tx.type == 15) {
             if (repository.containsPayloadAt(block.hashPrevBlock, EXIT_MORTGAGE.ordinal(), tx.payload)) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
-                return;
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
             }
         }
         Account account = UpdateOtherAccount(fromaccount, tx);
         if (account == null) {
-            AddRemoveMap(publicKeyHash, tx.nonce);
-            return;
+            AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return null;
         }
         if (CheckIncubatorTotal(tx)) {
-            AddRemoveMap(publicKeyHash, tx.nonce);
-            return;
+            AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return null;
         }
         accountState.setAccount(account);
         //校验type 10、11、12事务
         VerifyHatch verifyHatch = updateHatch(accountState, tx, block.nHeight);
         if (!verifyHatch.state) {
-            AddRemoveMap(publicKeyHash, tx.nonce);
-            return;
+            AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return null;
         }
-        newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
+        newMap.put(publicKeyHash, accountState);
+        return null;
     }
 
     private void AddRemoveMap(String key, long nonce) {
@@ -381,7 +389,8 @@ public class PackageCache {
         state = true;
     }
 
-    private boolean CheckIncubatorTotal(Transaction transaction) {
+    @Override
+    public boolean CheckIncubatorTotal(Transaction transaction) {
         if (transaction.type == 9) {//孵化总地址校验
             try {
                 HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
@@ -409,7 +418,8 @@ public class PackageCache {
         return false;
     }
 
-    private void CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, String publicKeyHash) throws DecoderException {
+    @Override
+    public Object CheckFirstKind(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         AccountState toaccountState = getMapAccountState(tx);
         Account toaccount = toaccountState.getAccount();
         List<Account> accountList = null;
@@ -419,155 +429,25 @@ public class PackageCache {
             accountList = updateVote(fromaccount, toaccount, tx);
         } else {
             if (repository.containsPayloadAt(block.hashPrevBlock, EXIT_VOTE.ordinal(), tx.payload)) {
-                AddRemoveMap(publicKeyHash, tx.nonce);
-                return;
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
             }
-            accountList = UpdateCancelVote(fromaccount, toaccount, tx);
+            accountList = updateCancelVote(fromaccount, toaccount, tx);
         }
         if (accountList == null) {
-            AddRemoveMap(publicKeyHash, tx.nonce);
-            return;
+            AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+            return null;
         }
-        for (Account account : accountList) {
-            if (account.getKey().equals(publicKeyHash)) {
+        accountList.stream().forEach(account -> {
+            if (Arrays.equals(account.getPubkeyHash(), publicKeyHash)) {
                 accountState.setAccount(account);
-                newMap.put(Hex.decodeHex(publicKeyHash.toCharArray()), accountState);
+                newMap.put(publicKeyHash, accountState);
             } else {
                 toaccountState.setAccount(account);
                 newMap.put(toaccount.getPubkeyHash(), toaccountState);
             }
-        }
-    }
-
-    public static List<Account> UpdateCancelVote(Account fromaccount, Account votetoccount, Transaction transaction) {
-        List<Account> list = new ArrayList<>();
-        long balance = fromaccount.getBalance();
-        balance -= transaction.getFee();
-        if (balance < 0) {
-            return null;
-        }
-        balance += transaction.amount;
-        //to-
-        long vote;
-        if (Arrays.equals(fromaccount.getPubkeyHash(), votetoccount.getPubkeyHash())) {//撤回自己投给自己的投票
-            vote = fromaccount.getVote();
-            vote -= transaction.amount;
-            fromaccount.setVote(vote);
-        } else {
-            vote = votetoccount.getVote();
-            vote -= transaction.amount;
-            votetoccount.setVote(vote);
-            list.add(votetoccount);
-        }
-        if (vote < 0) {
-            return null;
-        }
-        fromaccount.setBalance(balance);
-        fromaccount.setNonce(transaction.nonce);
-        list.add(fromaccount);
-        return list;
-    }
-
-    public static List<Account> updateTransfer(Account fromaccount, Account toaccount, Transaction transaction) {
-        List<Account> list = new ArrayList<>();
-        long balance = fromaccount.getBalance();
-        balance -= transaction.amount;
-        balance -= transaction.getFee();
-        if (Arrays.equals(fromaccount.getPubkeyHash(), toaccount.getPubkeyHash())) {
-            balance += transaction.amount;
-        } else {
-            long tobalance = toaccount.getBalance();
-            tobalance += transaction.amount;
-            toaccount.setBalance(tobalance);
-            list.add(toaccount);
-        }
-        if (balance < 0) {
-            return null;
-        }
-        fromaccount.setBalance(balance);
-        fromaccount.setNonce(transaction.nonce);
-        list.add(fromaccount);
-        return list;
-    }
-
-    public static List<Account> updateVote(Account fromaccount, Account toaccount, Transaction transaction) {
-        List<Account> list = new ArrayList<>();
-        long balance = fromaccount.getBalance();
-        balance -= transaction.amount;
-        balance -= transaction.getFee();
-        if (Arrays.equals(fromaccount.getPubkeyHash(), toaccount.getPubkeyHash())) {
-            long vote = fromaccount.getVote();
-            vote += transaction.amount;
-            fromaccount.setVote(vote);
-        } else {
-            long vote = toaccount.getVote();
-            vote += transaction.amount;
-            toaccount.setVote(vote);
-            list.add(toaccount);
-        }
-        if (balance < 0) {
-            return null;
-        }
-        fromaccount.setBalance(balance);
-        fromaccount.setNonce(transaction.nonce);
-        list.add(fromaccount);
-        return list;
-    }
-
-    public Account UpdateOtherAccount(Account fromaccount, Transaction transaction) {
-        boolean state = false;
-        long balance = fromaccount.getBalance();
-        if (transaction.type == 3) {//存证事务,只需要扣除手续费
-            balance -= transaction.getFee();
-        } else if (transaction.type == 9) {//孵化事务
-            balance -= transaction.getFee();
-            balance -= transaction.amount;
-            long incubatecost = fromaccount.getIncubatecost();
-            incubatecost += transaction.amount;
-            fromaccount.setIncubatecost(incubatecost);
-        } else if (transaction.type == 10 || transaction.type == 11) {//提取利息、分享
-            balance -= transaction.getFee();
-            if (balance < 0) {
-                state = true;
-            }
-            balance += transaction.amount;
-        } else if (transaction.type == 12) {//本金
-            balance -= transaction.getFee();
-            if (balance < 0) {
-                state = true;
-            }
-            balance += transaction.amount;
-            long incubatecost = fromaccount.getIncubatecost();
-            incubatecost -= transaction.amount;
-            if (incubatecost < 0) {
-                state = true;
-            }
-            fromaccount.setIncubatecost(incubatecost);
-        } else if (transaction.type == 14) {//抵押
-            balance -= transaction.getFee();
-            balance -= transaction.amount;
-            long mortgage = fromaccount.getMortgage();
-            mortgage += transaction.amount;
-            fromaccount.setMortgage(mortgage);
-        } else if (transaction.type == 15) {//撤回抵押
-            balance -= transaction.getFee();
-            if (balance < 0) {
-                state = true;
-            }
-            balance += transaction.amount;
-            long mortgage = fromaccount.getMortgage();
-            mortgage -= transaction.amount;
-            if (mortgage < 0) {
-                state = true;
-            }
-            fromaccount.setMortgage(mortgage);
-        }
-        if (state || balance < 0) {
-            return null;
-        }
-        fromaccount.setBalance(balance);
-        fromaccount.setNonce(transaction.nonce);
-        return fromaccount;
+        });
+        return null;
     }
 
     public VerifyHatch updateHatch(AccountState accountState, Transaction transaction, long nHeight) {
@@ -575,7 +455,7 @@ public class PackageCache {
         Map<byte[], Incubator> map = null;
         if (transaction.type == 10) {
             map = accountState.getInterestMap();
-            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            Incubator incubator = updateIncubtor(wisdomBlockChain, rateTable, configuration, map, transaction, nHeight);
             if (incubator.getInterest_amount() < 0 || incubator.getLast_blockheight_interest() > nHeight) {
                 verifyHatch.setState(false);
                 return verifyHatch;
@@ -584,7 +464,7 @@ public class PackageCache {
             accountState.setInterestMap(map);
         } else if (transaction.type == 11) {
             map = accountState.getShareMap();
-            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            Incubator incubator = updateIncubtor(wisdomBlockChain, rateTable, configuration, map, transaction, nHeight);
             if (incubator.getShare_amount() < 0 || incubator.getLast_blockheight_share() > nHeight) {
                 verifyHatch.setState(false);
                 return verifyHatch;
@@ -593,7 +473,7 @@ public class PackageCache {
             accountState.setShareMap(map);
         } else if (transaction.type == 12) {
             map = accountState.getInterestMap();
-            Incubator incubator = UpdateIncubtor(map, transaction, nHeight);
+            Incubator incubator = updateIncubtor(wisdomBlockChain, rateTable, configuration, map, transaction, nHeight);
             if (incubator.getInterest_amount() != 0) {
                 verifyHatch.setState(false);
                 return verifyHatch;
@@ -605,24 +485,13 @@ public class PackageCache {
         return verifyHatch;
     }
 
-    public Incubator UpdateIncubtor(Map<byte[], Incubator> map, Transaction transaction, long hieght) {
-        Incubator incubator = map.get(transaction.payload);
-        if (transaction.type == 10 || transaction.type == 11) {
-            incubator = merkleRule.UpdateExtIncuator(transaction, hieght, incubator);
-        }
-        if (transaction.type == 12) {
-            incubator = merkleRule.UpdateCostIncubator(incubator, hieght);
-        }
-        return incubator;
-    }
-
     @NoArgsConstructor
     @AllArgsConstructor
     @Getter
     @Setter
     public class VerifyHatch {
         public AccountState accountState;
-        public boolean state=true;
+        public boolean state = true;
     }
 
     public boolean updateWaitCount(String publicKeyHash, long nonce) {

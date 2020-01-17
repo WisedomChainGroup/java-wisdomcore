@@ -148,9 +148,11 @@ public class Miner implements ApplicationListener {
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
 
-        Map<String, Object> merklemap = merkleRule.validateMerkle(block, block.body, block.nHeight);
-        List<Account> accountList = (List<Account>) merklemap.get("account");
-        List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
+//        Map<String, Object> merklemap = merkleRule.validateMerkle(block, block.body, block.nHeight);
+//        List<Account> accountList = (List<Account>) merklemap.get("account");
+//        List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
+        List<Account> accountList =new ArrayList<>();
+        List<Incubator> incubatorList=new ArrayList<>();
         // hash merkle root
         block.hashMerkleRoot = Block.calculateMerkleRoot(block.body);
         block.hashMerkleState = Block.calculateMerkleState(accountList);

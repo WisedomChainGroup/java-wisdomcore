@@ -18,14 +18,15 @@
 package org.wisdom.core.validate;
 
 import lombok.Setter;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.Block;
 import org.wisdom.core.WhitelistTransaction;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
@@ -59,7 +60,10 @@ public class AccountRule implements BlockRule {
     WhitelistTransaction whitelistTransaction;
 
     @Autowired
-    MerkleRule merkleRule;
+    Configuration configuration;
+
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
 
     private boolean validateIncubator;
 
@@ -89,7 +93,7 @@ public class AccountRule implements BlockRule {
         if (!validateIncubator) {//交易所、默认模式
             if (block.nHeight > 0) {
                 CheckoutTransactions packageCheckOut = new CheckoutTransactions();
-                packageCheckOut.init(block, map, peningTransPool, wisdomRepository, transactionCheck, whitelistTransaction, rateTable, merkleRule);
+                packageCheckOut.init(block, map, peningTransPool, wisdomRepository, transactionCheck, whitelistTransaction, rateTable, configuration, wisdomBlockChain);
                 return packageCheckOut.CheckoutResult();
             }
         }
