@@ -56,39 +56,41 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private WisdomBlockChain wisdomBlockChain;
 
     @Override
-    public AccountState update(byte[] id, AccountState state, Block block, Transaction transaction) {
-        return updateOne(block, transaction, state.copy());
+    public AccountState update(byte[] id, AccountState state, TransactionInfo info) {
+        return updateOne(info, state.copy());
     }
 
-    public AccountState updateOne(Block block, Transaction transaction, AccountState accountState) {
+    public AccountState updateOne(TransactionInfo info, AccountState accountState) {
+        Transaction transaction = info.getTransaction();
+        long height = info.getHeight();
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
-                    return updateCoinBase(transaction, accountState, block.getnHeight());
+                    return updateCoinBase(transaction, accountState, height);
                 case 0x01://TRANSFER
-                    return updateTransfer(transaction, accountState, block.getnHeight());
+                    return updateTransfer(transaction, accountState, height);
                 case 0x02://VOTE
-                    return updateVote(transaction, accountState, block.getnHeight());
+                    return updateVote(transaction, accountState, height);
                 case 0x03://DEPOSIT
-                    return updateDeposit(transaction, accountState, block.getnHeight());
+                    return updateDeposit(transaction, accountState, height);
                 case 0x07://DEPLOY_CONTRACT
-                    return updateDeployContract(transaction, accountState, block.getnHeight());
+                    return updateDeployContract(transaction, accountState, height);
                 case 0x08://CALL_CONTRACT
-                    return updateCallContract(transaction, accountState, block.getnHeight());
+                    return updateCallContract(transaction, accountState, height);
                 case 0x09://INCUBATE
-                    return updateIncubate(transaction, accountState, block.getnHeight());
+                    return updateIncubate(transaction, accountState, height);
                 case 0x0a://EXTRACT_INTEREST
-                    return updateExtractInterest(transaction, accountState, block.getnHeight());
+                    return updateExtractInterest(transaction, accountState, height);
                 case 0x0b://EXTRACT_SHARING_PROFIT
-                    return updateExtractShare(transaction, accountState, block.getnHeight());
+                    return updateExtractShare(transaction, accountState, height);
                 case 0x0c://EXTRACT_COST
-                    return updateExtranctCost(transaction, accountState, block.getnHeight());
+                    return updateExtranctCost(transaction, accountState, height);
                 case 0x0d://EXIT_VOTE
-                    return updateCancelVote(transaction, accountState, block.getnHeight());
+                    return updateCancelVote(transaction, accountState, height);
                 case 0x0e://MORTGAGE
-                    return updateMortgage(transaction, accountState, block.getnHeight());
+                    return updateMortgage(transaction, accountState, height);
                 case 0x0f://EXTRACT_MORTGAGE
-                    return updateCancelMortgage(transaction, accountState, block.getnHeight());
+                    return updateCancelMortgage(transaction, accountState, height);
                 default:
                     throw new Exception("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
             }

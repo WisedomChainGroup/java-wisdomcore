@@ -4,13 +4,11 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArraySet;
 import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetCodeInfo;
-import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.util.ByteUtil;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -19,12 +17,12 @@ import java.util.Set;
 public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
 
     @Override
-    Map<byte[], AssetCodeInfo> getGenesisStates() {
+    public Map<byte[], AssetCodeInfo> getGenesisStates() {
         return Collections.emptyMap();
     }
 
     @Override
-    Set<byte[]> getRelatedKeys(Transaction transaction) {
+    public Set<byte[]> getRelatedKeys(Transaction transaction) {
         if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType() != 0)
             return Collections.emptySet();
         ByteArraySet set = new ByteArraySet();
@@ -34,7 +32,8 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
     }
 
     @Override
-    AssetCodeInfo update(byte[] id, AssetCodeInfo state, Block block, Transaction transaction) {
+    public AssetCodeInfo update(byte[] id, AssetCodeInfo state, TransactionInfo info) {
+        Transaction transaction = info.getTransaction();
         if (state != null) {
             throw new RuntimeException("AssetCodeInfo is not a null exception");
         }
@@ -54,7 +53,7 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
     }
 
     @Override
-    AssetCodeInfo createEmpty(byte[] id) {
+    public AssetCodeInfo createEmpty(byte[] id) {
         return null;
     }
 }
