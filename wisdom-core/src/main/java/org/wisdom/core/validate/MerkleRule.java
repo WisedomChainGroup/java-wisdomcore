@@ -39,6 +39,8 @@ import org.wisdom.core.incubator.IncubatorDB;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
+import org.wisdom.db.AccountStateUpdater;
+import org.wisdom.db.TransactionInfo;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -46,6 +48,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Setter
@@ -55,6 +58,9 @@ public class MerkleRule implements BlockRule {
 
     @Autowired
     AccountStateTrie accountDB;
+
+    @Autowired
+    AccountStateUpdater accountStateUpdater;
 
     @Autowired
     IncubatorDB incubatorDB;
@@ -72,8 +78,11 @@ public class MerkleRule implements BlockRule {
 
     private boolean validateIncubator;
 
-    public MerkleRule(@Value("${node-character}") String character) {
+    private long validateHeight;
+
+    public MerkleRule(@Value("${node-character}") String character, @Value("${merkle-height}") long merkleheight) {
         this.validateIncubator = !character.equals("exchange");
+        this.validateHeight = merkleheight;
     }
 
     @Override
@@ -82,26 +91,27 @@ public class MerkleRule implements BlockRule {
         if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
             return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
         }
-//        try {
-//            Map<String, Object> merklemap = validateMerkle(block, block.body, block.nHeight);
-//            List<Account> accountList = (List<Account>) merklemap.get("account");
-//            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
-//            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
-//                return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
-//            }
-//            // 交易所不校验孵化状态
-//            if (!validateIncubator) {
-//                return Result.SUCCESS;
-//            }
-//            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
-//                return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
-//            }
-//        } catch (Exception e) {
-//            return Result.Error("error occurs when validate merle hash");
-//        }
+        // 交易所不校验孵化状态
+        if (!validateIncubator) {
+            return Result.SUCCESS;
+        }
+        // 梅克尔校验指定高度校验
+        if (block.getnHeight() < validateHeight) {
+            return Result.SUCCESS;
+        }
+        Map<byte[],AccountState> accountStateMap=accountStateUpdater.
+                update(accountDB.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
+                        block.body.stream().map(tx->{
+                            return new TransactionInfo(tx,block.nHeight);
+                        }).collect(Collectors.toList()));
+        List<AccountState> accountStateList = new ArrayList<>(accountStateMap.values());
+        if (!Arrays.equals(block.hashMerkleState, Block.calculateMerkleState(accountStateList))) {
+            return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountStateList)));
+        }
         return Result.SUCCESS;
     }
 
+    @Deprecated
     public Map<String, Object> validateMerkle(Block block, List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
         Map<String, Account> accmap = new HashMap<>();
         Map<String, Incubator> incumap = new HashMap<>();

@@ -25,6 +25,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.db.AccountState;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
@@ -33,7 +34,6 @@ import org.wisdom.merkletree.TreeNode;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
-import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.slf4j.Logger;
@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -123,11 +124,8 @@ public class Block {
         return new byte[32];
     }
 
-    public static byte[] calculateMerkleState(List<Account> accounts) {
-        List<String> hashes = new ArrayList<>();
-        for (Account account : accounts) {
-//            hashes.add(account.getIdHexString());
-        }
+    public static byte[] calculateMerkleState(List<AccountState> accountStateList) {
+        List<String> hashes = accountStateList.stream().map(AccountState::getHexAccountState).collect(Collectors.toList());
         if (hashes.size() > 0) {
             try {
                 return Hex.decodeHex(new MerkleTree(hashes).getRoot().getHash().toCharArray());

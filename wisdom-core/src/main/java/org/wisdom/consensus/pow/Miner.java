@@ -19,17 +19,14 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.common.util.ChainCache;
 import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.crypto.HashUtil;
-import org.wisdom.db.WisdomRepository;
-import org.wisdom.core.account.Account;
+import org.wisdom.db.*;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
-import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.OfficialIncubateBalanceRule;
 import org.slf4j.Logger;
@@ -47,6 +44,7 @@ import org.wisdom.pool.PeningTransPool;
 import org.wisdom.util.Address;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class Miner implements ApplicationListener {
@@ -92,10 +90,15 @@ public class Miner implements ApplicationListener {
 
     @Autowired
     private CheckPointRule checkPointRule;
-    
+
     @Autowired
     private EconomicModel economicModel;
 
+    @Autowired
+    AccountStateUpdater accountStateUpdater;
+
+    @Autowired
+    AccountStateTrie accountStateTrie;
 
     public Miner() {
     }
@@ -132,13 +135,13 @@ public class Miner implements ApplicationListener {
         Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
-            if(isExit && tx.payload !=null && payloads.contains(Hex.encodeHexString(tx.payload))){
+            if (isExit && tx.payload != null && payloads.contains(Hex.encodeHexString(tx.payload))) {
                 String from = Hex.encodeHexString(Address.publicKeyToHash(tx.from));
                 peningTransPool.removeOne(from, tx.nonce);
                 adoptTransPool.removeOne(from, adoptTransPool.getKeyTrans(tx));
                 continue;
             }
-            if(isExit && tx.payload !=null){
+            if (isExit && tx.payload != null) {
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
             block.body.get(0).amount += tx.getFee();
@@ -148,15 +151,16 @@ public class Miner implements ApplicationListener {
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
 
-//        Map<String, Object> merklemap = merkleRule.validateMerkle(block, block.body, block.nHeight);
-//        List<Account> accountList = (List<Account>) merklemap.get("account");
-//        List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
-        List<Account> accountList =new ArrayList<>();
-        List<Incubator> incubatorList=new ArrayList<>();
+        Map<byte[],AccountState> accountStateMap=accountStateUpdater.
+                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
+                        block.body.stream().map(tx->{
+                            return new TransactionInfo(tx,block.nHeight);
+                        }).collect(Collectors.toList()));
+        List<AccountState> accountList = new ArrayList<>(accountStateMap.values());
         // hash merkle root
         block.hashMerkleRoot = Block.calculateMerkleRoot(block.body);
         block.hashMerkleState = Block.calculateMerkleState(accountList);
-        block.hashMerkleIncubate = Block.calculateMerkleIncubate(incubatorList);
+        block.hashMerkleIncubate = Block.calculateMerkleIncubate(new ArrayList<>());
         peningTransPool.updatePool(newTranList, 1, block.nHeight);
         return block;
     }
@@ -179,9 +183,9 @@ public class Miner implements ApplicationListener {
         Block bestBlock = repository.getBestBlock();
         // 判断是否轮到自己出块
         Optional<Proposer> p;
-        try{
+        try {
             p = repository.getProposerByParentAndEpoch(bestBlock, System.currentTimeMillis() / 1000);
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
