@@ -4,17 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import lombok.Getter;
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.HeaderDao;
+import org.wisdom.dao.TransactionDao;
+import org.wisdom.dao.TransactionIndexDao;
+import org.wisdom.service.BlockRepositoryService;
 
+import javax.transaction.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,14 +72,12 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
             .enable(SerializationFeature.INDENT_OUTPUT);
 
     public MemoryCachedWisdomBlockChain(
-            JdbcTemplate tmpl,
-            TransactionTemplate txTmpl,
+            HeaderDao headerDao,
+            TransactionDao transactionDao,
+            TransactionIndexDao transactionIndexDao,
             Block genesis,
-            ApplicationContext ctx,
-            @Value("${spring.datasource.username}") String databaseUserName,
-            @Value("${clear-data}") boolean clearData,
-            BasicDataSource basicDataSource) throws Exception {
-        this.delegate = new RDBMSBlockChainImpl(tmpl, txTmpl, genesis, ctx, databaseUserName, clearData, basicDataSource);
+            @Value("${clear-data}") boolean clearData) throws Exception {
+        this.delegate = new BlockRepositoryService(headerDao, transactionDao, transactionIndexDao, genesis, clearData);
     }
 
     // count method calls
@@ -244,6 +242,7 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
+    @Transactional
     public boolean writeBlock(Block block) {
         boolean ret = delegate.writeBlock(block);
         clearCache(block.getHash());

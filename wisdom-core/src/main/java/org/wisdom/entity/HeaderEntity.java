@@ -1,8 +1,18 @@
 package org.wisdom.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import javax.persistence.*;
 import java.util.List;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
 @Table(name = HeaderEntity.TABLE_HEADER, indexes = {
         @Index(name = "hash_prev_index", columnList = HeaderEntity.COLUMN_HASH_PREV),
         @Index(name = "hash_height_index", columnList = HeaderEntity.COLUMN_HEIGHT),
@@ -28,10 +38,10 @@ public class HeaderEntity {
 
     @Column(name = COLUMN_HASH, nullable = false)
     @Id
-    public byte[] block_hash;
+    public byte[] blockHash;
 
     @Column(name = COLUMN_VERSION, nullable = false)
-    public long nVersion;
+    public long version;
 
     @Column(name = COLUMN_HASH_PREV, nullable = false)
     public byte[] hashPrevBlock;
@@ -46,10 +56,10 @@ public class HeaderEntity {
     public byte[] hashMerkleIncubate;
 
     @Column(name = COLUMN_HEIGHT, nullable = false)
-    public long nHeight;
+    public long height;
 
     @Column(name = COLUMN_CREATED_AT, nullable = false)
-    public long nTime;
+    public long createdAt;
 
     @Column(name = COLUMN_BITS, nullable = false)
     public byte[] nBits;
@@ -66,9 +76,9 @@ public class HeaderEntity {
     @Column(name = COLUMN_IS_CANONICAL, nullable = false)
     public boolean is_canonical;
 
-    @OneToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "transaction_index", joinColumns = {@JoinColumn(name = "block_hash")}
-            , inverseJoinColumns = {@JoinColumn(name = "tx_hash")})
-    public List<TransactionEntity> transactions;
+//    @OneToMany(fetch = FetchType.EAGER)
+//    @JoinTable(name = "transaction_index", joinColumns = {@JoinColumn(name = "block_hash")}
+//            , inverseJoinColumns = {@JoinColumn(name = "tx_hash")})
+//    public List<TransactionEntity> transactions;
 
 }

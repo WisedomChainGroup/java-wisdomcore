@@ -27,17 +27,17 @@ public class TransactionEntity {
     static final String COLUMN_TX_VERSION = "version";
     static final String COLUMN_TX_TYPE = "type";
     static final String COLUMN_TX_NONCE = "nonce";
-    static final String COLUMN_TX_FROM = "from";
+    static final String COLUMN_TX_FROM = "[from]";
     static final String COLUMN_TX_GAS_PRICE = "gas_price";
     static final String COLUMN_TX_AMOUNT = "amount";
     static final String COLUMN_TX_PAYLOAD = "payload";
-    static final String COLUMN_TX_TO = "to";
-    static final String COLUMN_TX_SIGNATURE = "tx_signature";
+    static final String COLUMN_TX_TO = "[to]";
+    static final String COLUMN_TX_SIGNATURE = "signature";
     static final String TABLE_TRANSACTION= "transaction";
 
     @Column(name = COLUMN_TX_HASH, nullable = false)
     @Id
-    public byte[] block_hash;
+    public byte[] txHash;
 
     @Column(name = COLUMN_TX_VERSION, nullable = false)
     public int version;

@@ -24,6 +24,7 @@ wisdom:
     enable-mining: 'false'
   database:
     type: 'leveldb'
+    directory: 'database'
 
   open-check-point: 'true'
   ceo:
@@ -63,3 +64,5 @@ clear-data: 'false'
 
 p2p:
   max-blocks-per-transfer: '50'
+  bootstraps: 'wisdom://192.168.1.40:9585'
+  address: 'wisdom://@192.168.1.52:9589'

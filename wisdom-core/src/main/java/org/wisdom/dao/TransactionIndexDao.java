@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface TransactionIndexDao extends JpaRepository<TransactionIndexEntity, byte[]> {
 
-    List<TransactionIndexEntity> findTransactionIndexEntityByBlockHash(byte[] block_hash);
+    List<TransactionIndexEntity> findByBlockHash(byte[] blockHash);
 
 }

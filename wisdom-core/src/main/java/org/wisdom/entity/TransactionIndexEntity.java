@@ -1,12 +1,18 @@
 package org.wisdom.entity;
 
 
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import javax.persistence.*;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
 @Table(name = TransactionIndexEntity.TABLE_TRANSACTION_INDEX, indexes = {
         @Index(name = "block_hash_index", columnList = TransactionIndexEntity.COLUMN_BLOCK_HASH),
         @Index(name = "tx_hash_index", columnList = TransactionIndexEntity.COLUMN_TX_HASH),
@@ -20,12 +26,12 @@ public class TransactionIndexEntity {
 
     @Column(name = COLUMN_BLOCK_HASH, nullable = false)
     @Id
-    public byte[] block_hash;
+    public byte[] blockHash;
 
     @Column(name = COLUMN_TX_HASH, nullable = false)
-    public byte[] tx_hash;
+    public byte[] txHash;
 
     @Column(name = COLUMN_TX_INDEX)
-    public int tx_index;
+    public int txIndex;
 
 }
