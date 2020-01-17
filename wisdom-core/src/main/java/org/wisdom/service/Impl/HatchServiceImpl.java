@@ -357,7 +357,8 @@ public class HatchServiceImpl implements HatchService {
             if (transaction == null) {
                 return APIResult.newFailResult(5000, "Transaction unavailable. Check transaction hash");
             }
-            Optional<AccountState> oa = repository.getConfirmedAccountState(transaction.to);
+            HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
+            Optional<AccountState> oa = repository.getConfirmedAccountState(Hex.decodeHex(payloadproto.getSharePubkeyHash().toCharArray()));
             if (!oa.isPresent()) {
                 return APIResult.newFailResult(5000, "The account does not exist");
             }
@@ -373,7 +374,6 @@ public class HatchServiceImpl implements HatchService {
             if (incubator.getShare_amount() == 0) {
                 return APIResult.newFailResult(3000, "There is no share to be paid");
             }
-            HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(transaction.payload);
             int days = payloadproto.getType();
             String nowrate = rateTable.selectrate(transaction.height, days);
             //当前最高高度
