@@ -59,9 +59,9 @@ public class BlockRepositoryService implements WisdomBlockChain {
     }
 
     private void clearData() {
-        headerDao.deleteAllInBatch();
         transactionIndexDao.deleteAllInBatch();
         transactionDao.deleteAllInBatch();
+        headerDao.deleteAllInBatch();
     }
 
     private Block setBody(Block header) {
