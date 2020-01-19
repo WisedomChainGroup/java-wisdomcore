@@ -4,6 +4,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.Block;
@@ -168,16 +169,15 @@ public class BlockRepositoryService implements WisdomBlockChain {
     }
 
     @Override
-    @Transactional
     public boolean writeBlock(Block block) {
         try {
             headerDao.save(Mapping.getEntityFromHeader(block));
-            List<TransactionEntity> entities = Mapping.getEntitiesFromTransactions(block);
-            transactionDao.saveAll(entities);
+            transactionDao.saveAll(Mapping.getEntitiesFromTransactions(block));
             transactionIndexDao.saveAll(Mapping.getTransactionIndexEntitiesFromBlock(block));
         } catch (Exception e) {
             e.printStackTrace();
             log.error("failed to write block, height is" + block.getnHeight());
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return false;
         }
         return true;

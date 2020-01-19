@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
+import org.wisdom.service.BlockRepositoryService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +22,7 @@ public class CheckPointRule implements BlockRule {
     private Map<Long, String> confirms;
 
     @Autowired
-    private AccountDB accountDB;
+    private WisdomBlockChain bc;
 
     @Autowired
     private WisdomBlockChain wisdomBlockChain;
@@ -73,7 +73,7 @@ public class CheckPointRule implements BlockRule {
         if (!openCheckPoint) {
             return Result.SUCCESS;
         }
-        long height = accountDB.getBestHeight();
+        long height = bc.getTopHeight();
         List<Long> heights = confirms.keySet().stream().filter(h -> h <= height).collect(Collectors.toList());
         for (long h : heights) {
             Block b = wisdomBlockChain.getBlockByHeight(h);
