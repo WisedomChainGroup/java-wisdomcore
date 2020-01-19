@@ -860,8 +860,7 @@ public class TransactionCheck {
             apiResult.setMessage("The voting transaction payload was incorrectly formatted");
             return apiResult;
         }
-        Block best = wisdomRepository.getBestBlock();
-        boolean hasvote = wisdomRepository.containsPayloadAt(best.getHash(), Transaction.Type.EXIT_VOTE.ordinal(), payload);
+        boolean hasvote = wisdomBlockChain.containsPayload(Transaction.Type.EXIT_VOTE.ordinal(), payload);
         if (!hasvote) {
             apiResult.setCode(5000);
             apiResult.setMessage("The vote has been withdrawn");
@@ -916,8 +915,7 @@ public class TransactionCheck {
             apiResult.setMessage("The mortgage transaction payload was incorrectly formatted");
             return apiResult;
         }
-        Block best = wisdomRepository.getBestBlock();
-        boolean hasmortgage = wisdomRepository.containsPayloadAt(best.getHash(), Transaction.Type.EXIT_MORTGAGE.ordinal(), payload);
+        boolean hasmortgage = wisdomBlockChain.containsPayload(Transaction.Type.EXIT_MORTGAGE.ordinal(), payload);
         if (!hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
