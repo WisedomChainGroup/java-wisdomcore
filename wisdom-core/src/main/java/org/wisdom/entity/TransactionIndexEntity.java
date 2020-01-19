@@ -25,10 +25,10 @@ public class TransactionIndexEntity {
     static final String TABLE_TRANSACTION_INDEX = "transaction_index";
 
     @Column(name = COLUMN_BLOCK_HASH, nullable = false)
-    @Id
     public byte[] blockHash;
 
     @Column(name = COLUMN_TX_HASH, nullable = false)
+    @Id
     public byte[] txHash;
 
     @Column(name = COLUMN_TX_INDEX)
