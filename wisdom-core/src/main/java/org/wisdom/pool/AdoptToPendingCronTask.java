@@ -8,7 +8,6 @@ import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
@@ -34,9 +33,6 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
 
     @Autowired
     Configuration configuration;
-
-    @Autowired
-    AccountDB accountDB;
 
     @Autowired
     WisdomRepository repository;

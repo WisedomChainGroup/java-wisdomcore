@@ -131,7 +131,7 @@ public class Miner implements ApplicationListener {
         List<Transaction> notWrittern = packageMiner.TransferCheck(parent.getHash(), block.nHeight, block);
 
         // 校验官方孵化余额
-        List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
+        List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern, parent.getHash());
         Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
@@ -151,10 +151,10 @@ public class Miner implements ApplicationListener {
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
 
-        Map<byte[],AccountState> accountStateMap=accountStateUpdater.
+        Map<byte[], AccountState> accountStateMap = accountStateUpdater.
                 update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
-                        block.body.stream().map(tx->{
-                            return new TransactionInfo(tx,block.nHeight);
+                        block.body.stream().map(tx -> {
+                            return new TransactionInfo(tx, block.nHeight);
                         }).collect(Collectors.toList()));
         List<AccountState> accountList = new ArrayList<>(accountStateMap.values());
         // hash merkle root
