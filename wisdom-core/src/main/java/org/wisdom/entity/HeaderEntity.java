@@ -73,7 +73,7 @@ public class HeaderEntity {
     public long totalWeight;
 
     @Column(name = COLUMN_IS_CANONICAL, nullable = false)
-    public boolean is_canonical;
+    public boolean canonical;
 
 //    @OneToMany(fetch = FetchType.EAGER)
 //    @JoinTable(name = "transaction_index", joinColumns = {@JoinColumn(name = "block_hash")}

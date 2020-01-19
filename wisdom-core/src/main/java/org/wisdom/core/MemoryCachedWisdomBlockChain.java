@@ -11,6 +11,7 @@ import org.tdf.common.util.HexBytes;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.dao.HeaderDao;
 import org.wisdom.dao.TransactionDao;
+import org.wisdom.dao.TransactionDaoJoined;
 import org.wisdom.dao.TransactionIndexDao;
 import org.wisdom.service.BlockRepositoryService;
 
@@ -75,9 +76,12 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
             HeaderDao headerDao,
             TransactionDao transactionDao,
             TransactionIndexDao transactionIndexDao,
+            TransactionDaoJoined transactionDaoJoined,
             Block genesis,
             @Value("${clear-data}") boolean clearData) throws Exception {
-        this.delegate = new BlockRepositoryService(headerDao, transactionDao, transactionIndexDao, genesis, clearData);
+        this.delegate = new BlockRepositoryService(headerDao, transactionDao, transactionIndexDao,
+                transactionDaoJoined, genesis, clearData
+        );
     }
 
     // count method calls

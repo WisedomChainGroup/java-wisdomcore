@@ -57,8 +57,7 @@ public class TransactionEntity {
     @Column(name = COLUMN_TX_AMOUNT, nullable = false)
     public long amount;
 
-    @RLP(6)
-    @Column(name = COLUMN_TX_PAYLOAD, nullable = false)
+    @Column(name = COLUMN_TX_PAYLOAD)
     public byte[] payload;
 
     @Column(name = COLUMN_TX_TO, nullable = false)

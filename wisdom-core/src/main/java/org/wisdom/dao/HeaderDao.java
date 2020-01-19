@@ -9,11 +9,11 @@ import java.util.Optional;
 
 public interface HeaderDao extends JpaRepository<HeaderEntity, byte[]> {
 
-    HeaderEntity findByHeight(long height);
-
-    boolean existsByBlockHash(byte[] blockHash);
+    Optional<HeaderEntity> findByHeight(long height);
 
     Optional<HeaderEntity> findTopByOrderByHeightDesc();
+
+    boolean existsByBlockHash(byte[] blockHash);
 
     HeaderEntity findByBlockHash(byte[] blockHash);
 
@@ -23,5 +23,5 @@ public interface HeaderDao extends JpaRepository<HeaderEntity, byte[]> {
 
     List<HeaderEntity> findByHeightBetweenOrderByHeightDesc(long start, long end, Pageable pageable);
 
-    List<HeaderEntity> findByCreatedAtAfter(long createdAt);
+    long countByCreatedAtAfter(long createdAt);
 }

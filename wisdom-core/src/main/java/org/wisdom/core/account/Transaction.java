@@ -37,6 +37,7 @@ import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.util.BytesReader;
 
+import javax.persistence.Entity;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
