@@ -1,12 +1,13 @@
 spring:
   datasource:
-    url: 'jdbc:postgresql://localhost:5432/postgres'
-    username: 'postgres'
-    password: '123123liu'
-    type: 'org.apache.commons.dbcp2.BasicDataSource'
+    url: 'jdbc:h2:mem:h2test'
+    platform: 'h2'
+    username: 'sa'
+    password: 'sa'
+    driverClassName: 'org.h2.Driver'
   jpa:
     hibernate:
-      ddl-auto: update # create, update
+      ddl-auto: create # create, update
     show-sql: false # enable jpa sql logs
 
 wisdom:

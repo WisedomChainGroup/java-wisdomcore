@@ -333,6 +333,7 @@ dependencies {
     compile 'com.github.ben-manes.caffeine:caffeine:2.8.0'
 
     compile "org.springframework.boot:spring-boot-starter-data-jpa:${springbootVersion}"
+    testCompile group: 'com.h2database', name: 'h2', version: '1.4.200'
 }
 
 

@@ -96,13 +96,13 @@ public class BlockRepositoryService implements WisdomBlockChain {
 
     @Override
     public List<Block> getHeadersSince(long startHeight, int headersCount) {
-        List<HeaderEntity> headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, startHeight + headersCount);
+        List<HeaderEntity> headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, startHeight + headersCount - 1);
         return headerEntity.stream().map(Mapping::getHeaderFromHeaderEntity).collect(Collectors.toList());
     }
 
     @Override
     public List<Block> getBlocksSince(long startHeight, int headersCount) {
-        List<HeaderEntity> headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, startHeight + headersCount);
+        List<HeaderEntity> headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, startHeight + headersCount - 1);
         return getBlocks(headerEntity);
     }
 

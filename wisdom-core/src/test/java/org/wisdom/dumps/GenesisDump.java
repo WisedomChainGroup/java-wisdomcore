@@ -49,6 +49,7 @@ public class GenesisDump {
 
 
     public void dump() throws Exception {
+        System.out.println("=============================================1");
         List<AccountState> all = getAllPublicKeyHashes()
                 .stream()
                 .map(k -> accountDB.getAccounstate(k, genesisDumpHeight))
@@ -60,6 +61,7 @@ public class GenesisDump {
                         String.format("genesis.%d.rlp", genesisDumpHeight)
                 );
         Block block = Objects.requireNonNull(wisdomBlockChain.getBlockByHeight(genesisDumpHeight));
+        System.out.println("=============================================2");
         RLPElement newGenesisAccounts = RLPElement.readRLPTree(all);
         Map<byte[], Long> miners = getValidators();
         RLPElement validators = RLPElement.readRLPTree(miners);
@@ -68,6 +70,7 @@ public class GenesisDump {
         newGenesisData.add(RLPElement.readRLPTree(block));
         newGenesisData.add(newGenesisAccounts);
         newGenesisData.add(validators);
+        System.out.println("=============================================3");
         RLPElement candidates = RLPElement.readRLPTree(getCandidates());
         newGenesisData.add(candidates);
         Map<byte[], AssetCodeInfo> assetCodeInfoMap = new ByteArrayMap<>();
