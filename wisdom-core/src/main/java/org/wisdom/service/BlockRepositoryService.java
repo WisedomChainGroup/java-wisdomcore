@@ -1,5 +1,6 @@
 package org.wisdom.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -10,6 +11,7 @@ import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.dao.HeaderDao;
 import org.wisdom.dao.TransactionDao;
+import org.wisdom.dao.TransactionDaoJoined;
 import org.wisdom.dao.TransactionIndexDao;
 import org.wisdom.entity.HeaderEntity;
 import org.wisdom.entity.Mapping;
@@ -20,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 public class BlockRepositoryService implements WisdomBlockChain {
 
     private HeaderDao headerDao;
@@ -29,13 +31,17 @@ public class BlockRepositoryService implements WisdomBlockChain {
 
     private TransactionIndexDao transactionIndexDao;
 
+    private TransactionDaoJoined transactionDaoJoined;
+
     public BlockRepositoryService(HeaderDao headerDao,
                                   TransactionDao transactionDao,
                                   TransactionIndexDao transactionIndexDao,
+                                  TransactionDaoJoined transactionDaoJoined,
                                   Block genesis, boolean clearData) throws Exception {
         this.transactionDao = transactionDao;
         this.headerDao = headerDao;
         this.transactionIndexDao = transactionIndexDao;
+        this.transactionDaoJoined = transactionDaoJoined;
         if (!FastByteComparisons.equal(getGenesis().getHash(), genesis.getHash())) {
             throw new Exception("the genesis in db and genesis in config is not equal");
         }
@@ -50,7 +56,10 @@ public class BlockRepositoryService implements WisdomBlockChain {
         transactionDao.deleteAll();
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(BlockRepositoryService.class);
+    private Block setBody(Block header){
+        header.body = transactionDaoJoined.getTransactionsByBlockHash(header.getHash());
+        return header;
+    }
 
     @Override
     public Block getGenesis() {
@@ -89,9 +98,7 @@ public class BlockRepositoryService implements WisdomBlockChain {
         if (headerEntity == null){
             return null;
         }
-        List<TransactionEntity> transactionEntities = transactionIndexDao.findByBlockHash(headerEntity.blockHash)
-                .stream().map(x -> transactionDao.findByTxHash(x.txHash)).collect(Collectors.toList());
-        return Mapping.getBlockFromHeaderEntity(headerEntity, transactionEntities);
+        return setBody(Mapping.getHeaderFromHeaderEntity(headerEntity));
     }
 
     @Override
@@ -122,7 +129,10 @@ public class BlockRepositoryService implements WisdomBlockChain {
     private List<Block> getBlocks(List<HeaderEntity> headerEntity) {
         List<Block> list = new ArrayList<>();
         headerEntity.forEach(x -> {
-            List<TransactionEntity> transactionEntities = transactionIndexDao.findByBlockHash(x.blockHash).stream().map(tx -> transactionDao.findByTxHash(tx.txHash)).collect(Collectors.toList());
+            List<TransactionEntity> transactionEntities =
+                    transactionIndexDao.findByBlockHash(x.blockHash)
+                            .stream().map(tx -> transactionDao.findByTxHash(tx.txHash))
+                            .collect(Collectors.toList());
             list.add(Mapping.getBlockFromHeaderEntity(x, transactionEntities));
         });
         return list;
@@ -162,7 +172,7 @@ public class BlockRepositoryService implements WisdomBlockChain {
             transactionIndexDao.saveAll(Mapping.getTransactionIndexEntitiesFromBlock(block));
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("failed to write block, height is" + block.getnHeight());
+            log.error("failed to write block, height is" + block.getnHeight());
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return false;
         }

@@ -86,6 +86,12 @@ public class Transaction {
     public Transaction() {
     }
 
+    public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature, byte[] blockHash, long height) {
+        this(version, type, nonce, from, gasPrice, amount, payload, to, signature);
+        this.blockHash = blockHash;
+        this.height = height;
+    }
+
     public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature) {
         this.version = version;
         this.type = type;
@@ -96,6 +102,13 @@ public class Transaction {
         this.payload = payload;
         this.to = to;
         this.signature = signature;
+        if (type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
+            contractType = payload[0];
+        }
+        if (type == Transaction.Type.CALL_CONTRACT.ordinal()) {
+            methodType = payload[0];
+            contractType = Transaction.getContract(methodType);
+        }
     }
 
     public Transaction copy() {
