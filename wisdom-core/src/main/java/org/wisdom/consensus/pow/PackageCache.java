@@ -12,6 +12,7 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
 import org.wisdom.core.TransactionVerifyUpdate;
@@ -195,80 +196,188 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         fromaccount.setBalance(balance);
         fromaccount.setNonce(tx.nonce);
         accountState.setAccount(fromaccount);
+        AccountState contractaccountstate = getMapAccountState(tx);
+        byte[] contract = contractaccountstate.getContract();
         if (tx.getContractType() == 0) {//代币
-            AccountState assetaccountstate = getMapAccountState(tx);
-            byte[] contract = assetaccountstate.getContract();
-            Asset asset = Asset.getAsset(contract);
-            if (asset == null) {
+            return ChechAssetMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
+
+        } else if (tx.getContractType() == 1 && tx.getMethodType() == MULTTRANSFER.ordinal()) {//多签
+            return ChechMultMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
+        }
+        return null;
+    }
+
+    public Object CheckMultTransferWDC(MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
+        if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单-->多
+            Account account = accountState.getAccount();
+            long balance = account.getBalance();
+            balance -= multTransfer.getValue();
+            if (balance < 0) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
-                logger.error("Block packaging error, " + Hex.encodeHexString(tx.to) + ": asset definition RLP error");
                 return null;
             }
-            if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//跟换所有者
-                byte[] owner = asset.getOwner();
-                if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
-                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
-                    return null;
-                }
-                AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(ByteUtil.bytearrayridfirst(tx.payload));
-                if (Arrays.equals(owner, assetChangeowner.getNewowner())) {
-                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
-                    return null;
-                }
-                asset.setOwner(assetChangeowner.getNewowner());
-                assetaccountstate.setContract(asset.RLPserialization());
-                newMap.put(tx.to, assetaccountstate);
-            } else if (tx.getMethodType() == ASSETTRANSFER.ordinal()) {//资产转账
-                AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
-                Map<byte[], Long> maps = accountState.getTokensMap();
-                long tokenbalance = maps.get(tx.to);
-                tokenbalance -= assetTransfer.getValue();
-                if (tokenbalance < 0) {
-                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
-                    return null;
-                }
-                maps.put(tx.to, tokenbalance);
-                accountState.setTokensMap(maps);
+            account.setBalance(balance);
+            accountState.setAccount(account);
+            newMap.put(publicKeyHash, accountState);
 
-                //to
-                AccountState toaccountstate = getKeyAccountState(assetTransfer.getTo());
-                Map<byte[], Long> tomaps = toaccountstate.getTokensMap();
-                long tobalance = 0;
-                if (tomaps.containsKey(tx.to)) {
-                    tobalance = tomaps.get(tx.to);
-                }
-                tobalance += assetTransfer.getValue();
-                tomaps.put(tx.to, tobalance);
-                toaccountstate.setTokensMap(tomaps);
-                newMap.put(assetTransfer.getTo(), toaccountstate);
-            } else {//increased
-                if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
-                        || Arrays.equals(asset.getOwner(), new byte[32])) {
-                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
-                    return null;
-                }
-                AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
-                long totalamount = asset.getTotalamount();
-                totalamount += assetIncreased.getAmount();
-                if (totalamount <= 0) {
-                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
-                    return null;
-                }
-                asset.setTotalamount(totalamount);
-                assetaccountstate.setContract(asset.RLPserialization());
-                newMap.put(tx.to, assetaccountstate);
-
-                Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                long tokensbalance = 0;
-                if (tokensmap.containsKey(tx.to)) {
-                    tokensbalance = tokensmap.get(tx.to);
-                }
-                tokensbalance += assetIncreased.getAmount();
-                tokensmap.put(tx.to, tokensbalance);
-                accountState.setTokensMap(tokensmap);
+            //to
+            Account toaccount = contractaccountstate.getAccount();
+            long tobalance = toaccount.getBalance();
+            tobalance += multTransfer.getValue();
+            toaccount.setBalance(tobalance);
+            contractaccountstate.setAccount(toaccount);
+            newMap.put(tx.to, contractaccountstate);
+        } else {//多-->多 || 多-->单
+            Account account = contractaccountstate.getAccount();
+            long balance = account.getBalance();
+            balance -= multTransfer.getValue();
+            if (balance < 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
             }
-        } else if (tx.getContractType() == 1 && tx.getMethodType() == MULTTRANSFER.ordinal()) {//多签
+            account.setBalance(balance);
+            contractaccountstate.setAccount(account);
+            newMap.put(tx.to, contractaccountstate);
 
+            //to
+            AccountState toaccountstate = getKeyAccountState(multTransfer.getTo());
+            Account toaccount = toaccountstate.getAccount();
+            long tobalance = toaccount.getBalance();
+            tobalance += multTransfer.getValue();
+            toaccount.setBalance(tobalance);
+            toaccountstate.setAccount(toaccount);
+            newMap.put(multTransfer.getTo(), toaccountstate);
+        }
+        return null;
+    }
+
+    public Object CheckMultTransferOther(byte[] assetHash, MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
+        if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单-->多
+            Map<byte[], Long> tokensMap = accountState.getTokensMap();
+            long tokenbalance = tokensMap.get(assetHash);
+            tokenbalance -= multTransfer.getValue();
+            if (tokenbalance < 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            tokensMap.put(assetHash, tokenbalance);
+            accountState.setTokensMap(tokensMap);
+            newMap.put(publicKeyHash, accountState);
+
+            //to=多
+            long tobalance = 0;
+            Map<byte[], Long> totokenMap = contractaccountstate.getTokensMap();
+            if (totokenMap.containsKey(assetHash)) {
+                tobalance = totokenMap.get(assetHash);
+            }
+            tobalance += multTransfer.getValue();
+            totokenMap.put(assetHash, tobalance);
+            contractaccountstate.setTokensMap(totokenMap);
+            newMap.put(tx.to, contractaccountstate);
+        } else {//多-->多 || 多-->单
+            Map<byte[], Long> fromMap = contractaccountstate.getTokensMap();
+            long frombalance = fromMap.get(assetHash);
+            frombalance -= multTransfer.getValue();
+            if (frombalance < 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            fromMap.put(assetHash, frombalance);
+            contractaccountstate.setTokensMap(fromMap);
+            newMap.put(tx.to, contractaccountstate);
+
+            //to
+            AccountState toaccountstate = getKeyAccountState(multTransfer.getTo());
+            long tobalance = 0;
+            Map<byte[], Long> totokenMap = toaccountstate.getTokensMap();
+            if (totokenMap.containsKey(assetHash)) {
+                tobalance = totokenMap.get(assetHash);
+            }
+            tobalance += multTransfer.getValue();
+            totokenMap.put(assetHash, tobalance);
+            toaccountstate.setTokensMap(totokenMap);
+            newMap.put(multTransfer.getTo(), toaccountstate);
+        }
+        return null;
+    }
+
+    @Override
+    public Object ChechMultMethod(byte[] contract, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
+        Multiple multiple = Multiple.getMultiple(contract);
+        MultTransfer multTransfer = MultTransfer.getMultTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+        byte[] assetHash = multiple.getAssetHash();
+        if (Arrays.equals(assetHash, new byte[20])) {//WDC
+            return CheckMultTransferWDC(multTransfer, tx, contractaccountstate, accountState, publicKeyHash);
+        } else {
+            return CheckMultTransferOther(assetHash, multTransfer, tx, contractaccountstate, accountState, publicKeyHash);
+        }
+    }
+
+    @Override
+    public Object ChechAssetMethod(byte[] contract, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
+        Asset asset = Asset.getAsset(contract);
+        if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//跟换所有者
+            byte[] owner = asset.getOwner();
+            if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(owner, assetChangeowner.getNewowner())) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            asset.setOwner(assetChangeowner.getNewowner());
+            contractaccountstate.setContract(asset.RLPserialization());
+            newMap.put(tx.to, contractaccountstate);
+        } else if (tx.getMethodType() == ASSETTRANSFER.ordinal()) {//资产转账
+            AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+            Map<byte[], Long> maps = accountState.getTokensMap();
+            long tokenbalance = maps.get(tx.to);
+            tokenbalance -= assetTransfer.getValue();
+            if (tokenbalance < 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            maps.put(tx.to, tokenbalance);
+            accountState.setTokensMap(maps);
+
+            //to
+            AccountState toaccountstate = getKeyAccountState(assetTransfer.getTo());
+            Map<byte[], Long> tomaps = toaccountstate.getTokensMap();
+            long tobalance = 0;
+            if (tomaps.containsKey(tx.to)) {
+                tobalance = tomaps.get(tx.to);
+            }
+            tobalance += assetTransfer.getValue();
+            tomaps.put(tx.to, tobalance);
+            toaccountstate.setTokensMap(tomaps);
+            newMap.put(assetTransfer.getTo(), toaccountstate);
+        } else {//increased
+            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
+                    || Arrays.equals(asset.getOwner(), new byte[32])) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(tx.payload));
+            long totalamount = asset.getTotalamount();
+            totalamount += assetIncreased.getAmount();
+            if (totalamount <= 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            asset.setTotalamount(totalamount);
+            contractaccountstate.setContract(asset.RLPserialization());
+            newMap.put(tx.to, contractaccountstate);
+
+            Map<byte[], Long> tokensmap = accountState.getTokensMap();
+            long tokensbalance = 0;
+            if (tokensmap.containsKey(tx.to)) {
+                tokensbalance = tokensmap.get(tx.to);
+            }
+            tokensbalance += assetIncreased.getAmount();
+            tokensmap.put(tx.to, tokensbalance);
+            accountState.setTokensMap(tokensmap);
         }
         newMap.put(publicKeyHash, accountState);
         return null;

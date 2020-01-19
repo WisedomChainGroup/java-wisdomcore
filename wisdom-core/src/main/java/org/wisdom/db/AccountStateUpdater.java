@@ -18,6 +18,8 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.MultipleDefinition.MultTransfer;
+import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
@@ -50,10 +52,13 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private Block genesis;
 
     @Autowired
-    Configuration configuration;
+    private Configuration configuration;
 
     @Autowired
     private WisdomBlockChain wisdomBlockChain;
+
+    @Autowired
+    private WisdomRepository repository;
 
     @Override
     public AccountState update(byte[] id, AccountState state, TransactionInfo info) {
@@ -139,6 +144,17 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
                     bytes.add(assetTransfer.getTo());
                     break;
+            }
+        } else if (tx.getContractType() == 1) {//多签
+            byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+            MultTransfer multTransfer = MultTransfer.getMultTransfer(rlpbyte);
+            if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
+                bytes.add(multTransfer.getTo());
+            } else {//多->多 || 多->单
+                bytes.add(tx.to);
+                if (!Arrays.equals(fromhash, multTransfer.getTo())) {
+                    bytes.add(multTransfer.getTo());
+                }
             }
         }
         return bytes;
@@ -334,78 +350,203 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (tx.getContractType() == 0) {//合约代币
             switch (tx.getMethodType()) {
                 case 0://更改所有者
-                    if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
-                        long balance = account.getBalance();
-                        balance -= tx.getFee();
-                        account.setBalance(balance);
-                        account.setNonce(tx.nonce);
-                        account.setBlockHeight(height);
-                        accountState.setAccount(account);
-                    }
-                    if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
-                        AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(rlpbyte);
-                        byte[] contract = accountState.getContract();
-                        Asset asset = Asset.getAsset(contract);
-                        asset.setOwner(assetChangeowner.getNewowner());
-                        accountState.setContract(asset.RLPserialization());
-                    }
+                    accountState = updateAssetChangeowner(fromhash, accountState, account, tx, height, rlpbyte);
                     break;
                 case 1://转发资产
-                    AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
-                    if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
-                        long balance = account.getBalance();
-                        balance -= tx.getFee();
-                        account.setBalance(balance);
-                        account.setNonce(tx.nonce);
-                        account.setBlockHeight(height);
-                        accountState.setAccount(account);
-
-                        Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        long tokenbalance = tokensmap.get(tx.to);
-                        tokenbalance -= assetTransfer.getValue();
-                        tokensmap.put(tx.to, tokenbalance);
-                        accountState.setTokensMap(tokensmap);
-                    }
-                    if (Arrays.equals(assetTransfer.getTo(), account.getPubkeyHash())) {//to
-                        Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        long balance = 0;
-                        if (tokensmap.containsKey(tx.to)) {
-                            balance = tokensmap.get(tx.to);
-                        }
-                        balance += assetTransfer.getValue();
-                        tokensmap.put(tx.to, balance);
-                        accountState.setTokensMap(tokensmap);
-                    }
+                    accountState = updateAssetTransfer(fromhash, accountState, account, tx, height, rlpbyte);
                     break;
                 case 2://增发
-                    AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(rlpbyte);
-                    if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
-                        long balance = account.getBalance();
-                        balance -= tx.getFee();
-                        account.setBalance(balance);
-                        account.setNonce(tx.nonce);
-                        account.setBlockHeight(height);
-                        accountState.setAccount(account);
-
-                        Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        long tokenbalance = 0;
-                        if (tokensmap.containsKey(tx.to)) {
-                            tokenbalance = tokensmap.get(tx.to);
-                        }
-                        tokenbalance += assetIncreased.getAmount();
-                        tokensmap.put(tx.to, tokenbalance);
-                        accountState.setTokensMap(tokensmap);
-                    }
-                    if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
-                        byte[] contract = accountState.getContract();
-                        Asset asset = Asset.getAsset(contract);
-                        long totalbalance = asset.getTotalamount();
-                        totalbalance += assetIncreased.getAmount();
-                        asset.setTotalamount(totalbalance);
-                        accountState.setContract(asset.RLPserialization());
-                    }
+                    accountState = updateAssetIncreased(fromhash, accountState, account, tx, height, rlpbyte);
+                    break;
+                case 3://多签转账
+                    accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte);
                     break;
             }
+        }
+        return accountState;
+    }
+
+    private AccountState updateMultTransferWDC(byte[] fromhash, MultTransfer multTransfer, AccountState accountState, Account account, Transaction tx, long height) {
+        if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
+            if (Arrays.equals(fromhash, account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance -= tx.getFee();
+                balance -= multTransfer.getValue();
+                account.setBalance(balance);
+                account.setNonce(tx.nonce);
+                account.setBlockHeight(height);
+                accountState.setAccount(account);
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance += multTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            }
+        } else {//多->多 || 多->单
+            if (Arrays.equals(fromhash, account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance -= tx.getFee();
+                account.setBalance(balance);
+                account.setNonce(tx.nonce);
+                account.setBlockHeight(height);
+                accountState.setAccount(account);
+            }
+            if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance -= multTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance += multTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            }
+        }
+        return accountState;
+    }
+
+    private AccountState updateMultTransferOther(byte[] fromhash, byte[] assetHash, MultTransfer multTransfer, AccountState accountState, Account account, Transaction tx, long height) {
+        if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
+            if (Arrays.equals(fromhash, account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance -= tx.getFee();
+                account.setBalance(balance);
+                account.setNonce(tx.nonce);
+                account.setBlockHeight(height);
+                accountState.setAccount(account);
+
+                Map<byte[], Long> tokenMap = accountState.getTokensMap();
+                long tokenbalance = tokenMap.get(assetHash);
+                tokenbalance -= multTransfer.getValue();
+                tokenMap.put(assetHash, tokenbalance);
+                accountState.setTokensMap(tokenMap);
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+                Map<byte[], Long> tokenMap = accountState.getTokensMap();
+                long tokenbalance = tokenMap.get(assetHash);
+                tokenbalance += multTransfer.getValue();
+                tokenMap.put(assetHash, tokenbalance);
+                accountState.setTokensMap(tokenMap);
+            }
+        } else {//多->多 || 多->单
+            if (Arrays.equals(fromhash, account.getPubkeyHash())) {
+                long balance = account.getBalance();
+                balance -= tx.getFee();
+                account.setBalance(balance);
+                account.setNonce(tx.nonce);
+                account.setBlockHeight(height);
+                accountState.setAccount(account);
+            }
+            if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+                Map<byte[], Long> tokenMap = accountState.getTokensMap();
+                long tokenbalance = tokenMap.get(assetHash);
+                tokenbalance -= multTransfer.getValue();
+                tokenMap.put(assetHash, tokenbalance);
+                accountState.setTokensMap(tokenMap);
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+                Map<byte[], Long> tokenMap = accountState.getTokensMap();
+                long balance = 0;
+                if (tokenMap.containsKey(assetHash)) {
+                    balance = tokenMap.get(assetHash);
+                }
+                balance += multTransfer.getValue();
+                tokenMap.put(assetHash, balance);
+                accountState.setTokensMap(tokenMap);
+            }
+        }
+        return accountState;
+    }
+
+    private AccountState updateMultTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        AccountState contractaccountstate = repository.getConfirmedAccountState(tx.to).get();
+        Multiple multiple = Multiple.getMultiple(contractaccountstate.getContract());
+        byte[] assetHash = multiple.getAssetHash();
+        MultTransfer multTransfer = MultTransfer.getMultTransfer(rlpbyte);
+        if (Arrays.equals(assetHash, new byte[20])) {
+            return updateMultTransferWDC(fromhash, multTransfer, accountState, account, tx, height);
+        } else {
+            return updateMultTransferOther(fromhash, assetHash, multTransfer, accountState, account, tx, height);
+        }
+    }
+
+    private AccountState updateAssetIncreased(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(rlpbyte);
+        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
+            long balance = account.getBalance();
+            balance -= tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(height);
+            accountState.setAccount(account);
+
+            Map<byte[], Long> tokensmap = accountState.getTokensMap();
+            long tokenbalance = 0;
+            if (tokensmap.containsKey(tx.to)) {
+                tokenbalance = tokensmap.get(tx.to);
+            }
+            tokenbalance += assetIncreased.getAmount();
+            tokensmap.put(tx.to, tokenbalance);
+            accountState.setTokensMap(tokensmap);
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
+            byte[] contract = accountState.getContract();
+            Asset asset = Asset.getAsset(contract);
+            long totalbalance = asset.getTotalamount();
+            totalbalance += assetIncreased.getAmount();
+            asset.setTotalamount(totalbalance);
+            accountState.setContract(asset.RLPserialization());
+        }
+        return accountState;
+    }
+
+    private AccountState updateAssetTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
+        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
+            long balance = account.getBalance();
+            balance -= tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(height);
+            accountState.setAccount(account);
+
+            Map<byte[], Long> tokensmap = accountState.getTokensMap();
+            long tokenbalance = tokensmap.get(tx.to);
+            tokenbalance -= assetTransfer.getValue();
+            tokensmap.put(tx.to, tokenbalance);
+            accountState.setTokensMap(tokensmap);
+        }
+        if (Arrays.equals(assetTransfer.getTo(), account.getPubkeyHash())) {//to
+            Map<byte[], Long> tokensmap = accountState.getTokensMap();
+            long balance = 0;
+            if (tokensmap.containsKey(tx.to)) {
+                balance = tokensmap.get(tx.to);
+            }
+            balance += assetTransfer.getValue();
+            tokensmap.put(tx.to, balance);
+            accountState.setTokensMap(tokensmap);
+        }
+        return accountState;
+    }
+
+    private AccountState updateAssetChangeowner(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
+            long balance = account.getBalance();
+            balance -= tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(height);
+            accountState.setAccount(account);
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
+            AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(rlpbyte);
+            byte[] contract = accountState.getContract();
+            Asset asset = Asset.getAsset(contract);
+            asset.setOwner(assetChangeowner.getNewowner());
+            accountState.setContract(asset.RLPserialization());
         }
         return accountState;
     }

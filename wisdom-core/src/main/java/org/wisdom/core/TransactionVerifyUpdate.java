@@ -1,6 +1,7 @@
 package org.wisdom.core;
 
 import org.wisdom.command.Configuration;
+import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
@@ -22,6 +23,14 @@ public interface TransactionVerifyUpdate<T> {
     T CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash);
 
     T CheckCallContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash);
+
+    T ChechAssetMethod(byte[] contract, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash);
+
+    T ChechMultMethod(byte[] contract, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash);
+
+    T CheckMultTransferWDC(MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash);
+
+    T CheckMultTransferOther(byte[] assetHash, MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash);
 
     AccountState getKeyAccountState(byte[] key);
 
@@ -217,7 +226,7 @@ public interface TransactionVerifyUpdate<T> {
     default Incubator updateIncubtor(WisdomBlockChain wisdomBlockChain, RateTable rateTable, Configuration configuration, Map<byte[], Incubator> map, Transaction transaction, long hieght) {
         Incubator incubator = map.get(transaction.payload);
         if (transaction.type == 10 || transaction.type == 11) {
-            incubator = updateExtIncuator(wisdomBlockChain,rateTable,configuration,transaction, hieght, incubator);
+            incubator = updateExtIncuator(wisdomBlockChain, rateTable, configuration, transaction, hieght, incubator);
         }
         if (transaction.type == 12) {
             incubator = updateCostIncubator(incubator, hieght);
