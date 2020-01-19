@@ -861,7 +861,7 @@ public class TransactionCheck {
             return apiResult;
         }
         Block best = wisdomRepository.getBestBlock();
-        boolean hasvote = wisdomRepository.containsTransactionAt(best.getHash(), payload);
+        boolean hasvote = wisdomRepository.containsPayloadAt(best.getHash(), Transaction.Type.EXIT_VOTE.ordinal(), payload);
         if (!hasvote) {
             apiResult.setCode(5000);
             apiResult.setMessage("The vote has been withdrawn");
@@ -917,7 +917,7 @@ public class TransactionCheck {
             return apiResult;
         }
         Block best = wisdomRepository.getBestBlock();
-        boolean hasmortgage = wisdomRepository.containsTransactionAt(best.getHash(), payload);
+        boolean hasmortgage = wisdomRepository.containsPayloadAt(best.getHash(), Transaction.Type.EXIT_MORTGAGE.ordinal(), payload);
         if (!hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
