@@ -22,6 +22,7 @@ import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.core.Block;
@@ -64,7 +65,7 @@ public class ConsensusRule implements BlockRule {
         // 出块在是否在合理时间内出块
         Optional<Proposer> p = repository.getProposerByParentAndEpoch(parent, block.nTime);
         if (!p.
-                map(x -> Arrays.equals(x.pubkeyHash, block.body.get(0).to))
+                map(x -> FastByteComparisons.equal(x.pubkeyHash, block.body.get(0).to))
                 .orElse(false)) {
             return Result.Error("the proposer cannot propose this block");
         }
