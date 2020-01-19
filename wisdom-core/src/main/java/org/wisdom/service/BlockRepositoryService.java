@@ -44,6 +44,10 @@ public class BlockRepositoryService implements WisdomBlockChain {
         this.transactionDaoJoined = transactionDaoJoined;
         this.genesis = genesis;
 
+        if (clearData) {
+            clearData();
+        }
+
         if (getHeaderByHeight(0) == null) {
             writeBlock(genesis);
         }
@@ -51,9 +55,7 @@ public class BlockRepositoryService implements WisdomBlockChain {
         if (!FastByteComparisons.equal(getGenesisInternal().getHash(), genesis.getHash())) {
             throw new Exception("the genesis in db and genesis in config is not equal");
         }
-        if (clearData) {
-            clearData();
-        }
+
     }
 
     private void clearData() {

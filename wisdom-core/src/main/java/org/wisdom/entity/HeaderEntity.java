@@ -66,7 +66,7 @@ public class HeaderEntity {
     @Column(name = COLUMN_NONCE, nullable = false)
     public byte[] nNonce;
 
-    @Column(name = COLUMN_BLOCK_NOTICE, nullable = false)
+    @Column(name = COLUMN_BLOCK_NOTICE)
     public byte[] blockNotice;
 
     @Column(name = COLUMN_TOTAL_WEIGHT, nullable = false)
