@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Component
+//@Component
 @Setter
 @Deprecated
 public class AccountDB {
