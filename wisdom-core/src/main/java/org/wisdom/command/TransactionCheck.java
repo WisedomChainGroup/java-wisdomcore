@@ -31,9 +31,9 @@ import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
-import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
@@ -66,9 +66,6 @@ public class TransactionCheck {
 
     @Autowired
     Configuration configuration;
-
-    @Autowired
-    AccountDB accountDB;
 
     @Autowired
     WisdomRepository wisdomRepository;
@@ -378,11 +375,11 @@ public class TransactionCheck {
             Pattern pattern = Pattern.compile("[A-Z]*");
             Matcher matcher = pattern.matcher(new String(asset.getCode()));
             //TODO 查询是否有重复code 异常处理
-            if(asset.getCode().length()>=3 && asset.getCode().length()<=12 && matcher.matches()  && !asset.getCode().equals("WDC")){
-                byte[] blockhash=wisdomRepository.getLatestConfirmed().getHash();
-                if (wisdomRepository.containsAssetCodeAt(blockhash,asset.getCode().getBytes(StandardCharsets.UTF_8)))
+            if (asset.getCode().length() >= 3 && asset.getCode().length() <= 12 && matcher.matches() && !asset.getCode().equals("WDC")) {
+                byte[] blockhash = wisdomRepository.getLatestConfirmed().getHash();
+                if (wisdomRepository.containsAssetCodeAt(blockhash, asset.getCode().getBytes(StandardCharsets.UTF_8)))
                     return APIResult.newFailed("asset code already exists");
-            }else{
+            } else {
                 return APIResult.newFailed("Assets code format check error");
             }
             //Offering Totalamount
@@ -650,8 +647,8 @@ public class TransactionCheck {
                 }
             }
             //查询总地址余额
-            Optional<AccountState> accountStateOptional= wisdomRepository.getConfirmedAccountState(IncubatorAddress.resultpubhash());
-            if(!accountStateOptional.isPresent()){
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(IncubatorAddress.resultpubhash());
+            if (!accountStateOptional.isPresent()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Hatch total account abnormal");
                 return apiResult;
@@ -680,8 +677,8 @@ public class TransactionCheck {
                 apiResult.setMessage("Incorrect transaction hash format");
                 return apiResult;
             }
-            Transaction transaction =wisdomBlockChain.getTransaction(payload);
-            if (transaction==null) {
+            Transaction transaction = wisdomBlockChain.getTransaction(payload);
+            if (transaction == null) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The initial incubation transaction could not be queried");
                 return apiResult;
@@ -840,12 +837,12 @@ public class TransactionCheck {
             return apiResult;
         }
         Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(topubkeyhash);
-        if(!accountState.isPresent()){
+        if (!accountState.isPresent()) {
             apiResult.setCode(5000);
             apiResult.setMessage("This account is abnormal");
             return apiResult;
         }
-        Account account=accountState.get().getAccount();
+        Account account = accountState.get().getAccount();
         if (account.getIncubatecost() < 0 || account.getIncubatecost() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -863,14 +860,15 @@ public class TransactionCheck {
             apiResult.setMessage("The voting transaction payload was incorrectly formatted");
             return apiResult;
         }
-        boolean hasvote = accountDB.hasExitVote(payload);
+        Block best = wisdomRepository.getBestBlock();
+        boolean hasvote = wisdomRepository.containsTransactionAt(best.getHash(), payload);
         if (!hasvote) {
             apiResult.setCode(5000);
             apiResult.setMessage("The vote has been withdrawn");
             return apiResult;
         }
-        Transaction transaction =wisdomBlockChain.getTransaction(payload);
-        if (transaction==null) {
+        Transaction transaction = wisdomBlockChain.getTransaction(payload);
+        if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
@@ -896,7 +894,7 @@ public class TransactionCheck {
             apiResult.setMessage("This account is abnormal");
             return apiResult;
         }
-        Account account=accountStateOptional.get().getAccount();
+        Account account = accountStateOptional.get().getAccount();
         if (account.getVote() < 0 || account.getVote() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -918,14 +916,15 @@ public class TransactionCheck {
             apiResult.setMessage("The mortgage transaction payload was incorrectly formatted");
             return apiResult;
         }
-        boolean hasmortgage = accountDB.hasExitMortgage(payload);
+        Block best = wisdomRepository.getBestBlock();
+        boolean hasmortgage = wisdomRepository.containsTransactionAt(best.getHash(), payload);
         if (!hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
         }
-        Transaction transaction =wisdomBlockChain.getTransaction(payload);
-        if (transaction==null) {
+        Transaction transaction = wisdomBlockChain.getTransaction(payload);
+        if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
             return apiResult;
@@ -951,7 +950,7 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to withdraw");
             return apiResult;
         }
-        Account account=accountStateOptional.get().getAccount();
+        Account account = accountStateOptional.get().getAccount();
         if (account.getMortgage() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -963,10 +962,10 @@ public class TransactionCheck {
     }
 
     public boolean checkoutPool(Transaction t, AccountState accountState) {
-        if(accountState.getAccount()==null){
+        if (accountState.getAccount() == null) {
             return false;
         }
-        Incubator incubator= CommandServiceImpl.getIncubator(accountState,t.type,t.payload);
+        Incubator incubator = CommandServiceImpl.getIncubator(accountState, t.type, t.payload);
         APIResult apiResult = TransactionVerify(t, accountState.getAccount(), incubator);
         if (apiResult.getCode() == 5000) {
             logger.info("Queued to Pending, memory pool check error, tx:" + t.getHashHexString() + ", " + apiResult.getMessage());
