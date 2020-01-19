@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.ByteArraySet;
 import org.wisdom.core.Block;
 
 import java.util.*;
@@ -43,10 +44,14 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
     }
 
     protected void commitInternal(List<Block> blocks) {
-        if (blocks.size() != eraLinker.getBlocksPerEra())
+        Set<byte[]> size = new ByteArraySet();
+        blocks.forEach(b -> size.add(b.getHash()));
+        if (size.size() != eraLinker.getBlocksPerEra())
             throw new RuntimeException("not an era size = " + blocks.size());
+        
         Block last = blocks.get(blocks.size() - 1);
-        if (last.nHeight % eraLinker.getBlocksPerEra() != 0)
+
+        if (last.nHeight % eraLinker.getBlocksPerEra() != 0 || blocks.get(0).nHeight % eraLinker.getBlocksPerEra() != 1)
             throw new RuntimeException("not an era from " + blocks.get(0).nHeight + " to " + last.nHeight);
 
         Optional<byte[]> root = getRootStore().get(last.getHash());

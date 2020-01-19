@@ -3,6 +3,7 @@ package org.wisdom.service;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.Block;
@@ -141,9 +142,9 @@ public class BlockRepositoryService implements WisdomBlockChain {
         if (sizeLimit < 0) sizeLimit = Integer.MAX_VALUE;
         List<HeaderEntity> headerEntity;
         if (clipInitial) {
-            headerEntity = headerDao.findByHeightBetweenOrderByHeightDesc(startHeight, stopHeight, PageRequest.of(0, sizeLimit));
+            headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, stopHeight, PageRequest.of(0, sizeLimit, Sort.Direction.DESC));
         } else {
-            headerEntity = headerDao.findByHeightBetweenOrderByHeightAsc(startHeight, stopHeight, PageRequest.of(0, sizeLimit));
+            headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, stopHeight, PageRequest.of(0, sizeLimit, Sort.Direction.ASC));
         }
         return headerEntity.stream().map(Mapping::getHeaderFromEntity).collect(Collectors.toList());
     }

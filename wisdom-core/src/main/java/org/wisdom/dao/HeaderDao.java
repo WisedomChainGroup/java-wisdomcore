@@ -19,9 +19,7 @@ public interface HeaderDao extends JpaRepository<HeaderEntity, byte[]> {
 
     List<HeaderEntity> findByHeightBetweenOrderByHeight(long start, long end);
 
-    List<HeaderEntity> findByHeightBetweenOrderByHeightAsc(long start, long end, Pageable pageable);
-
-    List<HeaderEntity> findByHeightBetweenOrderByHeightDesc(long start, long end, Pageable pageable);
+    List<HeaderEntity> findByHeightBetweenOrderByHeight(long start, long end, Pageable pageable);
 
     long countByCreatedAtAfter(long createdAt);
 }
