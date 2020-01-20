@@ -20,20 +20,19 @@ package org.wisdom.controller;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.wisdom.ApiResult.APIResult;
-import org.wisdom.db.WisdomRepository;
-import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.ipc.IpcConfig;
-import org.wisdom.service.CommandService;
-import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.wisdom.ApiResult.APIResult;
+import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.db.WisdomRepository;
+import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.ipc.IpcConfig;
+import org.wisdom.service.CommandService;
 import org.wisdom.sync.TransactionHandler;
 
 import java.util.Collections;
@@ -58,9 +57,6 @@ public class CommandController {
 
     @Autowired
     JSONEncodeDecoder encodeDecoder;
-
-    @Autowired
-    AccountDB accountDB;
 
     @Autowired
     Block genesis;
