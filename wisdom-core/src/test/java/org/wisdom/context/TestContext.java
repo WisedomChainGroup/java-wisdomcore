@@ -361,7 +361,7 @@ public class TestContext {
                                          AccountDB accountDB,
                                          WisdomBlockChain wisdomBlockChain) {
         CheckPointRule checkPointRule = new CheckPointRule(openCheckPoint);
-        checkPointRule.setAccountDB(accountDB);
+//        checkPointRule.setAccountDB(accountDB);
         checkPointRule.setWisdomBlockChain(wisdomBlockChain);
         return checkPointRule;
     }
