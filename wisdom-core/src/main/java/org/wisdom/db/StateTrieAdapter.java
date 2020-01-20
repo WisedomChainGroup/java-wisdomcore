@@ -5,10 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.tdf.common.serialize.Codec;
-import org.tdf.common.store.CachedStore;
-import org.tdf.common.store.NoDeleteBatchStore;
-import org.tdf.common.store.NoDeleteStore;
-import org.tdf.common.store.Store;
+import org.tdf.common.store.*;
 import org.tdf.common.trie.ReadOnlyTrie;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
@@ -132,5 +129,19 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
         cache.asMap().putIfAbsent(HexBytes.fromBytes(empty.getRootHash()), empty);
+    }
+
+    @Override
+    public void gc(Collection<? extends byte[]> blockHash) {
+        Map<byte[], byte[]> dumped = new ByteArrayMap<>();
+        for(byte[] h: blockHash){
+            dumped.putAll(getTrieByBlockHash(h).dump());
+        }
+        getTrieStore().clear();
+        if(getTrieStore() instanceof BatchStore){
+            ((BatchStore<byte[], byte[]>) getTrieStore()).putAll(dumped.entrySet());
+            return;
+        }
+        dumped.forEach(getTrieStore()::put);
     }
 }

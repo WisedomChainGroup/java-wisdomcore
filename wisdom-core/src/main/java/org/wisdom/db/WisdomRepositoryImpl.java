@@ -653,6 +653,14 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                     .flatMap(x -> chainCache.getDescendants(x.getHash().getBytes()).stream())
                     .forEach(w -> deleteCache(w.get()));
 
+            // 回收垃圾
+            if(b.nHeight % 100000 == 0){
+                List<byte[]> excluded =
+                        chainCache.stream().map(BlockWrapper::getHash).map(HexBytes::getBytes).collect(toList());
+
+                accountStateTrie.gc(excluded);
+            }
+
             // 确认的区块不需要放在缓存中
             deleteCache(b);
             i++;

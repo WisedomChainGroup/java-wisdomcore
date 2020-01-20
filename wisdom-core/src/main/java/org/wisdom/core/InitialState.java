@@ -40,7 +40,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-@Component
+//@Component
 public class InitialState {
 
     private static final Logger logger = LoggerFactory.getLogger("db");
