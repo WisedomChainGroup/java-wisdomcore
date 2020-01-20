@@ -1,17 +1,10 @@
 package org.wisdom.db;
 
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.genesis.Genesis;
-
-import java.util.Map;
-import java.util.Set;
 
 @Component
 public class AccountStateTrie extends AbstractStateTrie<AccountState> {
