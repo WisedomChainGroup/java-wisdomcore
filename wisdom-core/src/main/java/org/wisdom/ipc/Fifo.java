@@ -15,12 +15,15 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 
 import org.springframework.stereotype.Component;
+import org.tdf.common.trie.Trie;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.controller.RPCClient;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.PeerServer;
 import org.wisdom.service.CommandService;
@@ -32,6 +35,8 @@ import java.io.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Component
@@ -71,19 +76,19 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     private Block genesis;
 
     @Autowired
-    private AccountDB accountDB;
+    private WisdomBlockChain bc;
 
     @Autowired
     HatchService hatchService;
-
-    @Autowired
-    WisdomBlockChain bc;
 
     @Autowired
     JSONEncodeDecoder encodeDecoder;
 
     @Autowired
     org.wisdom.command.Configuration Configuration;
+
+    @Autowired
+    private AccountStateTrie accountStateTrie;
 
     private static final String InvalidParams = "params is invalid";
 
@@ -292,9 +297,9 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
         String blockHash = jo.getString("blockHash");
         int type = jo.getInteger("type");
         try {
-            List<Map<String, Object>> transactionList = accountDB.getTranBlockList(Hex.decodeHex(blockHash.toCharArray()), type);
+            List<Transaction> txs = bc.getBlockByHash(Hex.decodeHex(blockHash.toCharArray())).body.stream().filter(x->x.type == type).collect(Collectors.toList());
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("transactionList", transactionList);
+            jsonObject.put("transactionList", txs);
             return jsonObject.toJSONString();
         } catch (DecoderException e) {
             return InvalidParams;
@@ -320,8 +325,8 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
         JSONObject jo = (JSONObject) JSONObject.parse(message);
         int height = jo.getInteger("height");
         int type = jo.getInteger("type");
-        List<Map<String, Object>> transactionList = accountDB.getTranList(height, type);
-        jsonObject.put("transactionList", transactionList);
+        List<Transaction> txs = bc.getBlockByHeight(height).body.stream().filter(x->x.type == type).collect(Collectors.toList());
+        jsonObject.put("transactionList", txs);
         return jsonObject.toJSONString();
     }
 
@@ -357,7 +362,9 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     private String sendNonce(String publicKeyHash) {
         long nonce = 0;
         try {
-            nonce = accountDB.getNonce(Hex.decodeHex(publicKeyHash));
+            Map<byte[], AccountState> accountStates = accountStateTrie
+                    .getTrieByBlockHash(bc.getTopBlock().getHash()).asMap();
+            nonce = accountStates.get(Hex.decodeHex(publicKeyHash)).getAccount().getNonce();
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("nonce", nonce);
             return jsonObject.toString();
@@ -369,7 +376,9 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
     private String getBalance(String message) {
         try {
             byte[] publicKey = Hex.decodeHex(message);
-            String balance = String.valueOf(accountDB.getBalance(publicKey));
+            Map<byte[], AccountState> accountStates = accountStateTrie
+                    .getTrieByBlockHash(bc.getTopBlock().getHash()).asMap();
+            String balance = String.valueOf(accountStates.get(publicKey).getAccount().getBalance());
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("balance", balance);
             return jsonObject.toJSONString();
