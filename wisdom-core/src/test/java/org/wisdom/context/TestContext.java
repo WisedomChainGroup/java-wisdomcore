@@ -17,13 +17,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.command.Configuration;
-import org.wisdom.command.TransactionCheck;
 import org.wisdom.consensus.pow.ValidatorState;
 import org.wisdom.consensus.pow.*;
 import org.wisdom.contract.AssetCode;
 import org.wisdom.core.Block;
 import org.wisdom.core.RDBMSBlockChainImpl;
-import org.wisdom.core.WhitelistTransaction;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.event.AccountUpdatedEvent;
@@ -36,11 +34,6 @@ import org.wisdom.db.BlocksDump;
 import org.wisdom.dumps.GenesisDump;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
-import org.wisdom.pool.AdoptTransPool;
-import org.wisdom.pool.PeningTransPool;
-import org.wisdom.pool.TraceCeoAddress;
-
-import java.io.IOException;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration
@@ -238,7 +231,7 @@ public class TestContext {
             Configuration configuration
     ) {
         MerkleRule merkleRule = new MerkleRule(character, 0);
-        merkleRule.setAccountDB(accountDB);
+        merkleRule.setAccountStateTrie(accountDB);
         merkleRule.setConfiguration(configuration);
         merkleRule.setIncubatorDB(incubatorDB);
         merkleRule.setRateTable(rateTable);

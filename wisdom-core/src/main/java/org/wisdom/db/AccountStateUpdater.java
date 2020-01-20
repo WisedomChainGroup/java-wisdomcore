@@ -54,10 +54,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     @Autowired
     private Configuration configuration;
 
-    @Autowired
+
     private WisdomBlockChain wisdomBlockChain;
 
-    @Autowired
+
     private WisdomRepository repository;
 
     @Override
