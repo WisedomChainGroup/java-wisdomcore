@@ -25,4 +25,7 @@ public interface StateTrie<T> {
 
     // commit pre-generated states
     void commit(Map<byte[], T> states, byte[] blockHash);
+
+    // collect garbage
+    void gc(Collection<? extends byte[]> blockHash);
 }

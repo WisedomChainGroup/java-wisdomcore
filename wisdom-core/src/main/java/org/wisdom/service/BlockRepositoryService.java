@@ -16,6 +16,7 @@ import org.wisdom.dao.TransactionDaoJoined;
 import org.wisdom.dao.TransactionIndexDao;
 import org.wisdom.entity.HeaderEntity;
 import org.wisdom.entity.Mapping;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -70,6 +71,7 @@ public class BlockRepositoryService implements WisdomBlockChain {
     }
 
     private List<Block> setBodies(@NonNull List<Block> headers) {
+        if (headers.isEmpty()) return headers;
         List<Transaction> all = transactionDaoJoined
                 .getTransactionsByBlockHashIn(headers.stream().map(Block::getHash).collect(Collectors.toList()));
 
@@ -132,9 +134,6 @@ public class BlockRepositoryService implements WisdomBlockChain {
     @Override
     public List<Block> getBlocksSince(long startHeight, int headersCount) {
         List<Block> headers = getHeadersSince(startHeight, headersCount);
-        if (headers.size() == 0){
-            return new ArrayList<>();
-        }
         return setBodies(headers);
     }
 
@@ -145,10 +144,10 @@ public class BlockRepositoryService implements WisdomBlockChain {
         List<HeaderEntity> headerEntity;
         if (clipInitial) {
             headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, stopHeight,
-                    PageRequest.of(0, sizeLimit, Sort.Direction.DESC,"height"));
+                    PageRequest.of(0, sizeLimit, Sort.Direction.DESC, "height"));
         } else {
             headerEntity = headerDao.findByHeightBetweenOrderByHeight(startHeight, stopHeight,
-                    PageRequest.of(0, sizeLimit, Sort.Direction.ASC,"height"));
+                    PageRequest.of(0, sizeLimit, Sort.Direction.ASC, "height"));
         }
         return headerEntity.stream().map(Mapping::getHeaderFromEntity).collect(Collectors.toList());
     }
