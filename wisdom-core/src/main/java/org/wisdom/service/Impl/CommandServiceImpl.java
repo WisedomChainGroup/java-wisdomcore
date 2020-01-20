@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.TransactionCheck;
-import org.wisdom.core.account.AccountDB;
+import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 public class CommandServiceImpl implements CommandService {
 
     @Autowired
-    AccountDB accountDB;
+    WisdomBlockChain bc;
 
     @Autowired
     RateTable rateTable;
@@ -74,13 +74,13 @@ public class CommandServiceImpl implements CommandService {
                 return apiResult;
             }
             tran = (Transaction) apiResult.getData();
-            Optional<AccountState> accountStateOptional= repository.getConfirmedAccountState(Address.publicKeyToHash(tran.from));
+            Optional<AccountState> accountStateOptional = repository.getConfirmedAccountState(Address.publicKeyToHash(tran.from));
             if (!accountStateOptional.isPresent()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The from account does not exist");
                 return apiResult;
             }
-            AccountState accountState=accountStateOptional.get();
+            AccountState accountState = accountStateOptional.get();
             if (tran.type == Transaction.Type.EXIT_MORTGAGE.ordinal()) {
                 List<String> list = repository.getLatestTopCandidates()
                         .stream().map(x -> x.getPublicKeyHash().toHex())
@@ -92,7 +92,7 @@ public class CommandServiceImpl implements CommandService {
                     return apiResult;
                 }
             }
-            Incubator incubator = getIncubator(accountState,tran.type,tran.payload);
+            Incubator incubator = getIncubator(accountState, tran.type, tran.payload);
             apiResult = transactionCheck.TransactionVerify(tran, accountState.getAccount(), incubator);
             if (apiResult.getCode() == 5000) {
                 return apiResult;
@@ -119,25 +119,27 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     public Object getTransactionList(int height, int type) {
-        List<Map<String, Object>> transactionList = accountDB.getTranList(height, type);
-        return APIResult.newFailResult(2000, "SUCCESS", transactionList);
+        List<Transaction> txs = bc.getBlockByHeight(height).body.stream()
+                .filter(x -> x.type == type).collect(Collectors.toList());
+        return APIResult.newFailResult(2000, "SUCCESS", txs);
     }
 
     @Override
-    public Object getTransactionBlcok(byte[] blockhash, int type) {
-        List<Map<String, Object>> transactionList = accountDB.getTranBlockList(blockhash, type);
-        return APIResult.newFailResult(2000, "SUCCESS", transactionList);
+    public Object getTransactionBlock(byte[] blockHash, int type) {
+        List<Transaction> txs = bc.getBlockByHash(blockHash).body.stream()
+                .filter(x -> x.type == type).collect(Collectors.toList());
+        return APIResult.newFailResult(2000, "SUCCESS", txs);
     }
 
-    public static Incubator getIncubator(AccountState accountState,int type,byte[] payload){
-        if(type==0x0a || type==0x0c){
-            Map<byte[],Incubator> incubatorMap=accountState.getInterestMap();
-            if(incubatorMap.containsKey(payload)){
+    public static Incubator getIncubator(AccountState accountState, int type, byte[] payload) {
+        if (type == 0x0a || type == 0x0c) {
+            Map<byte[], Incubator> incubatorMap = accountState.getInterestMap();
+            if (incubatorMap.containsKey(payload)) {
                 return incubatorMap.get(payload);
             }
-        }else if(type==0x0b){
-            Map<byte[],Incubator> ShareMap=accountState.getShareMap();
-            if(ShareMap.containsKey(payload)){
+        } else if (type == 0x0b) {
+            Map<byte[], Incubator> ShareMap = accountState.getShareMap();
+            if (ShareMap.containsKey(payload)) {
                 return ShareMap.get(payload);
             }
         }

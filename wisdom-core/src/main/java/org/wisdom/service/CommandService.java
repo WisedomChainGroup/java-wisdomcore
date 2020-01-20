@@ -26,5 +26,5 @@ public interface CommandService {
 
     Object getTransactionList(int height,int type);
 
-    Object getTransactionBlcok(byte[] blockhash,int type);
+    Object getTransactionBlock(byte[] blockhash, int type);
 }

@@ -76,7 +76,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     @Autowired
     private WisdomBlockChain bc;
 
-    @Autowired
+//    @Autowired
     private AccountDB accountDB;
 
     @Autowired

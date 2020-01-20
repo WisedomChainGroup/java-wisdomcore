@@ -123,10 +123,10 @@ public class CommandController {
         try {
             byte[] block_hash = Hex.decodeHex(blockhash.toCharArray());
             if (type == null || type.equals("")) {//默认转账事务
-                return commandService.getTransactionBlcok(block_hash, 1);
+                return commandService.getTransactionBlock(block_hash, 1);
             } else {
                 int types = Integer.valueOf(type);
-                return commandService.getTransactionBlcok(block_hash, types);
+                return commandService.getTransactionBlock(block_hash, types);
             }
         } catch (DecoderException e) {
             APIResult apiResult = new APIResult();

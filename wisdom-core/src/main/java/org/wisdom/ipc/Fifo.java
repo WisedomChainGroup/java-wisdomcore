@@ -297,7 +297,8 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
         String blockHash = jo.getString("blockHash");
         int type = jo.getInteger("type");
         try {
-            List<Transaction> txs = bc.getBlockByHash(Hex.decodeHex(blockHash.toCharArray())).body.stream().filter(x->x.type == type).collect(Collectors.toList());
+            List<Transaction> txs = bc.getBlockByHash(Hex.decodeHex(blockHash.toCharArray())).body.stream()
+                    .filter(x->x.type == type).collect(Collectors.toList());
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("transactionList", txs);
             return jsonObject.toJSONString();
@@ -325,7 +326,8 @@ public class Fifo implements ApplicationRunner, ApplicationListener<Fifo.FifoMes
         JSONObject jo = (JSONObject) JSONObject.parse(message);
         int height = jo.getInteger("height");
         int type = jo.getInteger("type");
-        List<Transaction> txs = bc.getBlockByHeight(height).body.stream().filter(x->x.type == type).collect(Collectors.toList());
+        List<Transaction> txs = bc.getBlockByHeight(height).body.stream()
+                .filter(x->x.type == type).collect(Collectors.toList());
         jsonObject.put("transactionList", txs);
         return jsonObject.toJSONString();
     }
