@@ -68,6 +68,7 @@ public class TriesSyncManager {
         this.fastSyncDirectory = fastSyncDirectory;
         this.checkPointRule = checkPointRule;
         this.blocksPerEra = blocksPerEra;
+        this.setRepository(repository);
     }
 
     @Getter

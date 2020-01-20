@@ -131,7 +131,11 @@ public class BlockRepositoryService implements WisdomBlockChain {
 
     @Override
     public List<Block> getBlocksSince(long startHeight, int headersCount) {
-        return setBodies(getHeadersSince(startHeight, headersCount));
+        List<Block> headers = getHeadersSince(startHeight, headersCount);
+        if (headers.size() == 0){
+            return new ArrayList<>();
+        }
+        return setBodies(headers);
     }
 
     @Override

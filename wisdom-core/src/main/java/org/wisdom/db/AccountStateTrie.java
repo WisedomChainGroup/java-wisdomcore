@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
@@ -25,6 +26,8 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
 
     private AccountStateUpdater accountStateUpdater;
 
+    @Setter
+    private WisdomRepository repository;
 
     @Override
     protected String getPrefix() {
@@ -35,13 +38,13 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
             DatabaseStoreFactory factory,
             Block genesis,
             WisdomBlockChain bc,
-            Genesis genesisJSON,
-            AccountStateUpdater accountStateUpdater,
-            @Value("${wisdom.consensus.fast-sync.directory}") String preBuiltGenesis
+            AccountStateUpdater accountStateUpdater
     ) throws Exception {
         super(AccountState.class, accountStateUpdater, genesis, factory, true, false);
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
+        this.accountStateUpdater.setWisdomBlockChain(bc);
+        this.accountStateUpdater.setRepository(repository);
 
 
 //        for (long l : heights.keySet()) {

@@ -39,6 +39,7 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
                         validatorStateTrie, candidateStateTrie, assetCodeTrie, targetCache,
                         blocksPerEra, applicationContext
                 );
+        triesSyncManager.setRepository(this);
     }
 
     @Override
