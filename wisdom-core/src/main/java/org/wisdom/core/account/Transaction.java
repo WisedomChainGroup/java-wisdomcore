@@ -562,25 +562,4 @@ public class Transaction {
         }
         return tran.build();
     }
-
-    public static void main(String[] args) {
-        String json = "{\n" +
-                "    \"transactionHash\" : \"4ea9bf0a72af76cdc93d68e1205def4825108c855ae9a9fdb95593d79a58ecb8\",\n" +
-                "    \"version\" : 1,\n" +
-                "    \"type\" : 0,\n" +
-                "    \"nonce\" : 2,\n" +
-                "    \"from\" : \"0000000000000000000000000000000000000000000000000000000000000000\",\n" +
-                "    \"gasPrice\" : 0,\n" +
-                "    \"amount\" : 2000200000,\n" +
-                "    \"payload\" : null,\n" +
-                "    \"to\" : \"552f6d4390367de2b05f4c9fc345eeaaf0750db9\",\n" +
-                "    \"signature\" : \"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\n" +
-                "    \"blockHash\" : null,\n" +
-                "    \"fee\" : 0,\n" +
-                "    \"blockHeight\" : 0\n" +
-                "  }";
-        Transaction tx = new JSONEncodeDecoder().decodeTransaction(json.getBytes());
-        System.out.println(tx.getHashHexString());
-    }
-
 }

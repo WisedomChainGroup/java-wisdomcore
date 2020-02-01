@@ -281,6 +281,11 @@ public class KeystoreAction {
         byte[] r1 = ByteUtil.bytearraycopy(r2,1,20);
         return r1;
     }
+
+    public static byte[] pubkeybyteToPubkeyhashbyte(byte[] pubkeybyte){
+        byte[] pub256 = SHA3Utility.keccak256(pubkeybyte);
+        return RipemdUtility.ripemd160(pub256);
+    }
     /**
      * 地址有效性校验
      * @param address
