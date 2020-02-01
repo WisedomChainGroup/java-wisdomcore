@@ -7,6 +7,6 @@ import java.util.List;
 public interface AnalysisContract extends RLPBeanInterface {
 
     enum MethodRule {
-        CHANGEOWNER, ASSETTRANSFER, INCREASED, MULTTRANSFER
+        CHANGEOWNER, ASSETTRANSFER, INCREASED, MULTTRANSFER, HASHTIMERANSFER, GETHASHTIME
     }
 }
