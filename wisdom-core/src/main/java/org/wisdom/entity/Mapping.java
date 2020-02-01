@@ -46,6 +46,7 @@ public class Mapping {
     }
 
     public static Transaction getTransactionFromEntity(TransactionEntity entity) {
+        if (entity == null) return null;
         return new Transaction(
                 entity.version, entity.type, entity.nonce,
                 entity.from, entity.gasPrice, entity.amount,
@@ -54,18 +55,19 @@ public class Mapping {
     }
 
     public static TransactionEntity getEntityFromTransaction(Transaction tx) {
+        if (tx == null) return null;
         return TransactionEntity.builder()
-                        .amount(tx.amount)
-                        .from(tx.from)
-                        .gasPrice(tx.gasPrice)
-                        .nonce(tx.nonce)
-                        .payload(tx.payload)
-                        .signature(tx.signature)
-                        .to(tx.to)
-                        .txHash(tx.getHash())
-                        .type(tx.type)
-                        .version(tx.version)
-                        .build();
+                .amount(tx.amount)
+                .from(tx.from)
+                .gasPrice(tx.gasPrice)
+                .nonce(tx.nonce)
+                .payload(tx.payload)
+                .signature(tx.signature)
+                .to(tx.to)
+                .txHash(tx.getHash())
+                .type(tx.type)
+                .version(tx.version)
+                .build();
     }
 
     public static List<TransactionEntity> getEntitiesFromTransactions(Block block) {
@@ -77,7 +79,7 @@ public class Mapping {
         for (int i = 0; i < block.body.size(); i++) {
             entities.add(
                     TransactionIndexEntity.builder().blockHash(block.getHash())
-                    .txHash(block.body.get(i).getHash()).txIndex(i).build()
+                            .txHash(block.body.get(i).getHash()).txIndex(i).build()
             );
         }
         return entities;
