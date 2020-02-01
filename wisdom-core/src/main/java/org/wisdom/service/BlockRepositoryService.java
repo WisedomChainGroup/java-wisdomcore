@@ -219,7 +219,10 @@ public class BlockRepositoryService implements WisdomBlockChain {
 
     @Override
     public Transaction getTransaction(byte[] txHash) {
-        return Mapping.getTransactionFromEntity(transactionDao.findByTxHash(txHash));
+        return transactionDao
+                .findByTxHash(txHash)
+                .map(Mapping::getTransactionFromEntity)
+                .orElse(null);
     }
 
     @Override

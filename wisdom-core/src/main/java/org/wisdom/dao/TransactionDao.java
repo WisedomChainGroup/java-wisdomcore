@@ -6,10 +6,11 @@ import org.springframework.stereotype.Repository;
 import org.wisdom.entity.TransactionEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionDao extends JpaRepository<TransactionEntity, byte[]> {
 
-    TransactionEntity findByTxHash(byte[] txHash);
+    Optional<TransactionEntity> findByTxHash(byte[] txHash);
 
     boolean existsByTxHash(byte[] txHash);
 

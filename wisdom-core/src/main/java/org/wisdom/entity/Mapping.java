@@ -1,6 +1,7 @@
 package org.wisdom.entity;
 
 
+import lombok.NonNull;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 
@@ -45,8 +46,7 @@ public class Mapping {
                 .build();
     }
 
-    public static Transaction getTransactionFromEntity(TransactionEntity entity) {
-        if (entity == null) return null;
+    public static Transaction getTransactionFromEntity(@NonNull TransactionEntity entity) {
         return new Transaction(
                 entity.version, entity.type, entity.nonce,
                 entity.from, entity.gasPrice, entity.amount,
@@ -54,8 +54,7 @@ public class Mapping {
         );
     }
 
-    public static TransactionEntity getEntityFromTransaction(Transaction tx) {
-        if (tx == null) return null;
+    public static TransactionEntity getEntityFromTransaction(@NonNull Transaction tx) {
         return TransactionEntity.builder()
                 .amount(tx.amount)
                 .from(tx.from)
