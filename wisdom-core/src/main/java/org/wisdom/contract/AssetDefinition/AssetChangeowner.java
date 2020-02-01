@@ -6,11 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
-import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
-import org.wisdom.db.AccountState;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -19,11 +15,6 @@ import java.util.List;
 public class AssetChangeowner implements AnalysisContract {
     @RLP(0)
     private byte[] newowner;
-
-    @Override
-    public List<AccountState> update(List<AccountState> accountStateList) {
-        return null;
-    }
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {

@@ -24,7 +24,7 @@ public class AccountState {
     @RLPDecoding(as = ByteArrayMap.class)
     private Map<byte[], Incubator> ShareMap;
     @RLP(3)
-    private int type;//0是普通地址,1是合约代币，2是多重签名
+    private int type;//0是普通地址,1是合约代币，2是多重签名,3是锁定时间哈希
     @RLP(4)
     private byte[] Contract;//合约RLP
     @RLP(5)

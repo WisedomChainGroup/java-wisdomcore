@@ -6,10 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
+import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
-import org.wisdom.db.AccountState;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,24 +16,32 @@ import java.util.List;
 public class HashtimeblockTransfer implements AnalysisContract {
     @RLP(0)
     private Long value;
+    @RLP(1)
+    private byte[] hashresult;
+    @RLP(2)
+    private Long timestamp;
 
     @Override
-    public List<AccountState> update(List<AccountState> accountStateList) {
-        return null;
+    public boolean RLPdeserialization(byte[] payload) {
+        HashtimeblockTransfer hashtimeblockTransfer = RLPElement.fromEncoded(payload).as(HashtimeblockTransfer.class);
+        if (hashtimeblockTransfer == null) {
+            return false;
+        }
+        this.value = hashtimeblockTransfer.getValue();
+        this.hashresult = hashtimeblockTransfer.getHashresult();
+        this.timestamp = hashtimeblockTransfer.getTimestamp();
+        return true;
     }
 
     @Override
     public byte[] RLPserialization() {
-        return RLPCodec.encode(HashtimeblockTransfer.builder().value(this.getValue()));
+        return RLPCodec.encode(HashtimeblockTransfer.builder()
+                .value(this.getValue())
+                .hashresult(this.hashresult)
+                .timestamp(this.timestamp).build());
     }
 
-    @Override
-    public boolean RLPdeserialization(byte[] payload) {
-        HashtimeblockTransfer hashtimeblockTransfer = RLPCodec.decode(payload,HashtimeblockTransfer.class);
-        if(hashtimeblockTransfer == null){
-            return false;
-        }
-        this.value = hashtimeblockTransfer.getValue();
-        return true;
+    public static HashtimeblockTransfer getHashtimeblockTransfer(byte[] Rlpbyte) {
+        return RLPElement.fromEncoded(Rlpbyte).as(HashtimeblockTransfer.class);
     }
 }

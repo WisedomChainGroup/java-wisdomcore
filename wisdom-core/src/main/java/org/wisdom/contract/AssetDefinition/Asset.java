@@ -5,10 +5,7 @@ import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
-import org.wisdom.db.AccountState;
 import org.wisdom.keystore.wallet.KeystoreAction;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -34,11 +31,6 @@ public class Asset implements AnalysisContract {
     private String createuserAddress;
 
     private String ownerAddress;
-
-    @Override
-    public List<AccountState> update(List<AccountState> accountStateList) {
-        return null;
-    }
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {

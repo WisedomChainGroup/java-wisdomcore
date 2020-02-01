@@ -9,7 +9,6 @@ import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
-import org.wisdom.db.AccountState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +33,6 @@ public class Multiple implements AnalysisContract {
     private String assetHashHex;
 
     private List<String> pubListHex;
-
-    @Override
-    public List<AccountState> update(List<AccountState> accountStateList) {
-        return null;
-    }
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
