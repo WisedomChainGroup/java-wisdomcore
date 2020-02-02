@@ -63,8 +63,9 @@ public class ContractController {
         if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
         }
+        if (codeList.size() == 0){
+            return APIResult.newFailed("Codelist Can not be null");
+        }
         return contractService.getTokenListBalance(KeystoreAction.addressToPubkeyHash(address),codeList);
     }
-
-
 }
