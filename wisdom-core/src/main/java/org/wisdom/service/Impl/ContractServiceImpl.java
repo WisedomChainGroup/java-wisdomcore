@@ -1,5 +1,6 @@
 package org.wisdom.service.Impl;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +13,11 @@ import org.wisdom.core.Block;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.service.ContractService;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -94,5 +97,35 @@ public class ContractServiceImpl implements ContractService {
                         .orElseThrow(() -> new RuntimeException("Account does not exist"));
 
         return asset.getTokensMap().getOrDefault(info.getAsset160hash(), 0L);
+    }
+
+    @Override
+    public Object AddressType(String address) {
+        Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.addressToPubkeyHash(address));
+        if(!accountState.isPresent())return APIResult.newFailed("Inactive address");
+        if(accountState.get().getType() == 0){//普通
+            return APIResult.newSuccess("0");
+        }else if (accountState.get().getType() == 2){//多签
+            return APIResult.newSuccess("2");
+        }
+        return APIResult.newFailed("Invalid address");
+    }
+
+    @Override
+    public Object getTokenListBalance(byte[] pubkeyHash, List<String> codeList) {
+        JSONObject codeJson = new JSONObject();
+        byte[] wdcByte = new byte[20];
+        for (String code : codeList){
+            Long balance;
+            if (code.equals(Hex.encodeHexString(wdcByte))){
+                Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(pubkeyHash);
+                if(!accountState.isPresent())return APIResult.newFailed("Inactive address");
+                balance = accountState.get().getAccount().getBalance();
+            }else{
+                balance = getAssetBalance(code, pubkeyHash);
+            }
+            codeJson.put(code,balance);
+        }
+        return APIResult.newSuccess(codeJson);
     }
 }

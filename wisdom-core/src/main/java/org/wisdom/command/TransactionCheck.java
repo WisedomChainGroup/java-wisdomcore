@@ -810,7 +810,16 @@ public class TransactionCheck {
                 } catch (DecoderException e) {
                     return APIResult.newFailed("Exception error");
                 }
-                return APIResult.newSuccess("SUCCESS");
+                Hashtimeblock hashtimeblock = new Hashtimeblock();
+                //Hashtimeblock
+                Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblockTransaction.to);
+                if(accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
+                if (hashtimeblock.RLPdeserialization(accountState.get().getContract())) {
+                    if (!Arrays.equals(hashtimeblock.getPubkeyHash(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
+                        return APIResult.newFailed("From is different from the designated recipient");
+                    return APIResult.newSuccess("SUCCESS");
+                }
+                return APIResult.newFailed("Invalid Hashtimeblock rules");
             }
             return APIResult.newFailed("Invalid HashtimeblockTransfer rules");
         }
@@ -838,7 +847,17 @@ public class TransactionCheck {
                 } catch (DecoderException e) {
                     return APIResult.newFailed("Exception error");
                 }
-                return APIResult.newSuccess("SUCCESS");
+
+                Hashheightblock hashheightblock = new Hashheightblock();
+                //Hashheightblock
+                Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblockTransaction.to);
+                if(accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
+                if (hashheightblock.RLPdeserialization(accountState.get().getContract())) {
+                    if (!Arrays.equals(hashheightblock.getPubkeyHash(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
+                        return APIResult.newFailed("From is different from the designated recipient");
+                    return APIResult.newSuccess("SUCCESS");
+                }
+                return APIResult.newFailed("Invalid Hashtimeblock rules");
             }
             return APIResult.newFailed("Invalid HashheightblockTransfer rules");
         }

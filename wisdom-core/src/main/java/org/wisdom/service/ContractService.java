@@ -1,5 +1,7 @@
 package org.wisdom.service;
 
+import java.util.List;
+
 public interface ContractService {
 
     Object getParseContractTx(String txhash);
@@ -18,4 +20,8 @@ public interface ContractService {
      * @return 用户拥有此类型资产的余额
      */
     long getAssetBalance(String assetCode, byte[] publicKeyHash);
+
+    Object AddressType(String address);
+
+    Object getTokenListBalance(byte[] pubkeyHash, List<String> codeList);
 }

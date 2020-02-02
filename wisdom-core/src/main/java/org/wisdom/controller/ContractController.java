@@ -9,6 +9,8 @@ import org.wisdom.ApiResult.APIResult;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.service.ContractService;
 
+import java.util.List;
+
 @RestController
 public class ContractController {
 
@@ -48,4 +50,21 @@ public class ContractController {
         }
         return contractService.getParseAssetAddress(KeystoreAction.addressToPubkeyHash(address));
     }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/AddressType")
+    public Object AddressType(@RequestParam(value = "address") String address){
+        if (KeystoreAction.verifyAddress(address) != 0) {
+            return APIResult.newFailed("Address format error");
+        }
+        return contractService.AddressType(address);
+    }
+
+    public Object TokenListBalance (@RequestParam(value = "address") String address, @RequestParam(value = "codeList") List<String> codeList) {
+        if (KeystoreAction.verifyAddress(address) != 0) {
+            return APIResult.newFailed("Invalid address");
+        }
+        return contractService.getTokenListBalance(KeystoreAction.addressToPubkeyHash(address),codeList);
+    }
+
+
 }
