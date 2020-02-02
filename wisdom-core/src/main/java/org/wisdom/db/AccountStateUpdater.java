@@ -18,6 +18,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
+import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
+import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
@@ -59,6 +62,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
 
     private WisdomRepository repository;
+
+    private static final byte[] twentyBytes = new byte[20];
 
     @Override
     public AccountState update(byte[] id, AccountState state, TransactionInfo info) {
@@ -339,6 +344,17 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     accountState.setContract(mulrlpbyte);
                 }
                 break;
+            case 2://锁定时间哈希
+                if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                    return accountState;
+                }
+                long balance = account.getBalance();
+                balance -= tx.getFee();
+                account.setBalance(balance);
+                account.setNonce(tx.nonce);
+                account.setBlockHeight(height);
+                accountState.setAccount(account);
+                break;
         }
         return accountState;
     }
@@ -361,8 +377,73 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 case 3://多签转账
                     accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte);
                     break;
+                case 4://锁定时间哈希资产转发
+                    accountState = updateHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                    break;
+                case 5://锁定时间哈希获取资产
+                    accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                    break;
             }
         }
+        return accountState;
+    }
+
+    private AccountState updategetHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(height);
+
+        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(rlpbyte);
+        Transaction transTransfer = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
+        HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transTransfer.payload));
+        if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
+            balance += hashtimeblockTransfer.getValue();
+            account.setBalance(balance);
+        } else {
+            Map<byte[], Long> tokensMap = accountState.getTokensMap();
+            long tokenbalance = 0;
+            if (tokensMap.containsKey(hashtimeblock.getAssetHash())) {
+                tokenbalance = tokensMap.get(hashtimeblock.getAssetHash());
+            }
+            tokenbalance += hashtimeblockTransfer.getValue();
+            tokensMap.put(hashtimeblock.getAssetHash(), tokenbalance);
+            accountState.setTokensMap(tokensMap);
+        }
+        accountState.setAccount(account);
+        return accountState;
+    }
+
+    private AccountState updateHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(height);
+
+        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(rlpbyte);
+        if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
+            balance -= hashtimeblockTransfer.getValue();
+            account.setBalance(balance);
+        } else {
+            Map<byte[], Long> tokensMap = accountState.getTokensMap();
+            long tokenbalance = tokensMap.get(hashtimeblock.getAssetHash());
+            tokenbalance -= hashtimeblockTransfer.getValue();
+            tokensMap.put(hashtimeblock.getAssetHash(), tokenbalance);
+            accountState.setTokensMap(tokensMap);
+        }
+        accountState.setAccount(account);
         return accountState;
     }
 
@@ -466,7 +547,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         Multiple multiple = Multiple.getMultiple(contractaccountstate.getContract());
         byte[] assetHash = multiple.getAssetHash();
         MultTransfer multTransfer = MultTransfer.getMultTransfer(rlpbyte);
-        if (Arrays.equals(assetHash, new byte[20])) {
+        if (Arrays.equals(assetHash, twentyBytes)) {
             return updateMultTransferWDC(fromhash, multTransfer, accountState, account, tx, height);
         } else {
             return updateMultTransferOther(fromhash, assetHash, multTransfer, accountState, account, tx, height);

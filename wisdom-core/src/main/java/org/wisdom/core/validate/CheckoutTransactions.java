@@ -10,6 +10,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
+import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
+import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
@@ -31,9 +34,8 @@ import org.wisdom.util.ByteUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static org.wisdom.contract.AnalysisContract.MethodRule.*;
 import static org.wisdom.core.account.Transaction.Type.*;
-import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
-import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 
 public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
@@ -64,6 +66,10 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
     private Configuration configuration;
 
     private WisdomBlockChain wisdomBlockChain;
+
+    private static final byte[] twentyBytes = new byte[20];
+
+    private static final byte[] thirtytwoBytes = new byte[32];
 
     public CheckoutTransactions() {
         this.transactionList = new ArrayList<>();
@@ -157,8 +163,58 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             return ChechAssetMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
         } else if (tx.getContractType() == 1) {//多签
             return ChechMultMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
+        } else if (tx.getContractType() == 2) {//锁定时间哈希
+            return CheckHashtimeMethod(contract, tx, accountState, publicKeyHash);
         }
         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Call contract exception error");
+    }
+
+    @Override
+    public Result CheckHashtimeMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(contract);
+        if (tx.getMethodType() == HASHTIMERANSFER.ordinal()) {//转发资产
+            HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance -= hashtimeblockTransfer.getValue();
+                if (balance < 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+                }
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashtimeblock.getAssetHash());
+                balance -= hashtimeblockTransfer.getValue();
+                if (balance < 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+                }
+                tokensMap.put(hashtimeblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        } else if (tx.getMethodType() == GETHASHTIME.ordinal()) {//获取资产
+            HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(ByteUtil.bytearrayridfirst(tx.payload));
+            Transaction transaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
+            HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance += hashtimeblockTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashtimeblock.getAssetHash());
+                balance += hashtimeblockTransfer.getValue();
+                tokensMap.put(hashtimeblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        }
+        map.put(publicKeyHash, accountState);
+        return null;
     }
 
     @Override
@@ -166,7 +222,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         Multiple multiple = Multiple.getMultiple(contract);
         MultTransfer multTransfer = MultTransfer.getMultTransfer(ByteUtil.bytearrayridfirst(tx.payload));
         byte[] assetHash = multiple.getAssetHash();
-        if (Arrays.equals(assetHash, new byte[20])) {//WDC
+        if (Arrays.equals(assetHash, twentyBytes)) {//WDC
             return CheckMultTransferWDC(multTransfer, tx, contractaccountstate, accountState, publicKeyHash);
         } else {
             return CheckMultTransferOther(assetHash, multTransfer, tx, contractaccountstate, accountState, publicKeyHash);
@@ -274,7 +330,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         Asset asset = Asset.getAsset(contract);
         if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//更换所有者
             byte[] owner = asset.getOwner();
-            if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
+            if (Arrays.equals(owner, thirtytwoBytes) || !Arrays.equals(owner, tx.from)) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset definition does not have permission to replace the owner");
             }
@@ -307,7 +363,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             map.put(assetTransfer.getTo(), toaccountstate);
         } else {//increased
             if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
-                    || Arrays.equals(asset.getOwner(), new byte[32])) {
+                    || Arrays.equals(asset.getOwner(), thirtytwoBytes)) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": The asset definition does not have rights to issue shares");
             }

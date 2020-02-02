@@ -32,6 +32,8 @@ public interface TransactionVerifyUpdate<T> {
 
     T CheckMultTransferOther(byte[] assetHash, MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash);
 
+    T CheckHashtimeMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash);
+
     AccountState getKeyAccountState(byte[] key);
 
     default AccountState getMapAccountState(Transaction tx) {

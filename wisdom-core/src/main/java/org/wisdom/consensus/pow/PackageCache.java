@@ -12,6 +12,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
+import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
+import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
@@ -37,6 +40,8 @@ import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.MULTTRANSFER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.HASHTIMERANSFER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.GETHASHTIME;
 
 public class PackageCache implements TransactionVerifyUpdate<Object> {
 
@@ -79,6 +84,10 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
     private PeningTransPool peningTransPool;
 
     private RateTable rateTable;
+
+    private static final byte[] twentyBytes = new byte[20];
+
+    private static final byte[] thirtytwoBytes = new byte[32];
 
     public PackageCache() {
         this.removemap = new IdentityHashMap<>();
@@ -200,13 +209,69 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         byte[] contract = contractaccountstate.getContract();
         if (tx.getContractType() == 0) {//代币
             return ChechAssetMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
-
         } else if (tx.getContractType() == 1 && tx.getMethodType() == MULTTRANSFER.ordinal()) {//多签
             return ChechMultMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
+        } else if (tx.getContractType() == 2) {//锁定时间哈希
+            return CheckHashtimeMethod(contract, tx, accountState, publicKeyHash);
         }
         return null;
     }
 
+    @Override
+    public Object CheckHashtimeMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(contract);
+        if (tx.getMethodType() == HASHTIMERANSFER.ordinal()) {//转发资产
+            HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance -= hashtimeblockTransfer.getValue();
+                if (balance < 0) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashtimeblock.getAssetHash());
+                balance -= hashtimeblockTransfer.getValue();
+                if (balance < 0) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                tokensMap.put(hashtimeblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        } else if (tx.getMethodType() == GETHASHTIME.ordinal()) {//获取资产
+            HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(ByteUtil.bytearrayridfirst(tx.payload));
+            Transaction transaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
+            HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //时间戳是否满足
+            Long nowTimestamp = System.currentTimeMillis() / 1000;
+            if (hashtimeblockTransfer.getTimestamp() > nowTimestamp) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance += hashtimeblockTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashtimeblock.getAssetHash());
+                balance += hashtimeblockTransfer.getValue();
+                tokensMap.put(hashtimeblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        }
+        newMap.put(publicKeyHash, accountState);
+        return null;
+    }
+
+    @Override
     public Object CheckMultTransferWDC(MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
         if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单-->多
             Account account = accountState.getAccount();
@@ -251,6 +316,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         return null;
     }
 
+    @Override
     public Object CheckMultTransferOther(byte[] assetHash, MultTransfer multTransfer, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
         if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单-->多
             Map<byte[], Long> tokensMap = accountState.getTokensMap();
@@ -306,7 +372,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         Multiple multiple = Multiple.getMultiple(contract);
         MultTransfer multTransfer = MultTransfer.getMultTransfer(ByteUtil.bytearrayridfirst(tx.payload));
         byte[] assetHash = multiple.getAssetHash();
-        if (Arrays.equals(assetHash, new byte[20])) {//WDC
+        if (Arrays.equals(assetHash, twentyBytes)) {//WDC
             return CheckMultTransferWDC(multTransfer, tx, contractaccountstate, accountState, publicKeyHash);
         } else {
             return CheckMultTransferOther(assetHash, multTransfer, tx, contractaccountstate, accountState, publicKeyHash);
@@ -318,7 +384,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         Asset asset = Asset.getAsset(contract);
         if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//跟换所有者
             byte[] owner = asset.getOwner();
-            if (Arrays.equals(owner, new byte[32]) || !Arrays.equals(owner, tx.from)) {
+            if (Arrays.equals(owner, thirtytwoBytes) || !Arrays.equals(owner, tx.from)) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return null;
             }
@@ -355,7 +421,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             newMap.put(assetTransfer.getTo(), toaccountstate);
         } else {//increased
             if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
-                    || Arrays.equals(asset.getOwner(), new byte[32])) {
+                    || Arrays.equals(asset.getOwner(), thirtytwoBytes)) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return null;
             }
@@ -383,6 +449,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         return null;
     }
 
+    @Override
     public Object CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         long balance = fromaccount.getBalance();
         balance -= tx.getFee();
@@ -400,7 +467,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                     AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return null;
                 }
-                //判断forkdb中是否有重复的代币合约code存在
+                //判断forkdb+Db中是否有重复的代币合约code存在
                 if (repository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
                     AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return null;
@@ -415,6 +482,13 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             case 1://多签
                 Multiple multiple = new Multiple();
                 if (!multiple.RLPdeserialization(ByteUtil.bytearrayridfirst(tx.payload))) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                break;
+            case 2://锁定时间哈希
+                Hashtimeblock hashtimeblock = new Hashtimeblock();
+                if (!hashtimeblock.RLPdeserialization((ByteUtil.bytearrayridfirst(tx.payload)))) {
                     AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return null;
                 }

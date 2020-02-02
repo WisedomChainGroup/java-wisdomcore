@@ -27,7 +27,6 @@ import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
-import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.ProtocolModel;
@@ -37,7 +36,6 @@ import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.util.BytesReader;
 
-import javax.persistence.Entity;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -200,8 +198,11 @@ public class Transaction {
         if (methodType >= 0 && methodType < 3) {
             return 0;
         }
-        if (methodType > 2) {
+        if (methodType == 3) {
             return 1;
+        }
+        if (methodType >= 4 && methodType < 6) {
+            return 2;
         }
         throw new RuntimeException("Illegal invocation contract " + methodType + " type");
     }
@@ -418,7 +419,7 @@ public class Transaction {
     }
 
     @JsonIgnore
-    public int contractType;//合约 0:代币,1:多重签名
+    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希
 
     @JsonIgnore
     public int methodType;//调用合约方法类型
