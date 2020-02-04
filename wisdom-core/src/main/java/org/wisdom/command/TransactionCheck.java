@@ -169,7 +169,7 @@ public class TransactionCheck {
                 }
             }
             byte[] emptyPubkeyhash = new byte[20];
-            if(!Arrays.equals(emptyPubkeyhash, topubkeyhash) && type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal()){
+            if (!Arrays.equals(emptyPubkeyhash, topubkeyhash) && type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("To must be zero");
                 return apiResult;
@@ -344,21 +344,21 @@ public class TransactionCheck {
         if (amount != 0) return APIResult.newFailed("Amount must be zero");
         switch (type) {
             case 0://更新合约管理员
-                return CheckChangeowner(data,transaction);
+                return CheckChangeowner(data, transaction);
             case 1://合约转账
-                return CheckTransfer(data,transaction);
+                return CheckTransfer(data, transaction);
             case 2://增发
-                return CheckIncreased(data,transaction);
+                return CheckIncreased(data, transaction);
             case 3://多签规则转账
-                return CheckMultTransfer(data,transaction);
+                return CheckMultTransfer(data, transaction);
             case 4://哈希时间锁定转账
-                return CheckHashtimeblockTransfer(data,transaction);
+                return CheckHashtimeblockTransfer(data, transaction);
             case 5://哈希时间锁定获取
-                return CheckHashtimeblockGet(data,transaction);
+                return CheckHashtimeblockGet(data, transaction);
             case 6://哈希高度锁定转账
-                return CheckHashheightblockTransfer(data,transaction);
+                return CheckHashheightblockTransfer(data, transaction);
             case 7://哈希高度锁定获取
-                return CheckHashheightblockGet(data,transaction);
+                return CheckHashheightblockGet(data, transaction);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -371,11 +371,11 @@ public class TransactionCheck {
             case 0://代币
                 return CheckAsset(data, from, amount, topubkeyhash);
             case 1://多重签名
-                return CheckMultiple(data,from,amount,topubkeyhash);
+                return CheckMultiple(data, from, amount, topubkeyhash);
             case 2://哈希时间锁定
-                return CheckHashtimeblock(data,from);
+                return CheckHashtimeblock(data, from);
             case 3://哈希高度锁定
-                return CheckHashheightblock(data,from);
+                return CheckHashheightblock(data, from);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -437,8 +437,8 @@ public class TransactionCheck {
     }
 
     private APIResult CheckMultiple(byte[] data, byte[] from, Long amount, byte[] topubkeyhash) {
-        Multiple multiple=new Multiple();
-        if(multiple.RLPdeserialization(data)){
+        Multiple multiple = new Multiple();
+        if (multiple.RLPdeserialization(data)) {
             //校验
             //amount
             if (amount != 0) return APIResult.newFailed("Amount must be zero");
@@ -447,12 +447,12 @@ public class TransactionCheck {
             if (!Arrays.equals(emptyPubkeyhash, topubkeyhash))
                 return APIResult.newFailed("topubkeyhash format check error");
             //AssetHash
-            if(multiple.getAssetHash().length != 20)return APIResult.newFailed("AssetHash format check error");
+            if (multiple.getAssetHash().length != 20) return APIResult.newFailed("AssetHash format check error");
             byte[] WDCAssetHash = new byte[20];
-            if(!Arrays.equals(multiple.getAssetHash(),WDCAssetHash)){
+            if (!Arrays.equals(multiple.getAssetHash(), WDCAssetHash)) {
                 //校验AssetHash是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(multiple.getAssetHash());
-                if(accountState.isPresent())return APIResult.newFailed("AssetHash already exists");
+                if (accountState.isPresent()) return APIResult.newFailed("AssetHash already exists");
             }
             //M and N
             if (multiple.getMin() >= 0 && multiple.getMax() >= 0) {
@@ -475,14 +475,14 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Multiple rules");
     }
 
-    private APIResult CheckHashtimeblock(byte[] data, byte[] frompubhash){
+    private APIResult CheckHashtimeblock(byte[] data, byte[] frompubhash) {
         Hashtimeblock hashtimeblock = new Hashtimeblock();
         byte[] emptyBytes = new byte[20];
-        if(hashtimeblock.RLPdeserialization(data)){
-            if(!Arrays.equals(hashtimeblock.getAssetHash(),emptyBytes)){
+        if (hashtimeblock.RLPdeserialization(data)) {
+            if (!Arrays.equals(hashtimeblock.getAssetHash(), emptyBytes)) {
                 //校验如果不是WDC校验区块中是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblock.getAssetHash());
-                if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+                if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashtimeblock.getPubkeyHash());
@@ -492,14 +492,14 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Hashtimeblock rules");
     }
 
-    private APIResult CheckHashheightblock(byte[] data, byte[] frompubhash){
+    private APIResult CheckHashheightblock(byte[] data, byte[] frompubhash) {
         Hashheightblock hashheightblock = new Hashheightblock();
         byte[] emptyBytes = new byte[20];
-        if(hashheightblock.RLPdeserialization(data)){
-            if(!Arrays.equals(hashheightblock.getAssetHash(),emptyBytes)){
+        if (hashheightblock.RLPdeserialization(data)) {
+            if (!Arrays.equals(hashheightblock.getAssetHash(), emptyBytes)) {
                 //校验如果不是WDC校验区块中是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblock.getAssetHash());
-                if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+                if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashheightblock.getPubkeyHash());
@@ -509,26 +509,29 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Hashheightblock rules");
     }
 
-    private APIResult CheckChangeowner(byte[] data, Transaction transaction){
+    private APIResult CheckChangeowner(byte[] data, Transaction transaction) {
         AssetChangeowner assetChangeowner = new AssetChangeowner();
-        if(assetChangeowner.RLPdeserialization(data)){
+        if (assetChangeowner.RLPdeserialization(data)) {
             //TODO hash的校验
             if (assetChangeowner.getNewowner().length != 32) {
                 return APIResult.newFailed("Newowner format check error");
             }
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+            if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
             Asset asset = new Asset();
-            if(asset.RLPdeserialization(accountState.get().getContract())){
+            if (asset.RLPdeserialization(accountState.get().getContract())) {
                 //查询原owner是否与from一致
-                if(!Arrays.equals(asset.getOwner(),transaction.from))return APIResult.newFailed("From must be the same as original owner");
+                if (!Arrays.equals(asset.getOwner(), transaction.from))
+                    return APIResult.newFailed("From must be the same as original owner");
                 //newowner与oldowner不能一致
-                if(!Arrays.equals(asset.getOwner(),assetChangeowner.getNewowner()))return APIResult.newFailed("New owner must be different from original owner");
+                if (!Arrays.equals(asset.getOwner(), assetChangeowner.getNewowner()))
+                    return APIResult.newFailed("New owner must be different from original owner");
                 //newowner必须是普通地址
                 Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetChangeowner.getNewowner()));
-                if (accountStateNewowner.get().getType() != 0) return APIResult.newFailed("New owner must be within the specified range");
-            }else{
+                if (accountStateNewowner.get().getType() != 0)
+                    return APIResult.newFailed("New owner must be within the specified range");
+            } else {
                 return APIResult.newFailed("Invalid Assets rules");
             }
             return APIResult.newSuccess("SUCCESS");
@@ -536,60 +539,65 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid AssetsChangeowner rules");
     }
 
-    private APIResult CheckTransfer(byte[] data, Transaction transaction){
+    private APIResult CheckTransfer(byte[] data, Transaction transaction) {
         AssetTransfer assetTransfer = new AssetTransfer();
-        if(assetTransfer.RLPdeserialization(data)){
+        if (assetTransfer.RLPdeserialization(data)) {
             //判断160哈希值是否已经存在
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+            if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
             //value
-            if(assetTransfer.getValue() > 0){
+            if (assetTransfer.getValue() > 0) {
                 //校验是否有足够多的余额
                 byte[] emptyBytes = new byte[20];
-                if(Arrays.equals(emptyBytes,assetTransfer.getTo())){//WDC
-                    if(assetTransfer.getValue()>accountState.get().getAccount().getBalance())return APIResult.newFailed("Insufficient funds");
-                }else{
-                    if(assetTransfer.getValue()>accountState.get().getTokensMap().get(assetTransfer.getTo()))return APIResult.newFailed("Insufficient funds");
+                if (Arrays.equals(emptyBytes, assetTransfer.getTo())) {//WDC
+                    if (assetTransfer.getValue() > accountState.get().getAccount().getBalance())
+                        return APIResult.newFailed("Insufficient funds");
+                } else {
+                    if (assetTransfer.getValue() > accountState.get().getTokensMap().get(assetTransfer.getTo()))
+                        return APIResult.newFailed("Insufficient funds");
                 }
-            }else{
+            } else {
                 return APIResult.newFailed("Value must be greater than zero");
             }
             //From from是否一致
-            if(!Arrays.equals(transaction.from,assetTransfer.getFrom()))return APIResult.newFailed("From and from must be the same");
+            if (!Arrays.equals(transaction.from, assetTransfer.getFrom()))
+                return APIResult.newFailed("From and from must be the same");
             //from From 不能为多签地址
             Optional<AccountState> fromAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetTransfer.getFrom()));
-            if (fromAccountState.get().getType() != 0)return APIResult.newFailed("Payload from must be Ordinary address");
+            if (fromAccountState.get().getType() != 0)
+                return APIResult.newFailed("Payload from must be Ordinary address");
             Optional<AccountState> FromAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-            if (FromAccountState.get().getType() != 0)return APIResult.newFailed("From must be Ordinary address");
+            if (FromAccountState.get().getType() != 0) return APIResult.newFailed("From must be Ordinary address");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid AssetsTransfer rules");
     }
 
-    private APIResult CheckIncreased(byte[] data, Transaction transaction){
+    private APIResult CheckIncreased(byte[] data, Transaction transaction) {
         AssetIncreased assetIncreased = new AssetIncreased();
-        if(assetIncreased.RLPdeserialization(data)){
+        if (assetIncreased.RLPdeserialization(data)) {
             //allowincrease
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             Asset asset = new Asset();
-            if(asset.RLPdeserialization(accountState.get().getContract())){
+            if (asset.RLPdeserialization(accountState.get().getContract())) {
                 //查询资产的allowincrease值
-                if(asset.getAllowincrease() == 0)return APIResult.newFailed("Asset not allow Increased");
+                if (asset.getAllowincrease() == 0) return APIResult.newFailed("Asset not allow Increased");
                 //From Owner是否一致
-                if(!Arrays.equals(asset.getOwner(),transaction.from))return APIResult.newFailed("From and oldowner must be the same");
-            }else{
+                if (!Arrays.equals(asset.getOwner(), transaction.from))
+                    return APIResult.newFailed("From and oldowner must be the same");
+            } else {
                 return APIResult.newFailed("Invalid Assets rules");
             }
             //amount
-            if(assetIncreased.getAmount()>0){
-            //校验总量+增发量是否小于Long的最大值
+            if (assetIncreased.getAmount() > 0) {
+                //校验总量+增发量是否小于Long的最大值
                 Long total = 0L;
-                for(Long value : accountState.get().getTokensMap().values()){
+                for (Long value : accountState.get().getTokensMap().values()) {
                     total += value;
                 }
-                if (total+assetIncreased.getAmount()<0)return APIResult.newFailed("Amount maximum exceeded");
-            }else{
+                if (total + assetIncreased.getAmount() < 0) return APIResult.newFailed("Amount maximum exceeded");
+            } else {
                 return APIResult.newFailed("Amount must be greater than zero");
             }
 
@@ -600,9 +608,10 @@ public class TransactionCheck {
 
     private APIResult CheckMultTransfer(byte[] data, Transaction transaction) {
         MultTransfer multTransfer = new MultTransfer();
-        if(multTransfer.RLPdeserialization(data)){
+        if (multTransfer.RLPdeserialization(data)) {
             //不能给自己转
-            if (!Arrays.equals(multTransfer.getTo(),transaction.to))return APIResult.newFailed("From and to can't be the same");
+            if (!Arrays.equals(multTransfer.getTo(), transaction.to))
+                return APIResult.newFailed("From and to can't be the same");
             //Origin and Dest
             if (multTransfer.getOrigin() != 0 && multTransfer.getOrigin() != 1)
                 return APIResult.newFailed("Origin must be within the specified range");
@@ -613,35 +622,37 @@ public class TransactionCheck {
             Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(transaction.to);
             Optional<AccountState> accountStatePayloadTo = wisdomRepository.getConfirmedAccountState(multTransfer.getTo());
-            if (multTransfer.getOrigin() == 0){
+            if (multTransfer.getOrigin() == 0) {
                 if (accountStateFrom.get().getType() != 0) return APIResult.newFailed("Origin error in type");
-            }else{
+            } else {
                 if (accountStateFrom.get().getType() != 2) return APIResult.newFailed("Origin error in type");
             }
-            if (multTransfer.getDest() == 0){
+            if (multTransfer.getDest() == 0) {
                 if (accountStateTo.get().getType() != 0) return APIResult.newFailed("Dest error in type");
-            }else{
+            } else {
                 if (accountStateTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签 看TO的规则
                 //多签规则
                 Multiple multiple = new Multiple();
-                if (multiple.RLPdeserialization(transaction.to)){
+                if (multiple.RLPdeserialization(transaction.to)) {
                     //代币类型
                     byte[] assetHash = multiple.getAssetHash();
-                    if (Arrays.equals(assetHash,WDCbyte)){//WDC
-                        if (accountStateFrom.get().getAccount().getBalance()<multTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
-                    }else {//其他代币
-                        if (accountStateFrom.get().getTokensMap().get(assetHash)<multTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
+                    if (Arrays.equals(assetHash, WDCbyte)) {//WDC
+                        if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue())
+                            return APIResult.newFailed("Insufficient funds");
+                    } else {//其他代币
+                        if (accountStateFrom.get().getTokensMap().get(assetHash) < multTransfer.getValue())
+                            return APIResult.newFailed("Insufficient funds");
                     }
-                }else{
+                } else {
                     return APIResult.newFailed("Invalid Multiple rules");
                 }
-            } else{//多签->普通 多签->多签 看From的规则
+            } else {//多签->普通 多签->多签 看From的规则
                 //多签规则
                 Multiple multiple = new Multiple();
-                if (multiple.RLPdeserialization(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from))){
+                if (multiple.RLPdeserialization(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from))) {
                     if (multTransfer.getFrom().size() != multTransfer.getSignatures().size())
                         return APIResult.newFailed("The number of pubkey and sign is not the same");
                     //payload from
@@ -684,12 +695,12 @@ public class TransactionCheck {
                     }
                     if (signAdopt < n) return APIResult.newFailed("Sign numbers less than n");
                     //多签->多签 查询FROM TO币种是否一致
-                    if (multTransfer.getOrigin() == 1 && multTransfer.getDest() == 1){
+                    if (multTransfer.getOrigin() == 1 && multTransfer.getDest() == 1) {
                         Multiple multiplePayloadTo = new Multiple();
-                        if (multiple.RLPdeserialization(accountStatePayloadTo.get().getContract())){
-                            if (!Arrays.equals(multiple.getAssetHash(),multiplePayloadTo.getAssetHash()))
+                        if (multiple.RLPdeserialization(accountStatePayloadTo.get().getContract())) {
+                            if (!Arrays.equals(multiple.getAssetHash(), multiplePayloadTo.getAssetHash()))
                                 return APIResult.newFailed("Must be the same currency");
-                        }else{
+                        } else {
                             return APIResult.newFailed("Invalid Multiple rules");
                         }
 
@@ -700,13 +711,15 @@ public class TransactionCheck {
                     //代币类型
                     byte[] assetHash = multiple.getAssetHash();
                     //验证余额是否足够
-                    if (Arrays.equals(assetHash,WDCbyte)){//WDC
-                        if (accountStateFrom.get().getAccount().getBalance()<multTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
-                    }else {//其他代币
-                        if (accountStateFrom.get().getTokensMap().get(assetHash)<multTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
+                    if (Arrays.equals(assetHash, WDCbyte)) {//WDC
+                        if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue())
+                            return APIResult.newFailed("Insufficient funds");
+                    } else {//其他代币
+                        if (accountStateFrom.get().getTokensMap().get(assetHash) < multTransfer.getValue())
+                            return APIResult.newFailed("Insufficient funds");
                     }
 
-                }else{
+                } else {
                     return APIResult.newFailed("Invalid Multiple rules");
                 }
             }
@@ -715,35 +728,39 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid MultTransfer rules");
     }
 
-    private APIResult CheckHashtimeblockTransfer(byte[] data,Transaction transaction){
+    private APIResult CheckHashtimeblockTransfer(byte[] data, Transaction transaction) {
         HashtimeblockTransfer hashtimeblockTransfer = new HashtimeblockTransfer();
-        if(hashtimeblockTransfer.RLPdeserialization(data)){
+        if (hashtimeblockTransfer.RLPdeserialization(data)) {
             //amount
-            if(hashtimeblockTransfer.getValue()<0)return APIResult.newFailed("Value must be positive integer");
+            if (hashtimeblockTransfer.getValue() < 0) return APIResult.newFailed("Value must be positive integer");
 
             //hashresult
-            if(hashtimeblockTransfer.getHashresult().length != 32)return APIResult.newFailed("Wrong length of hashresult");
+            if (hashtimeblockTransfer.getHashresult().length != 32)
+                return APIResult.newFailed("Wrong length of hashresult");
             //timestamp TODO 校验时间格式
-            if (String.valueOf(hashtimeblockTransfer.getTimestamp()).length() != 10) return APIResult.newFailed("Timestamp is error");
+            if (String.valueOf(hashtimeblockTransfer.getTimestamp()).length() != 10)
+                return APIResult.newFailed("Timestamp is error");
 
             //查询事务
             Hashtimeblock hashtimeblock = new Hashtimeblock();
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //Hashtimeblock是否存在
-            if(!accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
-            if (hashtimeblock.RLPdeserialization(accountState.get().getContract())){
+            if (!accountState.isPresent()) return APIResult.newFailed("Hashtimeblock do not exist");
+            if (hashtimeblock.RLPdeserialization(accountState.get().getContract())) {
                 //from 余额是否足够
                 byte[] WDCbyte = new byte[20];
                 //代币类型
                 byte[] assetHash = hashtimeblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
                 //验证余额是否足够
-                if (Arrays.equals(assetHash,WDCbyte)){//WDC
-                    if (accountStateFrom.get().getAccount().getBalance()<hashtimeblockTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
-                }else {//其他代币
-                    if (accountStateFrom.get().getTokensMap().get(assetHash)<hashtimeblockTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
+                if (Arrays.equals(assetHash, WDCbyte)) {//WDC
+                    if (accountStateFrom.get().getAccount().getBalance() < hashtimeblockTransfer.getValue())
+                        return APIResult.newFailed("Insufficient funds");
+                } else {//其他代币
+                    if (accountStateFrom.get().getTokensMap().get(assetHash) < hashtimeblockTransfer.getValue())
+                        return APIResult.newFailed("Insufficient funds");
                 }
-            }else {
+            } else {
                 return APIResult.newFailed("Invalid hashtimeblock rules");
             }
 
@@ -753,32 +770,35 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid HashtimeblockTransfer rules");
     }
 
-    private APIResult CheckHashheightblockTransfer(byte[] data,Transaction transaction){
+    private APIResult CheckHashheightblockTransfer(byte[] data, Transaction transaction) {
         HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
-        if(hashheightblockTransfer.RLPdeserialization(data)){
+        if (hashheightblockTransfer.RLPdeserialization(data)) {
             //amount
-            if(hashheightblockTransfer.getValue()<0)return APIResult.newFailed("Value must be positive integer");
+            if (hashheightblockTransfer.getValue() < 0) return APIResult.newFailed("Value must be positive integer");
 
             //hashresult
-            if(hashheightblockTransfer.getHashresult().length != 32)return APIResult.newFailed("Wrong length of hashresult");
+            if (hashheightblockTransfer.getHashresult().length != 32)
+                return APIResult.newFailed("Wrong length of hashresult");
             //查询事务
             Hashheightblock hashheightblock = new Hashheightblock();
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //Hashheightblock
-            if(!accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
-            if (hashheightblock.RLPdeserialization(accountState.get().getContract())){
+            if (!accountState.isPresent()) return APIResult.newFailed("Hashheightblock do not exist");
+            if (hashheightblock.RLPdeserialization(accountState.get().getContract())) {
                 //from 余额是否足够
                 byte[] WDCbyte = new byte[20];
                 //代币类型
                 byte[] assetHash = hashheightblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
                 //验证余额是否足够
-                if (Arrays.equals(assetHash,WDCbyte)){//WDC
-                    if (accountStateFrom.get().getAccount().getBalance()<hashheightblockTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
-                }else {//其他代币
-                    if (accountStateFrom.get().getTokensMap().get(assetHash)<hashheightblockTransfer.getValue()) return APIResult.newFailed("Insufficient funds");
+                if (Arrays.equals(assetHash, WDCbyte)) {//WDC
+                    if (accountStateFrom.get().getAccount().getBalance() < hashheightblockTransfer.getValue())
+                        return APIResult.newFailed("Insufficient funds");
+                } else {//其他代币
+                    if (accountStateFrom.get().getTokensMap().get(assetHash) < hashheightblockTransfer.getValue())
+                        return APIResult.newFailed("Insufficient funds");
                 }
-            }else {
+            } else {
                 return APIResult.newFailed("Invalid Hashheightblock rules");
             }
 
@@ -789,23 +809,23 @@ public class TransactionCheck {
     }
 
 
-    private APIResult CheckHashtimeblockGet(byte[] data,Transaction transaction){
+    private APIResult CheckHashtimeblockGet(byte[] data, Transaction transaction) {
         HashtimeblockGet hashtimeblockGet = new HashtimeblockGet();
-        if(hashtimeblockGet.RLPdeserialization(data)) {
+        if (hashtimeblockGet.RLPdeserialization(data)) {
             //transferhash 检验事务哈希是否存在
-            Transaction hashtimeblockTransaction =wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
-            if (hashtimeblockTransaction==null)
+            Transaction hashtimeblockTransaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
+            if (hashtimeblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashtimeblockTransfer transaction");
             HashtimeblockTransfer hashtimeblockTransfer = new HashtimeblockTransfer();
-            if (hashtimeblockTransfer.RLPdeserialization(hashtimeblockTransaction.payload)){
+            if (hashtimeblockTransfer.RLPdeserialization(hashtimeblockTransaction.payload)) {
                 try {
                     //判断哈希与原文哈希是否一致
-                    if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashtimeblockGet.getOrigintext().toCharArray())),hashtimeblockTransfer.getHashresult()))
+                    if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashtimeblockGet.getOrigintext().toCharArray())), hashtimeblockTransfer.getHashresult()))
                         return APIResult.newFailed("Origintext is wrong");
                     //当前Unix时间
-                    Long nowTimestamp = System.currentTimeMillis()/1000L;
+                    Long nowTimestamp = System.currentTimeMillis() / 1000L;
                     //判断时间
-                    if (hashtimeblockTransfer.getTimestamp()>nowTimestamp)
+                    if (hashtimeblockTransfer.getTimestamp() > nowTimestamp)
                         return APIResult.newFailed("The specified time is not reached");
                 } catch (DecoderException e) {
                     return APIResult.newFailed("Exception error");
@@ -813,9 +833,9 @@ public class TransactionCheck {
                 Hashtimeblock hashtimeblock = new Hashtimeblock();
                 //Hashtimeblock
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblockTransaction.to);
-                if(!accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
+                if (!accountState.isPresent()) return APIResult.newFailed("Hashtimeblock do not exist");
                 if (hashtimeblock.RLPdeserialization(accountState.get().getContract())) {
-                    if (!Arrays.equals(hashtimeblock.getPubkeyHash(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
+                    if (!Arrays.equals(hashtimeblock.getPubkeyHash(), KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
                         return APIResult.newFailed("From is different from the designated recipient");
                     return APIResult.newSuccess("SUCCESS");
                 }
@@ -826,23 +846,23 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid HashtimeblockTransfer rules");
     }
 
-    private APIResult CheckHashheightblockGet(byte[] data,Transaction transaction){
+    private APIResult CheckHashheightblockGet(byte[] data, Transaction transaction) {
         HashheightblockGet hashheightblockGet = new HashheightblockGet();
-        if(hashheightblockGet.RLPdeserialization(data)) {
+        if (hashheightblockGet.RLPdeserialization(data)) {
             //transferhash 检验事务哈希是否存在
-            Transaction hashheightblockTransaction =wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
-            if (hashheightblockTransaction==null)
+            Transaction hashheightblockTransaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
+            if (hashheightblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashheightblockTransfer transaction");
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
-            if (hashheightblockTransfer.RLPdeserialization(hashheightblockTransaction.payload)){
+            if (hashheightblockTransfer.RLPdeserialization(hashheightblockTransaction.payload)) {
                 try {
                     //判断哈希与原文哈希是否一致
-                    if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashheightblockGet.getOrigintext().toCharArray())),hashheightblockTransfer.getHashresult()))
+                    if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashheightblockGet.getOrigintext().toCharArray())), hashheightblockTransfer.getHashresult()))
                         return APIResult.newFailed("Origintext is wrong");
                     //当前高度
                     Long nowHeight = wisdomBlockChain.getTopHeight();
                     //判断高度
-                    if (hashheightblockTransfer.getHeight()>nowHeight)
+                    if (hashheightblockTransfer.getHeight() > nowHeight)
                         return APIResult.newFailed("The specified height is not reached");
                 } catch (DecoderException e) {
                     return APIResult.newFailed("Exception error");
@@ -851,9 +871,9 @@ public class TransactionCheck {
                 Hashheightblock hashheightblock = new Hashheightblock();
                 //Hashheightblock
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblockTransaction.to);
-                if(!accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
+                if (!accountState.isPresent()) return APIResult.newFailed("Hashheightblock do not exist");
                 if (hashheightblock.RLPdeserialization(accountState.get().getContract())) {
-                    if (!Arrays.equals(hashheightblock.getPubkeyHash(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
+                    if (!Arrays.equals(hashheightblock.getPubkeyHash(), KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
                         return APIResult.newFailed("From is different from the designated recipient");
                     return APIResult.newSuccess("SUCCESS");
                 }
@@ -906,8 +926,8 @@ public class TransactionCheck {
                 }
             }
             //查询总地址余额
-            Optional<AccountState> accountStateOptional= wisdomRepository.getConfirmedAccountState(IncubatorAddress.resultpubhash());
-            if(!accountStateOptional.isPresent()){
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(IncubatorAddress.resultpubhash());
+            if (!accountStateOptional.isPresent()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Hatch total account abnormal");
                 return apiResult;
@@ -936,8 +956,8 @@ public class TransactionCheck {
                 apiResult.setMessage("Incorrect transaction hash format");
                 return apiResult;
             }
-            Transaction transaction =wisdomBlockChain.getTransaction(payload);
-            if (transaction==null) {
+            Transaction transaction = wisdomBlockChain.getTransaction(payload);
+            if (transaction == null) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("The initial incubation transaction could not be queried");
                 return apiResult;
@@ -1096,12 +1116,12 @@ public class TransactionCheck {
             return apiResult;
         }
         Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(topubkeyhash);
-        if(!accountState.isPresent()){
+        if (!accountState.isPresent()) {
             apiResult.setCode(5000);
             apiResult.setMessage("This account is abnormal");
             return apiResult;
         }
-        Account account=accountState.get().getAccount();
+        Account account = accountState.get().getAccount();
         if (account.getIncubatecost() < 0 || account.getIncubatecost() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -1125,8 +1145,8 @@ public class TransactionCheck {
             apiResult.setMessage("The vote has been withdrawn");
             return apiResult;
         }
-        Transaction transaction =wisdomBlockChain.getTransaction(payload);
-        if (transaction==null) {
+        Transaction transaction = wisdomBlockChain.getTransaction(payload);
+        if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get vote transaction");
             return apiResult;
@@ -1152,7 +1172,7 @@ public class TransactionCheck {
             apiResult.setMessage("This account is abnormal");
             return apiResult;
         }
-        Account account=accountStateOptional.get().getAccount();
+        Account account = accountStateOptional.get().getAccount();
         if (account.getVote() < 0 || account.getVote() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -1180,8 +1200,8 @@ public class TransactionCheck {
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;
         }
-        Transaction transaction =wisdomBlockChain.getTransaction(payload);
-        if (transaction==null) {
+        Transaction transaction = wisdomBlockChain.getTransaction(payload);
+        if (transaction == null) {
             apiResult.setCode(5000);
             apiResult.setMessage("Unable to get mortgage transaction");
             return apiResult;
@@ -1207,7 +1227,7 @@ public class TransactionCheck {
             apiResult.setMessage("Unable to withdraw");
             return apiResult;
         }
-        Account account=accountStateOptional.get().getAccount();
+        Account account = accountStateOptional.get().getAccount();
         if (account.getMortgage() < amount) {
             apiResult.setCode(5000);
             apiResult.setMessage("The withdrawal amount is incorrect");
@@ -1219,10 +1239,10 @@ public class TransactionCheck {
     }
 
     public boolean checkoutPool(Transaction t, AccountState accountState) {
-        if(accountState.getAccount()==null){
+        if (accountState.getAccount() == null) {
             return false;
         }
-        Incubator incubator= CommandServiceImpl.getIncubator(accountState,t.type,t.payload);
+        Incubator incubator = CommandServiceImpl.getIncubator(accountState, t.type, t.payload);
         APIResult apiResult = TransactionVerify(t, accountState.getAccount(), incubator);
         if (apiResult.getCode() == 5000) {
             logger.info("Queued to Pending, memory pool check error, tx:" + t.getHashHexString() + ", " + apiResult.getMessage());

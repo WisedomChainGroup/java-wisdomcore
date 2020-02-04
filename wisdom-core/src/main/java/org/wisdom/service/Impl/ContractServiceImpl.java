@@ -43,7 +43,7 @@ public class ContractServiceImpl implements ContractService {
         } catch (DecoderException e) {
             return APIResult.newFailed("Transaction hash resolution error");
         }
-        return APIResult.newFailed("This contract type does not exist");
+        return APIResult.newFailed("Not asset definition and multi-contract type");
     }
 
     @Override
@@ -63,7 +63,7 @@ public class ContractServiceImpl implements ContractService {
     public Object getParseAssetAddress(byte[] pubhash) {
         Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(pubhash);
         if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() != 1) {
-            return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
+            return APIResult.newFailed("The thing hash does not exist or is not a asset contract transaction");
         }
         return APIResult.newSuccess(Asset.getConvertAsset(accountStateOptional.get().getContract()));
     }
@@ -102,29 +102,36 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public Object AddressType(String address) {
         Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.addressToPubkeyHash(address));
-        if(!accountState.isPresent())return APIResult.newFailed("Inactive address");
-        if(accountState.get().getType() == 0){//普通
+        if (!accountState.isPresent()) return APIResult.newFailed("Inactive address");
+        if (accountState.get().getType() == 0) {//普通
             return APIResult.newSuccess("0");
-        }else if (accountState.get().getType() == 2){//多签
+        } else if (accountState.get().getType() == 1) {//资产定义
+            return APIResult.newSuccess("1");
+        } else if (accountState.get().getType() == 2) {//多签
             return APIResult.newSuccess("2");
+        } else if (accountState.get().getType() == 3) {//锁定时间哈希
+            return APIResult.newSuccess("3");
+        } else if (accountState.get().getType() == 4) {//锁定高度哈希
+            return APIResult.newSuccess("4");
+        } else {
+            return APIResult.newFailed("Invalid address");
         }
-        return APIResult.newFailed("Invalid address");
     }
 
     @Override
     public Object getTokenListBalance(byte[] pubkeyHash, List<String> codeList) {
         JSONObject codeJson = new JSONObject();
         byte[] wdcByte = new byte[20];
-        for (String code : codeList){
+        for (String code : codeList) {
             Long balance;
-            if (code.equals(Hex.encodeHexString(wdcByte))){
+            if (code.equals(Hex.encodeHexString(wdcByte))) {
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(pubkeyHash);
-                if(!accountState.isPresent())return APIResult.newFailed("Inactive address");
+                if (!accountState.isPresent()) return APIResult.newFailed("Inactive address");
                 balance = accountState.get().getAccount().getBalance();
-            }else{
+            } else {
                 balance = getAssetBalance(code, pubkeyHash);
             }
-            codeJson.put(code,balance);
+            codeJson.put(code, balance);
         }
         return APIResult.newSuccess(codeJson);
     }
