@@ -452,7 +452,7 @@ public class TransactionCheck {
             if(!Arrays.equals(multiple.getAssetHash(),WDCAssetHash)){
                 //校验AssetHash是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(multiple.getAssetHash());
-                if(!accountState.isPresent())return APIResult.newFailed("AssetHash already exists");
+                if(accountState.isPresent())return APIResult.newFailed("AssetHash already exists");
             }
             //M and N
             if (multiple.getMin() >= 0 && multiple.getMax() >= 0) {
@@ -482,7 +482,7 @@ public class TransactionCheck {
             if(!Arrays.equals(hashtimeblock.getAssetHash(),emptyBytes)){
                 //校验如果不是WDC校验区块中是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblock.getAssetHash());
-                if(accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+                if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashtimeblock.getPubkeyHash());
@@ -499,7 +499,7 @@ public class TransactionCheck {
             if(!Arrays.equals(hashheightblock.getAssetHash(),emptyBytes)){
                 //校验如果不是WDC校验区块中是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblock.getAssetHash());
-                if(accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+                if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashheightblock.getPubkeyHash());
@@ -518,7 +518,7 @@ public class TransactionCheck {
             }
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if(accountState.isPresent())return APIResult.newFailed("To do not exist");
+            if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
             Asset asset = new Asset();
             if(asset.RLPdeserialization(accountState.get().getContract())){
                 //查询原owner是否与from一致
@@ -542,7 +542,7 @@ public class TransactionCheck {
             //判断160哈希值是否已经存在
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if(accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
+            if(!accountState.isPresent())return APIResult.newFailed("AssetHash do not exist");
             //value
             if(assetTransfer.getValue() > 0){
                 //校验是否有足够多的余额
@@ -730,7 +730,7 @@ public class TransactionCheck {
             Hashtimeblock hashtimeblock = new Hashtimeblock();
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //Hashtimeblock是否存在
-            if(accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
+            if(!accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
             if (hashtimeblock.RLPdeserialization(accountState.get().getContract())){
                 //from 余额是否足够
                 byte[] WDCbyte = new byte[20];
@@ -765,7 +765,7 @@ public class TransactionCheck {
             Hashheightblock hashheightblock = new Hashheightblock();
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //Hashheightblock
-            if(accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
+            if(!accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
             if (hashheightblock.RLPdeserialization(accountState.get().getContract())){
                 //from 余额是否足够
                 byte[] WDCbyte = new byte[20];
@@ -813,7 +813,7 @@ public class TransactionCheck {
                 Hashtimeblock hashtimeblock = new Hashtimeblock();
                 //Hashtimeblock
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblockTransaction.to);
-                if(accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
+                if(!accountState.isPresent())return APIResult.newFailed("Hashtimeblock do not exist");
                 if (hashtimeblock.RLPdeserialization(accountState.get().getContract())) {
                     if (!Arrays.equals(hashtimeblock.getPubkeyHash(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
                         return APIResult.newFailed("From is different from the designated recipient");
@@ -851,7 +851,7 @@ public class TransactionCheck {
                 Hashheightblock hashheightblock = new Hashheightblock();
                 //Hashheightblock
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblockTransaction.to);
-                if(accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
+                if(!accountState.isPresent())return APIResult.newFailed("Hashheightblock do not exist");
                 if (hashheightblock.RLPdeserialization(accountState.get().getContract())) {
                     if (!Arrays.equals(hashheightblock.getPubkeyHash(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
                         return APIResult.newFailed("From is different from the designated recipient");
