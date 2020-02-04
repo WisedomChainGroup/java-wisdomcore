@@ -1,12 +1,9 @@
 package org.wisdom.contract;
 
-import org.wisdom.db.AccountState;
-
-import java.util.List;
-
 public interface AnalysisContract extends RLPBeanInterface {
 
     enum MethodRule {
-        CHANGEOWNER, ASSETTRANSFER, INCREASED, MULTTRANSFER, HASHTIMERANSFER, GETHASHTIME
+        CHANGEOWNER, ASSETTRANSFER, INCREASED, MULTTRANSFER, HASHTIMERANSFER, GETHASHTIME,
+        HASHHEIGHTRANSFER, GETHASHHEIGHT
     }
 }

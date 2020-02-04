@@ -204,6 +204,9 @@ public class Transaction {
         if (methodType >= 4 && methodType < 6) {
             return 2;
         }
+        if (methodType > 5) {
+            return 3;
+        }
         throw new RuntimeException("Illegal invocation contract " + methodType + " type");
     }
 
@@ -419,7 +422,7 @@ public class Transaction {
     }
 
     @JsonIgnore
-    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希
+    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希,3:锁定高度哈希
 
     @JsonIgnore
     public int methodType;//调用合约方法类型

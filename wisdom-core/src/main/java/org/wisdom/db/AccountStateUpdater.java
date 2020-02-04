@@ -18,6 +18,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
+import org.wisdom.contract.HashheightblockDefinition.HashheightblockGet;
+import org.wisdom.contract.HashheightblockDefinition.HashheightblockTransfer;
 import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
@@ -345,6 +348,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 }
                 break;
             case 2://锁定时间哈希
+            case 3://锁定高度哈希
                 if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
                     return accountState;
                 }
@@ -383,8 +387,73 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 case 5://锁定时间哈希获取资产
                     accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
                     break;
+                case 6://锁定高度哈希资产转发
+                    accountState = updateHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                    break;
+                case 7://锁定高度哈希获取资产
+                    accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                    break;
             }
         }
+        return accountState;
+    }
+
+    private AccountState updategetHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(height);
+
+        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(rlpbyte);
+        Transaction transTransfer = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
+        HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transTransfer.payload));
+        if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
+            balance += hashheightblockTransfer.getValue();
+            account.setBalance(balance);
+        } else {
+            Map<byte[], Long> tokensMap = accountState.getTokensMap();
+            long tokenbalance = 0;
+            if (tokensMap.containsKey(hashheightblock.getAssetHash())) {
+                tokenbalance = tokensMap.get(hashheightblock.getAssetHash());
+            }
+            tokenbalance += hashheightblockTransfer.getValue();
+            tokensMap.put(hashheightblock.getAssetHash(), tokenbalance);
+            accountState.setTokensMap(tokensMap);
+        }
+        accountState.setAccount(account);
+        return accountState;
+    }
+
+    private AccountState updateHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+        if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
+            return accountState;
+        }
+        long balance = account.getBalance();
+        balance -= tx.getFee();
+        account.setBalance(balance);
+        account.setNonce(tx.nonce);
+        account.setBlockHeight(height);
+
+        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(rlpbyte);
+        if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
+            balance -= hashheightblockTransfer.getValue();
+            account.setBalance(balance);
+        } else {
+            Map<byte[], Long> tokensMap = accountState.getTokensMap();
+            long tokenbalance = tokensMap.get(hashheightblock.getAssetHash());
+            tokenbalance -= hashheightblockTransfer.getValue();
+            tokensMap.put(hashheightblock.getAssetHash(), tokenbalance);
+            accountState.setTokensMap(tokensMap);
+        }
+        accountState.setAccount(account);
         return accountState;
     }
 

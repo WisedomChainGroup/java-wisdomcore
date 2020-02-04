@@ -34,6 +34,8 @@ public interface TransactionVerifyUpdate<T> {
 
     T CheckHashtimeMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash);
 
+    T CheckHashheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash);
+
     AccountState getKeyAccountState(byte[] key);
 
     default AccountState getMapAccountState(Transaction tx) {

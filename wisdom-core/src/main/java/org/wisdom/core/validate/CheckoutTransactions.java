@@ -10,6 +10,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
+import org.wisdom.contract.HashheightblockDefinition.HashheightblockGet;
+import org.wisdom.contract.HashheightblockDefinition.HashheightblockTransfer;
 import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
@@ -165,8 +168,58 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             return ChechMultMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
         } else if (tx.getContractType() == 2) {//锁定时间哈希
             return CheckHashtimeMethod(contract, tx, accountState, publicKeyHash);
+        } else if (tx.getContractType() == 3) {//锁定高度哈希
+            return CheckHashheightMethod(contract, tx, accountState, publicKeyHash);
         }
         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Call contract exception error");
+    }
+
+    @Override
+    public Result CheckHashheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(contract);
+        if (tx.getMethodType() == HASHHEIGHTRANSFER.ordinal()) {//转发资产
+            HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance -= hashheightblockTransfer.getValue();
+                if (balance < 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+                }
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashheightblock.getAssetHash());
+                balance -= hashheightblockTransfer.getValue();
+                if (balance < 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+                }
+                tokensMap.put(hashheightblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        } else if (tx.getMethodType() == GETHASHHEIGHT.ordinal()) {//获取资产
+            HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(ByteUtil.bytearrayridfirst(tx.payload));
+            Transaction transaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
+            HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance += hashheightblockTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashheightblock.getAssetHash());
+                balance += hashheightblockTransfer.getValue();
+                tokensMap.put(hashheightblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        }
+        map.put(publicKeyHash, accountState);
+        return Result.SUCCESS;
     }
 
     @Override
@@ -214,7 +267,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             }
         }
         map.put(publicKeyHash, accountState);
-        return null;
+        return Result.SUCCESS;
     }
 
     @Override

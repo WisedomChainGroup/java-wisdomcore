@@ -15,11 +15,11 @@ import org.wisdom.contract.AnalysisContract;
 @Builder
 public class HashtimeblockTransfer implements AnalysisContract {
     @RLP(0)
-    private Long value;
+    private long value;
     @RLP(1)
     private byte[] hashresult;
     @RLP(2)
-    private Long timestamp;
+    private long timestamp;
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {

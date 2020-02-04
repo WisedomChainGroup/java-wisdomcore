@@ -12,6 +12,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
+import org.wisdom.contract.HashheightblockDefinition.HashheightblockGet;
+import org.wisdom.contract.HashheightblockDefinition.HashheightblockTransfer;
 import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
@@ -42,6 +45,8 @@ import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.MULTTRANSFER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.HASHTIMERANSFER;
 import static org.wisdom.contract.AnalysisContract.MethodRule.GETHASHTIME;
+import static org.wisdom.contract.AnalysisContract.MethodRule.HASHHEIGHTRANSFER;
+import static org.wisdom.contract.AnalysisContract.MethodRule.GETHASHHEIGHT;
 
 public class PackageCache implements TransactionVerifyUpdate<Object> {
 
@@ -213,7 +218,62 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             return ChechMultMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
         } else if (tx.getContractType() == 2) {//锁定时间哈希
             return CheckHashtimeMethod(contract, tx, accountState, publicKeyHash);
+        } else if (tx.getContractType() == 3) {//锁定高度哈希
+            return CheckHashheightMethod(contract, tx, accountState, publicKeyHash);
         }
+        return null;
+    }
+
+    @Override
+    public Object CheckHashheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(contract);
+        if (tx.getMethodType() == HASHHEIGHTRANSFER.ordinal()) {//转发资产
+            HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance -= hashheightblockTransfer.getValue();
+                if (balance < 0) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashheightblock.getAssetHash());
+                balance -= hashheightblockTransfer.getValue();
+                if (balance < 0) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                tokensMap.put(hashheightblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        } else if (tx.getMethodType() == GETHASHHEIGHT.ordinal()) {//获取资产
+            HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(ByteUtil.bytearrayridfirst(tx.payload));
+            Transaction transaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
+            HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //高度是否满足
+            if (height < hashheightblockTransfer.getHeight()) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance += hashheightblockTransfer.getValue();
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(hashheightblock.getAssetHash());
+                balance += hashheightblockTransfer.getValue();
+                tokensMap.put(hashheightblock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        }
+        newMap.put(publicKeyHash, accountState);
         return null;
     }
 
@@ -489,6 +549,13 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             case 2://锁定时间哈希
                 Hashtimeblock hashtimeblock = new Hashtimeblock();
                 if (!hashtimeblock.RLPdeserialization((ByteUtil.bytearrayridfirst(tx.payload)))) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                break;
+            case 3://锁定高度哈希
+                Hashheightblock hashheightblock = new Hashheightblock();
+                if (!hashheightblock.RLPdeserialization((ByteUtil.bytearrayridfirst(tx.payload)))) {
                     AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return null;
                 }
