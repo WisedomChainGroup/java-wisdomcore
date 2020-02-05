@@ -525,7 +525,7 @@ public class TransactionCheck {
                 if (!Arrays.equals(asset.getOwner(), transaction.from))
                     return APIResult.newFailed("From must be the same as original owner");
                 //newowner与oldowner不能一致
-                if (!Arrays.equals(asset.getOwner(), assetChangeowner.getNewowner()))
+                if (Arrays.equals(asset.getOwner(), assetChangeowner.getNewowner()))
                     return APIResult.newFailed("New owner must be different from original owner");
                 //newowner必须是普通地址
                 Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetChangeowner.getNewowner()));
