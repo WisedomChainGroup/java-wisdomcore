@@ -739,12 +739,12 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
     @AllArgsConstructor
     @Getter
     @Setter
-    public class VerifyHatch {
+    private class VerifyHatch {
         public AccountState accountState;
         public boolean state = true;
     }
 
-    public boolean updateWaitCount(String publicKeyHash, long nonce) {
+    private boolean updateWaitCount(String publicKeyHash, long nonce) {
         if (waitCount.IsExist(publicKeyHash, nonce)) {
             return waitCount.updateNonce(publicKeyHash);//单个节点最长旷工数量的7个区块，可以加入
         } else {
