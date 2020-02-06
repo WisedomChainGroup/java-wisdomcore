@@ -107,10 +107,7 @@ public class CommandController {
                 return commandService.getTransactionList(height, types);
             }
         } catch (Exception e) {
-            APIResult apiResult = new APIResult();
-            apiResult.setCode(5000);
-            apiResult.setMessage("Error");
-            return apiResult;
+            return ConsensusResult.ERROR("Blockhash exception error");
         }
     }
 
@@ -125,10 +122,7 @@ public class CommandController {
                 return commandService.getTransactionBlock(block_hash, types);
             }
         } catch (DecoderException e) {
-            APIResult apiResult = new APIResult();
-            apiResult.setCode(5000);
-            apiResult.setMessage("Error");
-            return apiResult;
+            return ConsensusResult.ERROR("Blockhash exception error");
         }
     }
 

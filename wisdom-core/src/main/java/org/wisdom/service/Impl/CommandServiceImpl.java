@@ -30,6 +30,7 @@ import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.AdoptTransPool;
@@ -62,6 +63,9 @@ public class CommandServiceImpl implements CommandService {
 
     @Autowired
     WisdomRepository repository;
+
+    @Autowired
+    JSONEncodeDecoder jsonEncodeDecoder;
 
 
     @Override
@@ -121,14 +125,14 @@ public class CommandServiceImpl implements CommandService {
     public Object getTransactionList(int height, int type) {
         List<Transaction> txs = bc.getBlockByHeight(height).body.stream()
                 .filter(x -> x.type == type).collect(Collectors.toList());
-        return APIResult.newFailResult(2000, "SUCCESS", txs);
+        return jsonEncodeDecoder.encodeBlockBody(txs);
     }
 
     @Override
     public Object getTransactionBlock(byte[] blockHash, int type) {
         List<Transaction> txs = bc.getBlockByHash(blockHash).body.stream()
                 .filter(x -> x.type == type).collect(Collectors.toList());
-        return APIResult.newFailResult(2000, "SUCCESS", txs);
+        return jsonEncodeDecoder.encodeBlockBody(txs);
     }
 
     public static Incubator getIncubator(AccountState accountState, int type, byte[] payload) {
