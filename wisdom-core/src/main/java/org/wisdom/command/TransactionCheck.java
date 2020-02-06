@@ -543,9 +543,11 @@ public class TransactionCheck {
         AssetTransfer assetTransfer = new AssetTransfer();
         if (assetTransfer.RLPdeserialization(data)) {
             //判断160哈希值是否已经存在
-            Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
+            Optional<AccountState> contractAccountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+            if (!contractAccountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+            Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
+            if (!accountState.isPresent()) return APIResult.newFailed("From do not exist");
             //value
             if (assetTransfer.getValue() > 0) {
                 //校验是否有足够多的余额
@@ -554,7 +556,10 @@ public class TransactionCheck {
                     if (assetTransfer.getValue() > accountState.get().getAccount().getBalance())
                         return APIResult.newFailed("Insufficient funds");
                 } else {
-                    if (assetTransfer.getValue() > accountState.get().getTokensMap().get(assetTransfer.getTo()))
+                    if (accountState.get().getTokensMap().size() == 0){
+                        return APIResult.newFailed("Insufficient funds");
+                    }
+                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(assetTransfer.getTo()) == null ? 0 : accountState.get().getTokensMap().get(assetTransfer.getTo())))
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -620,8 +625,13 @@ public class TransactionCheck {
             if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 0)
                 return APIResult.newFailed("Dest and origin cannot be both normal address");
             Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
+            if (!accountStateFrom.isPresent())
+                return APIResult.newFailed("From do not exist");
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(transaction.to);
+            if (!accountStateTo.isPresent())
+                return APIResult.newFailed("Multiple do not exist");
             Optional<AccountState> accountStatePayloadTo = wisdomRepository.getConfirmedAccountState(multTransfer.getTo());
+
             if (multTransfer.getOrigin() == 0) {
                 if (accountStateFrom.get().getType() != 0) return APIResult.newFailed("Origin error in type");
             } else {
@@ -643,7 +653,9 @@ public class TransactionCheck {
                         if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     } else {//其他代币
-                        if (accountStateFrom.get().getTokensMap().get(assetHash) < multTransfer.getValue())
+                        if (accountStateFrom.get().getTokensMap().size() == 0)
+                            return APIResult.newFailed("Insufficient funds");
+                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
                 } else {
@@ -697,6 +709,8 @@ public class TransactionCheck {
                     //多签->多签 查询FROM TO币种是否一致
                     if (multTransfer.getOrigin() == 1 && multTransfer.getDest() == 1) {
                         Multiple multiplePayloadTo = new Multiple();
+                        if (!accountStatePayloadTo.isPresent())
+                            return APIResult.newFailed("To multiple do not exist");
                         if (multiple.RLPdeserialization(accountStatePayloadTo.get().getContract())) {
                             if (!Arrays.equals(multiple.getAssetHash(), multiplePayloadTo.getAssetHash()))
                                 return APIResult.newFailed("Must be the same currency");
@@ -715,7 +729,9 @@ public class TransactionCheck {
                         if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     } else {//其他代币
-                        if (accountStateFrom.get().getTokensMap().get(assetHash) < multTransfer.getValue())
+                        if (accountStateFrom.get().getTokensMap().size() == 0)
+                            return APIResult.newFailed("Insufficient funds");
+                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
 
@@ -757,7 +773,9 @@ public class TransactionCheck {
                     if (accountStateFrom.get().getAccount().getBalance() < hashtimeblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 } else {//其他代币
-                    if (accountStateFrom.get().getTokensMap().get(assetHash) < hashtimeblockTransfer.getValue())
+                    if (accountStateFrom.get().getTokensMap().size() == 0)
+                        return APIResult.newFailed("Insufficient funds");
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash))< hashtimeblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -795,7 +813,9 @@ public class TransactionCheck {
                     if (accountStateFrom.get().getAccount().getBalance() < hashheightblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 } else {//其他代币
-                    if (accountStateFrom.get().getTokensMap().get(assetHash) < hashheightblockTransfer.getValue())
+                    if (accountStateFrom.get().getTokensMap().size() == 0)
+                        return APIResult.newFailed("Insufficient funds");
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash))< hashheightblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {

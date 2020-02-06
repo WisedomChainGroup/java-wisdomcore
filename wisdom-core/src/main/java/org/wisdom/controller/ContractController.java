@@ -59,7 +59,7 @@ public class ContractController {
         return contractService.AddressType(address);
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "/TokenListBalance")
+    @RequestMapping(method = RequestMethod.POST, value = "/TokenListBalance")
     public Object TokenListBalance (@RequestParam(value = "address") String address, @RequestParam(value = "codeList") List<String> codeList) {
         if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
