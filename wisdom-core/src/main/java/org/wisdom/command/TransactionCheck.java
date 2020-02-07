@@ -486,7 +486,10 @@ public class TransactionCheck {
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashtimeblock.getPubkeyHash());
-            if (accountStateTo.get().getType() != 0) return APIResult.newFailed("To must be Ordinary address");
+            if (accountStateTo.isPresent()){
+                if (accountStateTo.get().getType() != 0)
+                    return APIResult.newFailed("To must be Ordinary address");
+            }
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashtimeblock rules");
@@ -503,7 +506,10 @@ public class TransactionCheck {
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashheightblock.getPubkeyHash());
-            if (accountStateTo.get().getType() != 0) return APIResult.newFailed("To must be Ordinary address");
+            if (accountStateTo.isPresent()){
+                if (accountStateTo.get().getType() != 0)
+                    return APIResult.newFailed("To must be Ordinary address");
+            }
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashheightblock rules");
@@ -529,8 +535,10 @@ public class TransactionCheck {
                     return APIResult.newFailed("New owner must be different from original owner");
                 //newowner必须是普通地址
                 Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetChangeowner.getNewowner()));
-                if (accountStateNewowner.get().getType() != 0)
-                    return APIResult.newFailed("New owner must be within the specified range");
+                if (accountStateNewowner.isPresent()){
+                    if (accountStateNewowner.get().getType() != 0)
+                        return APIResult.newFailed("New owner must be within the specified range");
+                }
             } else {
                 return APIResult.newFailed("Invalid Assets rules");
             }
@@ -570,12 +578,16 @@ public class TransactionCheck {
                 return APIResult.newFailed("From and from must be the same");
             //from From 不能为多签地址
             Optional<AccountState> fromAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetTransfer.getFrom()));
+            if (!fromAccountState.isPresent())
+                return APIResult.newFailed("From do not exist");
             if (fromAccountState.get().getType() != 0)
                 return APIResult.newFailed("Payload from must be Ordinary address");
-            Optional<AccountState> FromAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-            if (FromAccountState.get().getType() != 0) return APIResult.newFailed("From must be Ordinary address");
+            if (accountState.get().getType() != 0) return APIResult.newFailed("From must be Ordinary address");
             Optional<AccountState> toAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetTransfer.getTo()));
-            if (toAccountState.get().getType() != 0) return APIResult.newFailed("To must be Ordinary address");
+            if (toAccountState.isPresent()){//如果存在 必须为普通地址
+                if (toAccountState.get().getType() != 0)
+                    return APIResult.newFailed("To must be Ordinary address");
+            }
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid AssetsTransfer rules");
@@ -586,6 +598,8 @@ public class TransactionCheck {
         if (assetIncreased.RLPdeserialization(data)) {
             //allowincrease
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
+            if (!accountState.isPresent())
+                return APIResult.newFailed("Asset do not exist");
             Asset asset = new Asset();
             if (asset.RLPdeserialization(accountState.get().getContract())) {
                 //查询资产的allowincrease值
@@ -770,6 +784,8 @@ public class TransactionCheck {
                 //代币类型
                 byte[] assetHash = hashtimeblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
+                if (!accountStateFrom.isPresent())
+                    return APIResult.newFailed("From do not exist");
                 //验证余额是否足够
                 if (Arrays.equals(assetHash, WDCbyte)) {//WDC
                     if (accountStateFrom.get().getAccount().getBalance() < hashtimeblockTransfer.getValue())
@@ -810,6 +826,8 @@ public class TransactionCheck {
                 //代币类型
                 byte[] assetHash = hashheightblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
+                if (!accountStateFrom.isPresent())
+                    return APIResult.newFailed("From do not exist");
                 //验证余额是否足够
                 if (Arrays.equals(assetHash, WDCbyte)) {//WDC
                     if (accountStateFrom.get().getAccount().getBalance() < hashheightblockTransfer.getValue())
