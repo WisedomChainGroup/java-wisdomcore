@@ -16,6 +16,8 @@ import org.wisdom.dao.TransactionDaoJoined;
 import org.wisdom.dao.TransactionIndexDao;
 import org.wisdom.entity.HeaderEntity;
 import org.wisdom.entity.Mapping;
+import org.wisdom.entity.TransactionEntity;
+import org.wisdom.entity.TransactionIndexEntity;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -219,10 +221,16 @@ public class BlockRepositoryService implements WisdomBlockChain {
 
     @Override
     public Transaction getTransaction(byte[] txHash) {
-        return transactionDao
-                .findByTxHash(txHash)
-                .map(Mapping::getTransactionFromEntity)
-                .orElse(null);
+        Optional<TransactionEntity> entity = transactionDao.findByTxHash(txHash);
+        if (!entity.isPresent()) {
+            return null;
+        }
+        Optional<TransactionIndexEntity> transactionIndexEntity = transactionIndexDao.findByTxHash(entity.get().txHash);
+        if (!transactionIndexEntity.isPresent()) {
+            return null;
+        }
+        HeaderEntity headerEntity = headerDao.findByBlockHash(transactionIndexEntity.get().blockHash);
+        return Mapping.getTransactionFromEntity(entity.get(), headerEntity);
     }
 
     @Override

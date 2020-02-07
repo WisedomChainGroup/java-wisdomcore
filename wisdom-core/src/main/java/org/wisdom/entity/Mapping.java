@@ -46,12 +46,21 @@ public class Mapping {
                 .build();
     }
 
-    public static Transaction getTransactionFromEntity(@NonNull TransactionEntity entity) {
-        return new Transaction(
+    public static Transaction getTransactionFromEntity(@NonNull TransactionEntity entity, HeaderEntity headerEntity) {
+        Transaction tx = new Transaction(
                 entity.version, entity.type, entity.nonce,
                 entity.from, entity.gasPrice, entity.amount,
-                entity.payload, entity.to, entity.signature
+                entity.payload, entity.to, entity.signature,
+                headerEntity.blockHash, headerEntity.height
         );
+        if (tx.type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
+            tx.contractType = tx.payload[0];
+        }
+        if (tx.type == Transaction.Type.CALL_CONTRACT.ordinal()) {
+            tx.contractType = tx.payload[0];
+            tx.methodType = Transaction.getContract(tx.methodType);
+        }
+        return tx;
     }
 
     public static TransactionEntity getEntityFromTransaction(@NonNull Transaction tx) {

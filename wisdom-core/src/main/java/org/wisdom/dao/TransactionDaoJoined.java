@@ -22,7 +22,7 @@ public class TransactionDaoJoined {
 
     public List<Transaction> getTransactionsByBlockHash(byte[] param){
          Query query = em.createQuery(QUERY_JOINS +
-                 "where ti.blockHash = :param");
+                 "where ti.blockHash = :param order by ti.txIndex asc");
          query.setParameter("param", param);
          return query.getResultList();
     }
