@@ -574,6 +574,8 @@ public class TransactionCheck {
                 return APIResult.newFailed("Payload from must be Ordinary address");
             Optional<AccountState> FromAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
             if (FromAccountState.get().getType() != 0) return APIResult.newFailed("From must be Ordinary address");
+            Optional<AccountState> toAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetTransfer.getTo()));
+            if (toAccountState.get().getType() != 0) return APIResult.newFailed("To must be Ordinary address");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid AssetsTransfer rules");
