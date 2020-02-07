@@ -559,7 +559,7 @@ public class TransactionCheck {
                     if (accountState.get().getTokensMap().size() == 0){
                         return APIResult.newFailed("Insufficient funds");
                     }
-                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(assetTransfer.getTo()) == null ? 0 : accountState.get().getTokensMap().get(assetTransfer.getTo())))
+                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to)))
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
