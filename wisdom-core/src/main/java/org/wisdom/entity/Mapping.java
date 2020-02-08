@@ -46,6 +46,7 @@ public class Mapping {
                 .build();
     }
 
+    @Deprecated // use transaction dao joined to fetch block hash
     public static Transaction getTransactionFromEntity(@NonNull TransactionEntity entity, HeaderEntity headerEntity) {
         Transaction tx = new Transaction(
                 entity.version, entity.type, entity.nonce,

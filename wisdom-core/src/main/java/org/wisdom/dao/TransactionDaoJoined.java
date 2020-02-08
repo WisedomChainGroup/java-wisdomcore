@@ -6,6 +6,7 @@ import org.wisdom.core.account.Transaction;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class TransactionDaoJoined {
@@ -18,6 +19,13 @@ public class TransactionDaoJoined {
 
     public TransactionDaoJoined(EntityManager em){
         this.em = em;
+    }
+
+    public Optional<Transaction> getTransactionByHash(byte[] hash){
+        Query q = em.createQuery(QUERY_JOINS + " where ti.txHash = :param");
+        q.setParameter("param", hash);
+        List<Transaction> li = q.getResultList();
+        return li.isEmpty() ? Optional.empty() : Optional.of(li.get(0));
     }
 
     public List<Transaction> getTransactionsByBlockHash(byte[] param){

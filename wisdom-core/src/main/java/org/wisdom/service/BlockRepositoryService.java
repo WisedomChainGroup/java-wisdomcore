@@ -221,16 +221,9 @@ public class BlockRepositoryService implements WisdomBlockChain {
 
     @Override
     public Transaction getTransaction(byte[] txHash) {
-        Optional<TransactionEntity> entity = transactionDao.findByTxHash(txHash);
-        if (!entity.isPresent()) {
-            return null;
-        }
-        Optional<TransactionIndexEntity> transactionIndexEntity = transactionIndexDao.findByTxHash(entity.get().txHash);
-        if (!transactionIndexEntity.isPresent()) {
-            return null;
-        }
-        HeaderEntity headerEntity = headerDao.findByBlockHash(transactionIndexEntity.get().blockHash);
-        return Mapping.getTransactionFromEntity(entity.get(), headerEntity);
+        return transactionDaoJoined
+                .getTransactionByHash(txHash)
+                .orElse(null);
     }
 
     @Override
