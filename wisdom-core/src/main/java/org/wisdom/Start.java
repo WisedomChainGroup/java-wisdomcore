@@ -18,6 +18,9 @@
 
 package org.wisdom;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -95,5 +98,12 @@ public class Start {
     }
 
 
-
+    @Bean
+    public ObjectMapper objectMapper(){
+        ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(byte[].class, new JSONEncodeDecoder.BytesSerializer());
+        mapper.registerModule(module);
+        return mapper;
+    }
 }
