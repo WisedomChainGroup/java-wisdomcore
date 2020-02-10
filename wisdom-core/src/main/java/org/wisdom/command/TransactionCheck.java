@@ -38,10 +38,8 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
-import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
-import org.wisdom.core.account.AccountDB;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
@@ -57,7 +55,6 @@ import org.wisdom.service.Impl.CommandServiceImpl;
 import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1180,7 +1177,7 @@ public class TransactionCheck {
             return apiResult;
         }
         boolean hasvote = wisdomBlockChain.containsPayload(Transaction.Type.EXIT_VOTE.ordinal(), payload);
-        if (!hasvote) {
+        if (hasvote) {
             apiResult.setCode(5000);
             apiResult.setMessage("The vote has been withdrawn");
             return apiResult;
@@ -1235,7 +1232,7 @@ public class TransactionCheck {
             return apiResult;
         }
         boolean hasmortgage = wisdomBlockChain.containsPayload(Transaction.Type.EXIT_MORTGAGE.ordinal(), payload);
-        if (!hasmortgage) {
+        if (hasmortgage) {
             apiResult.setCode(5000);
             apiResult.setMessage("The mortgage has been withdrawn");
             return apiResult;

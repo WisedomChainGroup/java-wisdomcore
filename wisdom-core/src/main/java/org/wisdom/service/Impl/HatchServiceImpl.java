@@ -28,6 +28,7 @@ import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.incubator.RateTable;
+import org.wisdom.dao.TransactionDaoJoined;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.SyncTransactionCustomize;
 import org.wisdom.db.WisdomRepository;
@@ -64,6 +65,9 @@ public class HatchServiceImpl implements HatchService {
     @Autowired
     SyncTransactionCustomize syncTransactionCustomize;
 
+    @Autowired
+    TransactionDaoJoined transDaoJoined;
+
     @Override
     public Object getBalance(String pubkeyhash) {
         try {
@@ -86,7 +90,7 @@ public class HatchServiceImpl implements HatchService {
             Block block = repository.getBestBlock();
             Optional<AccountState> accountState = repository.getAccountStateAt(block.getHash(), pubkey);
             if (!accountState.isPresent()) {
-                return APIResult.newFailResult(2000, "0");
+                return APIResult.newFailResult(2000, "SUCCESS",0);
             }
             long nonce = accountState.get().getAccount().getNonce();
             return APIResult.newFailResult(2000, "SUCCESS", nonce);
@@ -96,12 +100,14 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getTransfer(int height) {
-        List<Map<String, Object>> list = syncTransactionCustomize.selectlistTran(height, 1, Transaction.GAS_TABLE[1]);
+    public Object getTransfer(long height) {
+        List<Map<String, Object>> list = transDaoJoined.getTransferByHeightAndTypeAndGas(height, 1, Transaction.GAS_TABLE[1]);
         JSONArray jsonArray = new JSONArray();
         for (Map<String, Object> map : list) {
+            byte[] tranHash = (byte[]) map.get("tranHash");
             byte[] from = (byte[]) map.get("fromAddress");
             byte[] to = (byte[]) map.get("coinAddress");
+            map.put("tranHash", Hex.encodeHexString(tranHash));
             map.put("fromAddress", KeystoreAction.pubkeyHashToAddress(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)), (byte) 0x00, ""));
             map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
             jsonArray.add(map);
@@ -110,17 +116,15 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getHatch(int height) {
+    public Object getHatch(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistHacth(height, 9);
+            List<Map<String, Object>> list = transDaoJoined.getHatchByHeightAndType(height, 9);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                JSONObject json = JSONObject.fromObject(map);
-                String to = json.getString("coinAddress");
-                byte[] tohash = Hex.decodeHex(to.toCharArray());
-                String payload = json.getString("payload");
-                byte[] payloadbyte = Hex.decodeHex(payload);
-                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(payloadbyte);
+                byte[] tranHash = (byte[]) map.get("coinHash");
+                byte[] to = (byte[]) map.get("coinAddress");
+                byte[] payload = (byte[]) map.get("payload");
+                HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(payload);
                 int days = payloadproto.getType();
                 String sharpubkeyhex = payloadproto.getSharePubkeyHash();
                 String sharpubkey = "";
@@ -128,11 +132,12 @@ public class HatchServiceImpl implements HatchService {
                     byte[] sharepubkeyhash = Hex.decodeHex(sharpubkeyhex.toCharArray());
                     sharpubkey = KeystoreAction.pubkeyHashToAddress(sharepubkeyhash, (byte) 0x00, "");
                 }
-                json.put("coinAddress", KeystoreAction.pubkeyHashToAddress(tohash, (byte) 0x00, ""));
-                json.put("blockType", days);
-                json.put("inviteAddress", sharpubkey);
-                json.remove("payload");
-                jsonArray.add(json);
+                map.put("coinHash", Hex.encodeHexString(tranHash));
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
+                map.put("blockType", days);
+                map.put("inviteAddress", sharpubkey);
+                map.remove("payload");
+                jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
         } catch (Exception e) {
@@ -141,17 +146,18 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getInterest(int height) {
+    public Object getInterest(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistInterest(height, 10);
+            List<Map<String, Object>> list = transDaoJoined.getInterestByHeightAndType(height, 10);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
+                byte[] tranHash = (byte[]) map.get("tranHash");
+                map.put("tranHash", Hex.encodeHexString(tranHash));
                 byte[] to = (byte[]) map.get("coinAddress");
                 map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
                 //分享者
-                String tranhex = map.get("coinHash").toString();
-                byte[] tranhash = Hex.decodeHex(tranhex.toCharArray());
-                Transaction transaction = wisdomBlockChain.getTransaction(tranhash);
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                Transaction transaction = wisdomBlockChain.getTransaction(coinHash);
                 if (transaction == null) {
                     return APIResult.newFailResult(5000, "Hatching transactions do not exist");
                 }
@@ -162,6 +168,7 @@ public class HatchServiceImpl implements HatchService {
                 } else {
                     map.put("inviteAddress", "");
                 }
+                map.put("coinHash", Hex.encodeHexString(coinHash));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -171,13 +178,17 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getShare(int height) {
+    public Object getShare(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistShare(height, 11);
+            List<Map<String, Object>> list = transDaoJoined.getShareByHeightAndType(height, 11);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                byte[] tranHash = (byte[]) map.get("tranHash");
                 byte[] to = (byte[]) map.get("coinAddress");
                 byte[] invite = (byte[]) map.get("inviteAddress");
+                map.put("coinHash", Hex.encodeHexString(coinHash));
+                map.put("tranHash", Hex.encodeHexString(tranHash));
                 map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(to, (byte) 0x00, ""));
                 map.put("inviteAddress", KeystoreAction.pubkeyHashToAddress(invite, (byte) 0x00, ""));
                 jsonArray.add(map);
@@ -189,14 +200,17 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getCost(int height) {
+    public Object getCost(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCost(height, 12);
+            List<Map<String, Object>> list = transDaoJoined.getCostByHeightAndType(height, 12);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String coinAddress = map.get("coinAddress").toString();
-                byte[] pubkeyhash = Hex.decodeHex(coinAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(pubkeyhash, (byte) 0x00, ""));
+                byte[] coinAddress = (byte[]) map.get("coinAddress");
+                byte[] tranHash = (byte[]) map.get("tranHash");
+                byte[] tradeHash = (byte[]) map.get("tradeHash");
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(coinAddress, (byte) 0x00, ""));
+                map.put("tranHash", Hex.encodeHexString(tranHash));
+                map.put("tradeHash", Hex.encodeHexString(tradeHash));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -206,17 +220,17 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getVote(int height) {
+    public Object getVote(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistVote(height, 2);
+            List<Map<String, Object>> list = transDaoJoined.getVoteByHeightAndType(height, 2);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String coinAddress = map.get("coinAddress").toString();
-                byte[] frompubkey = Hex.decodeHex(coinAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, ""));
-                String toAddress = map.get("toAddress").toString();
-                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
-                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
+                byte[] toAddress = (byte[]) map.get("toAddress");
+                byte[] coinAddress = (byte[]) map.get("coinAddress");
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(toAddress, (byte) 0x00, ""));
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(coinAddress, (byte) 0x00, ""));
+                map.put("coinHash", Hex.encodeHexString(coinHash));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -226,17 +240,19 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getCancelVote(int height) {
+    public Object getCancelVote(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCancelVote(height, 13);
+            List<Map<String, Object>> list = transDaoJoined.getCancelVoteByHeightAndType(height, 13);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String coinAddress = map.get("coinAddress").toString();
-                byte[] frompubkey = Hex.decodeHex(coinAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, ""));
-                String toAddress = map.get("toAddress").toString();
-                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
-                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
+                byte[] toAddress = (byte[]) map.get("toAddress");
+                byte[] coinAddress = (byte[]) map.get("coinAddress");
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                byte[] tradeHash = (byte[]) map.get("tradeHash");
+                map.put("toAddress", KeystoreAction.pubkeyHashToAddress(toAddress, (byte) 0x00, ""));
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(coinAddress, (byte) 0x00, ""));
+                map.put("coinHash", Hex.encodeHexString(coinHash));
+                map.put("tradeHash", Hex.encodeHexString(tradeHash));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -246,14 +262,15 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getMortgage(int height) {
+    public Object getMortgage(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistMortgage(height, 14);
+            List<Map<String, Object>> list = transDaoJoined.getMortgageByHeightAndType(height, 14);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String toAddress = map.get("coinAddress").toString();
-                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
+                byte[] coinAddress = (byte[]) map.get("coinAddress");
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(coinAddress, (byte) 0x00, ""));
+                map.put("coinHash", Hex.encodeHexString(coinHash));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -263,14 +280,17 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getCancelMortgage(int height) {
+    public Object getCancelMortgage(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCancelMortgage(height, 15);
+            List<Map<String, Object>> list = transDaoJoined.getCancelMortgageByHeightAndType(height, 15);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                String toAddress = map.get("coinAddress").toString();
-                byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
+                byte[] toAddress = (byte[]) map.get("coinAddress");
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                byte[] tradeHash = (byte[]) map.get("tradeHash");
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(toAddress, (byte) 0x00, ""));
+                map.put("coinHash", Hex.encodeHexString(coinHash));
+                map.put("tradeHash", Hex.encodeHexString(tradeHash));
                 jsonArray.add(map);
             }
             return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
@@ -363,7 +383,7 @@ public class HatchServiceImpl implements HatchService {
                 return APIResult.newFailResult(5000, "The account does not exist");
             }
             Map<byte[], Incubator> shareMap = oa.get().getShareMap();
-            if(!shareMap.containsKey(trhash)){
+            if (!shareMap.containsKey(trhash)) {
                 return APIResult.newFailResult(5000, "Error in incubation state acquisition");
             }
             //查询当前孵化记录
@@ -423,6 +443,7 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
+    @Deprecated
     public Object getTxrecordFromAddress(String address) {
         try {
             if (KeystoreAction.verifyAddress(address) == 0) {
@@ -477,16 +498,17 @@ public class HatchServiceImpl implements HatchService {
     }
 
     @Override
-    public Object getCoinBaseList(int height) {
+    public Object getCoinBaseList(long height) {
         try {
-            List<Map<String, Object>> list = syncTransactionCustomize.selectlistCoinBase(height);
+            List<Map<String, Object>> list = transDaoJoined.getCoinBaseByHeightAndType(height);
             int count = 0;
             Map<String, Object> maps = new HashMap<>();
             for (Map<String, Object> map : list) {
                 if (Integer.valueOf(map.get("type").toString()) == 0) {
-                    String toAddress = map.get("coinAddress").toString();
-                    byte[] topubhash = Hex.decodeHex(toAddress.toCharArray());
-                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(topubhash, (byte) 0x00, ""));
+                    byte[] toAddress = (byte[]) map.get("coinAddress");
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(toAddress, (byte) 0x00, ""));
+                    map.put("coinHash", Hex.encodeHexString(coinHash));
                     maps.putAll(map);
                     break;
                 }

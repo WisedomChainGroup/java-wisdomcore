@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@Deprecated
 public class SyncTransactionCustomize {
 
     @Autowired

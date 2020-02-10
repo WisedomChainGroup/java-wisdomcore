@@ -24,29 +24,30 @@ public interface HatchService {
 
     Object getNonce(String pubkeyhash);
 
-    Object getTransfer(int height);
+    Object getTransfer(long height);
 
-    Object getHatch(int height);
+    Object getHatch(long height);
 
-    Object getInterest(int height);
+    Object getInterest(long height);
 
-    Object getShare(int height);
+    Object getShare(long height);
 
-    Object getCost(int height);
+    Object getCost(long height);
 
-    Object getVote(int height);
+    Object getVote(long height);
 
-    Object getCancelVote(int height);
+    Object getCancelVote(long height);
 
-    Object getMortgage(int height);
+    Object getMortgage(long height);
 
-    Object getCancelMortgage(int height);
+    Object getCancelMortgage(long height);
 
     Object getNowInterest(String tranhash);
 
     Object getNowShare(String tranhash);
 
+    @Deprecated
     Object getTxrecordFromAddress(String address);
 
-    Object getCoinBaseList(int height);
+    Object getCoinBaseList(long height);
 }

@@ -2,7 +2,6 @@ package org.wisdom.dao;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import org.wisdom.entity.TransactionEntity;
 
 import java.util.List;
