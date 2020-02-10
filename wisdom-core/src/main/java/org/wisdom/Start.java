@@ -103,6 +103,7 @@ public class Start {
         ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         SimpleModule module = new SimpleModule();
         module.addSerializer(byte[].class, new JSONEncodeDecoder.BytesSerializer());
+        module.addDeserializer(byte[].class, new JSONEncodeDecoder.BytesDeserializer());
         mapper.registerModule(module);
         return mapper;
     }
