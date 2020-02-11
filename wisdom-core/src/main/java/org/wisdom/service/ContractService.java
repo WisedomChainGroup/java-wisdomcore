@@ -24,4 +24,6 @@ public interface ContractService {
     Object AddressType(String address);
 
     Object getTokenListBalance(byte[] pubkeyHash, List<String> codeList);
+
+    Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash);
 }

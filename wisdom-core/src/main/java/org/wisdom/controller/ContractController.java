@@ -9,6 +9,7 @@ import org.wisdom.ApiResult.APIResult;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.service.ContractService;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -38,9 +39,7 @@ public class ContractController {
         if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
         }
-        return APIResult.newSuccess(
-                contractService.getAssetBalance(code, KeystoreAction.addressToPubkeyHash(address))
-        );
+        return contractService.getAssetBalanceObject(code, KeystoreAction.addressToPubkeyHash(address));
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/ParseAssetAddress")
@@ -60,10 +59,11 @@ public class ContractController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/TokenListBalance")
-    public Object TokenListBalance (@RequestParam(value = "address") String address, @RequestParam(value = "codeList") List<String> codeList) {
+    public Object TokenListBalance (@RequestParam(value = "address") String address, @RequestParam(value = "codes") String codes) {
         if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
         }
+        List<String> codeList = Arrays.asList(codes.split(","));
         if (codeList.size() == 0){
             return APIResult.newFailed("Codelist Can not be null");
         }
