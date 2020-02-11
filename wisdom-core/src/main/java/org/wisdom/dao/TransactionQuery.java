@@ -25,6 +25,9 @@ public class TransactionQuery {
     @PositiveOrZero
     private Integer limit;
 
+    @PositiveOrZero
+    private Integer height;
+
     @Getter(AccessLevel.NONE)
     private String to;
 
@@ -90,6 +93,10 @@ public class TransactionQuery {
         if(getType() != null) {
             restrictions.add(" t.type = :type ");
             params.put("type", getType());
+        }
+        if(getHeight() != null){
+            restrictions.add(" h.height = :height ");
+            params.put("height", getHeight());
         }
         String suffix = " where " + String.join(" and ", restrictions) + " order by h.height, ti.txIndex asc";
         Query q  = entityManager.createQuery(joins + suffix);
