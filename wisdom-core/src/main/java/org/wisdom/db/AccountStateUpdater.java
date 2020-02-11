@@ -143,7 +143,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         bytes.add(fromhash);
         if (tx.getContractType() == 0) {//代币
             byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-            switch (tx.getContractType()) {
+            switch (tx.getMethodType()) {
                 case 0://更换所有者
                 case 2://增发
                     bytes.add(tx.to);
