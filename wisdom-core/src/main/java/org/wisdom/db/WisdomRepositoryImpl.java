@@ -18,6 +18,7 @@ import org.wisdom.dao.TransactionQuery;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
@@ -408,7 +409,24 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     @Override
     public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
-        return bc.getTransactionByQuery(transactionQuery);
+        List<Transaction> ret = bc.getTransactionByQuery(transactionQuery);
+
+        Stream<Transaction> all =
+                chainCache.getAncestors(chainCache.last().getHash().getBytes())
+                    .stream()
+                    .flatMap(x -> x.get().body.stream());
+        if (transactionQuery.getType() != null)
+            all = all.filter(x -> x.type == transactionQuery.getType());
+        if (transactionQuery.getFrom() != null)
+            all = all.filter(x -> FastByteComparisons.equal(x.from, transactionQuery.getFrom()));
+        if (transactionQuery.getTo() != null)
+            all = all.filter(x -> FastByteComparisons.equal(x.to, transactionQuery.getTo()));
+        if (transactionQuery.getLimit() != null) {
+            long limit = transactionQuery.getLimit() - ret.size();
+            all = all.limit(limit < 0 ? 0 : limit);
+        }
+        ret.addAll(all.collect(toList()));
+        return ret;
     }
 
     @Override
@@ -659,7 +677,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                     .forEach(w -> deleteCache(w.get()));
 
             // 回收垃圾
-            if(b.nHeight % 100000 == 0){
+            if (b.nHeight % 100000 == 0) {
                 List<byte[]> excluded =
                         chainCache.stream().map(BlockWrapper::getHash).map(HexBytes::getBytes).collect(toList());
 

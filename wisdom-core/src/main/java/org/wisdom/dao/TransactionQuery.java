@@ -11,6 +11,7 @@ import org.wisdom.core.account.Transaction;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +19,10 @@ import java.util.Map;
 
 @Data
 public class TransactionQuery {
+    @PositiveOrZero
     private Integer offset;
+
+    @PositiveOrZero
     private Integer limit;
 
     @Getter(AccessLevel.NONE)
