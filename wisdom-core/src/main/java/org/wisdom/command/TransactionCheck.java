@@ -426,6 +426,9 @@ public class TransactionCheck {
 
             if (asset.getAllowincrease() != 0 && asset.getAllowincrease() != 1)
                 return APIResult.newFailed("Allowincrease error");
+            //info
+            if (asset.getInfo().getBytes(StandardCharsets.UTF_8).length>300)
+                return APIResult.newFailed("Info out of specified range");
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
             return apiResult;
@@ -610,11 +613,8 @@ public class TransactionCheck {
             //amount
             if (assetIncreased.getAmount() > 0) {
                 //校验总量+增发量是否小于Long的最大值
-                Long total = 0L;
-                for (Long value : accountState.get().getTokensMap().values()) {
-                    total += value;
-                }
-                if (total + assetIncreased.getAmount() < 0) return APIResult.newFailed("Amount maximum exceeded");
+                if (assetIncreased.getAmount()+asset.getTotalamount() < 0 )
+                    return APIResult.newFailed("Amount maximum exceeded");
             } else {
                 return APIResult.newFailed("Amount must be greater than zero");
             }
