@@ -20,8 +20,8 @@ import java.util.Map;
 public class TransactionDaoJoined {
     private static final String QUERY_JOINS =
             "select new org.wisdom.core.account.Transaction(t.version, t.type, t.nonce, t.from, t.gasPrice, t.amount, t.payload, t.to, t.signature, ti.blockHash, h.height) " +
-                    "from HeaderEntity h INNER JOIN TransactionIndexEntity ti on h.blockHash = ti.blockHash " +
-                    "INNER JOIN TransactionEntity t on ti.txHash = t.txHash ";
+                    "from HeaderEntity h inner join TransactionIndexEntity ti on h.blockHash = ti.blockHash " +
+                    "inner join TransactionEntity t on ti.txHash = t.txHash ";
 
     private static final String QUERYONE_JOINS = "from TransactionEntity t left join TransactionIndexEntity i on t.txHash = i.txHash " +
             "left join HeaderEntity h on h.blockHash = i.blockHash " +

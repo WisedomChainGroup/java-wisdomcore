@@ -1,25 +1,16 @@
 package org.wisdom.dao;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
-import org.springframework.boot.jackson.JsonComponent;
-import org.tdf.common.util.HexBytes;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.account.Transaction;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,12 +55,17 @@ public class TransactionQuery {
     public byte[] getTo() {
         return to == null ?
                 null :
-                PublicKeyHash.fromHex(to).orElseThrow(IllegalArgumentException::new).getPublicKeyHash();
+                PublicKeyHash
+                        .fromHex(to)
+                        .orElseThrow(IllegalArgumentException::new)
+                        .getPublicKeyHash();
     }
 
     @SneakyThrows
     public byte[] getFrom() {
-        return from == null ? null : Hex.decodeHex(from);
+        return from == null ?
+                null :
+                Hex.decodeHex(from);
     }
 
 
@@ -91,7 +87,7 @@ public class TransactionQuery {
             restrictions.add(" t.type = :type ");
             params.put("type", getType());
         }
-        String suffix = " where " + String.join(" and ", restrictions);
+        String suffix = " where " + String.join(" and ", restrictions) + " order by h.height, ti.txIndex asc";
         Query q  = entityManager.createQuery(joins + suffix);
         params.forEach(q::setParameter);
         if(offset != null) q.setFirstResult(offset);

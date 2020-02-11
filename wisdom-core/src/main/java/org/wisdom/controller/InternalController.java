@@ -179,7 +179,10 @@ public class InternalController {
         return ret;
     }
 
-    @GetMapping(value = "/internal/getTxrecordFromAddress", produces = "application/json")
+    @GetMapping(value = {
+            "/internal/getTxrecordFromAddress",
+            "/internal/transaction"
+    }, produces = "application/json")
     public Object getTransactionsByTo(
             @ModelAttribute  TransactionQuery query
     ) {
