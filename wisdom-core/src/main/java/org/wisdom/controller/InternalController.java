@@ -184,7 +184,7 @@ public class InternalController {
             "/internal/getTxrecordFromAddress",
             "/internal/transaction"
     }, produces = "application/json")
-    public Object getTransactionsByTo(
+    public List<Transaction> getTransactionsByTo(
             @ModelAttribute  @Validated TransactionQuery query
     ) {
         return wisdomRepository.getTransactionByQuery(query);
