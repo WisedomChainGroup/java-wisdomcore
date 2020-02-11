@@ -13,6 +13,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.core.event.NewConfirmedBlockEvent;
+import org.wisdom.dao.TransactionQuery;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -405,6 +406,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 bc.countBlocksAfter(timestamp);
     }
 
+    @Override
+    public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
+        return bc.getTransactionByQuery(transactionQuery);
+    }
 
     @Override
     public List<Transaction> getTransactionsAtByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {

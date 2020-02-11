@@ -4,6 +4,7 @@ import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionQuery;
 
 import java.util.Collection;
 import java.util.List;
@@ -11,6 +12,11 @@ import java.util.Map;
 import java.util.Optional;
 
 public class WisdomRepositoryAdapter implements WisdomRepository {
+    @Override
+    public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
+        return null;
+    }
+
     @Override
     public Block getLatestConfirmed() {
         return null;

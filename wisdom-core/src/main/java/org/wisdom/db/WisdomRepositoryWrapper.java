@@ -8,6 +8,7 @@ import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionQuery;
 
 import java.util.Collection;
 import java.util.List;
@@ -352,6 +353,17 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
             readWriteLock.readLock().unlock();
         }
     }
+
+    @Override
+    public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getTransactionByQuery(transactionQuery);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
 
     @Override
     public List<Transaction> getTransactionsAtByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {

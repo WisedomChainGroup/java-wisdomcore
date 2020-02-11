@@ -9,10 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.dao.HeaderDao;
-import org.wisdom.dao.TransactionDao;
-import org.wisdom.dao.TransactionDaoJoined;
-import org.wisdom.dao.TransactionIndexDao;
+import org.wisdom.dao.*;
 import org.wisdom.service.BlockRepositoryService;
 
 import javax.transaction.Transactional;
@@ -322,6 +319,11 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
         } finally {
             recordMetric(method, System.currentTimeMillis() - start);
         }
+    }
+
+    @Override
+    public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
+        return delegate.getTransactionByQuery(transactionQuery);
     }
 
     @Override

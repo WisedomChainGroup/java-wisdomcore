@@ -1,10 +1,17 @@
 package org.wisdom.dao;
 
+import lombok.NonNull;
 import org.springframework.stereotype.Repository;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.entity.HeaderEntity;
+import org.wisdom.entity.TransactionEntity;
+import org.wisdom.entity.TransactionIndexEntity;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
@@ -38,6 +45,17 @@ public class TransactionDaoJoined {
                 "where ti.blockHash = :param order by ti.txIndex asc");
         query.setParameter("param", param);
         return query.getResultList();
+    }
+
+    public List<Transaction> getTransactionByQuery(@NonNull TransactionQuery txQuery){
+        String restrictions = txQuery.getQuery();
+        Query q = em.createQuery(QUERY_JOINS + restrictions);
+        if(txQuery.getOffset() != null) q.setFirstResult(txQuery.getOffset());
+        if(txQuery.getLimit() != null) q.setMaxResults(txQuery.getLimit());
+        if(!txQuery.getFrom().isEmpty()) q.setParameter("from", txQuery.getFrom().getBytes());
+        if(txQuery.getTo() != null) q.setParameter("to", txQuery.getTo().getPublicKeyHash());
+        if(txQuery.getType() != null) q.setParameter("type", txQuery.getType());
+        return q.getResultList();
     }
 
 

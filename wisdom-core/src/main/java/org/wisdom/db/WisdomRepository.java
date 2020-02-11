@@ -4,6 +4,7 @@ import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionQuery;
 
 import java.util.Collection;
 import java.util.List;
@@ -104,6 +105,8 @@ public interface WisdomRepository {
     default Map<byte[], AccountState> getLatestAccountStates(Collection<byte[]> publicKeyHashes) {
         return getAccountStatesAt(getBestBlock().getHash(), publicKeyHashes);
     }
+
+    List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery);
 
     List<Transaction> getTransactionsAtByTo(byte[] blockHash, byte[] publicKeyHash, int offset, int limit);
 

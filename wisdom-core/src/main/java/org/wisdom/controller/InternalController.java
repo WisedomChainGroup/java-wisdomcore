@@ -4,19 +4,19 @@ import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionQuery;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.BlocksDump;
 import org.wisdom.db.CandidateStateTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.util.Address;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -180,69 +180,8 @@ public class InternalController {
 
     @GetMapping(value = "/internal/getTxrecordFromAddress", produces = "application/json")
     public Object getTransactionsByTo(
-            @RequestParam(value = "from", required = false) String from,
-            @RequestParam(value = "to", required = false) String to,
-            @RequestParam(value = "offset", required = false) Integer offset,
-            @RequestParam(value = "limit", required = false) Integer limit,
-            @RequestParam(value = "type", required = false) String type
+            @ModelAttribute TransactionQuery query
     ) {
-        Integer typeParsed = Transaction.getTypeFromInput(type);
-
-        if (from == null) {
-            from = "";
-        }
-        if (to == null) {
-            to = "";
-        }
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null || limit <= 0) {
-            limit = Integer.MAX_VALUE;
-        }
-        Block best = wisdomRepository.getBestBlock();
-        if (!from.equals("") && !to.equals("")) {
-            byte[] publicKey;
-            try {
-                publicKey = Hex.decodeHex(from);
-            } catch (Exception e) {
-                return e.getMessage();
-            }
-            if (typeParsed == null) {
-                return codec.encodeTransactions(
-                        wisdomRepository.getTransactionsAtByFromAndTo(best.getHash(), publicKey, Address.getPublicKeyHash(to), offset, limit)
-                );
-            }
-            return codec.encodeTransactions(
-                    wisdomRepository.getTransactionsAtByTypeFromAndTo(best.getHash(), typeParsed, publicKey, Address.getPublicKeyHash(to), offset, limit)
-            );
-        }
-        if (!from.equals("")) {
-            byte[] publicKey;
-            try {
-                publicKey = Hex.decodeHex(from);
-            } catch (Exception e) {
-                return e.getMessage();
-            }
-            if (typeParsed == null) {
-                return codec.encodeTransactions(
-                        wisdomRepository.getTransactionsAtByFrom(best.getHash(), publicKey, offset, limit)
-                );
-            }
-            return codec.encodeTransactions(
-                    wisdomRepository.getTransactionsAtByTypeAndFrom(best.getHash(), typeParsed, publicKey, offset, limit)
-            );
-        }
-        if (!to.equals("")) {
-            if (typeParsed == null) {
-                return codec.encodeTransactions(
-                        wisdomRepository.getLatestTransactionsByTo(Address.getPublicKeyHash(to), offset, limit)
-                );
-            }
-            return codec.encodeTransactions(
-                    wisdomRepository.getTransactionsAtByTypeAndTo(best.getHash(), typeParsed, Address.getPublicKeyHash(to), offset, limit)
-            );
-        }
-        return "please provide from or to";
+        return wisdomRepository.getTransactionByQuery(query);
     }
 }

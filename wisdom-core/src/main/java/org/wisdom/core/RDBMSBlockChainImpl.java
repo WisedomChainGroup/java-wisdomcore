@@ -36,6 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.orm.BlockMapper;
 import org.wisdom.core.orm.TransactionMapper;
+import org.wisdom.dao.TransactionQuery;
 import org.wisdom.util.Arrays;
 
 import java.util.*;
@@ -347,6 +348,11 @@ public class RDBMSBlockChainImpl implements WisdomBlockChain {
 
     public boolean containsPayload(int type, byte[] payload) {
         return tmpl.queryForObject("select count(*) from transaction as tx where tx.type = ? and tx.payload = ?  limit 1", new Object[]{type, payload}, Integer.class) > 0;
+    }
+
+    @Override
+    public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
+        throw new RuntimeException("not implemented");
     }
 
     @Override

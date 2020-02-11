@@ -1,15 +1,24 @@
 package org.wisdom.account;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.rlp.*;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.crypto.PublicKey;
 import org.wisdom.util.Address;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
 
 @RLPEncoding(PublicKeyHash.PublicKeyHashEncoder.class)
 @RLPDecoding(PublicKeyHash.PublicKeyHashDecoder.class)
+@JsonDeserialize(using = PublicKeyHash.PublicKeyHashDeserializer.class)
 public class PublicKeyHash {
     public static class PublicKeyHashEncoder implements RLPEncoder<PublicKeyHash>{
         @Override
@@ -77,5 +86,22 @@ public class PublicKeyHash {
     @Override
     public int hashCode() {
         return Arrays.hashCode(publicKeyHash);
+    }
+
+    public static class PublicKeyHashDeserializer extends StdDeserializer<PublicKeyHash>{
+        public PublicKeyHashDeserializer(Class<?> vc) {
+            super(PublicKeyHash.class);
+        }
+
+        @Override
+        public PublicKeyHash deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+            JsonNode node = p.getCodec().readTree(p);
+            if(node.isNull()) return null;
+            String encoded = node.asText();
+            if(encoded == null || encoded.trim().isEmpty()){
+                return null;
+            }
+            return PublicKeyHash.fromHex(encoded).orElseThrow(IllegalArgumentException::new);
+        }
     }
 }

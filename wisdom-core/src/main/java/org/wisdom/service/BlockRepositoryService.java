@@ -10,10 +10,7 @@ import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.dao.HeaderDao;
-import org.wisdom.dao.TransactionDao;
-import org.wisdom.dao.TransactionDaoJoined;
-import org.wisdom.dao.TransactionIndexDao;
+import org.wisdom.dao.*;
 import org.wisdom.entity.HeaderEntity;
 import org.wisdom.entity.Mapping;
 import org.wisdom.entity.TransactionEntity;
@@ -217,6 +214,11 @@ public class BlockRepositoryService implements WisdomBlockChain {
     @Override
     public boolean containsPayload(int type, byte[] payload) {
         return transactionDao.existsByTypeAndPayload(type, payload);
+    }
+
+    @Override
+    public List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery) {
+        return transactionDaoJoined.getTransactionByQuery(transactionQuery);
     }
 
     @Override

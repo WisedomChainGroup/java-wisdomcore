@@ -19,6 +19,7 @@
 package org.wisdom.core;
 
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionQuery;
 
 import java.util.List;
 
@@ -81,6 +82,8 @@ public interface WisdomBlockChain {
     boolean containsTransaction(byte[] txHash);
 
     boolean containsPayload(int type, byte[] payload);
+
+    List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery);
 
     Transaction getTransaction(byte[] txHash);
 
