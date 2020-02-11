@@ -72,6 +72,7 @@ public class APIResult<T> extends ResultSupport {
         APIResult<U> apiResult = new APIResult<U>();
         apiResult.setData(data);
         apiResult.setCode(SUCCESS);
+        apiResult.setMessage("SUCCESS");
         return apiResult;
     }
 }

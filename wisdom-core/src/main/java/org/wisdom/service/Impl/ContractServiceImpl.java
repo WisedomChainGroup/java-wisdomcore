@@ -36,7 +36,10 @@ public class ContractServiceImpl implements ContractService {
             AccountState accountState = accountStateOptional.get();
             byte[] RLPByte = accountState.getContract();
             if (accountState.getType() == 1) {//代币
-                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
+                JSONObject json = (JSONObject) JSONObject.toJSON(Asset.getConvertAsset(RLPByte));
+                json.put("createuser",Asset.getConvertAsset(RLPByte).getCreateuser());
+                json.put("owner",Asset.getConvertAsset(RLPByte).getOwner());
+                return APIResult.newSuccess(json);
             } else if (accountState.getType() == 2) {//多签
                 return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
             }
@@ -53,7 +56,7 @@ public class ContractServiceImpl implements ContractService {
             if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
                 return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
             }
-            return APIResult.newSuccess(accountStateOptional.get().getContract());
+            return APIResult.newSuccess(Hex.encodeHexString(accountStateOptional.get().getContract()));
         } catch (DecoderException e) {
             return APIResult.newFailed("Transaction hash resolution error");
         }
@@ -65,7 +68,10 @@ public class ContractServiceImpl implements ContractService {
         if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() != 1) {
             return APIResult.newFailed("The thing hash does not exist or is not a asset contract transaction");
         }
-        return APIResult.newSuccess(Asset.getConvertAsset(accountStateOptional.get().getContract()));
+        JSONObject json = (JSONObject) JSONObject.toJSON(Asset.getConvertAsset(accountStateOptional.get().getContract()));
+        json.put("createuser",Asset.getConvertAsset(accountStateOptional.get().getContract()).getCreateuser());
+        json.put("owner",Asset.getConvertAsset(accountStateOptional.get().getContract()).getOwner());
+        return APIResult.newSuccess(json);
     }
 
     @Deprecated
@@ -123,16 +129,35 @@ public class ContractServiceImpl implements ContractService {
         JSONObject codeJson = new JSONObject();
         byte[] wdcByte = new byte[20];
         for (String code : codeList) {
-            Long balance;
+            Long balance = 0L;
             if (code.equals(Hex.encodeHexString(wdcByte))) {
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(pubkeyHash);
                 if (!accountState.isPresent()) return APIResult.newFailed("Inactive address");
                 balance = accountState.get().getAccount().getBalance();
+                codeJson.put(code, balance);
             } else {
-                balance = getAssetBalance(code, pubkeyHash);
+                APIResult apiResult = (APIResult) getAssetBalanceObject(code, pubkeyHash);
+                if (apiResult.getCode() == 2000){
+                    balance = (Long) apiResult.getData();
+                    codeJson.put(code, balance);
+                }
             }
-            codeJson.put(code, balance);
         }
         return APIResult.newSuccess(codeJson);
+    }
+
+    @Override
+    public Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash) {
+        Block best = wisdomRepository.getBestBlock();
+        Optional<AssetCodeInfo> info =
+                wisdomRepository.getAssetCodeAt(best.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
+        if (!info.isPresent())
+            return APIResult.newFailed("asset not found");
+        Optional<AccountState> asset =
+                wisdomRepository.getConfirmedAccountState(publicKeyHash)
+                        .filter(a -> a.getType() == 0);
+        if (!asset.isPresent())
+            return APIResult.newFailed("Account does not exist");
+        return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
 }

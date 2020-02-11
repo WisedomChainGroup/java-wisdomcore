@@ -38,9 +38,7 @@ public class ContractController {
         if (KeystoreAction.verifyAddress(address) != 0) {
             return APIResult.newFailed("Invalid address");
         }
-        return APIResult.newSuccess(
-                contractService.getAssetBalance(code, KeystoreAction.addressToPubkeyHash(address))
-        );
+        return contractService.getAssetBalanceObject(code, KeystoreAction.addressToPubkeyHash(address));
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/ParseAssetAddress")
