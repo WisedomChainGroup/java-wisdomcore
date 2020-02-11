@@ -225,7 +225,6 @@ public class TestContext {
     public MerkleRule merkleRule(
             @Value("${node-character}") String character,
             AccountStateTrie accountDB,
-            IncubatorDB incubatorDB,
             RateTable rateTable,
             WisdomBlockChain wisdomBlockChain,
             Configuration configuration
@@ -233,7 +232,6 @@ public class TestContext {
         MerkleRule merkleRule = new MerkleRule(character, 0);
         merkleRule.setAccountStateTrie(accountDB);
         merkleRule.setConfiguration(configuration);
-        merkleRule.setIncubatorDB(incubatorDB);
         merkleRule.setRateTable(rateTable);
         merkleRule.setWisdomBlockChain(wisdomBlockChain);
         return merkleRule;
@@ -264,10 +262,8 @@ public class TestContext {
     public AccountStateTrie accountStateTrie(DatabaseStoreFactory factory,
                                              Block genesis,
                                              WisdomBlockChain bc,
-                                             Genesis genesisJSON,
-                                             AccountStateUpdater accountStateUpdater,
-                                             @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory) throws Exception {
-        return new AccountStateTrie(factory, genesis, bc, genesisJSON, accountStateUpdater, fastSyncDirectory);
+                                             AccountStateUpdater accountStateUpdater) throws Exception {
+        return new AccountStateTrie(factory, genesis, bc, accountStateUpdater);
     }
 
     @Bean
