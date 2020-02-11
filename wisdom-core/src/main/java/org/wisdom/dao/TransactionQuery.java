@@ -7,63 +7,95 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.SneakyThrows;
+import org.apache.commons.codec.binary.Hex;
+import org.springframework.boot.jackson.JsonComponent;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.account.Transaction;
 
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class TransactionQuery {
     private Integer offset;
     private Integer limit;
-    private PublicKeyHash to;
-    private HexBytes from;
 
-    @JsonDeserialize(using = TypeDeserializer.class)
-    private Integer type;
+    @Getter(AccessLevel.NONE)
+    private String to;
 
-    public static class TypeDeserializer extends StdDeserializer<Integer>{
-        public TypeDeserializer() {
-            super(Integer.class);
+    @Getter(AccessLevel.NONE)
+    private String from;
+
+    @Getter(AccessLevel.NONE)
+    private String type;
+
+    public Integer getType(){
+        String s = type;
+        s = s == null ? null : s.trim().toUpperCase();
+        if(s == null || s.trim().isEmpty()){
+            return null;
         }
-
-        @Override
-        public Integer deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
-            JsonNode node = p.getCodec().readTree(p);
-            if(node.isNull()) return null;
-            String s = node.asText();
-            s = s == null ? null : s.trim().toUpperCase();
-            if(s == null || s.trim().isEmpty()){
-                return null;
+        for (Transaction.Type t : Transaction.TYPES_TABLE) {
+            if (t.toString().equals(s)) {
+                return t.ordinal();
             }
-            for (Transaction.Type t : Transaction.TYPES_TABLE) {
-                if (t.toString().equals(s)) {
-                    return t.ordinal();
-                }
+        }
+        try {
+            int type = Integer.parseInt(s);
+            if (type < 0 || type >= Transaction.Type.values().length) {
+                throw new RuntimeException("not a type " + type);
             }
-            try {
-                int type = Integer.parseInt(s);
-                if (type < 0 || type >= Transaction.Type.values().length) {
-                    throw new RuntimeException("not a type " + type);
-                }
-                return type;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            return type;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
+    public byte[] getTo() {
+        return to == null ?
+                null :
+                PublicKeyHash.fromHex(to).orElseThrow(IllegalArgumentException::new).getPublicKeyHash();
+    }
+
+    @SneakyThrows
+    public byte[] getFrom() {
+        return from == null ? null : Hex.decodeHex(from);
+    }
+
+
     @JsonIgnore
-    public String getQuery(){
-        if (to == null && from.isEmpty()) throw new RuntimeException("expect to or from");
+    public Query getQuery(String joins, EntityManager entityManager){
+        Map<String, Object> params = new HashMap<>();
+        if (getTo() == null && getFrom() == null)
+            throw new RuntimeException("expect to or from");
         List<String> restrictions = new ArrayList<>();
-        if(to != null) restrictions.add(" t.to = :to ");
-        if(!from.isEmpty()) restrictions.add(" t.from = :from ");
-        if(type != null) restrictions.add(" t.type = :type ");
-        return " where " + String.join(" and ", restrictions);
+        if(getTo() != null) {
+            restrictions.add(" t.to = :to ");
+            params.put("to", getTo());
+        }
+        if(getFrom() != null) {
+            restrictions.add(" t.from = :from ");
+            params.put("from", getFrom());
+        }
+        if(getType() != null) {
+            restrictions.add(" t.type = :type ");
+            params.put("type", getType());
+        }
+        String suffix = " where " + String.join(" and ", restrictions);
+        Query q  = entityManager.createQuery(joins + suffix);
+        params.forEach(q::setParameter);
+        if(offset != null) q.setFirstResult(offset);
+        if(limit != null) q.setMaxResults(limit);
+        return q;
     }
 }

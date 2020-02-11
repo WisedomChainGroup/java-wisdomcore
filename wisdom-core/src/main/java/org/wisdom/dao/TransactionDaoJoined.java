@@ -48,14 +48,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Transaction> getTransactionByQuery(@NonNull TransactionQuery txQuery){
-        String restrictions = txQuery.getQuery();
-        Query q = em.createQuery(QUERY_JOINS + restrictions);
-        if(txQuery.getOffset() != null) q.setFirstResult(txQuery.getOffset());
-        if(txQuery.getLimit() != null) q.setMaxResults(txQuery.getLimit());
-        if(!txQuery.getFrom().isEmpty()) q.setParameter("from", txQuery.getFrom().getBytes());
-        if(txQuery.getTo() != null) q.setParameter("to", txQuery.getTo().getPublicKeyHash());
-        if(txQuery.getType() != null) q.setParameter("type", txQuery.getType());
-        return q.getResultList();
+        return txQuery.getQuery(QUERY_JOINS, em).getResultList();
     }
 
 

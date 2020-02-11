@@ -3,6 +3,7 @@ package org.wisdom.controller;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jackson.JsonComponent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -180,7 +181,7 @@ public class InternalController {
 
     @GetMapping(value = "/internal/getTxrecordFromAddress", produces = "application/json")
     public Object getTransactionsByTo(
-            @ModelAttribute TransactionQuery query
+            @ModelAttribute  TransactionQuery query
     ) {
         return wisdomRepository.getTransactionByQuery(query);
     }
