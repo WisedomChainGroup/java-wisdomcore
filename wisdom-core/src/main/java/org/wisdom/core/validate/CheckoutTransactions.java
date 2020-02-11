@@ -583,7 +583,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         if (map.containsKey(key)) {
             return map.get(key);
         } else {
-            return wisdomRepository.getAccountStateAt(parenthash, key).get();
+            return wisdomRepository.getAccountStateAt(parenthash, key).orElse(new AccountState(key));
         }
     }
 
