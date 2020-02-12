@@ -167,10 +167,10 @@ public class NodeInfoController {
         }
         long currentEra = repository.getLatestEra();
         PublicKeyHash publicKeyHash = o.get();
-        Candidate candidate = repository
-                .getLatestCandidate(publicKeyHash.getPublicKeyHash())
-                .get();
-        return  candidate.getReceivedVotes()
+        Optional<Candidate> o2 = repository
+                .getLatestCandidate(publicKeyHash.getPublicKeyHash());
+        if(!o2.isPresent()) return Collections.emptyList();
+        return  o2.get().getReceivedVotes()
                 .values().stream()
                 .map(x -> new Vote(
                         new PublicKeyHash(x.getFrom()).getAddress(),
