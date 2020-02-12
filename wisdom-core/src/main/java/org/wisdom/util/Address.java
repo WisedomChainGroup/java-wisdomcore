@@ -36,16 +36,10 @@ public class Address {
     }
 
     private static boolean verifyAddress(String address) {
-        byte[] r5 = Base58Utility.decode(address);
-//        ResultSupport ar = new ResultSupport();
-        if (!address.startsWith("1")) {//地址不是以"1"开头
-            return false;
-        }
-        byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(KeystoreAction.addressToPubkeyHash(address)));
-        byte[] b4 = ByteUtil.bytearraycopy(r3, 0, 4);
-        byte[] _b4 = ByteUtil.bytearraycopy(r5, r5.length - 4, 4);
-        //正确
-        return Arrays.equals(b4, _b4);
+       if (KeystoreAction.verifyAddress(address) == 0){
+           return true;
+       }
+        return false;
     }
 
     // 从用户输入的地址、公钥或者公钥哈希转化成公钥哈希
