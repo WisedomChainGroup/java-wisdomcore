@@ -681,7 +681,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 List<byte[]> excluded =
                         chainCache.stream().map(BlockWrapper::getHash).map(HexBytes::getBytes).collect(toList());
 
-                accountStateTrie.gc(excluded);
+//                accountStateTrie.gc(excluded);
             }
 
             // 确认的区块不需要放在缓存中
