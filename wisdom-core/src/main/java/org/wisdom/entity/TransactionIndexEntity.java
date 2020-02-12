@@ -14,8 +14,8 @@ import java.util.Arrays;
 @Builder
 @Entity
 @Table(name = TransactionIndexEntity.TABLE_TRANSACTION_INDEX, indexes = {
-        @Index(name = "block_hash_index", columnList = TransactionIndexEntity.COLUMN_BLOCK_HASH),
-        @Index(name = "tx_hash_index", columnList = TransactionIndexEntity.COLUMN_TX_HASH),
+        @Index(columnList = TransactionIndexEntity.COLUMN_BLOCK_HASH),
+        @Index(columnList = TransactionIndexEntity.COLUMN_TX_HASH),
 })
 @IdClass(TransactionIndexEntity.TransactionIndexID.class)
 public class TransactionIndexEntity {
