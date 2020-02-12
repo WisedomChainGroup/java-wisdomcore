@@ -14,11 +14,10 @@ import javax.persistence.*;
 @Builder
 @Entity
 @Table(name = TransactionEntity.TABLE_TRANSACTION, indexes = {
-        @Index(columnList = TransactionEntity.COLUMN_TX_TYPE),
-        @Index(columnList = TransactionEntity.COLUMN_TX_NONCE),
-        @Index(columnList = TransactionEntity.COLUMN_TX_FROM),
-        @Index(columnList = TransactionEntity.COLUMN_TX_AMOUNT),
-        @Index(columnList = TransactionEntity.COLUMN_TX_TO),
+        @Index(name = "transaction_type_index", columnList = TransactionEntity.COLUMN_TX_TYPE),
+        @Index(name = "transaction_from_index", columnList = TransactionEntity.COLUMN_TX_FROM),
+        @Index(name = "transaction_to_index", columnList = TransactionEntity.COLUMN_TX_TO),
+        @Index(name = "transaction_payload_index", columnList = TransactionEntity.COLUMN_TX_PAYLOAD)
 })
 public class TransactionEntity {
 
