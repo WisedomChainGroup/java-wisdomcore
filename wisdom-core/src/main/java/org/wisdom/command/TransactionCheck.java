@@ -410,16 +410,12 @@ public class TransactionCheck {
             } else {
                 return APIResult.newFailed("Offering or totalamount must be in specified scope");
             }
-            //TODO 校验hash
             //fromPubkeyHash
-            boolean verifyfromPubkey = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(from, (byte) 0x00, WX)) == 0);
-            if (!verifyfromPubkey) return APIResult.newFailed("From format check error");
-            //Createuser
-            boolean verifyCreateuser = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getCreateuser(), (byte) 0x00, WX)) == 0);
-            if (!verifyCreateuser) return APIResult.newFailed("Createuser format check error");
+            if (!KeystoreAction.verifyPublickey(from))
+                return APIResult.newFailed("From format check error");
             //Owner
-            boolean verifyOwner = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyToAddress(asset.getOwner(), (byte) 0x00, WX)) == 0);
-            if (!verifyOwner) return APIResult.newFailed("Owner format check error");
+            if (!KeystoreAction.verifyPublickey(asset.getOwner()))
+                return APIResult.newFailed("Owner format check error");
             //Createuser frompubhash
             if (!Arrays.equals(from, createUserPublicKey))
                 return APIResult.newFailed("Create and frompubhash are different");
@@ -539,6 +535,9 @@ public class TransactionCheck {
                     if (accountStateNewowner.get().getType() != 0)
                         return APIResult.newFailed("New owner must be within the specified range");
                 }
+                //验证newowner是公钥
+                if (!KeystoreAction.verifyPublickey(assetChangeowner.getNewowner()))
+                    return APIResult.newFailed("Newowner format error");
             } else {
                 return APIResult.newFailed("Invalid Assets rules");
             }
@@ -588,6 +587,9 @@ public class TransactionCheck {
                 if (toAccountState.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
+            //to 为公钥哈希
+            if (assetTransfer.getTo().length != 20)
+                return APIResult.newFailed("Payload to format error");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid AssetsTransfer rules");

@@ -329,4 +329,15 @@ public class KeystoreAction {
             return  -2;
         }
     }
+
+    public static boolean verifyPublickey(byte[] publickey){
+        if (publickey.length != 32){
+            return false;
+        }
+        byte[] emptyBytes = new byte[32];
+        if (Arrays.equals(emptyBytes,publickey)){
+            return false;
+        }
+        return true;
+    }
 }
