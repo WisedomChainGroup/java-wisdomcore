@@ -18,9 +18,12 @@
 
 package org.wisdom;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -40,6 +43,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.wisdom.p2p.Peer;
+
+import java.io.IOException;
 
 /**
  * @author Roman Mandeleil
@@ -104,6 +110,12 @@ public class Start {
         SimpleModule module = new SimpleModule();
         module.addSerializer(byte[].class, new JSONEncodeDecoder.BytesSerializer());
         module.addDeserializer(byte[].class, new JSONEncodeDecoder.BytesDeserializer());
+        module.addSerializer(Peer.class, new StdSerializer<Peer>(Peer.class) {
+            @Override
+            public void serialize(Peer value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+                gen.writeString(value.toString());
+            }
+        });
         mapper.registerModule(module);
         return mapper;
     }

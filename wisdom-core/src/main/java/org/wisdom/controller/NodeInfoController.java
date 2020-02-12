@@ -74,10 +74,10 @@ public class NodeInfoController {
     @GetMapping(value = "/peers/status", produces = "application/json")
     public Object getP2P() {
         Map<String, Object> info = new HashMap<>();
-        info.put("peers", peerServer.getPeers().stream().map(NodeInfoController::getPeerInfo));
-        info.put("bootstraps", peerServer.getBootstraps().stream().map(Peer::toString));
-        info.put("blockList", peerServer.getPeersCache().getBlocked().stream().map(NodeInfoController::getPeerInfo));
-        info.put("trusted", peerServer.getPeersCache().getTrusted().stream().map(Peer::toString));
+        info.put("peers", peerServer.getPeers());
+        info.put("bootstraps", peerServer.getBootstraps());
+        info.put("blockList", peerServer.getPeersCache());
+        info.put("trusted", peerServer.getPeersCache().getTrusted());
         info.put("self", peerServer.getSelf().toString());
         info.put("p2pMode", p2pMode);
         info.put("enableDiscovery", enableDiscovery);
