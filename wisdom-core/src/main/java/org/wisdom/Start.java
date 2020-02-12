@@ -72,20 +72,6 @@ public class Start {
         SpringApplication.run(Start.class, args);
     }
 
-    // wisdom chain configuration
-    @Bean
-    public JdbcTemplate getJDBCTemplate(BasicDataSource dataSource) {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate();
-        jdbcTemplate.setDataSource(dataSource);
-        return jdbcTemplate;
-    }
-
-    @Bean
-    public TransactionTemplate transactionTemplate(PlatformTransactionManager manager) {
-        TransactionTemplate tmpl = new TransactionTemplate();
-        tmpl.setTransactionManager(manager);
-        return tmpl;
-    }
 
     @Bean
     public UTXOSets getUTXOSets() {
