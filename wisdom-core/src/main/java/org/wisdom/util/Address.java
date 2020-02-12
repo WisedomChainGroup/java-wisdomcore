@@ -32,9 +32,7 @@ public class Address {
         if (!verifyAddress(address)){
             return null;
         };
-        byte[] r5 = Base58Utility.decode(address);
-        byte[] r2 = ByteUtil.bytearraycopy(r5, 0, 21);
-        return ByteUtil.bytearraycopy(r2, 1, 20);
+        return KeystoreAction.addressToPubkeyHash(address);
     }
 
     private static boolean verifyAddress(String address) {
