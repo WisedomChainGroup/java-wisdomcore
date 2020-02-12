@@ -76,9 +76,9 @@ public class NodeInfoController {
         Map<String, Object> info = new HashMap<>();
         info.put("peers", peerServer.getPeers());
         info.put("bootstraps", peerServer.getBootstraps());
-        info.put("blockList", peerServer.getPeersCache());
+        info.put("blockList", peerServer.getPeersCache().getBlocked());
         info.put("trusted", peerServer.getPeersCache().getTrusted());
-        info.put("self", peerServer.getSelf().toString());
+        info.put("self", peerServer.getSelf());
         info.put("p2pMode", p2pMode);
         info.put("enableDiscovery", enableDiscovery);
         info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);
