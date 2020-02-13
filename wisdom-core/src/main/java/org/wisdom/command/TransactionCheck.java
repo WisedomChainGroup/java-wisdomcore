@@ -394,7 +394,7 @@ public class TransactionCheck {
             //code
             Pattern pattern = Pattern.compile("[A-Z]*");
             Matcher matcher = pattern.matcher(new String(asset.getCode()));
-            //TODO 查询是否有重复code 异常处理
+            //code 是否重复
             if (asset.getCode().length() >= 3 && asset.getCode().length() <= 12 && matcher.matches() && !asset.getCode().equals("WDC")) {
                 byte[] blockhash = wisdomRepository.getLatestConfirmed().getHash();
                 if (wisdomRepository.containsAssetCodeAt(blockhash, asset.getCode().getBytes(StandardCharsets.UTF_8)))
@@ -410,7 +410,13 @@ public class TransactionCheck {
             } else {
                 return APIResult.newFailed("Offering or totalamount must be in specified scope");
             }
-            //fromPubkeyHash
+            //Offering
+            //求余
+            long remainder = asset.getOffering() % EconomicModel.WDC;
+            if (remainder != 0) {
+                return APIResult.newFailed("Offering must be an integer");
+            }
+            //fromPubkey
             if (!KeystoreAction.verifyPublickey(from))
                 return APIResult.newFailed("From format check error");
             //Owner
@@ -619,6 +625,11 @@ public class TransactionCheck {
                     return APIResult.newFailed("Amount maximum exceeded");
             } else {
                 return APIResult.newFailed("Amount must be greater than zero");
+            }
+            //amount求余
+            long remainder = assetIncreased.getAmount() % EconomicModel.WDC;
+            if (remainder != 0) {
+                return APIResult.newFailed("Amount must be an integer");
             }
 
             return APIResult.newSuccess("SUCCESS");
