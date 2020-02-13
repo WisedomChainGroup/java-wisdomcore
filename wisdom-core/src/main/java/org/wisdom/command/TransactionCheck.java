@@ -542,7 +542,7 @@ public class TransactionCheck {
                         return APIResult.newFailed("New owner must be within the specified range");
                 }
                 //验证newowner是公钥
-                if (!KeystoreAction.verifyPublickey(assetChangeowner.getNewowner()))
+                if (assetChangeowner.getNewowner().length != 32)
                     return APIResult.newFailed("Newowner format error");
             } else {
                 return APIResult.newFailed("Invalid Assets rules");
