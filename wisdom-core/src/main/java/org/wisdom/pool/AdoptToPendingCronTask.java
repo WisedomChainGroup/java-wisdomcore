@@ -58,10 +58,8 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                     List<TransPool> list = entry.getValue();
                     for (TransPool transPool : list) {
                         Transaction transaction = transPool.getTransaction();
-//                        if (pendingNonce.getNonce() < transaction.nonce) {
-//                        }
-                        Optional<AccountState> oa=repository.getConfirmedAccountState(Address.publicKeyToHash(transaction.from));
-                        if(!oa.isPresent()){
+                        Optional<AccountState> oa = repository.getConfirmedAccountState(Address.publicKeyToHash(transaction.from));
+                        if (!oa.isPresent()) {
                             maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));
                             continue;
                         }
