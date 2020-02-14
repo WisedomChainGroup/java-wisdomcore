@@ -128,7 +128,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getTransferByHeightAndTypeAndGas(long height, int type, long gas) {
-        Query query = em.createQuery("select new map(t.txHash as tranHash, t.from as fromAddress, t.to as coinAddress, t.amount, h.height as coinHeigth, t.gasPrice*:gas as fee)" +
+        Query query = em.createQuery("select new map(t.txHash as tranHash, t.from as fromAddress, t.to as coinAddress, t.amount as amount, h.height as coinHeigth, t.gasPrice*:gas as fee)" +
                 QUERYONE_JOINS);
         query.setParameter("gas", gas);
         query.setParameter("height", height);
@@ -137,7 +137,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getHatchByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map(t.txHash as coinHash, t.to as coinAddress, t.amount as coinAccount, h.height as blockHeight, t.payload as payload)" +
+        Query query = em.createQuery("select new map(t.txHash as coinHash, t.to as coinAddress, t.amount as amount, h.height as blockHeight, t.payload as payload)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -145,7 +145,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getInterestByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map(t.txHash as tranHash,t.to as coinAddress,t.amount as coinAccount,h.height as coinHeigth,t.payload as coinHash)" +
+        Query query = em.createQuery("select new map(t.txHash as tranHash,t.to as coinAddress,t.amount as amount,h.height as coinHeigth,t.payload as coinHash)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
