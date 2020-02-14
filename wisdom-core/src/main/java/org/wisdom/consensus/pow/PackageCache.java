@@ -468,6 +468,11 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             maps.put(tx.to, tokenbalance);
             accountState.setTokensMap(maps);
 
+            //from=to
+            if (Arrays.equals(publicKeyHash, assetTransfer.getTo())) {
+                newMap.put(publicKeyHash, accountState);
+            }
+
             //to
             AccountState toaccountstate = getKeyAccountState(assetTransfer.getTo());
             Map<byte[], Long> tomaps = toaccountstate.getTokensMap();
