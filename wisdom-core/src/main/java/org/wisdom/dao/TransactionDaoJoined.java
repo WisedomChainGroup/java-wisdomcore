@@ -137,7 +137,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getHatchByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map(t.txHash as coinHash, t.to as coinAddress, t.amount as coinAccount, h.height as blockHeight, t.payload as payload)" +
+        Query query = em.createQuery("select new map(t.txHash as coinHash, t.to as coinAddress, t.amount as amount, h.height as blockHeight, t.payload as payload)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
