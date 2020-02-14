@@ -596,9 +596,6 @@ public class TransactionCheck {
             //to 为公钥哈希
             if (assetTransfer.getTo().length != 20)
                 return APIResult.newFailed("Payload to format error");
-            //不能转账给自己
-            if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from),assetTransfer.getTo()))
-                return APIResult.newFailed("Can't transfer to yourself");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid AssetsTransfer rules");
