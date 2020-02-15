@@ -1,6 +1,7 @@
 package org.wisdom.db;
 
 import lombok.extern.slf4j.Slf4j;
+import org.fusesource.leveldbjni.JniDBFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.*;
@@ -46,7 +47,7 @@ public class DatabaseStoreFactory {
                 break;
             case "leveldb":
             default:
-                store = new LevelDb(directory, name);
+                store = new LevelDb(JniDBFactory.factory, directory, name);
                 break;
         }
         store.init(DBSettings.newInstance()
