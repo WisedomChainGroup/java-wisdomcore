@@ -245,7 +245,7 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
 
     @Override
     @Transactional(isolation = Isolation.READ_UNCOMMITTED)
-    public boolean writeBlock(Block block) {
+    public synchronized boolean writeBlock(Block block) {
         boolean ret = delegate.writeBlock(block);
         clearCache(block.getHash());
         if (ret) {
