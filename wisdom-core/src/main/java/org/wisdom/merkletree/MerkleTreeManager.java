@@ -60,6 +60,7 @@ public class MerkleTreeManager {
                 boolean exist = bc.containsBlock(Hex.decodeHex(blockHash.toCharArray()));
                 if (exist) {
                     cache.removeBlock(blockHash);
+                    break;
                 }
             } catch (DecoderException e) {
                 e.printStackTrace();
