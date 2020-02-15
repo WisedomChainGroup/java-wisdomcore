@@ -403,6 +403,11 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             maps.put(tx.to, tokenbalance);
             accountState.setTokensMap(maps);
 
+            //from=to
+            if (Arrays.equals(publicKeyHash, assetTransfer.getTo())) {
+                map.put(publicKeyHash, accountState);
+            }
+
             //to
             AccountState toaccountstate = getKeyAccountState(assetTransfer.getTo());
             Map<byte[], Long> tomaps = toaccountstate.getTokensMap();

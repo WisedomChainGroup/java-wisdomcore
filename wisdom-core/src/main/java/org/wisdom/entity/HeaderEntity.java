@@ -13,10 +13,10 @@ import javax.persistence.*;
 @Builder
 @Entity
 @Table(name = HeaderEntity.TABLE_HEADER, indexes = {
-        @Index(columnList = HeaderEntity.COLUMN_HASH_PREV),
-        @Index(columnList = HeaderEntity.COLUMN_HEIGHT),
-        @Index(columnList = HeaderEntity.COLUMN_CREATED_AT),
-        @Index(columnList = HeaderEntity.COLUMN_HASH),
+        @Index(name = "header_hash_prev_index", columnList = HeaderEntity.COLUMN_HASH_PREV),
+        @Index(name = "header_height_index", columnList = HeaderEntity.COLUMN_HEIGHT),
+        @Index(name = "header_created_at_index", columnList = HeaderEntity.COLUMN_CREATED_AT),
+        @Index(name = "header_total_weight_index", columnList = HeaderEntity.COLUMN_TOTAL_WEIGHT)
 })
 public class HeaderEntity {
 

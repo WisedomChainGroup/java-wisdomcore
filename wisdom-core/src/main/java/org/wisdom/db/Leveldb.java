@@ -41,7 +41,7 @@ public class Leveldb implements DatabaseStore {
     private ReadWriteLock resetDbLock = new ReentrantReadWriteLock();
 
     public Leveldb(String directory,
-                    String name) {
+                   String name) {
         this.directory = directory;
         this.name = name;
     }
@@ -65,6 +65,7 @@ public class Leveldb implements DatabaseStore {
             options.cacheSize(0);
             options.paranoidChecks(true);
             options.verifyChecksums(true);
+            log.info("Leveldb------->settings.getMaxOpenFiles(): " + settings.getMaxOpenFiles());
             options.maxOpenFiles(settings.getMaxOpenFiles());
 
             try {
@@ -160,7 +161,7 @@ public class Leveldb implements DatabaseStore {
 
     @Override
     public void putAll(Collection<? extends Map.Entry<? extends byte[], ? extends byte[]>> collection) {
-        
+
     }
 
     private void updateBatchInternal(Map<byte[], byte[]> rows) throws IOException {
@@ -198,6 +199,9 @@ public class Leveldb implements DatabaseStore {
         resetDbLock.readLock().lock();
         try {
             db.put(key, value);
+        } catch (Exception e) {
+            log.warn("Exception. Retrying again...", e);
+            db.put(key, value);
         } finally {
             resetDbLock.readLock().unlock();
         }
@@ -207,7 +211,7 @@ public class Leveldb implements DatabaseStore {
     public void putIfAbsent(byte[] key, byte[] value) {
         resetDbLock.readLock().lock();
         try {
-            if(containsKey(key)) return;
+            if (containsKey(key)) return;
             db.put(key, value);
         } finally {
             resetDbLock.readLock().unlock();

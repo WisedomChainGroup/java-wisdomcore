@@ -346,16 +346,16 @@ public class TransactionCheck {
                 return CheckTransfer(data, transaction);
             case 2://增发
                 return CheckIncreased(data, transaction);
-            case 3://多签规则转账
-                return CheckMultTransfer(data, transaction);
-            case 4://哈希时间锁定转账
-                return CheckHashtimeblockTransfer(data, transaction);
-            case 5://哈希时间锁定获取
-                return CheckHashtimeblockGet(data, transaction);
-            case 6://哈希高度锁定转账
-                return CheckHashheightblockTransfer(data, transaction);
-            case 7://哈希高度锁定获取
-                return CheckHashheightblockGet(data, transaction);
+//            case 3://多签规则转账
+//                return CheckMultTransfer(data, transaction);
+//            case 4://哈希时间锁定转账
+//                return CheckHashtimeblockTransfer(data, transaction);
+//            case 5://哈希时间锁定获取
+//                return CheckHashtimeblockGet(data, transaction);
+//            case 6://哈希高度锁定转账
+//                return CheckHashheightblockTransfer(data, transaction);
+//            case 7://哈希高度锁定获取
+//                return CheckHashheightblockGet(data, transaction);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -367,12 +367,12 @@ public class TransactionCheck {
         switch (type) {
             case 0://代币
                 return CheckAsset(data, from, amount, topubkeyhash);
-            case 1://多重签名
-                return CheckMultiple(data, from, amount, topubkeyhash);
-            case 2://哈希时间锁定
-                return CheckHashtimeblock(data, from);
-            case 3://哈希高度锁定
-                return CheckHashheightblock(data, from);
+//            case 1://多重签名
+//                return CheckMultiple(data, from, amount, topubkeyhash);
+//            case 2://哈希时间锁定
+//                return CheckHashtimeblock(data, from);
+//            case 3://哈希高度锁定
+//                return CheckHashheightblock(data, from);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -394,7 +394,7 @@ public class TransactionCheck {
             //code
             Pattern pattern = Pattern.compile("[A-Z]*");
             Matcher matcher = pattern.matcher(new String(asset.getCode()));
-            //TODO 查询是否有重复code 异常处理
+            //code 是否重复
             if (asset.getCode().length() >= 3 && asset.getCode().length() <= 12 && matcher.matches() && !asset.getCode().equals("WDC")) {
                 byte[] blockhash = wisdomRepository.getLatestConfirmed().getHash();
                 if (wisdomRepository.containsAssetCodeAt(blockhash, asset.getCode().getBytes(StandardCharsets.UTF_8)))
@@ -410,7 +410,13 @@ public class TransactionCheck {
             } else {
                 return APIResult.newFailed("Offering or totalamount must be in specified scope");
             }
-            //fromPubkeyHash
+            //Offering
+            //求余
+            long remainder = asset.getOffering() % EconomicModel.WDC;
+            if (remainder != 0) {
+                return APIResult.newFailed("Offering must be an integer");
+            }
+            //fromPubkey
             if (!KeystoreAction.verifyPublickey(from))
                 return APIResult.newFailed("From format check error");
             //Owner
@@ -536,7 +542,7 @@ public class TransactionCheck {
                         return APIResult.newFailed("New owner must be within the specified range");
                 }
                 //验证newowner是公钥
-                if (!KeystoreAction.verifyPublickey(assetChangeowner.getNewowner()))
+                if (assetChangeowner.getNewowner().length != 32)
                     return APIResult.newFailed("Newowner format error");
             } else {
                 return APIResult.newFailed("Invalid Assets rules");
@@ -619,6 +625,11 @@ public class TransactionCheck {
                     return APIResult.newFailed("Amount maximum exceeded");
             } else {
                 return APIResult.newFailed("Amount must be greater than zero");
+            }
+            //amount求余
+            long remainder = assetIncreased.getAmount() % EconomicModel.WDC;
+            if (remainder != 0) {
+                return APIResult.newFailed("Amount must be an integer");
             }
 
             return APIResult.newSuccess("SUCCESS");
