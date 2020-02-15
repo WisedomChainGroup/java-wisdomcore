@@ -7,12 +7,13 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.dao.*;
 import org.wisdom.service.BlockRepositoryService;
 
-import javax.transaction.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -243,7 +244,7 @@ public class MemoryCachedWisdomBlockChain implements WisdomBlockChain {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     public boolean writeBlock(Block block) {
         boolean ret = delegate.writeBlock(block);
         clearCache(block.getHash());
