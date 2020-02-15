@@ -244,6 +244,7 @@ ext {
     jargon2Version = '1.1.1'
     bouncycastleVersion = '1.61'
     commonsCollections4Version = '4.0'
+    rocksdbVersion = '6.3.6'
 }
 
 dependencies {
@@ -319,6 +320,7 @@ dependencies {
     compile group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.10.5'
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    compile "org.rocksdb:rocksdbjni:${rocksdbVersion}"
 
 
     testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
