@@ -204,6 +204,12 @@ public class TriesSyncManager {
         syncBlockDatabase(preBuiltGenesis);
 
         long currentHeight = bc.getTopHeight();
+        if(currentHeight + 1 == preBuiltGenesis.getBlock().nHeight){
+            if(!bc.containsBlock(preBuiltGenesis.block.hashPrevBlock)){
+                throw new RuntimeException("parent block of " + preBuiltGenesis.getBlock() + " not found");
+            }
+            bc.writeBlock(preBuiltGenesis.getBlock());
+        }
         if (currentHeight < preBuiltGenesis.getBlock().nHeight)
             throw new RuntimeException("missing blocks to fast sync, please ensure at least "
                     + preBuiltGenesis.getBlock().nHeight +
