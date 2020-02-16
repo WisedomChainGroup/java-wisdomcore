@@ -210,6 +210,7 @@ public class TriesSyncManager {
             }
             bc.writeBlock(preBuiltGenesis.getBlock());
         }
+        currentHeight = bc.getTopHeight();
         if (currentHeight < preBuiltGenesis.getBlock().nHeight)
             throw new RuntimeException("missing blocks to fast sync, please ensure at least "
                     + preBuiltGenesis.getBlock().nHeight +
