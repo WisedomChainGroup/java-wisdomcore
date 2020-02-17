@@ -429,7 +429,7 @@ public class TransactionCheck {
             if (asset.getAllowincrease() != 0 && asset.getAllowincrease() != 1)
                 return APIResult.newFailed("Allowincrease error");
             //info
-            if (asset.getInfo().getBytes(StandardCharsets.UTF_8).length>300)
+            if (asset.getInfo().getBytes(StandardCharsets.UTF_8).length > 300)
                 return APIResult.newFailed("Info out of specified range");
             apiResult.setCode(2000);
             apiResult.setMessage("SUCCESS");
@@ -488,7 +488,7 @@ public class TransactionCheck {
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashtimeblock.getPubkeyHash());
-            if (accountStateTo.isPresent()){
+            if (accountStateTo.isPresent()) {
                 if (accountStateTo.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
@@ -508,7 +508,7 @@ public class TransactionCheck {
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashheightblock.getPubkeyHash());
-            if (accountStateTo.isPresent()){
+            if (accountStateTo.isPresent()) {
                 if (accountStateTo.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
@@ -537,7 +537,7 @@ public class TransactionCheck {
                     return APIResult.newFailed("New owner must be different from original owner");
                 //newowner必须是普通地址
                 Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetChangeowner.getNewowner()));
-                if (accountStateNewowner.isPresent()){
+                if (accountStateNewowner.isPresent()) {
                     if (accountStateNewowner.get().getType() != 0)
                         return APIResult.newFailed("New owner must be within the specified range");
                 }
@@ -569,7 +569,7 @@ public class TransactionCheck {
                     if (assetTransfer.getValue() > accountState.get().getAccount().getBalance())
                         return APIResult.newFailed("Insufficient funds");
                 } else {
-                    if (accountState.get().getTokensMap().size() == 0){
+                    if (accountState.get().getTokensMap().size() == 0) {
                         return APIResult.newFailed("Insufficient funds");
                     }
                     if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to)))
@@ -589,7 +589,7 @@ public class TransactionCheck {
                 return APIResult.newFailed("Payload from must be Ordinary address");
             if (accountState.get().getType() != 0) return APIResult.newFailed("From must be Ordinary address");
             Optional<AccountState> toAccountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetTransfer.getTo()));
-            if (toAccountState.isPresent()){//如果存在 必须为普通地址
+            if (toAccountState.isPresent()) {//如果存在 必须为普通地址
                 if (toAccountState.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
@@ -621,7 +621,7 @@ public class TransactionCheck {
             //amount
             if (assetIncreased.getAmount() > 0) {
                 //校验总量+增发量是否小于Long的最大值
-                if (assetIncreased.getAmount()+asset.getTotalamount() < 0 )
+                if (assetIncreased.getAmount() + asset.getTotalamount() < 0)
                     return APIResult.newFailed("Amount maximum exceeded");
             } else {
                 return APIResult.newFailed("Amount must be greater than zero");
@@ -803,7 +803,7 @@ public class TransactionCheck {
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
                         return APIResult.newFailed("Insufficient funds");
-                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash))< hashtimeblockTransfer.getValue())
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < hashtimeblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -845,7 +845,7 @@ public class TransactionCheck {
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
                         return APIResult.newFailed("Insufficient funds");
-                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash))< hashheightblockTransfer.getValue())
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < hashheightblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -1109,12 +1109,14 @@ public class TransactionCheck {
                     return apiResult;
                 }
                 long nowheight = wisdomRepository.getBestBlock().nHeight;
-                int blockcount = mul * configuration.getDay_count(nowheight);
-                if ((inheight + blockcount) > nowheight) {
-                    logger.info("nowheight: "+nowheight+"----> blockcount: "+blockcount+"----> inheight: "+inheight);
-                    apiResult.setCode(5000);
-                    apiResult.setMessage("In excess of the amount available");
-                    return apiResult;
+                if (nowheight > 1241870) {
+                    int blockcount = mul * configuration.getDay_count(nowheight);
+                    if ((inheight + blockcount) > nowheight) {
+//                        logger.info("nowheight: " + nowheight + "----> blockcount: " + blockcount + "----> inheight: " + inheight);
+                        apiResult.setCode(5000);
+                        apiResult.setMessage("In excess of the amount available");
+                        return apiResult;
+                    }
                 }
             }
         } catch (Exception e) {
