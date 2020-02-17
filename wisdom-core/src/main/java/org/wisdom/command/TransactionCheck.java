@@ -1111,6 +1111,7 @@ public class TransactionCheck {
                 long nowheight = wisdomRepository.getBestBlock().nHeight;
                 int blockcount = mul * configuration.getDay_count(nowheight);
                 if ((inheight + blockcount) > nowheight) {
+                    logger.info("nowheight: "+nowheight+"----> blockcount: "+blockcount+"----> inheight: "+inheight);
                     apiResult.setCode(5000);
                     apiResult.setMessage("In excess of the amount available");
                     return apiResult;
