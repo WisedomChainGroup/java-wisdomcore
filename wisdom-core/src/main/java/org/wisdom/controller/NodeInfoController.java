@@ -109,7 +109,7 @@ public class NodeInfoController {
                 .toArray()
         );
         res.put("blockList", blocksList.stream().map(this::toProposer).toArray());
-        res.put("votes", proposers.stream().map(this::toProposer).toArray());
+        res.put("votes", repository.getLatestCandidates().stream().map(this::toProposer).toArray());
         return res;
     }
 

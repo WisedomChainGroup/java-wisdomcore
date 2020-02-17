@@ -360,6 +360,20 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
+    public List<CandidateInfo> getLatestCandidates() {
+        Block best = getBestBlock();
+        byte[] key;
+        if (best.nHeight % eraLinker.getBlocksPerEra() == 0) {
+            key = best.getHash();
+        } else {
+            key = eraLinker.getPrevEraLast(best).getHash();
+        }
+        return candidateStateTrie
+                .getCandidatesCache()
+                .get(HexBytes.fromBytes(key));
+    }
+
+    @Override
     public Optional<Candidate> getLatestCandidate(byte[] publicKeyHash) {
         return candidateStateTrie.get(getBestBlock().getHash(), publicKeyHash);
     }

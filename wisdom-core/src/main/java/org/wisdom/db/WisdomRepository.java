@@ -70,6 +70,8 @@ public interface WisdomRepository {
 
     List<CandidateInfo> getLatestTopCandidates();
 
+    List<CandidateInfo> getLatestCandidates();
+
     List<CandidateInfo> getLatestBlockedCandidates();
 
     Optional<Candidate> getLatestCandidate(byte[] publicKeyHash);

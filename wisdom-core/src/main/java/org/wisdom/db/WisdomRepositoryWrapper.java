@@ -235,6 +235,16 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
     }
 
     @Override
+    public List<CandidateInfo> getLatestCandidates() {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getLatestCandidates();
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
     public List<CandidateInfo> getLatestBlockedCandidates() {
         readWriteLock.readLock().lock();
         try {

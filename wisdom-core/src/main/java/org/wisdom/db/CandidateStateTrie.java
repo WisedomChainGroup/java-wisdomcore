@@ -74,6 +74,9 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     private LRUMap<HexBytes, List<CandidateInfo>> bestCandidatesCache;
 
     @Getter
+    private LRUMap<HexBytes, List<CandidateInfo>> candidatesCache;
+
+    @Getter
     private LRUMap<HexBytes, List<CandidateInfo>> blockedCandidatesCache;
 
     public CandidateStateTrie(
@@ -92,6 +95,8 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         this.bestCandidatesCache = new LRUMap<>();
         this.bestCandidatesCache = this.bestCandidatesCache.withMaximumSize(CACHE_SIZE);
         this.blockedCandidatesCache = new LRUMap<>();
+        this.candidatesCache = new LRUMap<>();
+        this.candidatesCache = this.candidatesCache.withMaximumSize(CACHE_SIZE);
         this.blockedCandidatesCache = this.blockedCandidatesCache.withMaximumSize(CACHE_SIZE);
         this.candidateUpdater = candidateUpdater;
         this.candidateUpdater.setCandidateStateTrie(this);
@@ -220,6 +225,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         boolean dropZeroVotes = (eraLast.nHeight - blocksPerEra + 1) > candidateUpdater.getWIP_12_17_HEIGHT();
         // 重新生成 proposers
         List<Candidate> blocked = new ArrayList<>();
+
         Stream<Candidate> candidateStream = candidates
                 .values()
                 .stream()
@@ -252,6 +258,13 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 HexBytes.fromBytes(eraLast.getHash()),
                 blocked.stream().map(c -> CandidateInfo.fromCandidate(c, nextEra))
                         .collect(Collectors.toList())
+        );
+        candidatesCache.put(
+                HexBytes.fromBytes(eraLast.getHash()),
+                candidates.values()
+                .stream().filter(x -> x.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE)
+                .map(c -> CandidateInfo.fromCandidate(c, nextEra))
+                .collect(Collectors.toList())
         );
     }
 

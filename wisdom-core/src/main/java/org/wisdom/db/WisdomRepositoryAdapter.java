@@ -108,6 +108,11 @@ public class WisdomRepositoryAdapter implements WisdomRepository {
     }
 
     @Override
+    public List<CandidateInfo> getLatestCandidates() {
+        return null;
+    }
+
+    @Override
     public List<CandidateInfo> getLatestBlockedCandidates() {
         return null;
     }
