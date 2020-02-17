@@ -76,6 +76,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     public AccountState updateOne(TransactionInfo info, AccountState accountState) {
         Transaction transaction = info.getTransaction();
         long height = info.getHeight();
+        transaction.height = height;
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
