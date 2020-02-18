@@ -262,7 +262,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         candidatesCache.put(
                 HexBytes.fromBytes(eraLast.getHash()),
                 candidates.values()
-                .stream().filter(x -> x.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE)
+                .stream().filter(x -> x.getMortgage() >= MINIMUM_PROPOSER_MORTGAGE && !x.isBlocked())
                 .map(c -> CandidateInfo.fromCandidate(c, nextEra))
                 .collect(Collectors.toList())
         );
