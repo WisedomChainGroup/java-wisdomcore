@@ -119,6 +119,12 @@ public class TransactionCheck {
             long gasPrice = BigEndian.decodeUint64(gasbyte);
             //gas
             long gas = 0;
+            //hatch disabled
+            if (type[0] == 9) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Hatching transactions have been disabled");
+                return apiResult;
+            }
             if (15 >= type[0] && type[0] >= 0) {
                 gas = Transaction.GAS_TABLE[type[0]];
             } else {
