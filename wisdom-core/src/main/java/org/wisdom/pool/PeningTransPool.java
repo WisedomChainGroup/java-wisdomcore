@@ -52,7 +52,7 @@ public class PeningTransPool {
         ptnonce = new ConcurrentHashMap<>();
         try {
             Optional<byte[]> dbdata = leveldb.get("PendingPool".getBytes(StandardCharsets.UTF_8));
-            dbdata.ifPresent(value->{
+            dbdata.ifPresent(value -> {
                 List<TransPool> transPoolList = JSON.parseObject(new String(value), new TypeReference<ArrayList<TransPool>>() {
                 });
                 add(transPoolList);
@@ -65,30 +65,30 @@ public class PeningTransPool {
 
     public void add(List<TransPool> pools) {
         for (TransPool transPool : pools) {
-            boolean state=false;
+            boolean state = false;
             Transaction transaction = transPool.getTransaction();
             byte[] from = transaction.from;
             String fromhash = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(from)));
             if (ptpool.containsKey(fromhash)) {
                 TreeMap<Long, TransPool> map = ptpool.get(fromhash);
-                if(!map.containsKey(transaction.nonce)){//Pending Can't cover
+                if (!map.containsKey(transaction.nonce)) {//Pending Can't cover
                     map.put(transaction.nonce, transPool);
                     ptpool.put(fromhash, map);
-                    updateNonce(transaction.type, transaction.nonce, fromhash);
-                    state=true;
+                    updateNonce(transaction, transaction.nonce, fromhash);
+                    state = true;
                 }
             } else {
                 TreeMap<Long, TransPool> map = new TreeMap<>();
                 map.put(transaction.nonce, transPool);
                 ptpool.put(fromhash, map);
-                updateNonce(transaction.type, transaction.nonce, fromhash);
-                state=true;
+                updateNonce(transaction, transaction.nonce, fromhash);
+                state = true;
             }
             //ceo地址跟踪
-            if(state){
-                if(type){
+            if (state) {
+                if (type) {
                     String fromstring = Hex.encodeHexString(transaction.from);
-                    traceCeoAddress.addPend(fromstring,transaction.nonce);
+                    traceCeoAddress.addPend(fromstring, transaction.nonce);
                 }
             }
         }
@@ -105,7 +105,9 @@ public class PeningTransPool {
         return getAll().size();
     }
 
-    public int Unpacksize() { return getAllstate().size(); }
+    public int Unpacksize() {
+        return getAllstate().size();
+    }
 
     public List<TransPool> getAll() {
         List<TransPool> list = new ArrayList<>();
@@ -129,12 +131,12 @@ public class PeningTransPool {
         return list;
     }
 
-    public List<TransPool> getAllFromState(String from){
+    public List<TransPool> getAllFromState(String from) {
         List<TransPool> list = new ArrayList<>();
         if (ptpool.containsKey(from)) {
             TreeMap<Long, TransPool> map = ptpool.get(from);
             for (Map.Entry<Long, TransPool> entry : map.entrySet()) {
-                if(entry.getValue().getState()!=2){
+                if (entry.getValue().getState() != 2) {
                     list.add(entry.getValue());
                 }
             }
@@ -221,9 +223,9 @@ public class PeningTransPool {
             if (map.containsKey(nonce)) {
                 map.remove(nonce);
             }
-            if(map.size()==0){
+            if (map.size() == 0) {
                 ptpool.remove(key);
-            }else{
+            } else {
                 ptpool.put(key, map);
             }
         }
@@ -255,11 +257,11 @@ public class PeningTransPool {
         }
     }
 
-    public void updatePtNonce(List<String> listkey){
-        listkey.stream().forEach(l->{
-            if(ptnonce.containsKey(l)){
+    public void updatePtNonce(List<String> listkey) {
+        listkey.stream().forEach(l -> {
+            if (ptnonce.containsKey(l)) {
                 PendingNonce pendingNonce = ptnonce.get(l);
-                if(pendingNonce.getState()!=2){
+                if (pendingNonce.getState() != 2) {
                     pendingNonce.setState(2);
                     ptnonce.put(l, pendingNonce);
                 }
@@ -297,20 +299,26 @@ public class PeningTransPool {
         }
     }
 
-    public void updateNonce(int type, long nonce, String fromhash) {
-        if ( type == 7 || type == 8 || type == 9 || type == 10 || type == 11 || type == 12 ) {//部署合约、调用合约、孵化、提取利息、提取分享、提取本金，单nonce
+    public void updateNonce(Transaction transaction, long nonce, String fromhash) {
+        int type = transaction.type;
+        if (type == 7 || type == 8 || type == 9 || type == 10 || type == 11 || type == 12) {//部署合约、调用合约、孵化、提取利息、提取分享、提取本金，单nonce
+            //资产转账和多签转账
+            if (transaction.getMethodType() == 1 || transaction.getMethodType() == 3) {
+                ptnonce.put(fromhash, new PendingNonce(nonce, 2));
+                return;
+            }
             ptnonce.put(fromhash, new PendingNonce(nonce, 0));
         } else {
             ptnonce.put(fromhash, new PendingNonce(nonce, 2));
         }
     }
 
-    public Map<String, PendingNonce> getPtnonce(){
-        Map<String, PendingNonce> maps=new HashMap<>();
-        for(Map.Entry<String, PendingNonce> entry: ptnonce.entrySet()){
-            PendingNonce pendingNonce=entry.getValue();
-            if(pendingNonce.getState()==0){
-                maps.put(entry.getKey(),entry.getValue());
+    public Map<String, PendingNonce> getPtnonce() {
+        Map<String, PendingNonce> maps = new HashMap<>();
+        for (Map.Entry<String, PendingNonce> entry : ptnonce.entrySet()) {
+            PendingNonce pendingNonce = entry.getValue();
+            if (pendingNonce.getState() == 0) {
+                maps.put(entry.getKey(), entry.getValue());
             }
         }
         return maps;
