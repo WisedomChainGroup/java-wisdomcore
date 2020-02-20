@@ -319,7 +319,7 @@ public class TransactionCheck {
                 apiResult = CheckDeposit(payload);
                 break;
             case 0x07://部署合约
-                apiResult = CheckDeployContract(payload, from, amount, topubkeyhash);
+                apiResult = CheckDeployContract(payload, from, amount, topubkeyhash, transaction);
                 break;
             case 0x08://调用合约
                 apiResult = CheckCallContract(transaction);
@@ -352,33 +352,33 @@ public class TransactionCheck {
                 return CheckTransfer(data, transaction);
             case 2://增发
                 return CheckIncreased(data, transaction);
-//            case 3://多签规则转账
-//                return CheckMultTransfer(data, transaction);
-//            case 4://哈希时间锁定转账
-//                return CheckHashtimeblockTransfer(data, transaction);
-//            case 5://哈希时间锁定获取
-//                return CheckHashtimeblockGet(data, transaction);
-//            case 6://哈希高度锁定转账
-//                return CheckHashheightblockTransfer(data, transaction);
-//            case 7://哈希高度锁定获取
-//                return CheckHashheightblockGet(data, transaction);
+            case 3://多签规则转账
+                return CheckMultTransfer(data, transaction);
+            case 4://哈希时间锁定转账
+                return CheckHashtimeblockTransfer(data, transaction);
+            case 5://哈希时间锁定获取
+                return CheckHashtimeblockGet(data, transaction);
+            case 6://哈希高度锁定转账
+                return CheckHashheightblockTransfer(data, transaction);
+            case 7://哈希高度锁定获取
+                return CheckHashheightblockGet(data, transaction);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
     }
 
-    private APIResult CheckDeployContract(byte[] payload, byte[] from, Long amount, byte[] topubkeyhash) {
+    private APIResult CheckDeployContract(byte[] payload, byte[] from, Long amount, byte[] topubkeyhash, Transaction transaction) {
         byte type = payload[0];
         byte[] data = ByteUtil.bytearraycopy(payload, 1, payload.length - 1);
         switch (type) {
             case 0://代币
                 return CheckAsset(data, from, amount, topubkeyhash);
-//            case 1://多重签名
-//                return CheckMultiple(data, from, amount, topubkeyhash);
-//            case 2://哈希时间锁定
-//                return CheckHashtimeblock(data, from);
-//            case 3://哈希高度锁定
-//                return CheckHashheightblock(data, from);
+            case 1://多重签名
+                return CheckMultiple(data, transaction);
+            case 2://哈希时间锁定
+                return CheckHashtimeblock(data, from);
+            case 3://哈希高度锁定
+                return CheckHashheightblock(data, from);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -389,7 +389,6 @@ public class TransactionCheck {
         APIResult apiResult = new APIResult();
         if (asset.RLPdeserialization(data)) {
             byte[] createUserPublicKey = asset.getCreateuser();
-
             //校验
             //amount
             if (amount != 0) return APIResult.newFailed("Amount must be zero");
@@ -444,7 +443,10 @@ public class TransactionCheck {
         return APIResult.newFailed("Invalid Assets rules");
     }
 
-    private APIResult CheckMultiple(byte[] data, byte[] from, Long amount, byte[] topubkeyhash) {
+    private APIResult CheckMultiple(byte[] data, Transaction transaction) {
+        byte[] from = transaction.from;
+        Long amount = transaction.amount;
+        byte[] topubkeyhash = transaction.to;
         Multiple multiple = new Multiple();
         if (multiple.RLPdeserialization(data)) {
             //校验
@@ -452,7 +454,7 @@ public class TransactionCheck {
             if (amount != 0) return APIResult.newFailed("Amount must be zero");
             //topubkeyhash
             byte[] emptyPubkeyhash = new byte[20];
-            if (!Arrays.equals(emptyPubkeyhash, topubkeyhash))
+            if (!Arrays.equals(emptyPubkeyhash, topubkeyhash) || topubkeyhash.length != 20)
                 return APIResult.newFailed("topubkeyhash format check error");
             //AssetHash
             if (multiple.getAssetHash().length != 20) return APIResult.newFailed("AssetHash format check error");
@@ -475,9 +477,51 @@ public class TransactionCheck {
             } else return APIResult.newFailed("N and M must be positive integer");
             //payload amount
             if (multiple.getAmount() != 0) return APIResult.newFailed("Amount must be zero");
-            if (multiple.getPubList().size() != multiple.getMax())
-                return APIResult.newFailed("PubkeyList does not match max");
+            //pubkeyList
+            if (multiple.getPubList().stream().distinct().collect(Collectors.toList()).size() != multiple.getMax())
+                return APIResult.newFailed("PubkeyList do not match max");
             if (!multiple.getPubList().contains(from)) return APIResult.newFailed("From must be in payload");
+            //signatureList
+            if (multiple.getSignatureList().stream().distinct().collect(Collectors.toList()).size() != multiple.getMax())
+                return APIResult.newFailed("SignatureList() do not match max");
+            //构造签名原文
+            byte[] from_version = new byte[1];
+            from_version[0] = (byte) transaction.version;
+            byte[] from_type = new byte[1];
+            from_type[0] = (byte) transaction.type;
+            byte[] from_nonce = new byte[1];
+            from_nonce =  ByteUtil.longToBytes(0L);
+            byte[] from_nullsig = new byte[64];
+            byte[] from_gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
+            byte[] from_amount = ByteUtil.longToBytes(0L);
+            Multiple from_multiple = new Multiple();
+            from_multiple.setAssetHashHex(multiple.getAssetHashHex());
+            from_multiple.setMax(multiple.getMax());
+            from_multiple.setMin(multiple.getMin());
+            from_multiple.setPubListHex(multiple.getPubListHex());
+            from_multiple.setAmount(multiple.getAmount());
+            byte[] from_payload = from_multiple.RLPserialization();
+            from_payload = ByteUtil.merge(new byte[]{0x01},from_payload);
+            byte[] payloadLength = ByteUtil.intToBytes(from_payload.length);
+            byte[] from_allPayload =ByteUtil.merge(payloadLength,from_payload);
+            byte[] nosig = ByteUtil.merge(from_version, from_type, from_nonce, from, from_gasPrice, from_amount, from_nullsig, topubkeyhash, from_allPayload);
+            Ed25519PublicKey ed25519PublicKey = new Ed25519PublicKey(from);
+            if (!Arrays.equals(from,multiple.getPubList().get(0)) || !ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
+                return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
+            List<byte[]> pubkeylist = multiple.getPubList().stream().distinct().collect(Collectors.toList());
+            List<byte[]> signatureList = multiple.getSignatureList().stream().distinct().collect(Collectors.toList());
+            int number = 0;
+            //验证签名
+            for (int i=0;i<pubkeylist.stream().distinct().collect(Collectors.toList()).size();i++){
+                Ed25519PublicKey ed25519PublicKey_payload = new Ed25519PublicKey(pubkeylist.get(i));
+                    for (int j=1;i<signatureList.stream().distinct().collect(Collectors.toList()).size();i++){
+                        if (ed25519PublicKey_payload.verify(nosig,multiple.getSignatureList().get(j))){
+                            number++;
+                        }
+                    }
+            }
+            if (number != multiple.getMax())
+                return APIResult.newFailed("Not enough Pubkey or Signature");
             APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Multiple rules");
@@ -526,7 +570,6 @@ public class TransactionCheck {
     private APIResult CheckChangeowner(byte[] data, Transaction transaction) {
         AssetChangeowner assetChangeowner = new AssetChangeowner();
         if (assetChangeowner.RLPdeserialization(data)) {
-            //TODO hash的校验
             if (assetChangeowner.getNewowner().length != 32) {
                 return APIResult.newFailed("Newowner format check error");
             }
@@ -545,7 +588,7 @@ public class TransactionCheck {
                 Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetChangeowner.getNewowner()));
                 if (accountStateNewowner.isPresent()) {
                     if (accountStateNewowner.get().getType() != 0)
-                        return APIResult.newFailed("New owner must be within the specified range");
+                        return APIResult.newFailed("New owner must be Ordinary address");
                 }
                 //验证newowner是公钥
                 if (assetChangeowner.getNewowner().length != 32)
@@ -602,6 +645,12 @@ public class TransactionCheck {
             //to 为公钥哈希
             if (assetTransfer.getTo().length != 20)
                 return APIResult.newFailed("Payload to format error");
+            //to为普通地址
+            Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(assetTransfer.getTo());
+            if (accountStateNewowner.isPresent()) {
+                if (accountStateNewowner.get().getType() != 0)
+                    return APIResult.newFailed("Payload to must be Ordinary address");
+            }
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid AssetsTransfer rules");
@@ -726,15 +775,18 @@ public class TransactionCheck {
                     byte[] gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
                     byte[] amount = ByteUtil.longToBytes(0L);
                     //验证签名
+                    Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
+                    List<byte[]> emptyList = new ArrayList<>();
+                    MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue());
+                    byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
+                    if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
+                        return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
+
                     for (int i = 0; i < from.size(); i++) {
                         Ed25519PublicKey ed25519PublicKey = new Ed25519PublicKey(from.get(i));
                         for (int j = 0; j < signatures.size(); j++) {
-                            List<byte[]> fromList = new ArrayList<>();
-                            fromList.add(from.get(i));
-                            List<byte[]> emptyList = new ArrayList<>();
-                            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), fromList, emptyList, multTransfer.getTo(), multTransfer.getValue());
-                            byte[] nosig = ByteUtil.merge(version, type, nonece, from.get(i), gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length), payloadMultTransfer.RLPserialization());
-                            if (ed25519PublicKey.verify(nosig, signatures.get(j))) signAdopt++;
+                            if (ed25519PublicKey.verify(nosig, signatures.get(j)))
+                                signAdopt++;
                         }
                     }
                     if (signAdopt < n) return APIResult.newFailed("Sign numbers less than n");
@@ -800,8 +852,13 @@ public class TransactionCheck {
                 //代币类型
                 byte[] assetHash = hashtimeblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-                if (!accountStateFrom.isPresent())
+                if (!accountStateFrom.isPresent()){
                     return APIResult.newFailed("From do not exist");
+                }else {
+                    if (accountStateFrom.get().getType() != 0)
+                        return APIResult.newFailed("From must be Ordinary address");
+                }
+
                 //验证余额是否足够
                 if (Arrays.equals(assetHash, WDCbyte)) {//WDC
                     if (accountStateFrom.get().getAccount().getBalance() < hashtimeblockTransfer.getValue())
@@ -815,8 +872,6 @@ public class TransactionCheck {
             } else {
                 return APIResult.newFailed("Invalid hashtimeblock rules");
             }
-
-
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid HashtimeblockTransfer rules");
@@ -842,8 +897,12 @@ public class TransactionCheck {
                 //代币类型
                 byte[] assetHash = hashheightblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-                if (!accountStateFrom.isPresent())
+                if (!accountStateFrom.isPresent()){
                     return APIResult.newFailed("From do not exist");
+                }else {
+                    if (accountStateFrom.get().getType() != 0)
+                        return APIResult.newFailed("From must be Ordinary address");
+                }
                 //验证余额是否足够
                 if (Arrays.equals(assetHash, WDCbyte)) {//WDC
                     if (accountStateFrom.get().getAccount().getBalance() < hashheightblockTransfer.getValue())
