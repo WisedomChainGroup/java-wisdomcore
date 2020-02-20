@@ -30,6 +30,7 @@ import org.wisdom.db.BlockWrapper;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.merkletree.MerkleTreeManager;
 
+import java.util.Collection;
 import java.util.List;
 
 @Component
@@ -72,26 +73,7 @@ public class PendingBlocksManager {
     }
 
     // 区块的写入全部走这里
-    public void addPendingBlocks(ChainCache<BlockWrapper> cache) {
-        while (true) {
-            List<BlockWrapper> chain = cache.popLongestChain();
-            if (chain == null || chain.size() == 0) {
-                break;
-            }
-            if (chainHasWritten(chain)) {
-                continue;
-            }
-            logger.info("try to write blocks to local storage, size = " + chain.size());
-            for (BlockWrapper w : chain) {
-                Block b = w.get();
-                addPendingBlock(b);
-            }
-        }
-    }
-
-    private boolean chainHasWritten(List<BlockWrapper> chain) {
-        return wisdomRepository.containsBlock(
-                        chain.get(chain.size() - 1).getHash().getBytes()
-                );
+    public void addPendingBlocks(Collection<? extends Block> blocks) {
+        blocks.forEach(this::addPendingBlock);
     }
 }

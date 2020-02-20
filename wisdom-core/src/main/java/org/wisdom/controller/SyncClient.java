@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.ChainedWrapper;
 import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.core.*;
 import org.wisdom.core.validate.BasicRule;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "rest")
 @Component
@@ -97,7 +99,7 @@ public class SyncClient {
         if (validBlocks.size() > 0) {
             logger.info("receive blocks startListening from " + validBlocks.get(0).nHeight + " stop at " + validBlocks.get(validBlocks.size() - 1).nHeight);
             ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
-            pendingBlocksManager.addPendingBlocks(blocksWritable);
+            pendingBlocksManager.addPendingBlocks(blocksWritable.stream().map(ChainedWrapper::get).collect(Collectors.toList()));
         }
         return null;
     }
