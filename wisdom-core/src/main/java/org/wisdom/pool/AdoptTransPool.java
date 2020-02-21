@@ -156,12 +156,13 @@ public class AdoptTransPool {
                 if (index < configuration.getMaxqpcount()) {
                     TransPool t = entry1.getValue();
                     Transaction transaction = t.getTransaction();
-                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
+                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 7 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
                         //资产转账和多签转账多nonce
-                        if (transaction.type == 8 && (transaction.getMethodType() == 1 || transaction.getMethodType() == 3)) {
+                        if (transaction.type == 8 && (transaction.getMethodType() == 1 || transaction.getMethodType() == 3 ||
+                                transaction.getMethodType() == 4 || transaction.getMethodType() == 6)) {
                             transPoolList.add(t);
                             continue;
                         }

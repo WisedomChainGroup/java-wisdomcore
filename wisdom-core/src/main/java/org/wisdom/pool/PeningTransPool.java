@@ -281,7 +281,7 @@ public class PeningTransPool {
                     map.put(t.nonce, transPool);
                     ptpool.put(fromhash, map);
                     if (type == 2) {//2 进db
-                        if (t.type == 7 || t.type == 8 || t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//部署合约、调用合约、孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
+                        if (t.type == 8 || t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//调用合约、孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
                             //ptnonce
                             nonceupdate(fromhash, t.nonce);
                         }
@@ -301,9 +301,10 @@ public class PeningTransPool {
 
     public void updateNonce(Transaction transaction, long nonce, String fromhash) {
         int type = transaction.type;
-        if (type == 7 || type == 8 || type == 9 || type == 10 || type == 11 || type == 12) {//部署合约、调用合约、孵化、提取利息、提取分享、提取本金，单nonce
+        if (type == 8 || type == 9 || type == 10 || type == 11 || type == 12) {//调用合约、孵化、提取利息、提取分享、提取本金，单nonce
             //资产转账和多签转账
-            if (transaction.getMethodType() == 1 || transaction.getMethodType() == 3) {
+            if (transaction.getMethodType() == 1 || transaction.getMethodType() == 3 ||
+                    transaction.getMethodType() == 4 || transaction.getMethodType() == 6) {
                 ptnonce.put(fromhash, new PendingNonce(nonce, 2));
                 return;
             }
