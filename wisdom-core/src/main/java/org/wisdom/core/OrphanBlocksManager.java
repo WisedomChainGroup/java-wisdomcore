@@ -32,6 +32,7 @@ import org.tdf.common.store.Store;
 import org.tdf.common.store.StoreWrapper;
 import org.tdf.common.util.ChainCache;
 import org.tdf.common.util.ChainCacheImpl;
+import org.tdf.common.util.ChainedWrapper;
 import org.wisdom.core.event.NewBlockEvent;
 import org.wisdom.db.BlockWrapper;
 import org.wisdom.db.DatabaseStoreFactory;
@@ -39,6 +40,7 @@ import org.wisdom.db.WisdomRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
@@ -48,6 +50,8 @@ import java.util.stream.Collectors;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
+    private volatile long lock;
+
     private ChainCache<BlockWrapper> orphans
             = ChainCache.<BlockWrapper>builder()
             .concurrentLevel(ChainCache.CONCURRENT_LEVEL_ONE)
@@ -122,16 +126,16 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 .collect(Collectors.toList());
     }
 
-    private void tryWriteNonOrphans() {
+    public void tryWriteNonOrphans() {
         for (BlockWrapper ini : orphans.getInitials()) {
             if (!isOrphan(ini.get())) {
                 logger.info("writable orphan block found in pool");
                 List<BlockWrapper> descendants = orphans.getDescendants(ini.get().getHash());
                 orphans.removeAll(descendants);
                 pool.addPendingBlocks(
-                        ChainCache.of(
-                                descendants
-                        )
+                                descendants.stream()
+                                        .map(ChainedWrapper::get)
+                                        .collect(Collectors.toList())
                 );
             }
         }
@@ -139,7 +143,10 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     @Override
     public void onApplicationEvent(NewBlockEvent event) {
-        tryWriteNonOrphans();
+        long now = System.currentTimeMillis();
+        if(now - lock < 1000) return;
+        lock = now;
+        CompletableFuture.runAsync(this::tryWriteNonOrphans);
     }
 
 
@@ -151,6 +158,7 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
                 .map(BlockWrapper::get)
                 .filter(b -> b.nHeight <= lastConfirmed.nHeight || repository.containsBlock(b.getHash()))
                 .forEach(b -> orphans.removeByHash(b.getHash()));
+        tryWriteNonOrphans();
     }
 
     public List<Block> getOrphans() {

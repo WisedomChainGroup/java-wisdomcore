@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.ChainedWrapper;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
@@ -29,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 
 /**
@@ -235,7 +237,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         if (validBlocks.size() > 0) {
             ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
-            pendingBlocksManager.addPendingBlocks(blocksWritable);
+            pendingBlocksManager
+                    .addPendingBlocks(blocksWritable.stream().map(ChainedWrapper::get)
+                            .collect(Collectors.toList()));
         }
     }
 
