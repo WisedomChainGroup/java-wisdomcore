@@ -154,6 +154,12 @@ public interface WisdomRepository {
 
     Optional<AssetCodeInfo> getAssetCodeAt(byte[] blockHash, byte[] code);
 
+    default boolean containsgetLockgetTransferAt(byte[] blockHash, byte[] transhash) {
+        return getLockgetTransferAt(blockHash, transhash).isPresent();
+    }
+
+    Optional<LockTransferInfo> getLockgetTransferAt(byte[] blockHash, byte[] transhash);
+
     // average blocks interval of latest 10 blocks
     double getAverageBlocksInterval();
 

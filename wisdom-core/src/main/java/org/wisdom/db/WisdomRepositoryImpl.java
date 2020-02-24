@@ -57,6 +57,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     private AssetCodeTrie assetCodeTrie;
 
+    private LockgetTransferTrie lockgetTransferTrie;
+
     private EraLinker eraLinker;
 
     private ApplicationContext applicationContext;
@@ -68,6 +70,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             ValidatorStateTrie validatorStateTrie,
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
+            LockgetTransferTrie lockgetTransferTrie,
             TargetCache targetCache,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             ApplicationContext applicationContext
@@ -85,6 +88,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         this.accountStateTrie = accountStateTrie;
         this.validatorStateTrie = validatorStateTrie;
         this.assetCodeTrie = assetCodeTrie;
+        this.lockgetTransferTrie = lockgetTransferTrie;
         this.triesSyncManager = triesSyncManager;
         this.triesSyncManager.setRepository(this);
         this.candidateStateTrie = candidateStateTrie;
@@ -307,6 +311,11 @@ public class WisdomRepositoryImpl implements WisdomRepository {
     }
 
     @Override
+    public Optional<LockTransferInfo> getLockgetTransferAt(byte[] blockHash, byte[] transhash) {
+        return lockgetTransferTrie.get(blockHash, transhash);
+    }
+
+    @Override
     public Optional<AccountState> getAccountStateAt(byte[] blockHash, byte[] publicKeyHash) {
         return accountStateTrie.get(blockHash, publicKeyHash);
     }
@@ -427,8 +436,8 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
         Stream<Transaction> all =
                 chainCache.getAncestors(chainCache.last().getHash().getBytes())
-                    .stream()
-                    .flatMap(x -> x.get().body.stream());
+                        .stream()
+                        .flatMap(x -> x.get().body.stream());
         if (transactionQuery.getType() != null)
             all = all.filter(x -> x.type == transactionQuery.getType());
         if (transactionQuery.getFrom() != null)

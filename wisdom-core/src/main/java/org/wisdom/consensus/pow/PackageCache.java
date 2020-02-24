@@ -62,6 +62,8 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
 
     private Set<String> AssetcodeSet;
 
+    private Set<String> LockTransferSet;
+
     private boolean exit;
 
     private boolean state;
@@ -98,6 +100,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         this.removemap = new IdentityHashMap<>();
         this.transactionList = new ArrayList<>();
         this.AssetcodeSet = new HashSet<>();
+        this.LockTransferSet = new HashSet<>();
         this.exit = false;
         this.state = false;
     }
@@ -254,6 +257,16 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(ByteUtil.bytearrayridfirst(tx.payload));
             Transaction transaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
             HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //判断同一区块是否有重复获取
+            if (LockTransferSet.contains(transaction.getHashHexString())) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            //判断forkdb中是否有重复获取
+            if (repository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash())) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
             //高度是否满足
             if (height < hashheightblockTransfer.getHeight()) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
@@ -307,6 +320,16 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(ByteUtil.bytearrayridfirst(tx.payload));
             Transaction transaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
             HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //判断同一区块是否有重复获取
+            if (LockTransferSet.contains(transaction.getHashHexString())) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            //判断forkdb中是否有重复获取
+            if (repository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash())) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
             //时间戳是否满足
             Long nowTimestamp = System.currentTimeMillis() / 1000;
             if (hashtimeblockTransfer.getTimestamp() > nowTimestamp) {

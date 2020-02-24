@@ -31,13 +31,14 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
             ValidatorStateTrie validatorStateTrie,
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
+            LockgetTransferTrie lockgetTransferTrie,
             TargetCache targetCache,
             @Value("${wisdom.consensus.blocks-per-era}") int blocksPerEra,
             ApplicationContext applicationContext
     ) throws Exception {
         this.delegate =
                 new WisdomRepositoryImpl(bc, triesSyncManager, accountStateTrie,
-                        validatorStateTrie, candidateStateTrie, assetCodeTrie, targetCache,
+                        validatorStateTrie, candidateStateTrie, assetCodeTrie, lockgetTransferTrie, targetCache,
                         blocksPerEra, applicationContext
                 );
         triesSyncManager.setRepository(this);
@@ -520,6 +521,16 @@ public class WisdomRepositoryWrapper implements WisdomRepository {
         readWriteLock.readLock().lock();
         try {
             return delegate.getAssetCodeAt(blockHash, code);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public Optional<LockTransferInfo> getLockgetTransferAt(byte[] blockHash, byte[] transhash) {
+        readWriteLock.readLock().lock();
+        try {
+            return delegate.getLockgetTransferAt(blockHash, transhash);
         } finally {
             readWriteLock.readLock().unlock();
         }

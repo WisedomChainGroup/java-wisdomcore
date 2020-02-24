@@ -56,6 +56,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     private Set<String> AssetcodeSet;
 
+    private Set<String> LockTransferSet;
+
     private WisdomRepository wisdomRepository;
 
     private TransactionCheck transactionCheck;
@@ -80,6 +82,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         this.map = new ByteArrayMap<>();
         this.fromaccountstate = new AccountState();
         this.AssetcodeSet = new HashSet<>();
+        this.LockTransferSet = new HashSet<>();
     }
 
     public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
@@ -204,6 +207,16 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(ByteUtil.bytearrayridfirst(tx.payload));
             Transaction transaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
             HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //判断同一区块是否有重复获取
+            if (LockTransferSet.contains(transaction.getHashHexString())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": lockheightHash repeats");
+            }
+            //判断forkdb+db中是否有重复获取
+            if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("the lockheightHash get transaction " + transaction.getHashHexString() + " had been exited");
+            }
             if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
                 Account account = accountState.getAccount();
                 long balance = account.getBalance();
@@ -252,6 +265,16 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(ByteUtil.bytearrayridfirst(tx.payload));
             Transaction transaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
             HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //判断同一区块是否有重复获取
+            if (LockTransferSet.contains(transaction.getHashHexString())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": locktimeHash repeats");
+            }
+            //判断forkdb+db中是否有重复获取
+            if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("the locktimeHash get transaction " + transaction.getHashHexString() + " had been exited");
+            }
             if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
                 Account account = accountState.getAccount();
                 long balance = account.getBalance();
