@@ -467,7 +467,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         Asset asset = Asset.getAsset(contract);
         if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//跟换所有者
             byte[] owner = asset.getOwner();
-            if (Arrays.equals(owner, thirtytwoBytes) || !Arrays.equals(owner, tx.from)) {
+            if (Arrays.equals(owner, twentyBytes) || !Arrays.equals(owner, publicKeyHash)) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return null;
             }
@@ -508,8 +508,8 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             toaccountstate.setTokensMap(tomaps);
             newMap.put(assetTransfer.getTo(), toaccountstate);
         } else {//increased
-            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
-                    || Arrays.equals(asset.getOwner(), thirtytwoBytes)) {
+            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), publicKeyHash)
+                    || Arrays.equals(asset.getOwner(), twentyBytes)) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return null;
             }

@@ -406,7 +406,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         Asset asset = Asset.getAsset(contract);
         if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//更换所有者
             byte[] owner = asset.getOwner();
-            if (Arrays.equals(owner, thirtytwoBytes) || !Arrays.equals(owner, tx.from)) {
+            if (Arrays.equals(owner, twentyBytes) || !Arrays.equals(owner, publicKeyHash)) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset definition does not have permission to replace the owner");
             }
@@ -443,8 +443,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             toaccountstate.setTokensMap(tomaps);
             map.put(assetTransfer.getTo(), toaccountstate);
         } else {//increased
-            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
-                    || Arrays.equals(asset.getOwner(), thirtytwoBytes)) {
+            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), publicKeyHash)
+                    || Arrays.equals(asset.getOwner(), twentyBytes)) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": The asset definition does not have rights to issue shares");
             }
@@ -476,7 +476,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
     public Result CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
-            //判断forkdb中是否有重复的代币合约code存在
+            //判断forkdb+db中是否有重复的代币合约code存在
             if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");
