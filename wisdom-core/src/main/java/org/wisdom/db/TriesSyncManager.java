@@ -10,6 +10,7 @@ import org.tdf.common.store.Store;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
 import org.tdf.rlp.RLPElement;
+import org.tdf.rlp.RLPIgnored;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -82,7 +83,9 @@ public class TriesSyncManager {
         private Map<byte[], Long> validators;
         private Map<byte[], Candidate> candidateStates;
         private Map<byte[], AssetCodeInfo> assetCodeInfos;
-        private Map<byte[], LockTransferInfo> lockTransferInfos;
+
+        @RLPIgnored
+        private Map<byte[], LockTransferInfo> lockTransferInfos = new HashMap<>();
     }
 
     public void setRepository(WisdomRepository repository) {
