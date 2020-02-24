@@ -350,15 +350,23 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 break;
             case 2://锁定时间哈希
             case 3://锁定高度哈希
-                if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-                    return accountState;
+                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                    long balance = account.getBalance();
+                    balance -= tx.getFee();
+                    account.setBalance(balance);
+                    account.setNonce(tx.nonce);
+                    account.setBlockHeight(height);
+                    accountState.setAccount(account);
                 }
-                long balance = account.getBalance();
-                balance -= tx.getFee();
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(height);
-                accountState.setAccount(account);
+                if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
+                    byte[] lockrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+                    if (tx.getContractType() == 2) {
+                        accountState.setType(3);
+                    } else {
+                        accountState.setType(4);
+                    }
+                    accountState.setContract(lockrlpbyte);
+                }
                 break;
         }
         return accountState;
@@ -409,8 +417,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = repository.getConfirmedAccountState(tx.to).get();
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(contractaccountstate.getContract());
         HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(rlpbyte);
         Transaction transTransfer = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
         HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transTransfer.payload));
@@ -441,8 +449,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = repository.getConfirmedAccountState(tx.to).get();
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(contractaccountstate.getContract());
         HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(rlpbyte);
         if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
             balance -= hashheightblockTransfer.getValue();
@@ -468,8 +476,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = repository.getConfirmedAccountState(tx.to).get();
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(contractaccountstate.getContract());
         HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(rlpbyte);
         Transaction transTransfer = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
         HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transTransfer.payload));
@@ -500,8 +508,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = repository.getConfirmedAccountState(tx.to).get();
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(contractaccountstate.getContract());
         HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(rlpbyte);
         if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
             balance -= hashtimeblockTransfer.getValue();
