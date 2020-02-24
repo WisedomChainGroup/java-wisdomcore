@@ -160,9 +160,10 @@ public class AdoptTransPool {
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
-                        //资产转账和多签转账多nonce
+                        //资产转账和多签转账和锁定方法的多nonce
                         if (transaction.type == 8 && (transaction.getMethodType() == 1 || transaction.getMethodType() == 3 ||
-                                transaction.getMethodType() == 4 || transaction.getMethodType() == 6)) {
+                                transaction.getMethodType() == 4 || transaction.getMethodType() == 5 ||
+                                transaction.getMethodType() == 6 || transaction.getMethodType() == 7)) {
                             transPoolList.add(t);
                             continue;
                         }
