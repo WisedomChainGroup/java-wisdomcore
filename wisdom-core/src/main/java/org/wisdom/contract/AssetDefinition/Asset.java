@@ -20,9 +20,9 @@ public class Asset implements AnalysisContract {
     @RLP(2)
     private long totalamount;
     @RLP(3)
-    private byte[] createuser;
+    private byte[] createuser;  //公钥
     @RLP(4)
-    private byte[] owner;
+    private byte[] owner;   //公钥哈希
     @RLP(5)
     private int allowincrease;
     @RLP(6)

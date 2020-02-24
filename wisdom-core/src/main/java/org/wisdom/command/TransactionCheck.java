@@ -425,7 +425,7 @@ public class TransactionCheck {
             if (!KeystoreAction.verifyPublickey(from))
                 return APIResult.newFailed("From format check error");
             //Owner
-            if (!KeystoreAction.verifyPublickey(asset.getOwner()))
+            if (asset.getOwner().length != 20)
                 return APIResult.newFailed("Owner format check error");
             //Createuser frompubhash
             if (!Arrays.equals(from, createUserPublicKey))
@@ -570,29 +570,27 @@ public class TransactionCheck {
     private APIResult CheckChangeowner(byte[] data, Transaction transaction) {
         AssetChangeowner assetChangeowner = new AssetChangeowner();
         if (assetChangeowner.RLPdeserialization(data)) {
-            if (assetChangeowner.getNewowner().length != 32) {
+            if (assetChangeowner.getNewowner().length != 20) {
                 return APIResult.newFailed("Newowner format check error");
             }
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+            if (!accountState.isPresent()) return APIResult.newFailed("Asset do not exist");
+            if (accountState.get().getType() != 1) return APIResult.newFailed("Must fill in the correct asset");
             Asset asset = new Asset();
             if (asset.RLPdeserialization(accountState.get().getContract())) {
                 //查询原owner是否与from一致
-                if (!Arrays.equals(asset.getOwner(), transaction.from))
+                if (!Arrays.equals(asset.getOwner(), KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
                     return APIResult.newFailed("From must be the same as original owner");
                 //newowner与oldowner不能一致
                 if (Arrays.equals(asset.getOwner(), assetChangeowner.getNewowner()))
                     return APIResult.newFailed("New owner must be different from original owner");
                 //newowner必须是普通地址
-                Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(assetChangeowner.getNewowner()));
+                Optional<AccountState> accountStateNewowner = wisdomRepository.getConfirmedAccountState(assetChangeowner.getNewowner());
                 if (accountStateNewowner.isPresent()) {
                     if (accountStateNewowner.get().getType() != 0)
                         return APIResult.newFailed("New owner must be Ordinary address");
                 }
-                //验证newowner是公钥
-                if (assetChangeowner.getNewowner().length != 32)
-                    return APIResult.newFailed("Newowner format error");
             } else {
                 return APIResult.newFailed("Invalid Assets rules");
             }
@@ -607,7 +605,8 @@ public class TransactionCheck {
             //判断160哈希值是否已经存在
             Optional<AccountState> contractAccountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //AssetHash是否存在
-            if (!contractAccountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+            if (!contractAccountState.isPresent()) return APIResult.newFailed("Asset do not exist");
+            if (contractAccountState.get().getType() != 1) return APIResult.newFailed("Must fill in the correct asset");
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
             if (!accountState.isPresent()) return APIResult.newFailed("From do not exist");
             //value
@@ -663,13 +662,15 @@ public class TransactionCheck {
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             if (!accountState.isPresent())
                 return APIResult.newFailed("Asset do not exist");
+            if (accountState.get().getType() != 1)
+                return APIResult.newFailed("Must fill in the correct asset");
             Asset asset = new Asset();
             if (asset.RLPdeserialization(accountState.get().getContract())) {
                 //查询资产的allowincrease值
                 if (asset.getAllowincrease() == 0) return APIResult.newFailed("Asset not allow Increased");
                 //From Owner是否一致
-                if (!Arrays.equals(asset.getOwner(), transaction.from))
-                    return APIResult.newFailed("From and oldowner must be the same");
+                if (!Arrays.equals(asset.getOwner(), KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
+                    return APIResult.newFailed("From and owner must be the same");
             } else {
                 return APIResult.newFailed("Invalid Assets rules");
             }
@@ -711,6 +712,8 @@ public class TransactionCheck {
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(transaction.to);
             if (!accountStateTo.isPresent())
                 return APIResult.newFailed("Multiple do not exist");
+            if (accountStateTo.get().getType() != 2)
+                return APIResult.newFailed("Must fill in the correct multiple");
             Optional<AccountState> accountStatePayloadTo = wisdomRepository.getConfirmedAccountState(multTransfer.getTo());
 
             if (multTransfer.getOrigin() == 0) {
@@ -846,6 +849,8 @@ public class TransactionCheck {
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //Hashtimeblock是否存在
             if (!accountState.isPresent()) return APIResult.newFailed("Hashtimeblock do not exist");
+            if (accountState.get().getType() != 3)
+                return APIResult.newFailed("Must fill in the correct hashtimeblock");
             if (hashtimeblock.RLPdeserialization(accountState.get().getContract())) {
                 //from 余额是否足够
                 byte[] WDCbyte = new byte[20];
@@ -891,6 +896,8 @@ public class TransactionCheck {
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
             //Hashheightblock
             if (!accountState.isPresent()) return APIResult.newFailed("Hashheightblock do not exist");
+            if (accountState.get().getType() != 4)
+                return APIResult.newFailed("Must fill in the correct hashheightblock");
             if (hashheightblock.RLPdeserialization(accountState.get().getContract())) {
                 //from 余额是否足够
                 byte[] WDCbyte = new byte[20];
