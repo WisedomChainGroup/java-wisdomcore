@@ -60,9 +60,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     @Autowired
     private Configuration configuration;
 
-
     private WisdomBlockChain wisdomBlockChain;
-
 
     private WisdomRepository repository;
 
@@ -376,33 +374,31 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         Account account = accountState.getAccount();
         byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
         byte[] fromhash = Address.publicKeyToHash(tx.from);
-        if (tx.getContractType() == 0) {//合约代币
-            switch (tx.getMethodType()) {
-                case 0://更改所有者
-                    accountState = updateAssetChangeowner(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 1://转发资产
-                    accountState = updateAssetTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 2://增发
-                    accountState = updateAssetIncreased(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 3://多签转账
-                    accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 4://锁定时间哈希资产转发
-                    accountState = updateHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 5://锁定时间哈希获取资产
-                    accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 6://锁定高度哈希资产转发
-                    accountState = updateHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 7://锁定高度哈希获取资产
-                    accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-            }
+        switch (tx.getMethodType()) {
+            case 0://更改所有者
+                accountState = updateAssetChangeowner(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 1://转发资产
+                accountState = updateAssetTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 2://增发
+                accountState = updateAssetIncreased(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 3://多签转账
+                accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 4://锁定时间哈希资产转发
+                accountState = updateHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 5://锁定时间哈希获取资产
+                accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 6://锁定高度哈希资产转发
+                accountState = updateHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 7://锁定高度哈希获取资产
+                accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
         }
         return accountState;
     }

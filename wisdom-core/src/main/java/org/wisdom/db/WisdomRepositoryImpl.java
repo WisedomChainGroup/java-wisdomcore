@@ -86,6 +86,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
                 .build();
 
         this.accountStateTrie = accountStateTrie;
+        this.accountStateTrie.setRepository(this);
         this.validatorStateTrie = validatorStateTrie;
         this.assetCodeTrie = assetCodeTrie;
         this.lockgetTransferTrie = lockgetTransferTrie;
