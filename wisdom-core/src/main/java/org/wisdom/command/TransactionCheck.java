@@ -944,6 +944,8 @@ public class TransactionCheck {
                     //判断哈希与原文哈希是否一致
                     if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashtimeblockGet.getOrigintext().toCharArray())), hashtimeblockTransfer.getHashresult()))
                         return APIResult.newFailed("Origintext is wrong");
+                    if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
+                        return APIResult.newFailed("Origintext Maximum exceeded");
                     //当前Unix时间
                     Long nowTimestamp = System.currentTimeMillis() / 1000L;
                     //判断时间
@@ -981,6 +983,8 @@ public class TransactionCheck {
                     //判断哈希与原文哈希是否一致
                     if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashheightblockGet.getOrigintext().toCharArray())), hashheightblockTransfer.getHashresult()))
                         return APIResult.newFailed("Origintext is wrong");
+                    if (hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
+                        return APIResult.newFailed("Origintext Maximum exceeded");
                     //当前高度
                     Long nowHeight = wisdomBlockChain.getTopHeight();
                     //判断高度
