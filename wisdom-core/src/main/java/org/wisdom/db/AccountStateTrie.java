@@ -18,8 +18,6 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
 
     private AccountStateUpdater accountStateUpdater;
 
-    private WisdomRepository repository;
-
     @Override
     protected String getPrefix() {
         return "account";
@@ -37,7 +35,4 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
         this.accountStateUpdater.setWisdomBlockChain(bc);
     }
 
-    public void setRepository(WisdomRepository repository) {
-        this.accountStateUpdater.setRepository(repository);
-    }
 }
