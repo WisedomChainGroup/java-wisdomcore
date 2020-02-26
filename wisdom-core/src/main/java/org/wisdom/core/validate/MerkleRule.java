@@ -25,6 +25,9 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.tdf.common.store.CachedStore;
+import org.tdf.common.trie.Trie;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
@@ -91,8 +94,16 @@ public class MerkleRule implements BlockRule {
         if (block.getnHeight() < validateHeight) {
             return Result.SUCCESS;
         }
+
+        Trie<byte[], AccountState> parentTrie = accountStateTrie
+                .getTrie()
+                .revert(
+                        accountStateTrie.getRootStore().get(block.hashPrevBlock).get(),
+                        new CachedStore<>(accountStateTrie.getTrieStore(), ByteArrayMap::new)
+                );
+
         Map<byte[], AccountState> accountStateMap = accountStateUpdater.
-                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
+                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block, parentTrie.asMap())),
                         block.body.stream().map(tx -> new TransactionInfo(tx, block.nHeight)).collect(Collectors.toList()));
         List<AccountState> accountStateList = new ArrayList<>(accountStateMap.values());
         if (!Arrays.equals(block.hashMerkleState, Block.calculateMerkleState(accountStateList))) {

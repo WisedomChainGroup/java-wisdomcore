@@ -15,7 +15,7 @@ public class ValidatorStateUpdater extends AbstractStateUpdater<Long> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], Long> store) {
         if(transaction.type != Transaction.Type.COINBASE.ordinal()) return Collections.emptySet();
         ByteArraySet set = new ByteArraySet();
         set.add(transaction.to);

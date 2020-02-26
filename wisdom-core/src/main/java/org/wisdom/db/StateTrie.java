@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.wisdom.core.Block;
 
@@ -28,4 +29,6 @@ public interface StateTrie<T> {
 
     // collect garbage
     void gc(Collection<? extends byte[]> blockHash);
+
+    Store<byte[], byte[]> getTrieStore();
 }

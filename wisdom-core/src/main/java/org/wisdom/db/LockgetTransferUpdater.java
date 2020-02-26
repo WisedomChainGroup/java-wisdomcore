@@ -20,7 +20,7 @@ public class LockgetTransferUpdater extends AbstractStateUpdater<LockTransferInf
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], LockTransferInfo> store) {
         if (transaction.type != Transaction.Type.CALL_CONTRACT.ordinal() || (transaction.getMethodType() != 5 && transaction.getMethodType() != 7)) {
             return Collections.emptySet();
         }

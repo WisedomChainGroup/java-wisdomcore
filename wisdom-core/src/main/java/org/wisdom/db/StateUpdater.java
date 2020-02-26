@@ -11,7 +11,7 @@ import java.util.Set;
 public interface StateUpdater<T> {
     Map<byte[], T> getGenesisStates();
 
-    Set<byte[]> getRelatedKeys(Transaction transaction);
+    Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], T> store);
 
     T createEmpty(byte[] id);
 
@@ -23,4 +23,8 @@ public interface StateUpdater<T> {
     Map<byte[], T> update(Map<byte[], T> beforeUpdate, Block block);
 
     Map<byte[], T> update(Map<byte[], T> beforeUpdate, List<Block> blocks);
+
+    Set<byte[]> getRelatedKeys(Block block, Map<byte[], T> store);
+
+    Set<byte[]> getRelatedKeys(List<Block> block, Map<byte[], T> store);
 }

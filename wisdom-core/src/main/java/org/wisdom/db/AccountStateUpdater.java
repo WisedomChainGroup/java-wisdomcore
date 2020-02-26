@@ -113,8 +113,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
-        Map<byte[], AccountState> store = new HashMap<>();
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AccountState> store) {
         switch (transaction.type) {
             case 0x00://coinbase
             case 0x09://INCUBATE
@@ -219,13 +218,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         bytes.add(fromhash);
         return bytes;
     }
-
-    public Set<byte[]> getRelatedKeys(Block block) {
-        Set<byte[]> ret = new ByteArraySet();
-        block.body.stream().map(this::getRelatedKeys)
-                .forEach(ret::addAll);
-        return ret;
-    }
+    
 
     private AccountState updateCoinBase(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();

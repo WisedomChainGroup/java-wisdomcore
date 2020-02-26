@@ -22,7 +22,7 @@ public abstract class AbstractStateTrie<T> extends StateTrieAdapter<T>{
             return;
         byte[] root = getRootStore().get(block.hashPrevBlock)
                 .orElseThrow(() -> new RuntimeException(Hex.encodeHexString(block.hashPrevBlock) + " not exists"));
-        Map<byte[], T> beforeUpdates = batchGet(block.hashPrevBlock, getUpdater().getRelatedKeys(block));
+        Map<byte[], T> beforeUpdates = batchGet(block.hashPrevBlock, getUpdater().getRelatedKeys(block, getTrie().revert(root).asMap()));
         commitInternal(root, block.getHash(), getUpdater().update(beforeUpdates, block));
     }
 }

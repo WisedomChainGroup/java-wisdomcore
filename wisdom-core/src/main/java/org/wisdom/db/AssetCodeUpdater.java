@@ -22,7 +22,7 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AssetCodeInfo> store) {
         if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getContractType() != 0)
             return Collections.emptySet();
         ByteArraySet set = new ByteArraySet();

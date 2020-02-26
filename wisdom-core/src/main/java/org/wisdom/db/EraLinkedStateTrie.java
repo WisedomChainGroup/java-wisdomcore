@@ -62,7 +62,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
 
         Trie<byte[], T> prevTrie = getTrieByBlockHash(blocks.get(0).hashPrevBlock);
 
-        Set<byte[]> keys = getUpdater().getRelatedKeys(blocks);
+        Set<byte[]> keys = getUpdater().getRelatedKeys(blocks, prevTrie.asMap());
         Map<byte[], T> beforeUpdate = new ByteArrayMap<>();
         keys.forEach(k -> beforeUpdate.put(k, prevTrie.get(k).orElse(getUpdater().createEmpty(k))));
         Map<byte[], T> updated = getUpdater().update(beforeUpdate, blocks);

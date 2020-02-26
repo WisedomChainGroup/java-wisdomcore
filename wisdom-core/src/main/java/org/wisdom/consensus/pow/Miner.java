@@ -19,6 +19,9 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.store.CachedStore;
+import org.tdf.common.trie.Trie;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
@@ -151,8 +154,15 @@ public class Miner implements ApplicationListener {
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
 
+        Trie<byte[], AccountState> parentTrie = accountStateTrie
+                .getTrie()
+                .revert(
+                        accountStateTrie.getRootStore().get(parent.getHash()).get(),
+                        new CachedStore<>(accountStateTrie.getTrieStore(), ByteArrayMap::new)
+                );
+
         Map<byte[], AccountState> accountStateMap = accountStateUpdater.
-                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
+                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block, parentTrie.asMap())),
                         block.body.stream().map(tx -> {
                             return new TransactionInfo(tx, block.nHeight);
                         }).collect(Collectors.toList()));
