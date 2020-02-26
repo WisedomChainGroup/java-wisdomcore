@@ -223,7 +223,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getAssetTransferByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as tohash,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);

@@ -556,7 +556,7 @@ public class HatchServiceImpl implements HatchService {
                 byte[] payload = (byte[]) map.get("tradeHash");
                 if (payload[0] == 1) {//资产转发
                     byte[] coinHash = (byte[]) map.get("coinHash");
-                    byte[] tohash = (byte[]) map.get("tohash");
+                    byte[] tohash = (byte[]) map.get("coinHash160");
                     long gasPrice = (Long) map.get("gasPrice");
                     long fee = gasPrice * Transaction.GAS_TABLE[8];
                     AssetTransfer asset = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(payload));
