@@ -29,9 +29,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
+import java.util.*;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ByteUtil {
 
@@ -825,5 +824,42 @@ public class ByteUtil {
      */
     public static byte[] parseWord(byte[] input, int offset, int idx) {
         return parseBytes(input, offset + 32 * idx, 32);
+    }
+
+    public static boolean byteListContains(List<byte[]> list,byte[] bytes){
+        if (list == null) return false;
+        for (int i=0;i<list.size();i++){
+            if (Arrays.equals(list.get(i),bytes))  return true;
+        }
+        return false;
+    }
+
+    //去重
+    public static List<byte[]> byteListsDistinct(List<byte[]> a){
+        List<byte[]> list = new ArrayList<>();
+        if (a == null) return list;
+        for(int i = 0;i < a.size();i++){
+            for(int j = i+1;j < a.size();j++){
+                if(Arrays.equals(a.get(i),a.get(j))){
+                    a.remove(j);
+                }
+            }
+        }
+        return a;
+    }
+
+    //交集
+    public static List<byte[]> byteListsIntersection(List<byte[]> a,List<byte[]> b){
+        List<byte[]> list = new ArrayList<>();
+        if (a == null || b == null) return list;
+        for (int i = 0;i<a.size();i++){
+            for (int j = 0;j<b.size();j++){
+                if (Arrays.equals(a.get(i),b.get(j))){
+                    list.add(a.get(i));
+                    break;
+                }
+            }
+        }
+        return list;
     }
 }

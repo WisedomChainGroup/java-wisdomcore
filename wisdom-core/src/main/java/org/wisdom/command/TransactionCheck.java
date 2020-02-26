@@ -478,11 +478,11 @@ public class TransactionCheck {
             //payload amount
             if (multiple.getAmount() != 0) return APIResult.newFailed("Amount must be zero");
             //pubkeyList
-            if (multiple.getPubList().stream().distinct().collect(Collectors.toList()).size() != multiple.getMax())
+            if (ByteUtil.byteListsDistinct(multiple.getPubList()).size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyList do not match max");
-            if (!multiple.getPubList().contains(from)) return APIResult.newFailed("From must be in payload");
+            if (!ByteUtil.byteListContains(multiple.getPubList(),from)) return APIResult.newFailed("From must be in payload");
             //signatureList
-            if (multiple.getSignatureList().stream().distinct().collect(Collectors.toList()).size() != multiple.getMax())
+            if (ByteUtil.byteListsDistinct(multiple.getSignatureList()).size() != multiple.getMax())
                 return APIResult.newFailed("SignatureList() do not match max");
             //构造签名原文
             byte[] from_version = new byte[1];
@@ -508,13 +508,13 @@ public class TransactionCheck {
             Ed25519PublicKey ed25519PublicKey = new Ed25519PublicKey(from);
             if (!Arrays.equals(from,multiple.getPubList().get(0)) || !ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
                 return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
-            List<byte[]> pubkeylist = multiple.getPubList().stream().distinct().collect(Collectors.toList());
-            List<byte[]> signatureList = multiple.getSignatureList().stream().distinct().collect(Collectors.toList());
+            List<byte[]> pubkeylist = ByteUtil.byteListsDistinct(multiple.getPubList());
+            List<byte[]> signatureList = ByteUtil.byteListsDistinct(multiple.getSignatureList());
             int number = 0;
             //验证签名
-            for (int i=0;i<pubkeylist.stream().distinct().collect(Collectors.toList()).size();i++){
+            for (int i=0;i<pubkeylist.size();i++){
                 Ed25519PublicKey ed25519PublicKey_payload = new Ed25519PublicKey(pubkeylist.get(i));
-                    for (int j=1;i<signatureList.stream().distinct().collect(Collectors.toList()).size();i++){
+                    for (int j=1;i<signatureList.size();i++){
                         if (ed25519PublicKey_payload.verify(nosig,multiple.getSignatureList().get(j))){
                             number++;
                         }
@@ -759,15 +759,16 @@ public class TransactionCheck {
                     byte[] nonece = {};
                     if (multTransfer.getOrigin() == 1) {
                         //查询部署时多签的pubkey List
-                        List<byte[]> pubkeylist = multiple.getPubList();
+                        List<byte[]> pubkeylist = ByteUtil.byteListsDistinct(multiple.getPubList());
                         //去重 取交集
-                        payload_from = multTransfer.getFrom().stream().distinct().collect(Collectors.toList());
-                        from = payload_from.stream().filter(item -> pubkeylist.contains(item)).collect(Collectors.toList());
+                        payload_from = ByteUtil.byteListsDistinct(multTransfer.getFrom());
+                        from = ByteUtil.byteListsIntersection(pubkeylist,payload_from);
                         nonece = BigEndian.encodeUint64(0);
                     }
-                    if (!from.contains(transaction.from)) return APIResult.newFailed("From must be in payload");
+
+                    if (! ByteUtil.byteListContains(from,transaction.from)) return APIResult.newFailed("From must be in payload");
                     //signatures 去重
-                    List<byte[]> signatures = multTransfer.getSignatures().stream().distinct().collect(Collectors.toList());
+                    List<byte[]> signatures = ByteUtil.byteListsDistinct(multTransfer.getSignatures());
                     int signAdopt = 0;
                     //构造签名原文
                     byte[] version = new byte[1];
