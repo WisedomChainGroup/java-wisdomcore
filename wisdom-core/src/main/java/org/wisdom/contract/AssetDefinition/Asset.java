@@ -64,9 +64,7 @@ public class Asset implements AnalysisContract {
         return KeystoreAction.pubkeyToAddress(this.createuser,(byte)0x00,"WX");
     }
 
-    private String HexOwnerAddress(){
-        return KeystoreAction.pubkeyToAddress(this.owner,(byte)0x00,"WX");
-    }
+    private String HexOwnerAddress(){ return KeystoreAction.pubkeyHashToAddress(this.owner,(byte)0x00,"WX"); }
 
     public static Asset getAsset(byte[] Rlpbyte) {
         return RLPElement.fromEncoded(Rlpbyte).as(Asset.class);
