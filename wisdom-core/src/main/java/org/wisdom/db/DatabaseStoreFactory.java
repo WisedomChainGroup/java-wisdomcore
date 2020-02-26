@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import lombok.extern.slf4j.Slf4j;
 import org.fusesource.leveldbjni.JniDBFactory;
+import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.*;
@@ -44,6 +45,9 @@ public class DatabaseStoreFactory {
                 break;
             case "rocksdb":
                 store = new RocksDb(directory, name);
+                break;
+            case "leveldb-iq80":
+                store = new LevelDb(Iq80DBFactory.factory, directory, name);
                 break;
             case "leveldb":
             default:
