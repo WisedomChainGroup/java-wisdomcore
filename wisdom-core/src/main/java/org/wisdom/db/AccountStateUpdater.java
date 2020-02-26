@@ -68,6 +68,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     @Override
     public AccountState update(byte[] id, AccountState state, TransactionInfo info) {
+        Map<byte[], AccountState> store = new HashMap<>();
         return updateOne(info, state.copy());
     }
 
@@ -113,6 +114,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     @Override
     public Set<byte[]> getRelatedKeys(Transaction transaction) {
+        Map<byte[], AccountState> store = new HashMap<>();
         switch (transaction.type) {
             case 0x00://coinbase
             case 0x09://INCUBATE
