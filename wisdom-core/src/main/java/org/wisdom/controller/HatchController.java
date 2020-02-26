@@ -119,5 +119,13 @@ public class HatchController {
         return hatchService.getCoinBaseList(height);
     }
 
+    @GetMapping(value = "/WisdomCore/sendAsset")
+    public Object sendAsset(@RequestParam("height") long height) {
+        return hatchService.getAssetList(height);
+    }
 
+    @GetMapping(value = "/WisdomCore/sendAssetTransfer")
+    public Object sendAssetTransfer(@RequestParam("height") long height) {
+        return hatchService.getAssetTransferList(height);
+    }
 }
