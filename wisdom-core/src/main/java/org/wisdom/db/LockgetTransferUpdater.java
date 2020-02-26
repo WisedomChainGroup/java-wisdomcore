@@ -38,7 +38,7 @@ public class LockgetTransferUpdater extends AbstractStateUpdater<LockTransferInf
     }
 
     @Override
-    public LockTransferInfo update(byte[] id, LockTransferInfo state, TransactionInfo info) {
+    public LockTransferInfo update(Map<byte[], LockTransferInfo> related, byte[] id, LockTransferInfo state, TransactionInfo info) {
         Transaction transaction = info.getTransaction();
         if (state != null) {
             throw new RuntimeException("LockTransferInfo is not a null exception");

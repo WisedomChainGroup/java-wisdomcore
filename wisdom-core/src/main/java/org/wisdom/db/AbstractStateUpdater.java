@@ -27,9 +27,13 @@ public abstract class AbstractStateUpdater<T> implements StateUpdater<T> {
     public Map<byte[], T> update(Map<byte[], T> beforeUpdate, Collection<? extends TransactionInfo> transactionInfos) {
         Map<byte[], T> ret = new ByteArrayMap<>(beforeUpdate);
         transactionInfos.forEach(info -> {
-            getRelatedKeys(info.getTransaction(), beforeUpdate).forEach(k -> {
-                ret.put(k, update(k, ret.get(k), info));
-            });
+            Map<byte[], T> related = new ByteArrayMap<>();
+            getRelatedKeys(info.getTransaction(), beforeUpdate)
+                    .forEach(k -> related.put(k, beforeUpdate.get(k)));
+            related.keySet()
+                    .forEach(k -> {
+                        ret.put(k, update(related, k, ret.get(k), info));
+                    });
         });
         return ret;
     }

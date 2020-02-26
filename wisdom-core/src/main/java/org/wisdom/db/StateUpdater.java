@@ -16,7 +16,7 @@ public interface StateUpdater<T> {
     T createEmpty(byte[] id);
 
     // the update method should always returns a new state
-    T update(byte[] id, T state, TransactionInfo info);
+    T update(Map<byte[], T> beforeUpdate, byte[] id, T state, TransactionInfo info);
 
     Map<byte[], T> update(Map<byte[], T> beforeUpdate, Collection<? extends TransactionInfo> transactionInfos);
 

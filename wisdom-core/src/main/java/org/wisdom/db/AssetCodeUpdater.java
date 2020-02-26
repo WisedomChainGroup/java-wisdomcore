@@ -32,7 +32,7 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
     }
 
     @Override
-    public AssetCodeInfo update(byte[] id, AssetCodeInfo state, TransactionInfo info) {
+    public AssetCodeInfo update(Map<byte[], AssetCodeInfo> beforeUpdate, byte[] id, AssetCodeInfo state, TransactionInfo info) {
         Transaction transaction = info.getTransaction();
         if (state != null) {
             throw new RuntimeException("AssetCodeInfo is not a null exception");

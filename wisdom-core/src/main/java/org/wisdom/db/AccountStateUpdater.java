@@ -65,9 +65,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private static final byte[] twentyBytes = new byte[20];
 
     @Override
-    public AccountState update(byte[] id, AccountState state, TransactionInfo info) {
-        Map<byte[], AccountState> store = new HashMap<>();
-        return updateOne(info, state.copy(), store);
+    public AccountState update(Map<byte[], AccountState> related, byte[] id, AccountState state, TransactionInfo info) {
+        return updateOne(info, state.copy(), related);
     }
 
     public AccountState updateOne(TransactionInfo info, AccountState accountState, Map<byte[], AccountState> store) {
@@ -218,7 +217,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         bytes.add(fromhash);
         return bytes;
     }
-    
+
 
     private AccountState updateCoinBase(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
