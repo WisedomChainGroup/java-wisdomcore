@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
+import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.DatabaseStoreFactory;
@@ -46,10 +47,13 @@ public class PeningTransPool {
 
     private Map<String, PendingNonce> ptnonce;
 
+    private Map<String, ByteArrayMap> contractpool;
+
     public PeningTransPool(DatabaseStoreFactory factory) {
         leveldb = factory.create("leveldb", false);
         ptpool = new ConcurrentHashMap<>();
         ptnonce = new ConcurrentHashMap<>();
+        contractpool = new ConcurrentHashMap<>();
         try {
             Optional<byte[]> dbdata = leveldb.get("PendingPool".getBytes(StandardCharsets.UTF_8));
             dbdata.ifPresent(value -> {
@@ -60,6 +64,7 @@ public class PeningTransPool {
         } catch (Exception e) {
             ptpool = new ConcurrentHashMap<>();
             ptnonce = new ConcurrentHashMap<>();
+            contractpool = new ConcurrentHashMap<>();
         }
     }
 
@@ -281,14 +286,36 @@ public class PeningTransPool {
                     map.put(t.nonce, transPool);
                     ptpool.put(fromhash, map);
                     if (type == 2) {//2 进db
-                        if (t.type == 8 || t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//调用合约、孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
+                        if (t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//调用合约、孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
                             //ptnonce
                             nonceupdate(fromhash, t.nonce);
+                        }
+                        if (t.type == 8) {
+                            byte[] payload = t.payload;
+                            if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                                if (contractpool.containsKey(fromhash)) {
+                                    ByteArrayMap byteArrayMap = contractpool.get(fromhash);
+                                    if (byteArrayMap.containsKey(t.to)) {
+                                        byteArrayMap.remove(t.to);
+                                        contractpool.put(fromhash, byteArrayMap);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    public boolean Iscontractpool(String key, byte[] contract) {
+        if (contractpool.containsKey(key)) {
+            ByteArrayMap byteArrayMap = contractpool.get(key);
+            if (byteArrayMap.containsKey(contract)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public PendingNonce findptnonce(String key) {
@@ -301,16 +328,20 @@ public class PeningTransPool {
 
     public void updateNonce(Transaction transaction, long nonce, String fromhash) {
         int type = transaction.type;
-        if (type == 8 || type == 9 || type == 10 || type == 11 || type == 12) {//调用合约、孵化、提取利息、提取分享、提取本金，单nonce
-            //资产转账和多签转账
-            if (transaction.getMethodType() == 1 || transaction.getMethodType() == 3 ||
-                    transaction.getMethodType() == 4 || transaction.getMethodType() == 5 ||
-                    transaction.getMethodType() == 6 || transaction.getMethodType() == 7) {
-                ptnonce.put(fromhash, new PendingNonce(nonce, 2));
-                return;
-            }
+        if (type == 9 || type == 10 || type == 11 || type == 12) {//孵化、提取利息、提取分享、提取本金，单nonce
             ptnonce.put(fromhash, new PendingNonce(nonce, 0));
         } else {
+            if (type == 8) {//调用合约
+                byte[] payload = transaction.payload;
+                if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                    ByteArrayMap byteArrayMap = new ByteArrayMap();
+                    if (contractpool.containsKey(fromhash)) {
+                        byteArrayMap = contractpool.get(fromhash);
+                    }
+                    byteArrayMap.put(transaction.to, null);
+                    contractpool.put(fromhash, byteArrayMap);
+                }
+            }
             ptnonce.put(fromhash, new PendingNonce(nonce, 2));
         }
     }

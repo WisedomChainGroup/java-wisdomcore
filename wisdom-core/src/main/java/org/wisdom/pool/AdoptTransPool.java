@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
+import org.tdf.common.util.ByteArrayMap;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.DatabaseStoreFactory;
@@ -151,6 +152,7 @@ public class AdoptTransPool {
         int index = 0;
         for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             List<TransPool> transPoolList = new ArrayList<>();
+            ByteArrayMap<Boolean> byteArrayMap=new ByteArrayMap<>();
             Map<String, TransPool> maps = compare(entry.getValue());
             for (Map.Entry<String, TransPool> entry1 : maps.entrySet()) {
                 if (index < configuration.getMaxqpcount()) {
@@ -160,12 +162,15 @@ public class AdoptTransPool {
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
-                        //资产转账和多签转账和锁定方法的多nonce
-                        if (transaction.type == 8 && (transaction.getMethodType() == 1 || transaction.getMethodType() == 3 ||
-                                transaction.getMethodType() == 4 || transaction.getMethodType() == 5 ||
-                                transaction.getMethodType() == 6 || transaction.getMethodType() == 7)) {
-                            transPoolList.add(t);
-                            continue;
+                        //合约事务隔离
+                        if(transaction.type==Transaction.Type.CALL_CONTRACT.ordinal()){
+                            byte[] payload = transaction.payload;
+                            if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                                if(byteArrayMap.containsKey(transaction.to)){
+                                    break;
+                                }
+                                byteArrayMap.put(transaction.to,true);
+                            }
                         }
                         transPoolList.add(t);
                         index++;
