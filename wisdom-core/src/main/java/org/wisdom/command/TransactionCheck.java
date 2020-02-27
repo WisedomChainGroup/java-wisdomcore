@@ -495,11 +495,12 @@ public class TransactionCheck {
             byte[] from_gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
             byte[] from_amount = ByteUtil.longToBytes(0L);
             Multiple from_multiple = new Multiple();
-            from_multiple.setAssetHashHex(multiple.getAssetHashHex());
+            from_multiple.setAssetHash(multiple.getAssetHash());
             from_multiple.setMax(multiple.getMax());
             from_multiple.setMin(multiple.getMin());
-            from_multiple.setPubListHex(multiple.getPubListHex());
+            from_multiple.setPubList(multiple.getPubList());
             from_multiple.setAmount(multiple.getAmount());
+            from_multiple.setSignatureList(new ArrayList<>());
             byte[] from_payload = from_multiple.RLPserialization();
             from_payload = ByteUtil.merge(new byte[]{0x01},from_payload);
             byte[] payloadLength = ByteUtil.intToBytes(from_payload.length);
@@ -514,7 +515,7 @@ public class TransactionCheck {
             //验证签名
             for (int i=0;i<pubkeylist.size();i++){
                 Ed25519PublicKey ed25519PublicKey_payload = new Ed25519PublicKey(pubkeylist.get(i));
-                    for (int j=1;i<signatureList.size();i++){
+                    for (int j=0;j<signatureList.size();j++){
                         if (ed25519PublicKey_payload.verify(nosig,multiple.getSignatureList().get(j))){
                             number++;
                         }
@@ -522,7 +523,7 @@ public class TransactionCheck {
             }
             if (number != multiple.getMax())
                 return APIResult.newFailed("Not enough Pubkey or Signature");
-            APIResult.newSuccess("SUCCESS");
+            return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Multiple rules");
     }
@@ -537,6 +538,8 @@ public class TransactionCheck {
                 if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
+            if (hashtimeblock.getPubkeyHash().length != 20)
+                return APIResult.newFailed("To must be Ordinary address");
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashtimeblock.getPubkeyHash());
             if (accountStateTo.isPresent()) {
                 if (accountStateTo.get().getType() != 0)
@@ -557,6 +560,8 @@ public class TransactionCheck {
                 if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
+            if (hashheightblock.getPubkeyHash().length != 20)
+                return APIResult.newFailed("To must be Ordinary address");
             Optional<AccountState> accountStateTo = wisdomRepository.getConfirmedAccountState(hashheightblock.getPubkeyHash());
             if (accountStateTo.isPresent()) {
                 if (accountStateTo.get().getType() != 0)
@@ -940,21 +945,19 @@ public class TransactionCheck {
             if (hashtimeblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashtimeblockTransfer transaction");
             HashtimeblockTransfer hashtimeblockTransfer = new HashtimeblockTransfer();
-            if (hashtimeblockTransfer.RLPdeserialization(hashtimeblockTransaction.payload)) {
-                try {
-                    //判断哈希与原文哈希是否一致
-                    if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashtimeblockGet.getOrigintext().toCharArray())), hashtimeblockTransfer.getHashresult()))
-                        return APIResult.newFailed("Origintext is wrong");
-                    if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
-                        return APIResult.newFailed("Origintext Maximum exceeded");
-                    //当前Unix时间
-                    Long nowTimestamp = System.currentTimeMillis() / 1000L;
-                    //判断时间
-                    if (hashtimeblockTransfer.getTimestamp() > nowTimestamp)
-                        return APIResult.newFailed("The specified time is not reached");
-                } catch (DecoderException e) {
-                    return APIResult.newFailed("Exception error");
-                }
+            if (hashtimeblockTransaction.payload[0] != 4)
+                return APIResult.newFailed("Must fill in the correct hashtimeblockTransfer");
+            if (hashtimeblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockTransaction.payload, 1, hashtimeblockTransaction.payload.length-1))) {
+                if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
+                    return APIResult.newFailed("Origintext Maximum exceeded");
+                //判断哈希与原文哈希是否一致
+                if (!Arrays.equals(SHA3Utility.sha3256(hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8)), hashtimeblockTransfer.getHashresult()))
+                    return APIResult.newFailed("Origintext is wrong");
+                //当前Unix时间
+                Long nowTimestamp = System.currentTimeMillis() / 1000L;
+                //判断时间
+                if (hashtimeblockTransfer.getTimestamp() > nowTimestamp)
+                    return APIResult.newFailed("The specified time is not reached");
                 Hashtimeblock hashtimeblock = new Hashtimeblock();
                 //Hashtimeblock
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblockTransaction.to);
@@ -978,8 +981,10 @@ public class TransactionCheck {
             Transaction hashheightblockTransaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
             if (hashheightblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashheightblockTransfer transaction");
+            if (hashheightblockTransaction.payload[0] != 6)
+                return APIResult.newFailed("Must fill in the correct hashheightblockTransfer");
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
-            if (hashheightblockTransfer.RLPdeserialization(hashheightblockTransaction.payload)) {
+            if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
                 try {
                     //判断哈希与原文哈希是否一致
                     if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashheightblockGet.getOrigintext().toCharArray())), hashheightblockTransfer.getHashresult()))
