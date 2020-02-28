@@ -81,6 +81,9 @@ public class TransactionCheck {
     @Autowired
     RateTable rateTable;
 
+    @Autowired
+    WisdomRepository repository;
+
     public static final String WX = "WX";
     public static final String WR = "WR";
 
@@ -944,9 +947,15 @@ public class TransactionCheck {
             Transaction hashtimeblockTransaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
             if (hashtimeblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashtimeblockTransfer transaction");
+            if (!Arrays.equals(hashtimeblockTransaction.to,transaction.to))
+                return APIResult.newFailed("To is different from payload txhash");
             HashtimeblockTransfer hashtimeblockTransfer = new HashtimeblockTransfer();
             if (hashtimeblockTransaction.payload[0] != 4)
                 return APIResult.newFailed("Must fill in the correct hashtimeblockTransfer");
+            //判断forkdb+db中是否有重复获取
+            byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
+            if (repository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash()))
+                return APIResult.newFailed("HashtimeblockGet had been exited");
             if (hashtimeblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockTransaction.payload, 1, hashtimeblockTransaction.payload.length-1))) {
                 if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
                     return APIResult.newFailed("Origintext Maximum exceeded");
@@ -981,8 +990,14 @@ public class TransactionCheck {
             Transaction hashheightblockTransaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
             if (hashheightblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashheightblockTransfer transaction");
+            if (!Arrays.equals(hashheightblockTransaction.to,transaction.to))
+                return APIResult.newFailed("To is different from payload txhash");
             if (hashheightblockTransaction.payload[0] != 6)
                 return APIResult.newFailed("Must fill in the correct hashheightblockTransfer");
+            //判断forkdb+db中是否有重复获取
+            byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
+            if (repository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash()))
+                return APIResult.newFailed("HashheightblockGet had been exited");
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
             if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
                 try {
