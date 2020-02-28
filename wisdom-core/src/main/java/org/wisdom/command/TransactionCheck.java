@@ -81,9 +81,6 @@ public class TransactionCheck {
     @Autowired
     RateTable rateTable;
 
-    @Autowired
-    WisdomRepository repository;
-
     public static final String WX = "WX";
     public static final String WR = "WR";
 
@@ -465,7 +462,7 @@ public class TransactionCheck {
             if (!Arrays.equals(multiple.getAssetHash(), WDCAssetHash)) {
                 //校验AssetHash是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(multiple.getAssetHash());
-                if (accountState.isPresent()) return APIResult.newFailed("AssetHash already exists");
+                if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exists");
             }
             //M and N
             if (multiple.getMin() >= 0 && multiple.getMax() >= 0) {
@@ -705,7 +702,7 @@ public class TransactionCheck {
         MultTransfer multTransfer = new MultTransfer();
         if (multTransfer.RLPdeserialization(data)) {
             //不能给自己转
-            if (!Arrays.equals(multTransfer.getTo(), transaction.to))
+            if (Arrays.equals(multTransfer.getTo(), transaction.to))
                 return APIResult.newFailed("From and to can't be the same");
             //Origin and Dest
             if (multTransfer.getOrigin() != 0 && multTransfer.getOrigin() != 1)
@@ -723,22 +720,24 @@ public class TransactionCheck {
             if (accountStateTo.get().getType() != 2)
                 return APIResult.newFailed("Must fill in the correct multiple");
             Optional<AccountState> accountStatePayloadTo = wisdomRepository.getConfirmedAccountState(multTransfer.getTo());
-
-            if (multTransfer.getOrigin() == 0) {
+            if (multTransfer.getOrigin() == 0) {//普通
                 if (accountStateFrom.get().getType() != 0) return APIResult.newFailed("Origin error in type");
-            } else {
-                if (accountStateFrom.get().getType() != 2) return APIResult.newFailed("Origin error in type");
+            } else {//多签
+                if (accountStateTo.get().getType() != 2) return APIResult.newFailed("Origin error in type");
             }
-            if (multTransfer.getDest() == 0) {
-                if (accountStateTo.get().getType() != 0) return APIResult.newFailed("Dest error in type");
-            } else {
-                if (accountStateTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
+            if (multTransfer.getDest() == 0) {//普通
+                if (accountStatePayloadTo.isPresent()){
+                    if (accountStatePayloadTo.get().getType() != 0) return APIResult.newFailed("Dest error in type");
+                }
+            } else {//多签
+                if (!accountStatePayloadTo.isPresent()) return  APIResult.newFailed("To multiple do not exist");
+                if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
             byte[] WDCbyte = new byte[20];
-            if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签 看TO的规则
+            if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
                 //多签规则
                 Multiple multiple = new Multiple();
-                if (multiple.RLPdeserialization(transaction.to)) {
+                if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
                     //代币类型
                     byte[] assetHash = multiple.getAssetHash();
                     if (Arrays.equals(assetHash, WDCbyte)) {//WDC
@@ -753,17 +752,19 @@ public class TransactionCheck {
                 } else {
                     return APIResult.newFailed("Invalid Multiple rules");
                 }
-            } else {//多签->普通 多签->多签 看From的规则
+            } else {//多签->普通 多签->多签
                 //多签规则
                 Multiple multiple = new Multiple();
-                if (multiple.RLPdeserialization(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from))) {
+                if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
                     if (multTransfer.getFrom().size() != multTransfer.getSignatures().size())
                         return APIResult.newFailed("The number of pubkey and sign is not the same");
                     //payload from
                     List<byte[]> payload_from = new ArrayList<>();
                     List<byte[]> from = new ArrayList<>();
+                    //signatures 去重
+                    List<byte[]> signatures = ByteUtil.byteListsDistinct(multTransfer.getSignatures());
                     int n = multiple.getMin();
-                    if (from.size() < n) return APIResult.newFailed("Sign numbers less than n");
+                    if (signatures.size() < n) return APIResult.newFailed("Sign numbers less than n");
                     byte[] nonece = {};
                     if (multTransfer.getOrigin() == 1) {
                         //查询部署时多签的pubkey List
@@ -775,8 +776,7 @@ public class TransactionCheck {
                     }
 
                     if (! ByteUtil.byteListContains(from,transaction.from)) return APIResult.newFailed("From must be in payload");
-                    //signatures 去重
-                    List<byte[]> signatures = ByteUtil.byteListsDistinct(multTransfer.getSignatures());
+
                     int signAdopt = 0;
                     //构造签名原文
                     byte[] version = new byte[1];
@@ -791,7 +791,7 @@ public class TransactionCheck {
                     List<byte[]> emptyList = new ArrayList<>();
                     MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue());
                     byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
-                    if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
+                    if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
                         return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
 
                     for (int i = 0; i < from.size(); i++) {
@@ -954,7 +954,7 @@ public class TransactionCheck {
                 return APIResult.newFailed("Must fill in the correct hashtimeblockTransfer");
             //判断forkdb+db中是否有重复获取
             byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
-            if (repository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash()))
+            if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash()))
                 return APIResult.newFailed("HashtimeblockGet had been exited");
             if (hashtimeblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockTransaction.payload, 1, hashtimeblockTransaction.payload.length-1))) {
                 if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
@@ -996,7 +996,7 @@ public class TransactionCheck {
                 return APIResult.newFailed("Must fill in the correct hashheightblockTransfer");
             //判断forkdb+db中是否有重复获取
             byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
-            if (repository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash()))
+            if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash()))
                 return APIResult.newFailed("HashheightblockGet had been exited");
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
             if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
