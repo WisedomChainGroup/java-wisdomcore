@@ -229,6 +229,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (balance < 0) {
             throw new RuntimeException("math overflow");
         }
+        account.setNonce(tx.nonce);
         account.setBalance(balance);
         account.setBlockHeight(height);
         accountState.setAccount(account);
