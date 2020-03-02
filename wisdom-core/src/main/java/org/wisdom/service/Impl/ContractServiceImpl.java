@@ -157,7 +157,7 @@ public class ContractServiceImpl implements ContractService {
                 wisdomRepository.getConfirmedAccountState(publicKeyHash)
                         .filter(a -> a.getType() == 0);
         if (!asset.isPresent())
-            return APIResult.newSuccess(0);
+            return APIResult.newSuccess(0L);
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
 }
