@@ -61,7 +61,7 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                         //调用合约
                         if (transaction.type == 8) {
                             byte[] payload = transaction.payload;
-                            if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                            if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
                                 if (peningTransPool.Iscontractpool(entry.getKey(), transaction.to)) {
                                     break;
                                 }
