@@ -165,7 +165,7 @@ public class AdoptTransPool {
                         //合约事务隔离
                         if(transaction.type==Transaction.Type.CALL_CONTRACT.ordinal()){
                             byte[] payload = transaction.payload;
-                            if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                            if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
                                 if(byteArrayMap.containsKey(transaction.to)){
                                     break;
                                 }

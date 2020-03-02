@@ -292,7 +292,7 @@ public class PeningTransPool {
                         }
                         if (t.type == 8) {
                             byte[] payload = t.payload;
-                            if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                            if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
                                 if (contractpool.containsKey(fromhash)) {
                                     ByteArrayMap byteArrayMap = contractpool.get(fromhash);
                                     if (byteArrayMap.containsKey(t.to)) {
@@ -333,7 +333,7 @@ public class PeningTransPool {
         } else {
             if (type == 8) {//调用合约
                 byte[] payload = transaction.payload;
-                if (payload[0] == 0 || payload[0] == 1) {//更换拥有者或增发
+                if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
                     ByteArrayMap byteArrayMap = new ByteArrayMap();
                     if (contractpool.containsKey(fromhash)) {
                         byteArrayMap = contractpool.get(fromhash);
