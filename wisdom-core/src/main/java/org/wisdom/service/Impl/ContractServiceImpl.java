@@ -130,7 +130,7 @@ public class ContractServiceImpl implements ContractService {
         byte[] wdcByte = new byte[20];
         for (String code : codeList) {
             Long balance = 0L;
-            if (code.equals(Hex.encodeHexString(wdcByte))) {
+            if (code.equals("WDC")) {
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(pubkeyHash);
                 if (!accountState.isPresent()) return APIResult.newFailed("Inactive address");
                 balance = accountState.get().getAccount().getBalance();
@@ -158,6 +158,9 @@ public class ContractServiceImpl implements ContractService {
                         .filter(a -> a.getType() == 0);
         if (!asset.isPresent())
             return APIResult.newSuccess(0L);
+        if (assetCode.equals("WDC")) {
+            return APIResult.newSuccess(asset.get().getAccount().getBalance());
+        }
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
 }
