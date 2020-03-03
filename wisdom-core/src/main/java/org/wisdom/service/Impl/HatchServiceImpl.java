@@ -561,7 +561,7 @@ public class HatchServiceImpl implements HatchService {
                     long fee = gasPrice * Transaction.GAS_TABLE[8];
                     AssetTransfer asset = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(payload));
                     map.put("fromAddress", KeystoreAction.pubkeyToAddress(asset.getFrom(), (byte) 0x00, ""));
-                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(asset.getFrom(), (byte) 0x00, ""));
+                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(asset.getTo(), (byte) 0x00, ""));
                     map.put("amount", asset.getValue());
                     map.put("fee", fee);
                     map.put("coinHash", Hex.encodeHexString(coinHash));
