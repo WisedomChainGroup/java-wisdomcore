@@ -148,11 +148,6 @@ public class ContractServiceImpl implements ContractService {
 
     @Override
     public Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash) {
-        Block best = wisdomRepository.getBestBlock();
-        Optional<AssetCodeInfo> info =
-                wisdomRepository.getAssetCodeAt(best.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
-        if (!info.isPresent())
-            return APIResult.newFailed("asset not found");
         Optional<AccountState> asset =
                 wisdomRepository.getConfirmedAccountState(publicKeyHash)
                         .filter(a -> a.getType() == 0);
@@ -161,6 +156,12 @@ public class ContractServiceImpl implements ContractService {
         if (assetCode.equals("WDC")) {
             return APIResult.newSuccess(asset.get().getAccount().getBalance());
         }
+        Block latestConfirmed = wisdomRepository.getLatestConfirmed();
+        Optional<AssetCodeInfo> info =
+                wisdomRepository.getAssetCodeAt(latestConfirmed.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
+        if (!info.isPresent())
+            return APIResult.newFailed("asset not found");
+
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
 }
