@@ -225,7 +225,10 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 accountState.setAccount(account);
             } else {
                 Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long balance = tokensMap.get(hashheightblock.getAssetHash());
+                long balance = 0;
+                if (tokensMap.containsKey(hashheightblock.getAssetHash())) {
+                    balance = tokensMap.get(hashheightblock.getAssetHash());
+                }
                 balance += hashheightblockTransfer.getValue();
                 tokensMap.put(hashheightblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
@@ -283,7 +286,10 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 accountState.setAccount(account);
             } else {
                 Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long balance = tokensMap.get(hashtimeblock.getAssetHash());
+                long balance = 0;
+                if (tokensMap.containsKey(hashtimeblock.getAssetHash())) {
+                    balance = tokensMap.get(hashtimeblock.getAssetHash());
+                }
                 balance += hashtimeblockTransfer.getValue();
                 tokensMap.put(hashtimeblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
