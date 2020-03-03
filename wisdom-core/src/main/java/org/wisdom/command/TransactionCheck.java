@@ -732,6 +732,9 @@ public class TransactionCheck {
             }
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
+                //TO 与payload_to必须一致
+                if (!Arrays.equals(transaction.to,multTransfer.getTo()))
+                    return APIResult.newFailed("Transaction to is different from payload to");
                 //多签规则
                 Multiple multiple = new Multiple();
                 if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
@@ -818,12 +821,12 @@ public class TransactionCheck {
                     byte[] assetHash = multiple.getAssetHash();
                     //验证余额是否足够
                     if (Arrays.equals(assetHash, WDCbyte)) {//WDC
-                        if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue())
+                        if (accountStateTo.get().getAccount().getBalance() < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     } else {//其他代币
-                        if (accountStateFrom.get().getTokensMap().size() == 0)
+                        if (accountStateTo.get().getTokensMap().size() == 0)
                             return APIResult.newFailed("Insufficient funds");
-                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
+                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
 
@@ -892,10 +895,12 @@ public class TransactionCheck {
         if (hashheightblockTransfer.RLPdeserialization(data)) {
             //amount
             if (hashheightblockTransfer.getValue() < 0) return APIResult.newFailed("Value must be positive integer");
-
             //hashresult
             if (hashheightblockTransfer.getHashresult().length != 32)
                 return APIResult.newFailed("Wrong length of hashresult");
+            //height
+            if (hashheightblockTransfer.getHeight()<0)
+                return APIResult.newFailed("Height format check error");
             //查询事务
             Hashheightblock hashheightblock = new Hashheightblock();
             Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
