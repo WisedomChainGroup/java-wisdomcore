@@ -27,6 +27,15 @@ public class Address {
         return Base58Utility.encode(b5);
     }
 
+    public static String publicKeyHashToAddressByType(byte[] publicKeyHash, int type) {
+        byte[] r2 = ByteUtil.prepend(publicKeyHash, (byte) 0);
+        byte[] r3 = SHA3Utility.keccak256(SHA3Utility.keccak256(publicKeyHash));
+        byte[] b4 = ByteUtil.bytearraycopy(r3, 0, 4);
+        byte[] b5 = ByteUtil.byteMerger(r2, b4);
+        if (type == 0)
+            return "WX"+Base58Utility.encode(b5);
+        return "WR"+Base58Utility.encode(b5);
+    }
 
     public static byte[] addressToPublicKeyHash(String address) {
         if (!verifyAddress(address)){

@@ -285,6 +285,14 @@ public class TransactionCheck {
                     return apiResult;
                 }
             }
+            //To必须为普通地址
+            if (type == 0x01 || type == 0x02){
+                Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
+                if (accountState.isPresent()){
+                    if (accountState.get().getType() != 0)
+                        return APIResult.newFailed("Transaction to must be Ordinary address");
+                }
+            }
             //payload
             byte[] payload = transaction.payload;
             if (payload != null) {
