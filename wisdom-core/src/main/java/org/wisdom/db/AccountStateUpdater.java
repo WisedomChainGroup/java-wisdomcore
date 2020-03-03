@@ -576,7 +576,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             }
             if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
-                long tokenbalance = tokenMap.get(assetHash);
+                long tokenbalance = 0;
+                if (tokenMap.containsKey(assetHash)) {
+                    tokenbalance = tokenMap.get(assetHash);
+                }
                 tokenbalance += multTransfer.getValue();
                 tokenMap.put(assetHash, tokenbalance);
                 accountState.setTokensMap(tokenMap);
