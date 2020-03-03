@@ -567,6 +567,7 @@ public class HatchServiceImpl implements HatchService {
                     map.put("coinHash", Hex.encodeHexString(coinHash));
                     map.put("coinHash160", Hex.encodeHexString(tohash));
                     map.remove("tradeHash");
+                    map.remove("gasPrice");
                     jsonArray.add(map);
                 }
             }
