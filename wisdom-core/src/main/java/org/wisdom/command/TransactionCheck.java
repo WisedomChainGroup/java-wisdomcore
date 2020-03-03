@@ -701,9 +701,6 @@ public class TransactionCheck {
     private APIResult CheckMultTransfer(byte[] data, Transaction transaction) {
         MultTransfer multTransfer = new MultTransfer();
         if (multTransfer.RLPdeserialization(data)) {
-            //不能给自己转
-            if (Arrays.equals(multTransfer.getTo(), transaction.to))
-                return APIResult.newFailed("From and to can't be the same");
             //Origin and Dest
             if (multTransfer.getOrigin() != 0 && multTransfer.getOrigin() != 1)
                 return APIResult.newFailed("Origin must be within the specified range");
@@ -807,7 +804,7 @@ public class TransactionCheck {
                         Multiple multiplePayloadTo = new Multiple();
                         if (!accountStatePayloadTo.isPresent())
                             return APIResult.newFailed("To multiple do not exist");
-                        if (multiple.RLPdeserialization(accountStatePayloadTo.get().getContract())) {
+                        if (multiplePayloadTo.RLPdeserialization(accountStatePayloadTo.get().getContract())) {
                             if (!Arrays.equals(multiple.getAssetHash(), multiplePayloadTo.getAssetHash()))
                                 return APIResult.newFailed("Must be the same currency");
                         } else {
@@ -815,7 +812,6 @@ public class TransactionCheck {
                         }
 
                     }
-                    multTransfer.getTo();
                     if (!String.valueOf(multTransfer.getValue()).matches("[0-9]+"))
                         return APIResult.newFailed("Value must be positive integer");
                     //代币类型
@@ -959,6 +955,9 @@ public class TransactionCheck {
             if (hashtimeblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockTransaction.payload, 1, hashtimeblockTransaction.payload.length-1))) {
                 if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
                     return APIResult.newFailed("Origintext Maximum exceeded");
+                //判断原文不为空字符串
+                if (hashtimeblockGet.getOrigintext().replaceAll(" ", "").equals(""))
+                    return APIResult.newFailed("Origintext Can not be empty");
                 //判断哈希与原文哈希是否一致
                 if (!Arrays.equals(SHA3Utility.sha3256(hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8)), hashtimeblockTransfer.getHashresult()))
                     return APIResult.newFailed("Origintext is wrong");
@@ -1000,21 +999,16 @@ public class TransactionCheck {
                 return APIResult.newFailed("HashheightblockGet had been exited");
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
             if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
-                try {
-                    //判断哈希与原文哈希是否一致
-                    if (!Arrays.equals(SHA3Utility.sha3256(Hex.decodeHex(hashheightblockGet.getOrigintext().toCharArray())), hashheightblockTransfer.getHashresult()))
-                        return APIResult.newFailed("Origintext is wrong");
-                    if (hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
-                        return APIResult.newFailed("Origintext Maximum exceeded");
-                    //当前高度
-                    Long nowHeight = wisdomBlockChain.getTopHeight();
-                    //判断高度
-                    if (hashheightblockTransfer.getHeight() > nowHeight)
-                        return APIResult.newFailed("The specified height is not reached");
-                } catch (DecoderException e) {
-                    return APIResult.newFailed("Exception error");
-                }
-
+                //判断哈希与原文哈希是否一致
+                if (!Arrays.equals(SHA3Utility.sha3256(hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8)), hashheightblockTransfer.getHashresult()))
+                    return APIResult.newFailed("Origintext is wrong");
+                if (hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
+                    return APIResult.newFailed("Origintext Maximum exceeded");
+                //当前高度
+                Long nowHeight = wisdomBlockChain.getTopHeight();
+                //判断高度
+                if (hashheightblockTransfer.getHeight() > nowHeight)
+                    return APIResult.newFailed("The specified height is not reached");
                 Hashheightblock hashheightblock = new Hashheightblock();
                 //Hashheightblock
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblockTransaction.to);
