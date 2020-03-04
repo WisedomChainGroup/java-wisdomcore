@@ -36,10 +36,7 @@ public class ContractServiceImpl implements ContractService {
             AccountState accountState = accountStateOptional.get();
             byte[] RLPByte = accountState.getContract();
             if (accountState.getType() == 1) {//代币
-                JSONObject json = (JSONObject) JSONObject.toJSON(Asset.getConvertAsset(RLPByte));
-                json.put("createuser",Asset.getConvertAsset(RLPByte).getCreateuser());
-                json.put("owner",Asset.getConvertAsset(RLPByte).getOwner());
-                return APIResult.newSuccess(json);
+                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
             } else if (accountState.getType() == 2) {//多签
                 return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
             }
