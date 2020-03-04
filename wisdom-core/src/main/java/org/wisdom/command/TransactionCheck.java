@@ -483,8 +483,6 @@ public class TransactionCheck {
                 if (multiple.getMax() < 2 || multiple.getMax() > 8)
                     return APIResult.newFailed("M must be within the specified range");
             } else return APIResult.newFailed("N and M must be positive integer");
-            //payload amount
-            if (multiple.getAmount() != 0) return APIResult.newFailed("Amount must be zero");
             //pubkeyList
             if (ByteUtil.byteListsDistinct(multiple.getPubList()).size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyList do not match max");
@@ -507,7 +505,6 @@ public class TransactionCheck {
             from_multiple.setMax(multiple.getMax());
             from_multiple.setMin(multiple.getMin());
             from_multiple.setPubList(multiple.getPubList());
-            from_multiple.setAmount(multiple.getAmount());
             from_multiple.setSignatureList(new ArrayList<>());
             byte[] from_payload = from_multiple.RLPserialization();
             from_payload = ByteUtil.merge(new byte[]{0x01},from_payload);
@@ -709,6 +706,8 @@ public class TransactionCheck {
     private APIResult CheckMultTransfer(byte[] data, Transaction transaction) {
         MultTransfer multTransfer = new MultTransfer();
         if (multTransfer.RLPdeserialization(data)) {
+            if (multTransfer.getTo().length != 20)
+                return APIResult.newFailed("Payload to format error");
             //Origin and Dest
             if (multTransfer.getOrigin() != 0 && multTransfer.getOrigin() != 1)
                 return APIResult.newFailed("Origin must be within the specified range");

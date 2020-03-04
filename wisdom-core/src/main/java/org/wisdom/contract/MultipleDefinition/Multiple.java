@@ -28,8 +28,6 @@ public class Multiple implements AnalysisContract {
     @RLP(3)
     private List<byte[]> pubList;//公钥
     @RLP(4)
-    private long amount;
-    @RLP(5)
     private List<byte[]> signatureList;//签名
 
     private String assetHashHex;
@@ -46,7 +44,6 @@ public class Multiple implements AnalysisContract {
         this.max = multiple.getMax();
         this.min = multiple.getMin();
         this.pubList = multiple.getPubList();
-        this.amount = multiple.getAmount();
         this.signatureList = multiple.getSignatureList();
         return true;
     }
@@ -58,7 +55,6 @@ public class Multiple implements AnalysisContract {
                 .max(this.max)
                 .min(this.min)
                 .pubList(this.pubList)
-                .amount(this.amount)
                 .signatureList(this.signatureList).build());
     }
 
