@@ -146,8 +146,7 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash) {
         Optional<AccountState> asset =
-                wisdomRepository.getConfirmedAccountState(publicKeyHash)
-                        .filter(a -> a.getType() == 0);
+                wisdomRepository.getConfirmedAccountState(publicKeyHash);
         if (!asset.isPresent())
             return APIResult.newSuccess(0L);
         if (assetCode.equals("WDC")) {

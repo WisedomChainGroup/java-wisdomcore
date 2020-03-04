@@ -141,7 +141,7 @@ public class NodeInfoController {
                 state.getAccount().getIncubatecost(),
                 state.getAccount().getMortgage(),
                 state.getAccount().getVote(),
-                0
+                state.getType()
         ));
     }
 
