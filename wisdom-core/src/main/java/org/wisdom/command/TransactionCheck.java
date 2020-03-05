@@ -737,11 +737,42 @@ public class TransactionCheck {
                 if (!accountStatePayloadTo.isPresent()) return  APIResult.newFailed("To multiple do not exist");
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
+            //构造签名原文
+            byte[] version = new byte[1];
+            version[0] = (byte) transaction.version;
+            byte[] type = new byte[1];
+            type[0] = (byte) transaction.type;
+            byte[] nonece = BigEndian.encodeUint64(0);
+            byte[] nullsig = new byte[64];
+            byte[] gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
+            byte[] amount = ByteUtil.longToBytes(0L);
+            //验证签名
+            Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
+            List<byte[]> emptyList = new ArrayList<>();
+            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue());
+            byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
                 //TO 与payload_to必须一致
                 if (!Arrays.equals(transaction.to,multTransfer.getTo()))
                     return APIResult.newFailed("Transaction to is different from payload to");
+                if(multTransfer.getFrom() != null){
+                    if (multTransfer.getFrom().size() != 1){
+                        return APIResult.newFailed("The size of Payload fromList is error");
+                    }
+                }else {
+                    return APIResult.newFailed("Payload fromList can not be null");
+                }
+
+                if(multTransfer.getSignatures() != null){
+                    if (multTransfer.getSignatures().size() != 1){
+                        return APIResult.newFailed("The size of Payload signaturesList is error");
+                    }
+                }else {
+                    return APIResult.newFailed("Payload signaturesList can not be null");
+                }
+                if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
+                    return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
                 //多签规则
                 Multiple multiple = new Multiple();
                 if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
@@ -772,32 +803,16 @@ public class TransactionCheck {
                     List<byte[]> signatures = ByteUtil.byteListsDistinct(multTransfer.getSignatures());
                     int n = multiple.getMin();
                     if (signatures.size() < n) return APIResult.newFailed("Sign numbers less than n");
-                    byte[] nonece = {};
                     if (multTransfer.getOrigin() == 1) {
                         //查询部署时多签的pubkey List
                         List<byte[]> pubkeylist = ByteUtil.byteListsDistinct(multiple.getPubList());
                         //去重 取交集
                         payload_from = ByteUtil.byteListsDistinct(multTransfer.getFrom());
                         from = ByteUtil.byteListsIntersection(pubkeylist,payload_from);
-                        nonece = BigEndian.encodeUint64(0);
                     }
-
                     if (! ByteUtil.byteListContains(from,transaction.from)) return APIResult.newFailed("From must be in payload");
-
                     int signAdopt = 0;
-                    //构造签名原文
-                    byte[] version = new byte[1];
-                    version[0] = (byte) transaction.version;
-                    byte[] type = new byte[1];
-                    type[0] = (byte) transaction.type;
-                    byte[] nullsig = new byte[64];
-                    byte[] gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
-                    byte[] amount = ByteUtil.longToBytes(0L);
-                    //验证签名
-                    Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
-                    List<byte[]> emptyList = new ArrayList<>();
-                    MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue());
-                    byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
+                    //验证第一个元素
                     if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
                         return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
 
