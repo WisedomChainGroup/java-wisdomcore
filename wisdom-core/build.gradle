@@ -240,7 +240,7 @@ ext {
     commonsCliVersion = '1.4'
     math3Version = '3.6'
     commonsLang3Version = '3.4'
-    leveldbJNIVersion = '1.8'
+    leveldbJNIVersion = '1.18'
     jargon2Version = '1.1.1'
     bouncycastleVersion = '1.61'
     commonsCollections4Version = '4.0'
@@ -310,7 +310,8 @@ dependencies {
     compile "io.grpc:grpc-stub:${gRPCVersion}"
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
     compile "org.iq80.leveldb:leveldb:${leveldbVersion}"
-    compile "org.fusesource.leveldbjni:leveldbjni-linux64:${leveldbJNIVersion}"
+    compile group: 'org.ethereum', name: 'leveldbjni-all', version: '1.18.3'
+
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
     compile "commons-cli:commons-cli:${commonsCliVersion}"
