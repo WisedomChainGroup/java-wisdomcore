@@ -794,8 +794,6 @@ public class TransactionCheck {
                 //多签规则
                 Multiple multiple = new Multiple();
                 if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
-                    if (multTransfer.getFrom().size() != multTransfer.getSignatures().size())
-                        return APIResult.newFailed("The number of pubkey and sign is not the same");
                     //payload from
                     List<byte[]> payload_from = new ArrayList<>();
                     List<byte[]> from = new ArrayList<>();
