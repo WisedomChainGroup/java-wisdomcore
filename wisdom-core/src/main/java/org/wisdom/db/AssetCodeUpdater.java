@@ -22,8 +22,8 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
-        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getMethodType() != 0)
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AssetCodeInfo> store) {
+        if (transaction.type != Transaction.Type.DEPLOY_CONTRACT.ordinal() || transaction.getContractType() != 0)
             return Collections.emptySet();
         ByteArraySet set = new ByteArraySet();
         Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(transaction.payload));
@@ -32,7 +32,7 @@ public class AssetCodeUpdater extends AbstractStateUpdater<AssetCodeInfo> {
     }
 
     @Override
-    public AssetCodeInfo update(byte[] id, AssetCodeInfo state, TransactionInfo info) {
+    public AssetCodeInfo update(Map<byte[], AssetCodeInfo> beforeUpdate, byte[] id, AssetCodeInfo state, TransactionInfo info) {
         Transaction transaction = info.getTransaction();
         if (state != null) {
             throw new RuntimeException("AssetCodeInfo is not a null exception");

@@ -4,11 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bouncycastle.util.encoders.Hex;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
+import org.wisdom.keystore.wallet.KeystoreAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +28,9 @@ public class Multiple implements AnalysisContract {
     @RLP(3)
     private List<byte[]> pubList;//公钥
     @RLP(4)
-    private long amount;
+    private List<byte[]> signatureList;//签名
 
-    private String assetHashHex;
-
-    private List<String> pubListHex;
+    private List<String> pubListAddress;
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
@@ -44,7 +42,7 @@ public class Multiple implements AnalysisContract {
         this.max = multiple.getMax();
         this.min = multiple.getMin();
         this.pubList = multiple.getPubList();
-        this.amount = multiple.getAmount();
+        this.signatureList = multiple.getSignatureList();
         return true;
     }
 
@@ -55,17 +53,13 @@ public class Multiple implements AnalysisContract {
                 .max(this.max)
                 .min(this.min)
                 .pubList(this.pubList)
-                .amount(this.amount).build());
+                .signatureList(this.signatureList).build());
     }
 
-    private String HexAssetHash(){
-        return Hex.toHexString(this.assetHash);
-    }
-
-    private List<String> HexPubList(){
-        List<String> list=new ArrayList<>();
-        this.pubList.stream().forEach(publist->{
-            list.add(Hex.toHexString(publist));
+    private List<String> HexPubToAddressList() {
+        List<String> list = new ArrayList<>();
+        this.pubList.stream().forEach(publist -> {
+            list.add(KeystoreAction.pubkeyToAddress(publist, (byte) 0x00, "WX"));
         });
         return list;
     }
@@ -74,10 +68,9 @@ public class Multiple implements AnalysisContract {
         return RLPElement.fromEncoded(Rlpbyte).as(Multiple.class);
     }
 
-    public static Multiple getConvertMultiple(byte[] Rlpbyte){
-        Multiple multiple=getMultiple(Rlpbyte);
-        multiple.setAssetHashHex(multiple.HexAssetHash());
-        multiple.setPubListHex(multiple.HexPubList());
+    public static Multiple getConvertMultiple(byte[] Rlpbyte) {
+        Multiple multiple = getMultiple(Rlpbyte);
+        multiple.setPubListAddress(multiple.HexPubToAddressList());
         return multiple;
     }
 }

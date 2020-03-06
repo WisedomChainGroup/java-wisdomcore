@@ -24,7 +24,7 @@ public class AccountState {
     @RLPDecoding(as = ByteArrayMap.class)
     private Map<byte[], Incubator> ShareMap;
     @RLP(3)
-    private int type;//0是普通地址,1是合约代币，2是多重签名,3是锁定时间哈希
+    private int type;//0是普通地址,1是合约代币，2是多重签名,3是锁定时间哈希,4是锁定高度哈希
     @RLP(4)
     private byte[] Contract;//合约RLP
     @RLP(5)
@@ -35,12 +35,12 @@ public class AccountState {
     }
 
     public AccountState(byte[] pubkeyHash) {
-        this.account=new Account(0,pubkeyHash,0,0,0,0,0);
-        this.interestMap=new ByteArrayMap<>();
-        this.ShareMap=new ByteArrayMap<>();
-        this.type=0;//默认普通地址
-        this.Contract=new byte[0];
-        this.TokensMap=new ByteArrayMap<>();
+        this.account = new Account(0, pubkeyHash, 0, 0, 0, 0, 0);
+        this.interestMap = new ByteArrayMap<>();
+        this.ShareMap = new ByteArrayMap<>();
+        this.type = 0;//默认普通地址
+        this.Contract = new byte[0];
+        this.TokensMap = new ByteArrayMap<>();
     }
 
     public AccountState(Account account, Map<byte[], Incubator> interestMap, Map<byte[], Incubator> shareMap, int type, byte[] Contract, Map<byte[], Long> TokensMap) {
@@ -125,12 +125,12 @@ public class AccountState {
         return accountState;
     }
 
-    public String getHexAccountState(){
+    public String getHexAccountState() {
         return Hex.encodeHexString(RLPCodec.encode(this));
     }
 
-    public byte[] getKey(){
-        if(account!=null){
+    public byte[] getKey() {
+        if (account != null) {
             return account.getPubkeyHash();
         }
         return null;

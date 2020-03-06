@@ -56,6 +56,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     private Set<String> AssetcodeSet;
 
+    private Set<String> LockTransferSet;
+
     private WisdomRepository wisdomRepository;
 
     private TransactionCheck transactionCheck;
@@ -80,6 +82,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         this.map = new ByteArrayMap<>();
         this.fromaccountstate = new AccountState();
         this.AssetcodeSet = new HashSet<>();
+        this.LockTransferSet = new HashSet<>();
     }
 
     public void init(Block block, Map<byte[], AccountState> map, PeningTransPool peningTransPool, WisdomRepository wisdomRepository,
@@ -204,6 +207,16 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(ByteUtil.bytearrayridfirst(tx.payload));
             Transaction transaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
             HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //判断同一区块是否有重复获取
+            if (LockTransferSet.contains(transaction.getHashHexString())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": lockheightHash repeats");
+            }
+            //判断forkdb+db中是否有重复获取
+            if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("the lockheightHash get transaction " + transaction.getHashHexString() + " had been exited");
+            }
             if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
                 Account account = accountState.getAccount();
                 long balance = account.getBalance();
@@ -212,7 +225,10 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 accountState.setAccount(account);
             } else {
                 Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long balance = tokensMap.get(hashheightblock.getAssetHash());
+                long balance = 0;
+                if (tokensMap.containsKey(hashheightblock.getAssetHash())) {
+                    balance = tokensMap.get(hashheightblock.getAssetHash());
+                }
                 balance += hashheightblockTransfer.getValue();
                 tokensMap.put(hashheightblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
@@ -252,6 +268,16 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(ByteUtil.bytearrayridfirst(tx.payload));
             Transaction transaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
             HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transaction.payload));
+            //判断同一区块是否有重复获取
+            if (LockTransferSet.contains(transaction.getHashHexString())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": locktimeHash repeats");
+            }
+            //判断forkdb+db中是否有重复获取
+            if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash())) {
+                peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return Result.Error("the locktimeHash get transaction " + transaction.getHashHexString() + " had been exited");
+            }
             if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
                 Account account = accountState.getAccount();
                 long balance = account.getBalance();
@@ -260,7 +286,10 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 accountState.setAccount(account);
             } else {
                 Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long balance = tokensMap.get(hashtimeblock.getAssetHash());
+                long balance = 0;
+                if (tokensMap.containsKey(hashtimeblock.getAssetHash())) {
+                    balance = tokensMap.get(hashtimeblock.getAssetHash());
+                }
                 balance += hashtimeblockTransfer.getValue();
                 tokensMap.put(hashtimeblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
@@ -383,7 +412,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         Asset asset = Asset.getAsset(contract);
         if (tx.getMethodType() == CHANGEOWNER.ordinal()) {//更换所有者
             byte[] owner = asset.getOwner();
-            if (Arrays.equals(owner, thirtytwoBytes) || !Arrays.equals(owner, tx.from)) {
+            if (Arrays.equals(owner, twentyBytes) || !Arrays.equals(owner, publicKeyHash)) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset definition does not have permission to replace the owner");
             }
@@ -420,8 +449,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             toaccountstate.setTokensMap(tomaps);
             map.put(assetTransfer.getTo(), toaccountstate);
         } else {//increased
-            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), tx.from)
-                    || Arrays.equals(asset.getOwner(), thirtytwoBytes)) {
+            if (asset.getAllowincrease() == 0 || !Arrays.equals(asset.getOwner(), publicKeyHash)
+                    || Arrays.equals(asset.getOwner(), twentyBytes)) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": The asset definition does not have rights to issue shares");
             }
@@ -453,7 +482,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
     public Result CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
-            //判断forkdb中是否有重复的代币合约code存在
+            //判断forkdb+db中是否有重复的代币合约code存在
             if (wisdomRepository.containsAssetCodeAt(parenthash, asset.getCode().getBytes(StandardCharsets.UTF_8))) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Asset token code repeats");

@@ -25,7 +25,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     private String DELETED;
     private String ROOTS;
 
-    @Getter(AccessLevel.PROTECTED)
+    @Getter
     private NoDeleteStore<byte[], byte[]> trieStore;
 
     @Getter

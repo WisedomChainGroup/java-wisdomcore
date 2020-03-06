@@ -20,9 +20,9 @@ public class Asset implements AnalysisContract {
     @RLP(2)
     private long totalamount;
     @RLP(3)
-    private byte[] createuser;
+    private byte[] createuser;  //公钥
     @RLP(4)
-    private byte[] owner;
+    private byte[] owner;   //公钥哈希
     @RLP(5)
     private int allowincrease;
     @RLP(6)
@@ -64,9 +64,7 @@ public class Asset implements AnalysisContract {
         return KeystoreAction.pubkeyToAddress(this.createuser,(byte)0x00,"WX");
     }
 
-    private String HexOwnerAddress(){
-        return KeystoreAction.pubkeyToAddress(this.owner,(byte)0x00,"WX");
-    }
+    private String HexOwnerAddress(){ return KeystoreAction.pubkeyHashToAddress(this.owner,(byte)0x00,"WX"); }
 
     public static Asset getAsset(byte[] Rlpbyte) {
         return RLPElement.fromEncoded(Rlpbyte).as(Asset.class);

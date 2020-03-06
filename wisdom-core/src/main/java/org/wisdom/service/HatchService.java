@@ -50,4 +50,8 @@ public interface HatchService {
     Object getTxrecordFromAddress(String address);
 
     Object getCoinBaseList(long height);
+
+    Object getAssetList(long height);
+
+    Object getAssetTransferList(long height);
 }

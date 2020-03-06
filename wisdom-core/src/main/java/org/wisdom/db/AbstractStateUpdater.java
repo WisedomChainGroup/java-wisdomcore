@@ -11,15 +11,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public abstract class AbstractStateUpdater<T> implements StateUpdater<T> {
-    Set<byte[]> getRelatedKeys(Block block) {
+    public Set<byte[]> getRelatedKeys(Block block, Map<byte[], T> store) {
         Set<byte[]> set = new ByteArraySet();
-        block.body.forEach(tx -> set.addAll(this.getRelatedKeys(tx)));
+        block.body.forEach(tx -> set.addAll(this.getRelatedKeys(tx, store)));
         return set;
     }
 
-    Set<byte[]> getRelatedKeys(List<Block> block) {
+    public Set<byte[]> getRelatedKeys(List<Block> block, Map<byte[], T> store) {
         Set<byte[]> set = new ByteArraySet();
-        block.forEach(b -> set.addAll(getRelatedKeys(b)));
+        block.forEach(b -> set.addAll(getRelatedKeys(b, store)));
         return set;
     }
 
@@ -27,9 +27,13 @@ public abstract class AbstractStateUpdater<T> implements StateUpdater<T> {
     public Map<byte[], T> update(Map<byte[], T> beforeUpdate, Collection<? extends TransactionInfo> transactionInfos) {
         Map<byte[], T> ret = new ByteArrayMap<>(beforeUpdate);
         transactionInfos.forEach(info -> {
-            getRelatedKeys(info.getTransaction()).forEach(k -> {
-                ret.put(k, update(k, ret.get(k), info));
-            });
+            Map<byte[], T> related = new ByteArrayMap<>();
+            getRelatedKeys(info.getTransaction(), beforeUpdate)
+                    .forEach(k -> related.put(k, beforeUpdate.get(k)));
+            related.keySet()
+                    .forEach(k -> {
+                        ret.put(k, update(related, k, ret.get(k), info));
+                    });
         });
         return ret;
     }

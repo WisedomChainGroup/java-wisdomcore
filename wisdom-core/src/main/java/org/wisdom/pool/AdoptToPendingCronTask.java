@@ -58,6 +58,15 @@ public class AdoptToPendingCronTask implements SchedulingConfigurer {
                     List<TransPool> list = entry.getValue();
                     for (TransPool transPool : list) {
                         Transaction transaction = transPool.getTransaction();
+                        //调用合约
+                        if (transaction.type == 8) {
+                            byte[] payload = transaction.payload;
+                            if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
+                                if (peningTransPool.Iscontractpool(entry.getKey(), transaction.to)) {
+                                    break;
+                                }
+                            }
+                        }
                         Optional<AccountState> oa = repository.getConfirmedAccountState(Address.publicKeyToHash(transaction.from));
                         if (!oa.isPresent()) {
                             maps.put(new String(entry.getKey()), adoptTransPool.getKey(transaction));

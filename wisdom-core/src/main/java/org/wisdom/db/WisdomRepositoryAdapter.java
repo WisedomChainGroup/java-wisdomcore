@@ -198,6 +198,11 @@ public class WisdomRepositoryAdapter implements WisdomRepository {
     }
 
     @Override
+    public Optional<LockTransferInfo> getLockgetTransferAt(byte[] blockHash, byte[] transhash) {
+        return Optional.empty();
+    }
+
+    @Override
     public double getAverageBlocksInterval() {
         return 0;
     }

@@ -140,7 +140,8 @@ public class NodeInfoController {
                 state.getAccount().getBalance(),
                 state.getAccount().getIncubatecost(),
                 state.getAccount().getMortgage(),
-                state.getAccount().getVote()
+                state.getAccount().getVote(),
+                state.getType()
         ));
     }
 
@@ -216,14 +217,14 @@ public class NodeInfoController {
 
         public String votes;
 
-        public Account(byte[] publicKeyHash, long nonce, long balance, long incubateCost, long mortgage, long votes) {
+        public Account(byte[] publicKeyHash, long nonce, long balance, long incubateCost, long mortgage, long votes, int type) {
             this.publicKeyHash = publicKeyHash;
             this.nonce = nonce;
             this.balance = balance * 1.0 / EconomicModel.WDC + " WDC";
             this.incubateCost = incubateCost * 1.0 / EconomicModel.WDC + " WDC";
             this.mortgage = mortgage * 1.0 / EconomicModel.WDC + " WDC";
             this.votes = votes * 1.0 / EconomicModel.WDC + " WDC";
-            this.address = Address.publicKeyHashToAddress(publicKeyHash);
+            this.address = Address.publicKeyHashToAddressByType(publicKeyHash,type);
         }
     }
 }

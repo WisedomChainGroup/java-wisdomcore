@@ -60,20 +60,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     @Autowired
     private Configuration configuration;
 
-
     private WisdomBlockChain wisdomBlockChain;
-
-
-    private WisdomRepository repository;
 
     private static final byte[] twentyBytes = new byte[20];
 
     @Override
-    public AccountState update(byte[] id, AccountState state, TransactionInfo info) {
-        return updateOne(info, state.copy());
+    public AccountState update(Map<byte[], AccountState> related, byte[] id, AccountState state, TransactionInfo info) {
+        return updateOne(info, state.copy(), related);
     }
 
-    public AccountState updateOne(TransactionInfo info, AccountState accountState) {
+    public AccountState updateOne(TransactionInfo info, AccountState accountState, Map<byte[], AccountState> store) {
         Transaction transaction = info.getTransaction();
         long height = info.getHeight();
         transaction.height = height;
@@ -90,7 +86,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 case 0x07://DEPLOY_CONTRACT
                     return updateDeployContract(transaction, accountState, height);
                 case 0x08://CALL_CONTRACT
-                    return updateCallContract(transaction, accountState, height);
+                    return updateCallContract(transaction, accountState, height, store);
                 case 0x09://INCUBATE
                     return updateIncubate(transaction, accountState, height);
                 case 0x0a://EXTRACT_INTEREST
@@ -114,7 +110,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AccountState> store) {
         switch (transaction.type) {
             case 0x00://coinbase
             case 0x09://INCUBATE
@@ -160,11 +156,13 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
                 bytes.add(multTransfer.getTo());
             } else {//多->多 || 多->单
-                bytes.add(tx.to);
                 if (!Arrays.equals(fromhash, multTransfer.getTo())) {
                     bytes.add(multTransfer.getTo());
                 }
             }
+            bytes.add(tx.to);
+        } else {//锁定合约
+            bytes.add(tx.to);
         }
         return bytes;
     }
@@ -177,8 +175,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (tx.getContractType() == 0) {//代币
             byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
             Asset asset = Asset.getAsset(rlpbyte);
-            if (!Arrays.equals(fromhash, Address.publicKeyToHash(asset.getOwner()))) {
-                bytes.add(Address.publicKeyToHash(asset.getOwner()));
+            if (!Arrays.equals(fromhash, asset.getOwner())) {
+                bytes.add(asset.getOwner());
             }
         }
         return bytes;
@@ -220,12 +218,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return bytes;
     }
 
-    public Set<byte[]> getRelatedKeys(Block block) {
-        Set<byte[]> ret = new ByteArraySet();
-        block.body.stream().map(this::getRelatedKeys)
-                .forEach(ret::addAll);
-        return ret;
-    }
 
     private AccountState updateCoinBase(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
@@ -319,7 +311,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     account.setBlockHeight(height);
                     accountState.setAccount(account);
 
-                    if (Arrays.equals(fromhash, Address.publicKeyToHash(asset.getOwner()))) {//from和owner相同
+                    if (Arrays.equals(fromhash, asset.getOwner())) {//from和owner相同
                         Map<byte[], Long> tokensmap = accountState.getTokensMap();
                         tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
                         accountState.setTokensMap(tokensmap);
@@ -353,56 +345,63 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 break;
             case 2://锁定时间哈希
             case 3://锁定高度哈希
-                if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                    long balance = account.getBalance();
+                    balance -= tx.getFee();
+                    account.setBalance(balance);
+                    account.setNonce(tx.nonce);
+                    account.setBlockHeight(height);
+                    accountState.setAccount(account);
+                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
+                    byte[] lockrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+                    if (tx.getContractType() == 2) {
+                        accountState.setType(3);
+                    } else {
+                        accountState.setType(4);
+                    }
+                    accountState.setContract(lockrlpbyte);
+                } else {
                     throw new RuntimeException("Deploy lock transaction account do not match");
                 }
-                long balance = account.getBalance();
-                balance -= tx.getFee();
-                account.setBalance(balance);
-                account.setNonce(tx.nonce);
-                account.setBlockHeight(height);
-                accountState.setAccount(account);
                 break;
         }
         return accountState;
     }
 
-    private AccountState updateCallContract(Transaction tx, AccountState accountState, long height) {
+    private AccountState updateCallContract(Transaction tx, AccountState accountState, long height, Map<byte[], AccountState> store) {
         Account account = accountState.getAccount();
         byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
         byte[] fromhash = Address.publicKeyToHash(tx.from);
-        if (tx.getContractType() == 0) {//合约代币
-            switch (tx.getMethodType()) {
-                case 0://更改所有者
-                    accountState = updateAssetChangeowner(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 1://转发资产
-                    accountState = updateAssetTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 2://增发
-                    accountState = updateAssetIncreased(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 3://多签转账
-                    accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 4://锁定时间哈希资产转发
-                    accountState = updateHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 5://锁定时间哈希获取资产
-                    accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 6://锁定高度哈希资产转发
-                    accountState = updateHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-                case 7://锁定高度哈希获取资产
-                    accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte);
-                    break;
-            }
+        switch (tx.getMethodType()) {
+            case 0://更改所有者
+                accountState = updateAssetChangeowner(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 1://转发资产
+                accountState = updateAssetTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 2://增发
+                accountState = updateAssetIncreased(fromhash, accountState, account, tx, height, rlpbyte);
+                break;
+            case 3://多签转账
+                accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
+            case 4://锁定时间哈希资产转发
+                accountState = updateHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
+            case 5://锁定时间哈希获取资产
+                accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
+            case 6://锁定高度哈希资产转发
+                accountState = updateHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
+            case 7://锁定高度哈希获取资产
+                accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
         }
         return accountState;
     }
 
-    private AccountState updategetHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+    private AccountState updategetHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashheightTransfer transaction account do not match");
         }
@@ -412,8 +411,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = store.get(tx.to);
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(contractaccountstate.getContract());
         HashheightblockGet hashheightblockGet = HashheightblockGet.getHashheightblockGet(rlpbyte);
         Transaction transTransfer = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
         HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(ByteUtil.bytearrayridfirst(transTransfer.payload));
@@ -434,7 +433,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updateHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+    private AccountState updateHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashheightTransfer transaction account do not match");
         }
@@ -444,8 +443,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = store.get(tx.to);
+        Hashheightblock hashheightblock = Hashheightblock.getHashheightblock(contractaccountstate.getContract());
         HashheightblockTransfer hashheightblockTransfer = HashheightblockTransfer.getHashheightblockTransfer(rlpbyte);
         if (Arrays.equals(hashheightblock.getAssetHash(), twentyBytes)) {//WDC
             balance -= hashheightblockTransfer.getValue();
@@ -461,7 +460,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updategetHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+    private AccountState updategetHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashtimeTransfer transaction account do not match");
         }
@@ -471,8 +470,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = store.get(tx.to);
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(contractaccountstate.getContract());
         HashtimeblockGet hashtimeblockGet = HashtimeblockGet.getHashtimeblockGet(rlpbyte);
         Transaction transTransfer = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
         HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(ByteUtil.bytearrayridfirst(transTransfer.payload));
@@ -493,7 +492,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updateHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+    private AccountState updateHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashtimeTransfer transaction account do not match");
         }
@@ -503,8 +502,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
 
-        Transaction transaction = wisdomBlockChain.getTransaction(tx.to);
-        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(ByteUtil.bytearrayridfirst(transaction.payload));
+        AccountState contractaccountstate = store.get(tx.to);
+        Hashtimeblock hashtimeblock = Hashtimeblock.getHashtimeblock(contractaccountstate.getContract());
         HashtimeblockTransfer hashtimeblockTransfer = HashtimeblockTransfer.getHashtimeblockTransfer(rlpbyte);
         if (Arrays.equals(hashtimeblock.getAssetHash(), twentyBytes)) {//WDC
             balance -= hashtimeblockTransfer.getValue();
@@ -580,7 +579,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 accountState.setTokensMap(tokenMap);
             } else if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
-                long tokenbalance = tokenMap.get(assetHash);
+                long tokenbalance = 0;
+                if (tokenMap.containsKey(assetHash)) {
+                    tokenbalance = tokenMap.get(assetHash);
+                }
                 tokenbalance += multTransfer.getValue();
                 tokenMap.put(assetHash, tokenbalance);
                 accountState.setTokensMap(tokenMap);
@@ -617,8 +619,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updateMultTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
-        AccountState contractaccountstate = repository.getConfirmedAccountState(tx.to).get();
+    private AccountState updateMultTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        AccountState contractaccountstate = store.get(tx.to);
         Multiple multiple = Multiple.getMultiple(contractaccountstate.getContract());
         byte[] assetHash = multiple.getAssetHash();
         MultTransfer multTransfer = MultTransfer.getMultTransfer(rlpbyte);

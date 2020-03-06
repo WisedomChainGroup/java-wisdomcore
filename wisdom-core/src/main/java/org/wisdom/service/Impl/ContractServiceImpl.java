@@ -36,10 +36,7 @@ public class ContractServiceImpl implements ContractService {
             AccountState accountState = accountStateOptional.get();
             byte[] RLPByte = accountState.getContract();
             if (accountState.getType() == 1) {//代币
-                JSONObject json = (JSONObject) JSONObject.toJSON(Asset.getConvertAsset(RLPByte));
-                json.put("createuser",Asset.getConvertAsset(RLPByte).getCreateuser());
-                json.put("owner",Asset.getConvertAsset(RLPByte).getOwner());
-                return APIResult.newSuccess(json);
+                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
             } else if (accountState.getType() == 2) {//多签
                 return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
             }
@@ -130,7 +127,7 @@ public class ContractServiceImpl implements ContractService {
         byte[] wdcByte = new byte[20];
         for (String code : codeList) {
             Long balance = 0L;
-            if (code.equals(Hex.encodeHexString(wdcByte))) {
+            if (code.equals("WDC")) {
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(pubkeyHash);
                 if (!accountState.isPresent()) return APIResult.newFailed("Inactive address");
                 balance = accountState.get().getAccount().getBalance();
@@ -148,16 +145,19 @@ public class ContractServiceImpl implements ContractService {
 
     @Override
     public Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash) {
-        Block best = wisdomRepository.getBestBlock();
+        Optional<AccountState> asset =
+                wisdomRepository.getConfirmedAccountState(publicKeyHash);
+        if (!asset.isPresent())
+            return APIResult.newSuccess(0L);
+        if (assetCode.equals("WDC")) {
+            return APIResult.newSuccess(asset.get().getAccount().getBalance());
+        }
+        Block latestConfirmed = wisdomRepository.getLatestConfirmed();
         Optional<AssetCodeInfo> info =
-                wisdomRepository.getAssetCodeAt(best.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
+                wisdomRepository.getAssetCodeAt(latestConfirmed.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
         if (!info.isPresent())
             return APIResult.newFailed("asset not found");
-        Optional<AccountState> asset =
-                wisdomRepository.getConfirmedAccountState(publicKeyHash)
-                        .filter(a -> a.getType() == 0);
-        if (!asset.isPresent())
-            return APIResult.newFailed("Account does not exist");
+
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
 }

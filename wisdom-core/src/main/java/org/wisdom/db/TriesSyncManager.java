@@ -10,6 +10,7 @@ import org.tdf.common.store.Store;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
 import org.tdf.rlp.RLPElement;
+import org.tdf.rlp.RLPIgnored;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -38,6 +39,8 @@ public class TriesSyncManager {
 
     private AssetCodeTrie assetCodeTrie;
 
+    private LockgetTransferTrie lockgetTransferTrie;
+
     private String fastSyncDirectory;
 
     private WisdomBlockChain bc;
@@ -55,6 +58,7 @@ public class TriesSyncManager {
             DatabaseStoreFactory factory,
             CandidateStateTrie candidateStateTrie,
             AssetCodeTrie assetCodeTrie,
+            LockgetTransferTrie lockgetTransferTrie,
             @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory,
             WisdomBlockChain bc,
             CheckPointRule checkPointRule,
@@ -64,6 +68,7 @@ public class TriesSyncManager {
         this.validatorStateTrie = validatorStateTrie;
         this.candidateStateTrie = candidateStateTrie;
         this.assetCodeTrie = assetCodeTrie;
+        this.lockgetTransferTrie = lockgetTransferTrie;
         this.bc = bc;
         this.fastSyncDirectory = fastSyncDirectory;
         this.checkPointRule = checkPointRule;
@@ -79,6 +84,8 @@ public class TriesSyncManager {
         private Map<byte[], Candidate> candidateStates;
         private Map<byte[], AssetCodeInfo> assetCodeInfos;
 
+        @RLPIgnored
+        private Map<byte[], LockTransferInfo> lockTransferInfos = new HashMap<>();
     }
 
     public void setRepository(WisdomRepository repository) {
@@ -227,7 +234,7 @@ public class TriesSyncManager {
         validatorStateTrie.commit(preBuiltGenesis.getValidators(), preBuiltGenesis.block.getHash());
         candidateStateTrie.commit(preBuiltGenesis.getCandidateStates(), preBuiltGenesis.block.getHash());
         assetCodeTrie.commit(preBuiltGenesis.getAssetCodeInfos(), preBuiltGenesis.block.getHash());
-
+        lockgetTransferTrie.commit(preBuiltGenesis.getLockTransferInfos(), preBuiltGenesis.block.getHash());
         syncStatus(o.orElse(null));
     }
 
@@ -250,7 +257,10 @@ public class TriesSyncManager {
                 getLastSyncedHeight(
                         lastSync, currentHeight, assetCodeTrie.getRootStore()
                 );
-
+        long lockgetTransferTireLastSyncHeight =
+                getLastSyncedHeight(
+                        lastSync, currentHeight, lockgetTransferTrie.getRootStore()
+                );
         long candidateStateTrieLastSyncHeight =
                 getLastSyncedEra(
                         lastSync / blocksPerEra,
@@ -270,7 +280,8 @@ public class TriesSyncManager {
                 accountStateTrieLastSyncHeight,
                 validatorStateTrieLastSyncHeight,
                 candidateStateTrieLastSyncHeight,
-                assetCodeTrieLastSyncHeight
+                assetCodeTrieLastSyncHeight,
+                lockgetTransferTireLastSyncHeight
         ).min(Long::compareTo).orElseThrow(() -> new RuntimeException("unexpected"));
 
         start = start - (start % blocksPerEra);
@@ -297,6 +308,9 @@ public class TriesSyncManager {
                 if (b.nHeight > assetCodeTrieLastSyncHeight) {
                     assetCodeTrie.commit(b);
                 }
+                if(b.nHeight > lockgetTransferTireLastSyncHeight){
+                    lockgetTransferTrie.commit(b);
+                }
             });
 
             while (blocks.size() >= blocksPerEra) {
@@ -319,6 +333,7 @@ public class TriesSyncManager {
         validatorStateTrie.commit(block);
         candidateStateTrie.commit(block);
         assetCodeTrie.commit(block);
+        lockgetTransferTrie.commit(block);
     }
 
     public long getLastSyncedHeight(long start, long end, Store<byte[], byte[]> rootStore) {

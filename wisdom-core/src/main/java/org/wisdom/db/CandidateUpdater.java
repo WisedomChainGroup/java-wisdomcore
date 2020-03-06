@@ -71,7 +71,7 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(Transaction transaction) {
+    public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], Candidate> store) {
         switch (Transaction.TYPES_TABLE[transaction.type]) {
             case VOTE:
             case EXIT_VOTE:
@@ -84,8 +84,8 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
     }
 
     @Override
-    public Set<byte[]> getRelatedKeys(List<Block> blocks) {
-        Set<byte[]> related = super.getRelatedKeys(blocks);
+    public Set<byte[]> getRelatedKeys(List<Block> blocks, Map<byte[], Candidate> store) {
+        Set<byte[]> related = super.getRelatedKeys(blocks, store);
 
         if (atJoinEra(blocks)) {
             related.addAll(
@@ -107,7 +107,7 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
     }
 
     @Override
-    public Candidate update(byte[] id, Candidate state, TransactionInfo transaction) {
+    public Candidate update(Map<byte[], Candidate> related, byte[] id, Candidate state, TransactionInfo transaction) {
         throw new RuntimeException("not implemented");
     }
 
@@ -147,7 +147,7 @@ public class CandidateUpdater extends AbstractStateUpdater<Candidate> {
         Map<byte[], Candidate> ret = new ByteArrayMap<>(beforeUpdate);
         blocks.stream().flatMap(b -> b.body.stream())
                 .forEach(tx -> {
-                    getRelatedKeys(tx).forEach(k -> {
+                    getRelatedKeys(tx, Collections.emptyMap()).forEach(k -> {
                         ret.put(k, updateInternal(k, ret.get(k), blocks, tx));
                     });
                 });

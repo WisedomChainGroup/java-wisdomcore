@@ -24,6 +24,8 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
+import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.incubator.Incubator;
@@ -40,6 +42,7 @@ import org.wisdom.service.HatchService;
 import org.wisdom.core.account.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.wisdom.util.ByteUtil;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -90,7 +93,7 @@ public class HatchServiceImpl implements HatchService {
             Block block = repository.getBestBlock();
             Optional<AccountState> accountState = repository.getAccountStateAt(block.getHash(), pubkey);
             if (!accountState.isPresent()) {
-                return APIResult.newFailResult(2000, "SUCCESS",0);
+                return APIResult.newFailResult(2000, "SUCCESS", 0);
             }
             long nonce = accountState.get().getAccount().getNonce();
             return APIResult.newFailResult(2000, "SUCCESS", nonce);
@@ -516,6 +519,59 @@ public class HatchServiceImpl implements HatchService {
             }
             maps.put("trancount", count);
             return APIResult.newFailResult(2000, "SUCCESS", maps);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getAssetList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getAssetByHeightAndType(height, 7);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 0) {//资产代币
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    JSONObject jsonObject = new JSONObject();
+                    Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(payload));
+                    jsonObject.put("code", asset.getCode());
+                    jsonObject.put("coinHash", Hex.encodeHexString(coinHash));
+                    jsonObject.put("coinHash160", Hex.encodeHexString(RipemdUtility.ripemd160(coinHash)));
+                    jsonArray.add(jsonObject);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getAssetTransferList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getAssetTransferByHeightAndType(height, 8);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 1) {//资产转发
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    byte[] tohash = (byte[]) map.get("coinHash160");
+                    long gasPrice = (Long) map.get("gasPrice");
+                    long fee = gasPrice * Transaction.GAS_TABLE[8];
+                    AssetTransfer asset = AssetTransfer.getAssetTransfer(ByteUtil.bytearrayridfirst(payload));
+                    map.put("fromAddress", KeystoreAction.pubkeyToAddress(asset.getFrom(), (byte) 0x00, ""));
+                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(asset.getTo(), (byte) 0x00, ""));
+                    map.put("amount", asset.getValue());
+                    map.put("fee", fee);
+                    map.put("coinHash", Hex.encodeHexString(coinHash));
+                    map.put("coinHash160", Hex.encodeHexString(tohash));
+                    map.remove("tradeHash");
+                    map.remove("gasPrice");
+                    jsonArray.add(map);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
         } catch (Exception e) {
             return APIResult.newFailResult(5000, "Exception error");
         }
