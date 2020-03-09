@@ -218,7 +218,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
     }
 
-    private void onStatus(Context context, PeerServer server) throws InterruptedException {
+    private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
         Block best = repository.getBestBlock();
 
