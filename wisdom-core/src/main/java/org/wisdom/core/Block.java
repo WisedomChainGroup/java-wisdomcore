@@ -22,8 +22,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.AccountState;
 import org.wisdom.encoding.BigEndian;
@@ -34,22 +41,13 @@ import org.wisdom.merkletree.TreeNode;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -420,4 +418,14 @@ public class Block {
         }
         return new MerkleTree(hashes).getLevelSize();
     }
+
+    public static final Comparator<Block> FAT_COMPARATOR = (a, b) ->{
+        if(a.getnHeight() != b.getnHeight())
+            return Long.compare(a.getnHeight(), b.getnHeight());
+        if(a.body.size() != b.body.size()){
+            return -Integer.compare(a.body.size(), b.body.size());
+        }
+        return HexBytes.fromBytes(a.getHash()).compareTo(HexBytes.fromBytes(b.getHash()));
+    };
+
 }

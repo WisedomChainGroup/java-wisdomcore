@@ -2,9 +2,8 @@ package org.wisdom.sync;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.cache.CacheBuilder;
 import com.google.protobuf.ByteString;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,9 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ChainCache;
 import org.tdf.common.util.ChainedWrapper;
 import org.tdf.common.util.HexBytes;
-import org.wisdom.core.*;
+import org.wisdom.core.Block;
+import org.wisdom.core.OrphanBlocksManager;
+import org.wisdom.core.PendingBlocksManager;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.CheckPointRule;
@@ -25,12 +26,14 @@ import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import javax.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -52,9 +55,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private Block genesis;
 
     @Autowired
-    private OrphanBlocksManager orphanBlocksManager;
-
-    @Autowired
     private PendingBlocksManager pendingBlocksManager;
 
     @Autowired
@@ -69,15 +69,47 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
+    @Value("${wisdom.consensus.rate-limits}")
+    private Map<String, Double> rateLimits;
+
+    @Value("${wisdom.consensus.lock-timeout}")
+    private long lockTimeOut;
+
+    @Value("${wisdom.consensus.block-write-rate}")
+    private long blockWriteRate;
+
     @Autowired
     private CheckPointRule checkPointRule;
+
+    private Limiters limiters;
+
+    private final TreeSet<Block> queue = new TreeSet<>(Block.FAT_COMPARATOR);
+
+    private Lock blockQueueLock = new ReentrantLock();
+
+    private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     public SyncManager() {
         this.proposalCache = Caffeine
                 .newBuilder()
                 .maximumSize(CACHE_SIZE).build();
+        this.limiters = new Limiters(rateLimits);
     }
 
+    @PostConstruct
+    public void init() {
+        executorService.scheduleWithFixedDelay(
+                this::tryWrite, 0,
+                blockWriteRate, TimeUnit.SECONDS);
+
+        executorService.scheduleWithFixedDelay(
+                this::getStatus, 0,
+                30, TimeUnit.SECONDS
+        );
+    }
+
+
+    @SneakyThrows
     @Override
     public void onMessage(Context context, PeerServer server) {
         switch (context.getPayload().getCode()) {
@@ -85,9 +117,17 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 onGetStatus(context, server);
                 return;
             case STATUS:
+                if (limiters.status() != null && !limiters.status().tryAcquire()) {
+                    logger.error("receive status message too frequent");
+                    return;
+                }
                 onStatus(context, server);
                 return;
             case GET_BLOCKS:
+                if (limiters.getBlocks() != null && !limiters.getBlocks().tryAcquire()) {
+                    logger.error("receive get-blocks message too frequent");
+                    return;
+                }
                 onGetBlocks(context, server);
                 return;
             case BLOCKS:
@@ -103,7 +143,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         this.server = server;
     }
 
-    @Scheduled(fixedRate = 30 * 1000)
     public void getStatus() {
         if (server == null) {
             return;
@@ -121,18 +160,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         int index = Math.abs(ThreadLocalRandom.current().nextInt()) % ps.size();
 
         server.dial(ps.get(index), WisdomOuterClass.GetStatus.newBuilder().build());
-        for (Block b : orphanBlocksManager.getInitials()) {
-            long startHeight = b.nHeight - blocksPerEra * 2 + 1;
-            if (startHeight <= 0) {
-                startHeight = 1;
-            }
-            WisdomOuterClass.GetBlocks getBlocks = WisdomOuterClass.GetBlocks.newBuilder()
-                    .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
-                    .setStartHeight(startHeight)
-                    .setStopHeight(b.nHeight).build();
-            logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
-            server.dial(ps.get(index), getBlocks);
-        }
     }
 
     private void onGetBlocks(Context context, PeerServer server) {
@@ -146,19 +173,35 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
         List<WisdomOuterClass.Blocks> divided = Util.split(resp);
-        if (divided.size() == 0){
+        if (divided.size() == 0) {
             return;
         }
         context.response(divided.get(0));
         divided.subList(1, divided.size()).forEach(o -> server.dial(context.getPayload().getRemote(), o));
     }
 
-    private void onBlocks(Context context, PeerServer server) {
+    private void onBlocks(Context context, PeerServer server) throws InterruptedException {
         WisdomOuterClass.Blocks blocksMessage = context.getPayload().getBlocks();
-        receiveBlocks(Utils.parseBlocks(blocksMessage.getBlocksList()));
+        List<Block> blocks = Utils.parseBlocks(blocksMessage.getBlocksList());
+        logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
+        Block best = repository.getBestBlock();
+        blocks.sort(Block.FAT_COMPARATOR);
+        if (!blockQueueLock.tryLock(lockTimeOut, TimeUnit.SECONDS))
+            return;
+        try {
+            for (Block block : blocks) {
+                if (Math.abs(block.getnHeight() - best.getnHeight()) > maxBlocksPerTransfer)
+                    break;
+                if (repository.containsBlock(block.getHash()))
+                    continue;
+                queue.add(block);
+            }
+        } finally {
+            blockQueueLock.unlock();
+        }
     }
 
-    private void onProposal(Context context, PeerServer server) {
+    private void onProposal(Context context, PeerServer server) throws InterruptedException {
         if (!allowFork) {
             return;
         }
@@ -171,11 +214,22 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             return;
         }
         proposalCache.put(HexBytes.fromBytes(block.getHash()), true);
-        receiveBlocks(Collections.singletonList(block));
         context.relay();
+        if (Math.abs(block.nHeight - repository.getBestBlock().getnHeight()) > maxBlocksPerTransfer) {
+            return;
+        }
+        if (repository.containsBlock(block.getHash()))
+            return;
+        if (!blockQueueLock.tryLock(lockTimeOut, TimeUnit.SECONDS))
+            return;
+        try {
+            queue.add(block);
+        } finally {
+            blockQueueLock.unlock();
+        }
     }
 
-    private void onStatus(Context context, PeerServer server) {
+    private void onStatus(Context context, PeerServer server) throws InterruptedException {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
         Block best = repository.getBestBlock();
 
@@ -185,7 +239,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             context.exit();
             return;
         }
-
         if (status.getCurrentHeight() >= best.nHeight
                 && !Arrays.equals(
                 status.getBestBlockHash().toByteArray(), best.getHash())
@@ -215,31 +268,56 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         context.response(resp);
     }
 
-    private synchronized void receiveBlocks(List<Block> blocks) {
-        logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
-        blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
-        List<Block> validBlocks = new ArrayList<>(blocks.size());
-        for (Block b : blocks) {
-            if (b == null || b.nHeight == 0 || repository.containsBlock(b.getHash())) {
-                continue;
+    @SneakyThrows
+    private void tryWrite() {
+        Set<HexBytes> orphans = new HashSet<>();
+        Block best = repository.getBestBlock();
+        if(!blockQueueLock.tryLock(lockTimeOut, TimeUnit.SECONDS))
+            return;
+        try {
+            while (true) {
+                Block b = null;
+                try {
+                    b = queue.first();
+                } catch (NoSuchElementException ignored) {
+                }
+                if (b == null) return;
+                if (Math.abs(best.getnHeight() - b.getnHeight()) > maxBlocksPerTransfer
+                ) {
+                    queue.remove(b);
+                    continue;
+                }
+                if (repository.containsBlock(b.getHash())) {
+                    queue.remove(b);
+                    continue;
+                }
+                if(orphans.contains(HexBytes.fromBytes(b.hashPrevBlock))){
+                    orphans.add(HexBytes.fromBytes(b.getHash()));
+                    continue;
+                }
+                Block block = repository.getBlockByHash(b.hashPrevBlock);
+                if (block == null) {
+                    orphans.add(HexBytes.fromBytes(b.getHash()));
+                    continue;
+                }
+                Result res = rule.validateBlock(b);
+                if (!res.isSuccess()) {
+                    queue.remove(b);
+                    logger.error("invalid block received reason = " + res.getMessage());
+                    continue;
+                }
+                Result resCheckPointRule = checkPointRule.validateBlock(b);
+                if (!resCheckPointRule.isSuccess()) {
+                    queue.remove(b);
+                    logger.error("invalid block received reason = " + resCheckPointRule.getMessage());
+                    continue;
+                }
+                queue.remove(b);
+                pendingBlocksManager.addPendingBlock(b);
+                repository.writeBlock(b);
             }
-            Result res = rule.validateBlock(b);
-            if (!res.isSuccess()) {
-                logger.error("invalid block received reason = " + res.getMessage());
-                continue;
-            }
-            Result resCheckPointRule = checkPointRule.validateBlock(b);
-            if (!resCheckPointRule.isSuccess()) {
-                logger.error("invalid block received reason = " + resCheckPointRule.getMessage());
-                continue;
-            }
-            validBlocks.add(b);
-        }
-        if (validBlocks.size() > 0) {
-            ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
-            pendingBlocksManager
-                    .addPendingBlocks(blocksWritable.stream().map(ChainedWrapper::get)
-                            .collect(Collectors.toList()));
+        } finally {
+            blockQueueLock.unlock();
         }
     }
 

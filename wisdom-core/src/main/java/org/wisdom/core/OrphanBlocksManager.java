@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
  * manage orphan blocks
  */
 @Component
+@Deprecated
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     private volatile long lock;
 
