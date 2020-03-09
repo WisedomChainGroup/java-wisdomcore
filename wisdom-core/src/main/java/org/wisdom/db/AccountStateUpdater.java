@@ -158,7 +158,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
                 bytes.add(multTransfer.getTo());
             } else {//多->多 || 多->单
-                if (!Arrays.equals(fromhash, multTransfer.getTo())) {
+                if (!Arrays.equals(tx.to, multTransfer.getTo())) {
                     bytes.add(multTransfer.getTo());
                 }
             }
@@ -240,6 +240,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateTransfer(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
+        boolean state = true;
         if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance -= tx.amount;
@@ -247,12 +248,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            state = false;
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
             account.setBalance(balance);
             account.setBlockHeight(height);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("Transfer transaction account do not match");
         }
         accountState.setAccount(account);
@@ -262,6 +267,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
+        boolean state = true;
         if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance -= tx.amount;
@@ -269,12 +275,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            state = false;
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote += tx.amount;
             account.setVote(vote);
             account.setBlockHeight(height);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("Vote transaction account do not match");
         }
         accountState.setAccount(account);
@@ -536,6 +546,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateMultTransferWDC(byte[] fromhash, MultTransfer multTransfer, AccountState accountState, Account account, Transaction tx, long height) {
+        boolean state = true;
         if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
             if (Arrays.equals(fromhash, account.getPubkeyHash())) {
                 long balance = account.getBalance();
@@ -544,15 +555,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 account.setBalance(balance);
                 account.setNonce(tx.nonce);
                 account.setBlockHeight(height);
-                accountState.setAccount(account);
-            } else if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+                state = false;
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 long balance = account.getBalance();
                 balance += multTransfer.getValue();
                 account.setBalance(balance);
-                accountState.setAccount(account);
-            } else {
-                throw new RuntimeException("MultTransferWDC transaction account do not match");
+                state = false;
             }
+
         } else {//多->多 || 多->单
             if (Arrays.equals(fromhash, account.getPubkeyHash())) {
                 long balance = account.getBalance();
@@ -560,25 +571,30 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 account.setBalance(balance);
                 account.setNonce(tx.nonce);
                 account.setBlockHeight(height);
-                accountState.setAccount(account);
-            } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+                state = false;
+            }
+            if (Arrays.equals(tx.to, account.getPubkeyHash())) {
                 long balance = account.getBalance();
                 balance -= multTransfer.getValue();
                 account.setBalance(balance);
-                accountState.setAccount(account);
-            } else if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+                state = false;
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 long balance = account.getBalance();
                 balance += multTransfer.getValue();
                 account.setBalance(balance);
-                accountState.setAccount(account);
-            } else {
-                throw new RuntimeException("MultTransferWDC transaction account do not match");
+                state = false;
             }
+        }
+        accountState.setAccount(account);
+        if (state) {
+            throw new RuntimeException("MultTransferWDC transaction account do not match");
         }
         return accountState;
     }
 
     private AccountState updateMultTransferOther(byte[] fromhash, byte[] assetHash, MultTransfer multTransfer, AccountState accountState, Account account, Transaction tx, long height) {
+        boolean state = true;
         if (multTransfer.getOrigin() == 0 && multTransfer.getDest() == 1) {//单->多
             if (Arrays.equals(fromhash, account.getPubkeyHash())) {
                 long balance = account.getBalance();
@@ -593,6 +609,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 tokenbalance -= multTransfer.getValue();
                 tokenMap.put(assetHash, tokenbalance);
                 accountState.setTokensMap(tokenMap);
+                state = false;
             } else if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
                 long tokenbalance = 0;
@@ -602,8 +619,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 tokenbalance += multTransfer.getValue();
                 tokenMap.put(assetHash, tokenbalance);
                 accountState.setTokensMap(tokenMap);
-            } else {
-                throw new RuntimeException("MultTransferOther transaction account do not match");
+                state = false;
             }
         } else {//多->多 || 多->单
             if (Arrays.equals(fromhash, account.getPubkeyHash())) {
@@ -613,13 +629,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 account.setNonce(tx.nonce);
                 account.setBlockHeight(height);
                 accountState.setAccount(account);
-            } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            }
+            if (Arrays.equals(tx.to, account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
                 long tokenbalance = tokenMap.get(assetHash);
                 tokenbalance -= multTransfer.getValue();
                 tokenMap.put(assetHash, tokenbalance);
                 accountState.setTokensMap(tokenMap);
-            } else if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
+            }
+            if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
                 long balance = 0;
                 if (tokenMap.containsKey(assetHash)) {
@@ -628,18 +646,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 balance += multTransfer.getValue();
                 tokenMap.put(assetHash, balance);
                 accountState.setTokensMap(tokenMap);
-            } else {
-                throw new RuntimeException("MultTransferOther transaction account do not match");
             }
+        }
+        if (state) {
+            throw new RuntimeException("MultTransferOther transaction account do not match");
         }
         return accountState;
     }
 
     private AccountState updateMultTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
-        //Pass the tx.to
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            return accountState;
-        }
         AccountState contractaccountstate = store.get(tx.to);
         Multiple multiple = Multiple.getMultiple(contractaccountstate.getContract());
         byte[] assetHash = multiple.getAssetHash();
@@ -684,6 +699,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private AccountState updateAssetTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
         AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
+        boolean state = true;
         if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
             long balance = account.getBalance();
             balance -= tx.getFee();
@@ -697,7 +713,9 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             tokenbalance -= assetTransfer.getValue();
             tokensmap.put(tx.to, tokenbalance);
             accountState.setTokensMap(tokensmap);
-        } else if (Arrays.equals(assetTransfer.getTo(), account.getPubkeyHash())) {//to
+            state = false;
+        }
+        if (Arrays.equals(assetTransfer.getTo(), account.getPubkeyHash())) {//to
             Map<byte[], Long> tokensmap = accountState.getTokensMap();
             long balance = 0;
             if (tokensmap.containsKey(tx.to)) {
@@ -706,7 +724,9 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             balance += assetTransfer.getValue();
             tokensmap.put(tx.to, balance);
             accountState.setTokensMap(tokensmap);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("AssetTransfer transaction account do not match");
         }
         return accountState;
@@ -1006,6 +1026,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateCancelVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
+        boolean state = true;
         if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
@@ -1013,12 +1034,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            state = false;
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote -= tx.amount;
             account.setVote(vote);
             account.setBlockHeight(height);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("CancelVote transaction account do not match");
         }
         accountState.setAccount(account);
