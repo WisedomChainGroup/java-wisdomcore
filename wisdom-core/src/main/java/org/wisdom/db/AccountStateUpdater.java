@@ -402,6 +402,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updategetHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        //Pass the tx.to
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashheightTransfer transaction account do not match");
         }
@@ -434,6 +438,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        //Pass the tx.to
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashheightTransfer transaction account do not match");
         }
@@ -461,6 +469,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updategetHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        //Pass the tx.to
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashtimeTransfer transaction account do not match");
         }
@@ -493,6 +505,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateHashtimeTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        //Pass the tx.to
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
         if (!Arrays.equals(fromhash, account.getPubkeyHash())) {
             throw new RuntimeException("HashtimeTransfer transaction account do not match");
         }
@@ -620,6 +636,10 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateMultTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        //Pass the tx.to
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            return accountState;
+        }
         AccountState contractaccountstate = store.get(tx.to);
         Multiple multiple = Multiple.getMultiple(contractaccountstate.getContract());
         byte[] assetHash = multiple.getAssetHash();
