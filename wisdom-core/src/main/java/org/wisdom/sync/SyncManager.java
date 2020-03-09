@@ -9,19 +9,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.tdf.common.util.ChainCache;
-import org.tdf.common.util.ChainedWrapper;
 import org.tdf.common.util.HexBytes;
+import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
-import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.PendingBlocksManager;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.db.BlockWrapper;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
@@ -66,17 +62,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
 
-    @Value("${wisdom.consensus.blocks-per-era}")
-    private int blocksPerEra;
 
-    @Value("${wisdom.consensus.rate-limits}")
-    private Map<String, Double> rateLimits;
-
-    @Value("${wisdom.consensus.lock-timeout}")
-    private long lockTimeOut;
-
-    @Value("${wisdom.consensus.block-write-rate}")
-    private long blockWriteRate;
 
     @Autowired
     private CheckPointRule checkPointRule;
@@ -89,18 +75,21 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
-    public SyncManager() {
+    private SyncConfig syncConfig;
+
+    public SyncManager(SyncConfig syncConfig) {
         this.proposalCache = Caffeine
                 .newBuilder()
                 .maximumSize(CACHE_SIZE).build();
-        this.limiters = new Limiters(rateLimits);
+        this.limiters = new Limiters(syncConfig.getRateLimits());
+        this.syncConfig = syncConfig;
     }
 
     @PostConstruct
     public void init() {
         executorService.scheduleWithFixedDelay(
-                this::tryWrite, 0,
-                blockWriteRate, TimeUnit.SECONDS);
+                this::addPendingBlockManager, 0,
+                syncConfig.getBlockWriteRate(), TimeUnit.SECONDS);
 
         executorService.scheduleWithFixedDelay(
                 this::getStatus, 0,
@@ -186,7 +175,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         Block best = repository.getBestBlock();
         blocks.sort(Block.FAT_COMPARATOR);
-        if (!blockQueueLock.tryLock(lockTimeOut, TimeUnit.SECONDS))
+        if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS))
             return;
         try {
             for (Block block : blocks) {
@@ -220,7 +209,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         if (repository.containsBlock(block.getHash()))
             return;
-        if (!blockQueueLock.tryLock(lockTimeOut, TimeUnit.SECONDS))
+        if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS))
             return;
         try {
             queue.add(block);
@@ -269,10 +258,10 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     @SneakyThrows
-    private void tryWrite() {
+    private void addPendingBlockManager() {
         Set<HexBytes> orphans = new HashSet<>();
         Block best = repository.getBestBlock();
-        if(!blockQueueLock.tryLock(lockTimeOut, TimeUnit.SECONDS))
+        if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS))
             return;
         try {
             while (true) {
@@ -291,7 +280,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     queue.remove(b);
                     continue;
                 }
-                if(orphans.contains(HexBytes.fromBytes(b.hashPrevBlock))){
+                if (orphans.contains(HexBytes.fromBytes(b.hashPrevBlock))) {
                     orphans.add(HexBytes.fromBytes(b.getHash()));
                     continue;
                 }
