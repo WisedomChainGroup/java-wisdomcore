@@ -246,6 +246,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateTransfer(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
+        boolean state = true;
         if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance -= tx.amount;
@@ -253,12 +254,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            state = false;
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
             account.setBalance(balance);
             account.setBlockHeight(height);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("Transfer transaction account do not match");
         }
         accountState.setAccount(account);
@@ -268,6 +273,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
+        boolean state = true;
         if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance -= tx.amount;
@@ -275,12 +281,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            state = false;
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote += tx.amount;
             account.setVote(vote);
             account.setBlockHeight(height);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("Vote transaction account do not match");
         }
         accountState.setAccount(account);
@@ -982,6 +992,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private AccountState updateCancelVote(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
         long balance;
+        boolean state = true;
         if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
@@ -989,12 +1000,16 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
+            state = false;
+        }
+        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote -= tx.amount;
             account.setVote(vote);
             account.setBlockHeight(height);
-        } else {
+            state = false;
+        }
+        if (state) {
             throw new RuntimeException("CancelVote transaction account do not match");
         }
         accountState.setAccount(account);
