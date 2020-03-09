@@ -147,7 +147,9 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     break;
                 case 1://转发资产
                     AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
-                    bytes.add(assetTransfer.getTo());
+                    if (!Arrays.equals(fromhash, assetTransfer.getTo())) {
+                        bytes.add(assetTransfer.getTo());
+                    }
                     break;
             }
         } else if (tx.getContractType() == 1) {//多签
@@ -245,16 +247,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-            accountState.setAccount(account);
         } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             balance = account.getBalance();
             balance += tx.amount;
             account.setBalance(balance);
             account.setBlockHeight(height);
-            accountState.setAccount(account);
         } else {
             throw new RuntimeException("Transfer transaction account do not match");
         }
+        accountState.setAccount(account);
         return accountState;
     }
 
@@ -268,16 +269,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-            accountState.setAccount(account);
         } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote += tx.amount;
             account.setVote(vote);
             account.setBlockHeight(height);
-            accountState.setAccount(account);
         } else {
             throw new RuntimeException("Vote transaction account do not match");
         }
+        accountState.setAccount(account);
         return accountState;
     }
 
@@ -1013,16 +1013,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setBalance(balance);
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
-            accountState.setAccount(account);
         } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {
             long vote = account.getVote();
             vote -= tx.amount;
             account.setVote(vote);
             account.setBlockHeight(height);
-            accountState.setAccount(account);
         } else {
             throw new RuntimeException("CancelVote transaction account do not match");
         }
+        accountState.setAccount(account);
         return accountState;
     }
 
