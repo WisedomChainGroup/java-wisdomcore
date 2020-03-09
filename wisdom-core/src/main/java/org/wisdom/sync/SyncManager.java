@@ -10,13 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
 import org.wisdom.core.PendingBlocksManager;
 import org.wisdom.core.event.NewBlockMinedEvent;
-import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.CheckPointRule;
+import org.wisdom.core.validate.CompositeBlockRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
@@ -38,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 @Component
 public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEvent> {
+    private static final int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 50;
     private PeerServer server;
     private static final int CACHE_SIZE = 64;
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
@@ -47,6 +49,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Value("${p2p.max-blocks-per-transfer}")
     private int maxBlocksPerTransfer;
 
+    @Value("${wisdom.consensus.blocks-per-era}")
+    private int blocksPerEra;
+
     @Autowired
     private Block genesis;
 
@@ -54,14 +59,13 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private PendingBlocksManager pendingBlocksManager;
 
     @Autowired
-    private BasicRule rule;
+    private CompositeBlockRule rule;
 
     @Autowired
     private WisdomRepository repository;
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
-
 
 
     @Autowired
@@ -73,7 +77,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private Lock blockQueueLock = new ReentrantLock();
 
-    private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService executorService;
 
     private SyncConfig syncConfig;
 
@@ -87,6 +91,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     @PostConstruct
     public void init() {
+        int core = Runtime.getRuntime().availableProcessors();
+        executorService = Executors.newScheduledThreadPool(core > 1 ? core / 2 : core);
         executorService.scheduleWithFixedDelay(
                 this::addPendingBlockManager, 0,
                 syncConfig.getBlockWriteRate(), TimeUnit.SECONDS);
@@ -148,6 +154,29 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         int index = Math.abs(ThreadLocalRandom.current().nextInt()) % ps.size();
 
+        List<Block> orphans;
+        // try to sync orphans
+        blockQueueLock.lock();
+
+        try {
+            orphans = getOrphansInternal();
+        } finally {
+            blockQueueLock.unlock();
+        }
+
+        for (Block b : orphans) {
+            long startHeight = b.nHeight - blocksPerEra * 2 + 1;
+            if (startHeight <= 0) {
+                startHeight = 1;
+            }
+            WisdomOuterClass.GetBlocks getBlocks = WisdomOuterClass.GetBlocks.newBuilder()
+                    .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
+                    .setStartHeight(startHeight)
+                    .setStopHeight(b.nHeight).build();
+            logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
+            server.dial(ps.get(index), getBlocks);
+        }
+
         server.dial(ps.get(index), WisdomOuterClass.GetStatus.newBuilder().build());
     }
 
@@ -181,7 +210,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             for (Block block : blocks) {
                 if (Math.abs(block.getnHeight() - best.getnHeight()) > maxBlocksPerTransfer)
                     break;
-                if (repository.containsBlock(block.getHash()))
+                if (queue.contains(block) || repository.containsBlock(block.getHash()))
                     continue;
                 queue.add(block);
             }
@@ -257,6 +286,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         context.response(resp);
     }
 
+
     @SneakyThrows
     private void addPendingBlockManager() {
         Set<HexBytes> orphans = new HashSet<>();
@@ -302,12 +332,34 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     continue;
                 }
                 queue.remove(b);
-                pendingBlocksManager.addPendingBlock(b);
                 repository.writeBlock(b);
             }
         } finally {
             blockQueueLock.unlock();
         }
+    }
+
+    private List<Block> getOrphansInternal() {
+        List<Block> orphanHeads = new ArrayList<>();
+        Set<byte[]> orphans = new ByteArraySet();
+        Set<byte[]> noOrphans = new ByteArraySet();
+        for (Block block : queue) {
+            if (noOrphans.contains(block.hashPrevBlock)) {
+                noOrphans.add(block.getHash());
+                continue;
+            }
+            if (orphans.contains(block.hashPrevBlock)) {
+                orphans.add(block.getHash());
+                continue;
+            }
+            if (repository.containsBlock(block.hashPrevBlock)) {
+                noOrphans.add(block.getHash());
+            } else {
+                orphanHeads.add(block);
+                orphans.add(block.getHash());
+            }
+        }
+        return orphanHeads;
     }
 
     @Override
