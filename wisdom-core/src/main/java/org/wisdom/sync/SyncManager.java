@@ -14,7 +14,6 @@ import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
-import org.wisdom.core.PendingBlocksManager;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.CompositeBlockRule;
@@ -56,9 +55,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private Block genesis;
 
     @Autowired
-    private PendingBlocksManager pendingBlocksManager;
-
-    @Autowired
     private CompositeBlockRule rule;
 
     @Autowired
@@ -94,7 +90,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         int core = Runtime.getRuntime().availableProcessors();
         executorService = Executors.newScheduledThreadPool(core > 1 ? core / 2 : core);
         executorService.scheduleWithFixedDelay(
-                this::addPendingBlockManager, 0,
+                this::tryWrite, 0,
                 syncConfig.getBlockWriteRate(), TimeUnit.SECONDS);
 
         executorService.scheduleWithFixedDelay(
@@ -286,28 +282,28 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         context.response(resp);
     }
 
-
     @SneakyThrows
-    private void addPendingBlockManager() {
+    private void tryWrite() {
         Set<HexBytes> orphans = new HashSet<>();
         Block best = repository.getBestBlock();
         if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS))
             return;
+        Iterator<Block> iterator = queue.iterator();
         try {
-            while (true) {
+            while (iterator.hasNext()) {
                 Block b = null;
                 try {
-                    b = queue.first();
+                    b = iterator.next();
                 } catch (NoSuchElementException ignored) {
                 }
                 if (b == null) return;
                 if (Math.abs(best.getnHeight() - b.getnHeight()) > maxBlocksPerTransfer
                 ) {
-                    queue.remove(b);
+                    iterator.remove();
                     continue;
                 }
                 if (repository.containsBlock(b.getHash())) {
-                    queue.remove(b);
+                    iterator.remove();
                     continue;
                 }
                 if (orphans.contains(HexBytes.fromBytes(b.hashPrevBlock))) {
@@ -321,17 +317,17 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 }
                 Result res = rule.validateBlock(b);
                 if (!res.isSuccess()) {
-                    queue.remove(b);
+                    iterator.remove();
                     logger.error("invalid block received reason = " + res.getMessage());
                     continue;
                 }
                 Result resCheckPointRule = checkPointRule.validateBlock(b);
                 if (!resCheckPointRule.isSuccess()) {
-                    queue.remove(b);
+                    iterator.remove();
                     logger.error("invalid block received reason = " + resCheckPointRule.getMessage());
                     continue;
                 }
-                queue.remove(b);
+                iterator.remove();
                 repository.writeBlock(b);
             }
         } finally {
