@@ -228,7 +228,7 @@ test {
 
 ext {
     slf4jVersion = '1.7.7'
-    leveldbVersion = '0.7'
+    leveldbVersion = '0.12'
     scastleVersion = '1.58.0.0'
     springVersion = '4.3.19.RELEASE'
     hibernateVersion = '4.3.7.Final'
