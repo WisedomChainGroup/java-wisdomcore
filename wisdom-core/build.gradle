@@ -337,6 +337,7 @@ dependencies {
 
     compile "org.springframework.boot:spring-boot-starter-data-jpa:${springbootVersion}"
     compile group: 'com.h2database', name: 'h2', version: '1.4.200'
+    compile 'org.lmdbjava:lmdbjava:0.7.0'
 }
 
 
