@@ -378,6 +378,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             return;
         }
         proposalCache.put(HexBytes.fromBytes(event.getBlock().getHash()), true);
-        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
+        Block block = event.getBlock();
+        block.accountStateTrieRoot = accountStateTrie.getTrieByBlockHash(block.getHash()).getRootHash();
+        server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(block)).build());
     }
 }
