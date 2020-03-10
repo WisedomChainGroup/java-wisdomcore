@@ -244,7 +244,7 @@ ext {
     jargon2Version = '1.1.1'
     bouncycastleVersion = '1.61'
     commonsCollections4Version = '4.0'
-    rocksdbVersion = '6.3.6'
+    rocksdbVersion = '6.6.4'
 }
 
 dependencies {
