@@ -277,6 +277,9 @@ public class Block {
     public List<Transaction> body;
 
     @JsonIgnore
+    public byte[] accountStateTrieRoot;
+
+    @JsonIgnore
     public long totalWeight;
 
     @JsonIgnore

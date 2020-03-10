@@ -77,20 +77,21 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
     }
 
     @Override
-    public void commit(Block block) {
+    public byte[] commit(Block block) {
         if (block.nHeight % eraLinker.getBlocksPerEra() != 0) {
-            return;
+            return new byte[0];
         }
         Optional<byte[]> root = getRootStore().get(block.getHash());
         if (root.isPresent()) {
             updateHook(block, getTrie().revert(root.get()));
-            return;
+            return new byte[0];
         }
         List<Block> ancestors = getRepository().getAncestorBlocks(
                 block.getHash(),
                 block.nHeight - eraLinker.getBlocksPerEra() + 1
         );
         commit(ancestors);
+        return new byte[0];
     }
 
     @Override
