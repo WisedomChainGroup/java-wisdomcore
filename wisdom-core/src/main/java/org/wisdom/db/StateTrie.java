@@ -13,8 +13,8 @@ public interface StateTrie<T> {
     // get an optional state at a block
     Optional<T> get(byte[] blockHash, byte[] publicKeyHash);
     Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys);
-    // commit a new block
-    void commit(Block block);
+    // commit a new block, return new root hash
+    byte[] commit(Block block);
 
     // get a read only trie for query
     Trie<byte[], T> getTrieByBlockHash(byte[] blockHash);

@@ -336,11 +336,12 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     continue;
                 }
                 iterator.remove();
-                Trie<byte[], AccountState> accountState = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock);
-                byte[] root = accountStateTrie.commit(accountState.asMap(), block.getHash());
-                if (!FastByteComparisons.equal(root, block.accountStateTrieRoot)) {
-                    throw new RuntimeException("accountStateTrieRoot is not equal, block height is " + block.nHeight);
-                }
+//                Trie<byte[], AccountState> accountState = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock);
+//                byte[] root = accountStateTrie.commit(accountState.asMap(), block.getHash());
+//                if (!FastByteComparisons.equal(root, block.accountStateTrieRoot)) {
+//                    throw new RuntimeException("accountStateTrieRoot is not equal, block height is " + block.nHeight);
+//                }
+                accountStateTrie.commit(block);
                 repository.writeBlock(b);
             }
         } finally {

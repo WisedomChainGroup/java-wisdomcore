@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
+import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 
@@ -35,4 +36,13 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
         this.accountStateUpdater.setWisdomBlockChain(bc);
     }
 
+    @Override
+    public byte[] commit(Block block) {
+        byte[] root = super.commit(block);
+        if(block.accountStateTrieRoot == null || block.accountStateTrieRoot.length == 0)
+            return root;
+        if(!FastByteComparisons.equal(root, block.accountStateTrieRoot))
+            throw new RuntimeException("state root not match");
+        return root;
+    }
 }

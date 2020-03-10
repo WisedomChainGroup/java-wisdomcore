@@ -70,7 +70,7 @@ public class Utils {
         b.nBits = bk.getNBits().toByteArray();
         b.nNonce = bk.getNonce().toByteArray();
         b.body = new ArrayList<>();
-        b.accountStateTrieRoot = bk.getAccountStateTrieRoot().toByteArray();
+        b.accountStateTrieRoot = bk.getAccountStateTrieRoot() == null ? null : bk.getAccountStateTrieRoot().toByteArray();
         if (bk.getBodyList() == null || bk.getBodyList().size() == 0) {
             return b;
         }

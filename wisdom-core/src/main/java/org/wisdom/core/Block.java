@@ -276,7 +276,7 @@ public class Block {
     @RLP(9)
     public List<Transaction> body;
 
-    @RLP(10)
+    @JsonIgnore
     public byte[] accountStateTrieRoot;
 
     @JsonIgnore
