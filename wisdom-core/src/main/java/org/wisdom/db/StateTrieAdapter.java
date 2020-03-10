@@ -122,23 +122,25 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     }
 
     @Override
-    public void commit(Map<byte[], T> states, byte[] blockHash) {
-        if (getRootStore().containsKey(blockHash)) return;
+    public byte[] commit(Map<byte[], T> states, byte[] blockHash) {
+        if (getRootStore().containsKey(blockHash))
+            return getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unreachable"));
         Trie<byte[], T> empty = getTrie().revert();
         states.forEach(empty::put);
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
         cache.asMap().putIfAbsent(HexBytes.fromBytes(empty.getRootHash()), empty);
+        return getRootStore().get(blockHash).orElseThrow(() -> new RuntimeException("unreachable"));
     }
 
     @Override
     public void gc(Collection<? extends byte[]> blockHash) {
         Map<byte[], byte[]> dumped = new ByteArrayMap<>();
-        for(byte[] h: blockHash){
+        for (byte[] h : blockHash) {
             dumped.putAll(getTrieByBlockHash(h).dump());
         }
         getTrieStore().clear();
-        if(getTrieStore() instanceof BatchStore){
+        if (getTrieStore() instanceof BatchStore) {
             ((BatchStore<byte[], byte[]>) getTrieStore()).putAll(dumped.entrySet());
             return;
         }

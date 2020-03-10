@@ -137,6 +137,7 @@ message Block {
     bytes n_bits = 8;
     bytes nonce = 9;
     repeated Transaction body = 10;
+    bytes account_state_trie_root = 11;
 }
 
 message GetMerkleTransactions{

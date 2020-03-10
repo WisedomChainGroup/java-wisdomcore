@@ -4,13 +4,16 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.protobuf.ByteString;
 import lombok.SneakyThrows;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArraySet;
+import org.tdf.common.util.FastByteComparisons;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
@@ -18,6 +21,8 @@ import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.CompositeBlockRule;
 import org.wisdom.core.validate.Result;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
@@ -76,6 +81,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private ScheduledExecutorService executorService;
 
     private SyncConfig syncConfig;
+
+    @Autowired
+    private AccountStateTrie accountStateTrie;
 
     public SyncManager(SyncConfig syncConfig) {
         this.proposalCache = Caffeine
@@ -182,6 +190,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = repository.getBlocksBetween(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        blocksToSend.forEach(x -> x.accountStateTrieRoot = accountStateTrie.getTrieByBlockHash(x.getHash()).getRootHash());
         if (blocksToSend == null || blocksToSend.size() == 0) {
             return;
         }
@@ -328,6 +337,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     continue;
                 }
                 iterator.remove();
+                Trie<byte[], AccountState> accountState = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock);
+                byte[] root = accountStateTrie.commit(accountState.asMap(), block.getHash());
+                if (!FastByteComparisons.equal(root, block.accountStateTrieRoot)) {
+                    throw new RuntimeException("accountStateTrieRoot is not equal, block height is " + block.nHeight);
+                }
                 repository.writeBlock(b);
             }
         } finally {

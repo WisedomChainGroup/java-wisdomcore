@@ -70,6 +70,7 @@ public class Utils {
         b.nBits = bk.getNBits().toByteArray();
         b.nNonce = bk.getNonce().toByteArray();
         b.body = new ArrayList<>();
+        b.accountStateTrieRoot = bk.getAccountStateTrieRoot().toByteArray();
         if (bk.getBodyList() == null || bk.getBodyList().size() == 0) {
             return b;
         }
@@ -112,7 +113,8 @@ public class Utils {
                 .setHeight((int) block.nHeight)
                 .setCreatedAt((int) block.nTime)
                 .setNBits(ByteString.copyFrom(getBytes(block.nBits)))
-                .setNonce(ByteString.copyFrom(getBytes(block.nNonce)));
+                .setNonce(ByteString.copyFrom(getBytes(block.nNonce)))
+                .setAccountStateTrieRoot(ByteString.copyFrom(block.accountStateTrieRoot));
 
         if (block.body == null || block.body.size() == 0) {
             return bd.build();

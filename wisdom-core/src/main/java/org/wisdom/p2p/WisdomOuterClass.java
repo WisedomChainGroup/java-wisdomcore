@@ -8948,6 +8948,11 @@ public final class WisdomOuterClass {
      */
     org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder getBodyOrBuilder(
         int index);
+
+    /**
+     * <code>bytes account_state_trie_root = 11;</code>
+     */
+    com.google.protobuf.ByteString getAccountStateTrieRoot();
   }
   /**
    * Protobuf type {@code Block}
@@ -8969,6 +8974,7 @@ public final class WisdomOuterClass {
       nBits_ = com.google.protobuf.ByteString.EMPTY;
       nonce_ = com.google.protobuf.ByteString.EMPTY;
       body_ = java.util.Collections.emptyList();
+      accountStateTrieRoot_ = com.google.protobuf.ByteString.EMPTY;
     }
 
     @java.lang.Override
@@ -9047,6 +9053,11 @@ public final class WisdomOuterClass {
               }
               body_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.Transaction.parser(), extensionRegistry));
+              break;
+            }
+            case 90: {
+
+              accountStateTrieRoot_ = input.readBytes();
               break;
             }
             default: {
@@ -9201,6 +9212,15 @@ public final class WisdomOuterClass {
       return body_.get(index);
     }
 
+    public static final int ACCOUNT_STATE_TRIE_ROOT_FIELD_NUMBER = 11;
+    private com.google.protobuf.ByteString accountStateTrieRoot_;
+    /**
+     * <code>bytes account_state_trie_root = 11;</code>
+     */
+    public com.google.protobuf.ByteString getAccountStateTrieRoot() {
+      return accountStateTrieRoot_;
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -9244,6 +9264,9 @@ public final class WisdomOuterClass {
       }
       for (int i = 0; i < body_.size(); i++) {
         output.writeMessage(10, body_.get(i));
+      }
+      if (!accountStateTrieRoot_.isEmpty()) {
+        output.writeBytes(11, accountStateTrieRoot_);
       }
       unknownFields.writeTo(output);
     }
@@ -9294,6 +9317,10 @@ public final class WisdomOuterClass {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(10, body_.get(i));
       }
+      if (!accountStateTrieRoot_.isEmpty()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(11, accountStateTrieRoot_);
+      }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
       return size;
@@ -9329,6 +9356,8 @@ public final class WisdomOuterClass {
           .equals(other.getNonce())) return false;
       if (!getBodyList()
           .equals(other.getBodyList())) return false;
+      if (!getAccountStateTrieRoot()
+          .equals(other.getAccountStateTrieRoot())) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -9362,6 +9391,8 @@ public final class WisdomOuterClass {
         hash = (37 * hash) + BODY_FIELD_NUMBER;
         hash = (53 * hash) + getBodyList().hashCode();
       }
+      hash = (37 * hash) + ACCOUNT_STATE_TRIE_ROOT_FIELD_NUMBER;
+      hash = (53 * hash) + getAccountStateTrieRoot().hashCode();
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -9520,6 +9551,8 @@ public final class WisdomOuterClass {
         } else {
           bodyBuilder_.clear();
         }
+        accountStateTrieRoot_ = com.google.protobuf.ByteString.EMPTY;
+
         return this;
       }
 
@@ -9566,6 +9599,7 @@ public final class WisdomOuterClass {
         } else {
           result.body_ = bodyBuilder_.build();
         }
+        result.accountStateTrieRoot_ = accountStateTrieRoot_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -9667,6 +9701,9 @@ public final class WisdomOuterClass {
               bodyBuilder_.addAllMessages(other.body_);
             }
           }
+        }
+        if (other.getAccountStateTrieRoot() != com.google.protobuf.ByteString.EMPTY) {
+          setAccountStateTrieRoot(other.getAccountStateTrieRoot());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -10188,6 +10225,35 @@ public final class WisdomOuterClass {
           body_ = null;
         }
         return bodyBuilder_;
+      }
+
+      private com.google.protobuf.ByteString accountStateTrieRoot_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>bytes account_state_trie_root = 11;</code>
+       */
+      public com.google.protobuf.ByteString getAccountStateTrieRoot() {
+        return accountStateTrieRoot_;
+      }
+      /**
+       * <code>bytes account_state_trie_root = 11;</code>
+       */
+      public Builder setAccountStateTrieRoot(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        accountStateTrieRoot_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bytes account_state_trie_root = 11;</code>
+       */
+      public Builder clearAccountStateTrieRoot() {
+        
+        accountStateTrieRoot_ = getDefaultInstance().getAccountStateTrieRoot();
+        onChanged();
+        return this;
       }
       @java.lang.Override
       public final Builder setUnknownFields(
@@ -16643,43 +16709,43 @@ public final class WisdomOuterClass {
       "\0162\020.TransactionType\022\r\n\005nonce\030\003 \001(\004\022\014\n\004fr" +
       "om\030\004 \001(\014\022\021\n\tgas_price\030\005 \001(\004\022\016\n\006amount\030\006 " +
       "\001(\004\022\021\n\tsignature\030\007 \001(\014\022\n\n\002to\030\010 \001(\014\022\017\n\007pa" +
-      "yload\030\t \001(\014\"\343\001\n\005Block\022\017\n\007version\030\001 \001(\r\022\027" +
+      "yload\030\t \001(\014\"\204\002\n\005Block\022\017\n\007version\030\001 \001(\r\022\027" +
       "\n\017hash_prev_block\030\002 \001(\014\022\030\n\020hash_merkle_r" +
       "oot\030\003 \001(\014\022\031\n\021hash_merkle_state\030\004 \001(\014\022\034\n\024" +
       "hash_merkle_incubate\030\005 \001(\014\022\016\n\006height\030\006 \001" +
       "(\r\022\022\n\ncreated_at\030\007 \001(\r\022\016\n\006n_bits\030\010 \001(\014\022\r" +
       "\n\005nonce\030\t \001(\014\022\032\n\004body\030\n \003(\0132\014.Transactio" +
-      "n\"J\n\025GetMerkleTransactions\022\022\n\nblock_hash" +
-      "\030\001 \001(\014\022\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\"q\n" +
-      "\022MerkleTransactions\022\022\n\nblock_hash\030\001 \001(\014\022" +
-      "\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\022(\n\014merket" +
-      "_trans\030\003 \003(\0132\022.MerkleTransaction\"E\n\021Merk" +
-      "leTransaction\022!\n\013transaction\030\001 \001(\0132\014.Tra" +
-      "nsaction\022\r\n\005index\030\002 \001(\005\"C\n\014GetTreeNodes\022" +
-      "\022\n\nblock_hash\030\001 \001(\014\022\037\n\014parent_nodes\030\002 \003(" +
-      "\0132\t.TreeNode\"_\n\tTreeNodes\022\022\n\nblock_hash\030" +
-      "\001 \001(\014\022\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\022\037\n\014" +
-      "parent_nodes\030\003 \003(\0132\t.TreeNode\"R\n\010TreeNod" +
-      "e\022\014\n\004hash\030\001 \001(\t\022\r\n\005level\030\002 \001(\005\022\014\n\004name\030\003" +
-      " \001(\t\022\014\n\004data\030\004 \001(\t\022\r\n\005index\030\005 \001(\005*\362\001\n\004Co" +
-      "de\022\013\n\007NOTHING\020\000\022\010\n\004PING\020\001\022\010\n\004PONG\020\002\022\013\n\007L" +
-      "OOK_UP\020\003\022\t\n\005PEERS\020\004\022\016\n\nGET_STATUS\020\005\022\n\n\006S" +
-      "TATUS\020\006\022\016\n\nGET_BLOCKS\020\007\022\n\n\006BLOCKS\020\010\022\014\n\010P" +
-      "ROPOSAL\020\t\022\020\n\014TRANSACTIONS\020\n\022\034\n\030GET_MERKE" +
-      "LE_TRANSACTIONS\020\013\022\027\n\023MERKLE_TRANSACTIONS" +
-      "\020\014\022\022\n\016GET_TREE_NODES\020\r\022\016\n\nTREE_NODES\020\016*0" +
-      "\n\rClipDirection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_I" +
-      "NITIAL\020\001*\305\002\n\017TransactionType\022\014\n\010COINBASE" +
-      "\020\000\022\014\n\010TRANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT\020\003\022" +
-      "\036\n\032TRANSFER_MULTISIG_MULTISIG\020\004\022\034\n\030TRANS" +
-      "FER_MULTISIG_NORMAL\020\005\022\034\n\030TRANSFER_NORMAL" +
-      "_MULTISIG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOMIC_" +
-      "EXCHANGE\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_INTE" +
-      "REST\020\n\022\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n\014EX" +
-      "TRACT_COST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE\020\016\022" +
-      "\017\n\013EXIT_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010.Me" +
-      "ssage\032\010.Message\"\000B\020\n\016org.wisdom.p2pb\006pro" +
-      "to3"
+      "n\022\037\n\027account_state_trie_root\030\013 \001(\014\"J\n\025Ge" +
+      "tMerkleTransactions\022\022\n\nblock_hash\030\001 \001(\014\022" +
+      "\035\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\"q\n\022Merkle" +
+      "Transactions\022\022\n\nblock_hash\030\001 \001(\014\022\035\n\ntree" +
+      "_nodes\030\002 \003(\0132\t.TreeNode\022(\n\014merket_trans\030" +
+      "\003 \003(\0132\022.MerkleTransaction\"E\n\021MerkleTrans" +
+      "action\022!\n\013transaction\030\001 \001(\0132\014.Transactio" +
+      "n\022\r\n\005index\030\002 \001(\005\"C\n\014GetTreeNodes\022\022\n\nbloc" +
+      "k_hash\030\001 \001(\014\022\037\n\014parent_nodes\030\002 \003(\0132\t.Tre" +
+      "eNode\"_\n\tTreeNodes\022\022\n\nblock_hash\030\001 \001(\014\022\035" +
+      "\n\ntree_nodes\030\002 \003(\0132\t.TreeNode\022\037\n\014parent_" +
+      "nodes\030\003 \003(\0132\t.TreeNode\"R\n\010TreeNode\022\014\n\004ha" +
+      "sh\030\001 \001(\t\022\r\n\005level\030\002 \001(\005\022\014\n\004name\030\003 \001(\t\022\014\n" +
+      "\004data\030\004 \001(\t\022\r\n\005index\030\005 \001(\005*\362\001\n\004Code\022\013\n\007N" +
+      "OTHING\020\000\022\010\n\004PING\020\001\022\010\n\004PONG\020\002\022\013\n\007LOOK_UP\020" +
+      "\003\022\t\n\005PEERS\020\004\022\016\n\nGET_STATUS\020\005\022\n\n\006STATUS\020\006" +
+      "\022\016\n\nGET_BLOCKS\020\007\022\n\n\006BLOCKS\020\010\022\014\n\010PROPOSAL" +
+      "\020\t\022\020\n\014TRANSACTIONS\020\n\022\034\n\030GET_MERKELE_TRAN" +
+      "SACTIONS\020\013\022\027\n\023MERKLE_TRANSACTIONS\020\014\022\022\n\016G" +
+      "ET_TREE_NODES\020\r\022\016\n\nTREE_NODES\020\016*0\n\rClipD" +
+      "irection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_INITIAL\020" +
+      "\001*\305\002\n\017TransactionType\022\014\n\010COINBASE\020\000\022\014\n\010T" +
+      "RANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT\020\003\022\036\n\032TRAN" +
+      "SFER_MULTISIG_MULTISIG\020\004\022\034\n\030TRANSFER_MUL" +
+      "TISIG_NORMAL\020\005\022\034\n\030TRANSFER_NORMAL_MULTIS" +
+      "IG\020\006\022\020\n\014ASSET_DEFINE\020\007\022\023\n\017ATOMIC_EXCHANG" +
+      "E\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_INTEREST\020\n\022" +
+      "\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n\014EXTRACT_C" +
+      "OST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE\020\016\022\017\n\013EXIT" +
+      "_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010.Message\032\010" +
+      ".Message\"\000B\020\n\016org.wisdom.p2pb\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -16777,7 +16843,7 @@ public final class WisdomOuterClass {
     internal_static_Block_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Block_descriptor,
-        new java.lang.String[] { "Version", "HashPrevBlock", "HashMerkleRoot", "HashMerkleState", "HashMerkleIncubate", "Height", "CreatedAt", "NBits", "Nonce", "Body", });
+        new java.lang.String[] { "Version", "HashPrevBlock", "HashMerkleRoot", "HashMerkleState", "HashMerkleIncubate", "Height", "CreatedAt", "NBits", "Nonce", "Body", "AccountStateTrieRoot", });
     internal_static_GetMerkleTransactions_descriptor =
       getDescriptor().getMessageTypes().get(14);
     internal_static_GetMerkleTransactions_fieldAccessorTable = new
