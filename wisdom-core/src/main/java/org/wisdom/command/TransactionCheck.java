@@ -1015,7 +1015,7 @@ public class TransactionCheck {
                 if (hashtimeblockGet.getOrigintext().replaceAll(" ", "").equals(""))
                     return APIResult.newFailed("Origintext Can not be empty");
                 //判断哈希与原文哈希是否一致
-                if (!Arrays.equals(SHA3Utility.sha3256(hashtimeblockGet.getOrigintext().replaceAll(" ", "").getBytes(StandardCharsets.UTF_8)), hashtimeblockTransfer.getHashresult()))
+                if (!Arrays.equals(SHA3Utility.sha3256(hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8)), hashtimeblockTransfer.getHashresult()))
                     return APIResult.newFailed("Origintext is wrong");
                 //当前Unix时间
                 Long nowTimestamp = System.currentTimeMillis() / 1000L;
@@ -1053,10 +1053,12 @@ public class TransactionCheck {
             byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
             if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash()))
                 return APIResult.newFailed("HashheightblockGet had been exited");
+            //判断原文不为空字符串
+            if (hashheightblockGet.getOrigintext().replaceAll(" ", "").equals(""));
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
             if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
                 //判断哈希与原文哈希是否一致
-                if (!Arrays.equals(SHA3Utility.sha3256(hashheightblockGet.getOrigintext().replaceAll(" ", "").getBytes(StandardCharsets.UTF_8)), hashheightblockTransfer.getHashresult()))
+                if (!Arrays.equals(SHA3Utility.sha3256(hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8)), hashheightblockTransfer.getHashresult()))
                     return APIResult.newFailed("Origintext is wrong");
                 if (hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
                     return APIResult.newFailed("Origintext Maximum exceeded");
