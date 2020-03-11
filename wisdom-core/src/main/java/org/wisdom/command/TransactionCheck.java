@@ -648,7 +648,7 @@ public class TransactionCheck {
                     if (accountState.get().getTokensMap().size() == 0) {
                         return APIResult.newFailed("Insufficient funds");
                     }
-                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to)))
+                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to).longValue()))
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -815,7 +815,7 @@ public class TransactionCheck {
                     } else {//其他代币
                         if (accountStateFrom.get().getTokensMap().size() == 0)
                             return APIResult.newFailed("Insufficient funds");
-                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
+                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash).longValue()) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
                 } else {
@@ -877,7 +877,7 @@ public class TransactionCheck {
                     } else {//其他代币
                         if (accountStateTo.get().getTokensMap().size() == 0)
                             return APIResult.newFailed("Insufficient funds");
-                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateTo.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
+                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateTo.get().getTokensMap().get(assetHash).longValue()) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
 
@@ -930,7 +930,7 @@ public class TransactionCheck {
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
                         return APIResult.newFailed("Insufficient funds");
-                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < hashtimeblockTransfer.getValue())
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash).longValue()) < hashtimeblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -978,7 +978,7 @@ public class TransactionCheck {
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
                         return APIResult.newFailed("Insufficient funds");
-                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < hashheightblockTransfer.getValue())
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash).longValue()) < hashheightblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
