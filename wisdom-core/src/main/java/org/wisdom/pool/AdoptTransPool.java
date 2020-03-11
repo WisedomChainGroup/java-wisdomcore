@@ -152,26 +152,26 @@ public class AdoptTransPool {
         int index = 0;
         for (Map.Entry<String, ConcurrentHashMap<String, TransPool>> entry : atpool.entrySet()) {
             List<TransPool> transPoolList = new ArrayList<>();
-            ByteArrayMap<Boolean> byteArrayMap=new ByteArrayMap<>();
+            ByteArrayMap<Boolean> byteArrayMap = new ByteArrayMap<>();
             Map<String, TransPool> maps = compare(entry.getValue());
             for (Map.Entry<String, TransPool> entry1 : maps.entrySet()) {
                 if (index < configuration.getMaxqpcount()) {
                     TransPool t = entry1.getValue();
                     Transaction transaction = t.getTransaction();
-                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 7 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
+                    if (transaction.type == 1 || transaction.type == 2 || transaction.type == 3 || transaction.type == 7 || transaction.type == 8 || transaction.type == 13 || transaction.type == 14 || transaction.type == 15) {
+                        //合约事务隔离
+                        if (transaction.type == Transaction.Type.CALL_CONTRACT.ordinal()) {
+                            byte[] payload = transaction.payload;
+                            if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
+                                if (byteArrayMap.containsKey(transaction.to)) {
+                                    break;
+                                }
+                                byteArrayMap.put(transaction.to, true);
+                            }
+                        }
                         transPoolList.add(t);
                         index++;
                     } else {//其他类型，保存一个退出
-                        //合约事务隔离
-                        if(transaction.type==Transaction.Type.CALL_CONTRACT.ordinal()){
-                            byte[] payload = transaction.payload;
-                            if (payload[0] == 0 || payload[0] == 2) {//更换拥有者或增发
-                                if(byteArrayMap.containsKey(transaction.to)){
-                                    break;
-                                }
-                                byteArrayMap.put(transaction.to,true);
-                            }
-                        }
                         transPoolList.add(t);
                         index++;
                         break;
