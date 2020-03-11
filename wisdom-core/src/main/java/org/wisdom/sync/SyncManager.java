@@ -341,7 +341,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 //                if (!FastByteComparisons.equal(root, block.accountStateTrieRoot)) {
 //                    throw new RuntimeException("accountStateTrieRoot is not equal, block height is " + block.nHeight);
 //                }
-                accountStateTrie.commit(block);
+                accountStateTrie.commit(b);
                 repository.writeBlock(b);
             }
         } finally {
