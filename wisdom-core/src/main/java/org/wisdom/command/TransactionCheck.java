@@ -484,12 +484,29 @@ public class TransactionCheck {
                     return APIResult.newFailed("M must be within the specified range");
             } else return APIResult.newFailed("N and M must be positive integer");
             //pubkeyList
-            if (ByteUtil.byteListsDistinct(multiple.getPubList()).size() != multiple.getMax())
+            if (multiple.getPubList().size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyList do not match max");
             if (!ByteUtil.byteListContains(multiple.getPubList(),from)) return APIResult.newFailed("From must be in payload");
             //signatureList
-            if (ByteUtil.byteListsDistinct(multiple.getSignatureList()).size() != multiple.getMax())
-                return APIResult.newFailed("SignatureList() do not match max");
+            if (multiple.getSignatureList().size() != multiple.getMax())
+                return APIResult.newFailed("SignatureList do not match max");
+            //pubkeyHashList
+            if (multiple.getPubkeyHashList().size() != multiple.getMax())
+                return APIResult.newFailed("PubkeyHashList do not match max");
+            //pubkeyHashList第一个元素必须与事务签发者一致
+            if (!Arrays.equals(multiple.getPubkeyHashList().get(0),KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(0))))
+                return APIResult.newFailed("The first from of fromPubkeyList is different form pubkeyHashList");
+            //验证pubkeyList 与 pubkeyHashList是否一致
+            int pubkeys = 0;
+            for (int i = 0;i<ByteUtil.byteListsDistinct(multiple.getPubList()).size();i++){
+                for (int j = 0;j<ByteUtil.byteListsDistinct(multiple.getPubkeyHashList()).size();j++){
+                    if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(ByteUtil.byteListsDistinct(multiple.getPubList()).get(i)),ByteUtil.byteListsDistinct(multiple.getPubkeyHashList()).get(j))){
+                        pubkeys++;
+                    }
+                }
+            }
+            if (pubkeys!=multiple.getMax())
+                return APIResult.newFailed("PubkeyList is different form PubkeyHashList");
             //构造签名原文
             byte[] from_version = new byte[1];
             from_version[0] = (byte) transaction.version;
@@ -737,6 +754,20 @@ public class TransactionCheck {
                 if (!accountStatePayloadTo.isPresent()) return  APIResult.newFailed("To multiple do not exist");
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
+            //fromlist 与 pubkeyhashList第一个元素一致
+            if (!Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(0)),multTransfer.getPubkeyHashList().get(0)))
+                return APIResult.newFailed("The first of fromlist is different from pubkeyhashList");
+            //fromlist 与 pubkeyhashList 一致
+            int froms = 0;
+            for (int i = 0;i<ByteUtil.byteListsDistinct(multTransfer.getFrom()).size();i++){
+                for (int j = 0;j<ByteUtil.byteListsDistinct(multTransfer.getPubkeyHashList()).size();j++){
+                    if (Arrays.equals(ByteUtil.byteListsDistinct(multTransfer.getPubkeyHashList()).get(j),KeystoreAction.pubkeybyteToPubkeyhashbyte(ByteUtil.byteListsDistinct(multTransfer.getFrom()).get(i)))){
+                        froms++;
+                    }
+                }
+            }
+            if (froms != ByteUtil.byteListsDistinct(multTransfer.getFrom()).size())
+                return APIResult.newFailed("Fromlist is different from pubkeyHashList");
             //构造签名原文
             byte[] version = new byte[1];
             version[0] = (byte) transaction.version;
@@ -749,7 +780,7 @@ public class TransactionCheck {
             //验证签名
             Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
             List<byte[]> emptyList = new ArrayList<>();
-            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue(),null);
+            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), emptyList, emptyList, multTransfer.getTo(), multTransfer.getValue(),multTransfer.getPubkeyHashList());
             byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
