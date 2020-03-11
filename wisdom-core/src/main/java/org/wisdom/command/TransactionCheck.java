@@ -521,8 +521,9 @@ public class TransactionCheck {
             from_multiple.setAssetHash(multiple.getAssetHash());
             from_multiple.setMax(multiple.getMax());
             from_multiple.setMin(multiple.getMin());
-            from_multiple.setPubList(multiple.getPubList());
+            from_multiple.setPubList(new ArrayList<>());
             from_multiple.setSignatureList(new ArrayList<>());
+            from_multiple.setPubkeyHashList(multiple.getPubkeyHashList());
             byte[] from_payload = from_multiple.RLPserialization();
             from_payload = ByteUtil.merge(new byte[]{0x01},from_payload);
             byte[] payloadLength = ByteUtil.intToBytes(from_payload.length);
@@ -779,8 +780,7 @@ public class TransactionCheck {
             byte[] amount = ByteUtil.longToBytes(0L);
             //验证签名
             Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
-            List<byte[]> emptyList = new ArrayList<>();
-            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), emptyList, emptyList, multTransfer.getTo(), multTransfer.getValue(),multTransfer.getPubkeyHashList());
+            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), new ArrayList<>(), new ArrayList<>(), multTransfer.getTo(), multTransfer.getValue(),multTransfer.getPubkeyHashList());
             byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
