@@ -877,7 +877,7 @@ public class TransactionCheck {
                     } else {//其他代币
                         if (accountStateTo.get().getTokensMap().size() == 0)
                             return APIResult.newFailed("Insufficient funds");
-                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
+                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateTo.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
 
