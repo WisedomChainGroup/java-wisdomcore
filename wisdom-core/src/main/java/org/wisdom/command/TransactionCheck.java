@@ -749,7 +749,7 @@ public class TransactionCheck {
             //验证签名
             Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
             List<byte[]> emptyList = new ArrayList<>();
-            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue());
+            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue(),null);
             byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
