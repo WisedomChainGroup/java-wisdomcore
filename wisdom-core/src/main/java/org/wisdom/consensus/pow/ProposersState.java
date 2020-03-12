@@ -35,8 +35,8 @@ import java.util.stream.Stream;
 public class ProposersState implements State<ProposersState> {
     public static Logger logger = LoggerFactory.getLogger(ProposersState.class);
     private static final long MINIMUM_PROPOSER_MORTGAGE = 100000 * EconomicModel.WDC;
-    private static final int MAXIMUM_PROPOSERS = getenv("MAXIMUM_PROPOSERS", 15);
-    public static final int COMMUNITY_MINER_JOINS_HEIGHT = getenv("COMMUNITY_MINER_JOINS_HEIGHT", 522215);
+    public static int MAXIMUM_PROPOSERS = 15;
+    public static int COMMUNITY_MINER_JOINS_HEIGHT = 522215;
 
     @Value("${wisdom.wip-1217.height}")
     @Setter

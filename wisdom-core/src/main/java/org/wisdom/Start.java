@@ -29,8 +29,11 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.UrlResource;
+import org.wisdom.consensus.pow.ProposersState;
+import org.wisdom.db.Candidate;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -71,8 +74,24 @@ public class Start {
                 return new NopLogger();
             }
         });
+        SpringApplication app = new SpringApplication(Start.class);
+        app.addInitializers(applicationContext -> {
+            Environment env = applicationContext.getEnvironment();
+            String constant = env.getProperty("wisdom.consensus.max-proposers");
+            if(constant != null && !constant.isEmpty()){
+                ProposersState.MAXIMUM_PROPOSERS = Integer.parseInt(constant);
+            }
+            constant = env.getProperty("wisdom.consensus.community-miner-joins-height");
+            if(constant != null && !constant.isEmpty()){
+                ProposersState.COMMUNITY_MINER_JOINS_HEIGHT = Integer.parseInt(constant);
+            }
+            constant = env.getProperty("wisdom.consensus.attenuation-eras");
+            if(constant != null && !constant.isEmpty()){
+                Candidate.ATTENUATION_ERAS = Integer.parseInt(constant);
+            }
+        });
 
-        SpringApplication.run(Start.class, args);
+        app.run(args);
     }
 
 

@@ -18,7 +18,7 @@ import java.util.Map;
 @NoArgsConstructor
 public class Candidate {
 
-    static final long ATTENUATION_ERAS = getenv("ATTENUATION_ERAS", 2160);
+    public static long ATTENUATION_ERAS = 2160;
 
     // 投票数每次衰减 10%
     static final BigFraction ATTENUATION_COEFFICIENT = new BigFraction(9, 10);
