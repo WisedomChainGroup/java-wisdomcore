@@ -188,15 +188,15 @@ public class NodeInfoController {
 
     @GetMapping(value = "/getAccumulatedByTransactionHash/{transactionHash}", produces = APPLICATION_JSON_VALUE)
     public Object getAccumulatedByAddress(@PathVariable("transactionHash") String transactionHash) throws Exception{
-        Block best = repository.getBestBlock();
         Transaction tx = repository.getLatestTransaction(Hex.decodeHex(transactionHash)).get();
         long currentEra = repository.getLatestEra();
         Candidate candidate = repository
                 .getLatestCandidate(tx.to)
                 .get();
         Map<String, Object> res = new HashMap<>();
+        org.wisdom.db.Vote v = candidate.getReceivedVotes().get(Hex.decodeHex(transactionHash));
         res.put("transactionHash", transactionHash);
-        res.put("accumulated", candidate.getReceivedVotes().get(Hex.decodeHex(transactionHash)).getAccumulated(currentEra));
+        res.put("accumulated", v == null ? 0 : v.getAccumulated(currentEra));
         return res;
     }
 
