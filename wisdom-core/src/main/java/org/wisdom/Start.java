@@ -30,6 +30,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.UrlResource;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.core.utxo.UTXOSets;
@@ -44,8 +45,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.wisdom.p2p.Peer;
+import org.wisdom.util.FileUtil;
 
 import java.io.IOException;
+import java.net.URL;
 
 /**
  * @author Roman Mandeleil
@@ -82,10 +85,7 @@ public class Start {
     @Bean
     public Genesis genesis(JSONEncodeDecoder codec, @Value("${wisdom.consensus.genesis}") String genesis)
             throws Exception {
-        Resource resource = new FileSystemResource(genesis);
-        if (!resource.exists()){
-            resource = new ClassPathResource(genesis);
-        }
+        Resource resource = FileUtil.getResource(genesis);
         return codec.decodeGenesis(IOUtils.toByteArray(resource.getInputStream()));
     }
 

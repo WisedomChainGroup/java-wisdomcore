@@ -18,10 +18,15 @@
 
 package org.wisdom.util;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.wisdom.core.state.State;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -78,5 +83,20 @@ public class FileUtil {
         } else {
             return false;
         }
+    }
+
+    public static Resource getResource(String s){
+        Resource r;
+        try{
+            URL url = new URL(s);
+            r = new UrlResource(url);
+            if(r.exists())
+                return r;
+        }catch (Exception ignored){
+
+        }
+        r = new FileSystemResource(s);
+        if(r.exists()) return r;
+        return new ClassPathResource(s);
     }
 }
