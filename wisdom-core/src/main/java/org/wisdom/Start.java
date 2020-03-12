@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,6 +61,7 @@ import java.net.URL;
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
+@Slf4j
 public class Start {
     private static final String CODE_ASSERTION_ENV = "ENABLE_CODE_ASSERTION";
 

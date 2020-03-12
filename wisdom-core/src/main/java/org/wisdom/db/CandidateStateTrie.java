@@ -19,6 +19,7 @@ import org.wisdom.core.Block;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
+import org.wisdom.util.FileUtil;
 
 import java.net.URI;
 import java.util.*;
@@ -106,10 +107,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         this.blockIntervalSwitchTo = blockIntervalSwitchTo;
         this.initialBlockInterval = initialBlockInterval;
 
-        Resource resource = new FileSystemResource(validatorsFile);
-        if (!resource.exists()) {
-            resource = new ClassPathResource(validatorsFile);
-        }
+        Resource resource = FileUtil.getResource(validatorsFile);
 
         initialProposers = Arrays.stream(
                 codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class)

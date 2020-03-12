@@ -90,10 +90,9 @@ public class FileUtil {
         try{
             URL url = new URL(s);
             r = new UrlResource(url);
-            if(r.exists())
-                return r;
+            if(r.exists()) return r;
         }catch (Exception ignored){
-
+            ignored.printStackTrace();
         }
         r = new FileSystemResource(s);
         if(r.exists()) return r;
