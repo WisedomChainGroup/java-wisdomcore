@@ -36,13 +36,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     protected abstract String getPrefix();
 
-    // root hash -> Trie
-    @Getter
-    protected Cache<HexBytes, Trie<byte[], T>> cache = Caffeine
-            .newBuilder()
-            .maximumSize(MAX_CACHE_SIZE)
-            .recordStats()
-            .build();
 
     @Getter(AccessLevel.PROTECTED)
     private AbstractStateUpdater<T> updater;
@@ -100,7 +93,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         data.forEach(trie::put);
         byte[] newRoot = trie.commit();
         trie.flush();
-        cache.asMap().putIfAbsent(HexBytes.fromBytes(trie.getRootHash()), ReadOnlyTrie.of(trie));
         getRootStore().put(blockHash, newRoot);
         return trie;
     }
@@ -111,9 +103,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 .get(blockHash)
                 .orElseThrow(RuntimeException::new);
 
-        return cache.get(HexBytes.fromBytes(root),
-                x -> this.getTrieByRootHash(x.getBytes())
-        );
+        return this.getTrieByRootHash(root);
     }
 
     public Trie<byte[], T> getTrieByRootHash(byte[] rootHash) {
@@ -128,7 +118,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         states.forEach(empty::put);
         getRootStore().put(blockHash, empty.commit());
         empty.flush();
-        cache.asMap().putIfAbsent(HexBytes.fromBytes(empty.getRootHash()), empty);
     }
 
     @Override
