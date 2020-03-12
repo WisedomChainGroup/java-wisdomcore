@@ -286,7 +286,7 @@ public class TransactionCheck {
                 }
             }
             //To必须为普通地址
-            if (type == 0x01 || type == 0x02){
+            if (type == 0x01 || type == 0x02 || type == 0x0d){
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
                 if (accountState.isPresent()){
                     if (accountState.get().getType() != 0)
