@@ -484,12 +484,29 @@ public class TransactionCheck {
                     return APIResult.newFailed("M must be within the specified range");
             } else return APIResult.newFailed("N and M must be positive integer");
             //pubkeyList
-            if (ByteUtil.byteListsDistinct(multiple.getPubList()).size() != multiple.getMax())
+            if (multiple.getPubList().size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyList do not match max");
             if (!ByteUtil.byteListContains(multiple.getPubList(),from)) return APIResult.newFailed("From must be in payload");
             //signatureList
-            if (ByteUtil.byteListsDistinct(multiple.getSignatureList()).size() != multiple.getMax())
-                return APIResult.newFailed("SignatureList() do not match max");
+            if (multiple.getSignatureList().size() != multiple.getMax())
+                return APIResult.newFailed("SignatureList do not match max");
+            //pubkeyHashList
+            if (multiple.getPubkeyHashList().size() != multiple.getMax())
+                return APIResult.newFailed("PubkeyHashList do not match max");
+            //pubkeyHashList第一个元素必须与事务签发者一致
+            if (!Arrays.equals(multiple.getPubkeyHashList().get(0),KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(0))))
+                return APIResult.newFailed("The first from of fromPubkeyList is different form pubkeyHashList");
+            //验证pubkeyList 与 pubkeyHashList是否一致
+            int pubkeys = 0;
+            for (int i = 0;i<ByteUtil.byteListsDistinct(multiple.getPubList()).size();i++){
+                for (int j = 0;j<ByteUtil.byteListsDistinct(multiple.getPubkeyHashList()).size();j++){
+                    if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(ByteUtil.byteListsDistinct(multiple.getPubList()).get(i)),ByteUtil.byteListsDistinct(multiple.getPubkeyHashList()).get(j))){
+                        pubkeys++;
+                    }
+                }
+            }
+            if (pubkeys!=multiple.getMax())
+                return APIResult.newFailed("PubkeyList is different form PubkeyHashList");
             //构造签名原文
             byte[] from_version = new byte[1];
             from_version[0] = (byte) transaction.version;
@@ -504,8 +521,9 @@ public class TransactionCheck {
             from_multiple.setAssetHash(multiple.getAssetHash());
             from_multiple.setMax(multiple.getMax());
             from_multiple.setMin(multiple.getMin());
-            from_multiple.setPubList(multiple.getPubList());
+            from_multiple.setPubList(new ArrayList<>());
             from_multiple.setSignatureList(new ArrayList<>());
+            from_multiple.setPubkeyHashList(multiple.getPubkeyHashList());
             byte[] from_payload = from_multiple.RLPserialization();
             from_payload = ByteUtil.merge(new byte[]{0x01},from_payload);
             byte[] payloadLength = ByteUtil.intToBytes(from_payload.length);
@@ -630,7 +648,7 @@ public class TransactionCheck {
                     if (accountState.get().getTokensMap().size() == 0) {
                         return APIResult.newFailed("Insufficient funds");
                     }
-                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to)))
+                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to).longValue()))
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -737,6 +755,20 @@ public class TransactionCheck {
                 if (!accountStatePayloadTo.isPresent()) return  APIResult.newFailed("To multiple do not exist");
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
+            //fromlist 与 pubkeyhashList第一个元素一致
+            if (!Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(0)),multTransfer.getPubkeyHashList().get(0)))
+                return APIResult.newFailed("The first of fromlist is different from pubkeyhashList");
+            //fromlist 与 pubkeyhashList 一致
+            int froms = 0;
+            for (int i = 0;i<ByteUtil.byteListsDistinct(multTransfer.getFrom()).size();i++){
+                for (int j = 0;j<ByteUtil.byteListsDistinct(multTransfer.getPubkeyHashList()).size();j++){
+                    if (Arrays.equals(ByteUtil.byteListsDistinct(multTransfer.getPubkeyHashList()).get(j),KeystoreAction.pubkeybyteToPubkeyhashbyte(ByteUtil.byteListsDistinct(multTransfer.getFrom()).get(i)))){
+                        froms++;
+                    }
+                }
+            }
+            if (froms != ByteUtil.byteListsDistinct(multTransfer.getFrom()).size())
+                return APIResult.newFailed("Fromlist is different from pubkeyHashList");
             //构造签名原文
             byte[] version = new byte[1];
             version[0] = (byte) transaction.version;
@@ -748,8 +780,7 @@ public class TransactionCheck {
             byte[] amount = ByteUtil.longToBytes(0L);
             //验证签名
             Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
-            List<byte[]> emptyList = new ArrayList<>();
-            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), multTransfer.getFrom(), emptyList, multTransfer.getTo(), multTransfer.getValue());
+            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), new ArrayList<>(), new ArrayList<>(), multTransfer.getTo(), multTransfer.getValue(),multTransfer.getPubkeyHashList());
             byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
@@ -784,7 +815,7 @@ public class TransactionCheck {
                     } else {//其他代币
                         if (accountStateFrom.get().getTokensMap().size() == 0)
                             return APIResult.newFailed("Insufficient funds");
-                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
+                        if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash).longValue()) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
                 } else {
@@ -846,7 +877,7 @@ public class TransactionCheck {
                     } else {//其他代币
                         if (accountStateTo.get().getTokensMap().size() == 0)
                             return APIResult.newFailed("Insufficient funds");
-                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < multTransfer.getValue())
+                        if ((accountStateTo.get().getTokensMap().get(assetHash) == null ? 0 : accountStateTo.get().getTokensMap().get(assetHash).longValue()) < multTransfer.getValue())
                             return APIResult.newFailed("Insufficient funds");
                     }
 
@@ -899,7 +930,7 @@ public class TransactionCheck {
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
                         return APIResult.newFailed("Insufficient funds");
-                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < hashtimeblockTransfer.getValue())
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash).longValue()) < hashtimeblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -947,7 +978,7 @@ public class TransactionCheck {
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
                         return APIResult.newFailed("Insufficient funds");
-                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash)) < hashheightblockTransfer.getValue())
+                    if ((accountStateFrom.get().getTokensMap().get(assetHash) == null ? 0 : accountStateFrom.get().getTokensMap().get(assetHash).longValue()) < hashheightblockTransfer.getValue())
                         return APIResult.newFailed("Insufficient funds");
                 }
             } else {
@@ -1022,6 +1053,8 @@ public class TransactionCheck {
             byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
             if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash()))
                 return APIResult.newFailed("HashheightblockGet had been exited");
+            //判断原文不为空字符串
+            if (hashheightblockGet.getOrigintext().replaceAll(" ", "").equals(""));
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
             if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
                 //判断哈希与原文哈希是否一致

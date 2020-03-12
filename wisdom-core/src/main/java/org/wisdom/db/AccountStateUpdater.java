@@ -629,6 +629,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 account.setNonce(tx.nonce);
                 account.setBlockHeight(height);
                 accountState.setAccount(account);
+                state = false;
             }
             if (Arrays.equals(tx.to, account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
@@ -636,6 +637,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 tokenbalance -= multTransfer.getValue();
                 tokenMap.put(assetHash, tokenbalance);
                 accountState.setTokensMap(tokenMap);
+                state = false;
             }
             if (Arrays.equals(multTransfer.getTo(), account.getPubkeyHash())) {
                 Map<byte[], Long> tokenMap = accountState.getTokensMap();
@@ -646,6 +648,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 balance += multTransfer.getValue();
                 tokenMap.put(assetHash, balance);
                 accountState.setTokensMap(tokenMap);
+                state = false;
             }
         }
         if (state) {

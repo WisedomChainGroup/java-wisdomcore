@@ -28,6 +28,8 @@ public class MultTransfer implements AnalysisContract {
     private byte[] to;
     @RLP(5)
     private long value;
+    @RLP(6)
+    private List<byte[]> pubkeyHashList; //公钥哈希
 
     @Override
     public boolean RLPdeserialization(byte[] payload) {
@@ -41,6 +43,7 @@ public class MultTransfer implements AnalysisContract {
         this.signatures=multTransfer.getSignatures();
         this.to=multTransfer.getTo();
         this.value=multTransfer.getValue();
+        this.pubkeyHashList=multTransfer.getPubkeyHashList();
         return true;
     }
 
@@ -52,7 +55,8 @@ public class MultTransfer implements AnalysisContract {
                 .from(this.from)
                 .signatures(this.signatures)
                 .to(this.to)
-                .value(this.value).build());
+                .value(this.value)
+                .pubkeyHashList(this.pubkeyHashList).build());
     }
 
     public static MultTransfer getMultTransfer(byte[] Rlpbyte){

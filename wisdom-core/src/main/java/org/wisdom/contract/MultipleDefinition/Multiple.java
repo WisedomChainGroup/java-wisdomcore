@@ -29,6 +29,8 @@ public class Multiple implements AnalysisContract {
     private List<byte[]> pubList;//公钥
     @RLP(4)
     private List<byte[]> signatureList;//签名
+    @RLP(5)
+    private List<byte[]> pubkeyHashList;//公钥哈希
 
     private List<String> pubListAddress;
 
@@ -43,6 +45,7 @@ public class Multiple implements AnalysisContract {
         this.min = multiple.getMin();
         this.pubList = multiple.getPubList();
         this.signatureList = multiple.getSignatureList();
+        this.pubkeyHashList = multiple.getPubkeyHashList();
         return true;
     }
 
@@ -53,7 +56,8 @@ public class Multiple implements AnalysisContract {
                 .max(this.max)
                 .min(this.min)
                 .pubList(this.pubList)
-                .signatureList(this.signatureList).build());
+                .signatureList(this.signatureList)
+                .pubkeyHashList(this.pubkeyHashList).build());
     }
 
     private List<String> HexPubToAddressList() {
