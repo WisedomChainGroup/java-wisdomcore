@@ -29,6 +29,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.wisdom.util.FileUtil;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -75,10 +76,7 @@ public class ConsensusConfig {
                            @Value("${miner.validators}") String validatorsFile,
                            @Value("${wisdom.consensus.enable-mining}") boolean enableMining
     ) throws Exception {
-        Resource  resource = new FileSystemResource(validatorsFile);
-        if(!resource.exists()){
-            resource = new ClassPathResource(validatorsFile);
-        }
+        Resource  resource = FileUtil.getResource(validatorsFile);
         if (enableMining) {
             minerPubKeyHash = KeystoreAction.addressToPubkeyHash(coinbase);
             logger.info("mining is enabled, your coin base address is " + coinbase);
