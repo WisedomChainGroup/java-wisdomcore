@@ -18,7 +18,9 @@
 
 package org.wisdom.util;
 
+import lombok.NonNull;
 import org.bouncycastle.util.encoders.Hex;
+import org.tdf.common.util.ByteArraySet;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,6 +33,7 @@ import java.nio.ByteBuffer;
 
 import java.util.*;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ByteUtil {
 
@@ -832,6 +835,18 @@ public class ByteUtil {
             if (Arrays.equals(list.get(i),bytes))  return true;
         }
         return false;
+    }
+
+    public static boolean containsDuplicate(@NonNull List<byte[]> a){
+        Set<byte[]> s = new ByteArraySet(a);
+        return s.size() != a.size();
+    }
+
+    public static List<byte[]> intersect(@NonNull List<byte[]> a,@NonNull  List<byte[]> b){
+        Set<byte[]> as = new ByteArraySet(a);
+        return b.stream()
+                .filter(as::contains)
+                .collect(Collectors.toList());
     }
 
     //去重
