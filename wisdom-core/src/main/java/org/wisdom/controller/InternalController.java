@@ -146,9 +146,7 @@ public class InternalController {
                         "accountTrieCache", "candidateTrieCache");
 
         List<Cache<?, ?>> caches = Arrays.asList(
-                bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache(),
-                accountStateTrie.getCache(), candidateStateTrie.getCache()
-        );
+                bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache());
 
         for (int i = 0; i < keys.size(); i++) {
             hitRate.put(keys.get(i), caches.get(i).stats().hitRate());
