@@ -839,7 +839,7 @@ public class ByteUtil {
         List<byte[]> list = new ArrayList<>();
         if (a == null) return list;
         for(int i = 0;i < a.size();i++){
-            for(int j = i+1;j < a.size();j++){
+            for(int j = a.size()-1;j>i;j--){
                 if(Arrays.equals(a.get(i),a.get(j))){
                     a.remove(j);
                 }
