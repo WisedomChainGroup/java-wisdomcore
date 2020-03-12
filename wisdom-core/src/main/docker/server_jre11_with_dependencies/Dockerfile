@@ -1,4 +1,4 @@
-FROM wisdomchain/jdk11
+FROM platten/alpine-oracle-jre8-docker
 RUN mkdir /app/
 RUN mkdir /genesis
 COPY build/*.json /genesis/
