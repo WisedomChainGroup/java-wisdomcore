@@ -5,10 +5,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jackson.JsonComponent;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
@@ -53,6 +50,30 @@ public class InternalController {
 
     @Autowired
     private BlocksDump blocksDump;
+
+
+    // 获取包含状态数的区块
+    @RequestMapping(method = RequestMethod.GET, value = "/internal/block/{id}", produces = "application/json")
+    public Object getBlock(@PathVariable("id") String id) {
+        Block b;
+        try {
+            int height = Integer.parseInt(id);
+            if (height < 0) {
+                b = wisdomRepository.getBestBlock();
+            } else {
+                b = bc.getBlockByHeight(height);
+            }
+            if (b == null) {
+                return ConsensusResult.ERROR("cannot find block at height = " + height);
+            }
+            if (b.nHeight == 0) {
+                b = b.toHeader();
+            }
+            return encodeDecoder.encode(b);
+        } catch (Exception e) {
+            return handleGetBlockByHash(id);
+        }
+    }
 
     // 获取 forkdb 里面的事务
     @GetMapping(value = "/internal/transaction/{transactionHash}", produces = "application/json")

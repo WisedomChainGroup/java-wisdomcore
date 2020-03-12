@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-#!/usr/bin/env bash
-
-#!/bin/bash
 #
 # This is a rather minimal example Argbash potential
 # Example taken from http://argbash.readthedocs.io/en/stable/example.html
@@ -108,6 +105,9 @@ pushd $PROJECT_ROOT/..
 $GRADLE_WRAPPER clean
 $GRADLE_WRAPPER copyDependencies
 
+rm -rf $CUR/build
+mkdir -p $CUR/build
+
 # copy dependencies to tempory directory
 cp $PROJECT_ROOT/build/libs/lib/*.jar $CUR/build
 cp $PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator.json $CUR/build
@@ -115,8 +115,9 @@ cp $PROJECT_ROOT/src/main/resources/genesis/wisdom-genesis-generator.json $CUR/b
 popd
 
 docker build -f $CUR/Dockerfile -t $_arg_image $CUR
-rm -rf $CUR/build/*
 
 if [[ $_arg_push == 'on' ]]; then
   docker push $_arg_image
 fi
+
+rm -rf $CUR/build
