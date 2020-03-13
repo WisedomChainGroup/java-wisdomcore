@@ -1,3 +1,5 @@
+![Docker](https://github.com/WisedomChainGroup/java-wisdomcore/workflows/Docker/badge.svg)
+
 # WisdomCore-J
 
 WisdomChain core procedure with java version
