@@ -310,7 +310,7 @@ dependencies {
     compile "io.grpc:grpc-stub:${gRPCVersion}"
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
     compile "org.iq80.leveldb:leveldb:${leveldbVersion}"
-    compile group: 'org.ethereum', name: 'leveldbjni-all', version: '1.18.3'
+    compile "org.fusesource.leveldbjni:leveldbjni-linux64:1.8"
 
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
