@@ -820,8 +820,8 @@ public class TransactionCheck {
                 if (multTransfer.getPubkeyHashList().size() != 1)
                     return APIResult.newFailed("Wrong length of pubkeyHashList");
                 //signaturesList
-//                if (multTransfer.getSignatures().size() != 1)
-//                    return APIResult.newFailed("Wrong length of signatures");
+                if (multTransfer.getSignatures().size() != 1)
+                    return APIResult.newFailed("Wrong length of signatures");
 
                 if(multTransfer.getSignatures() != null){
                     if (multTransfer.getSignatures().size() != 1){
@@ -854,11 +854,11 @@ public class TransactionCheck {
                 Multiple multiple = new Multiple();
                 if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
                     //fromlist
-//                    if (multTransfer.getFrom().size()>multiple.getMax() || multTransfer.getFrom().size()<multiple.getMin())
-//                        return APIResult.newFailed("Wrong length of fromlist");
+                    if (multTransfer.getFrom().size()>multiple.getMax() || multTransfer.getFrom().size()<multiple.getMin())
+                        return APIResult.newFailed("Wrong length of fromlist");
                     //signaturesList
-//                    if (multTransfer.getSignatures().size()>multiple.getMax() || multTransfer.getSignatures().size()<multiple.getMin())
-//                        return APIResult.newFailed("Wrong length of signatures");
+                    if (multTransfer.getSignatures().size()>multiple.getMax() || multTransfer.getSignatures().size()<multiple.getMin())
+                        return APIResult.newFailed("Wrong length of signatures");
                     //pubkeyHashList
                     if (multTransfer.getPubkeyHashList().size()>multiple.getMax() || multTransfer.getPubkeyHashList().size()<multiple.getMin())
                         return APIResult.newFailed("Wrong length of pubkeyHashList");
