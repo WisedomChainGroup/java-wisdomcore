@@ -1,18 +1,28 @@
 package org.wisdom.controller;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jackson.JsonComponent;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.Block;
+import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
-import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.StateDB;
+import org.wisdom.dao.TransactionQuery;
+import org.wisdom.db.AccountStateTrie;
+import org.wisdom.db.BlocksDump;
+import org.wisdom.db.CandidateStateTrie;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.util.Address;
+
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /internal/transaction/{} 包含未确认的事务
@@ -25,10 +35,16 @@ import org.wisdom.util.Address;
 @RestController
 public class InternalController {
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository wisdomRepository;
 
     @Autowired
-    private WisdomBlockChain bc;
+    private MemoryCachedWisdomBlockChain bc;
+
+    @Autowired
+    private AccountStateTrie accountStateTrie;
+
+    @Autowired
+    private CandidateStateTrie candidateStateTrie;
 
     @Autowired
     private JSONEncodeDecoder codec;
@@ -36,15 +52,25 @@ public class InternalController {
     @Autowired
     private OrphanBlocksManager manager;
 
+    @Autowired
+    private BlocksDump blocksDump;
+
+    // 根据区块哈希获取状态树根
+    // 获取 forkdb 里面的事务
+    @GetMapping(value = "/internal/trie-root/{hash}", produces = "application/json")
+    public Object getTrieRoot(@PathVariable("hash") String hash) throws Exception{
+        return HexBytes.fromBytes(accountStateTrie.getTrieByBlockHash(Hex.decodeHex(hash)).getRootHash());
+    }
+
     // 获取 forkdb 里面的事务
     @GetMapping(value = "/internal/transaction/{transactionHash}", produces = "application/json")
     public Object getTransaction(@PathVariable("transactionHash") String hash) {
         try {
-            Block best = stateDB.getBestBlock();
+            Block best = wisdomRepository.getBestBlock();
             byte[] h = Hex.decodeHex(hash.toCharArray());
-            Transaction tx = stateDB.getTransaction(best.getHash(), h);
-            if (tx != null) {
-                return codec.encodeTransaction(tx);
+            Optional<Transaction> tx = wisdomRepository.getTransactionAt(best.getHash(), h);
+            if (tx.isPresent()) {
+                return codec.encodeTransaction(tx.get());
             }
         } catch (Exception e) {
             return "invalid transaction hash hex string " + hash;
@@ -70,7 +96,7 @@ public class InternalController {
     // 获取 forkdb 区块高度
     @GetMapping(value = "/internal/height", produces = "application/json")
     public Object getHeight() {
-        return stateDB.getBestBlock().nHeight;
+        return wisdomRepository.getBestBlock().nHeight;
     }
 
     // 获取孤块池/forkdb 中的区块
@@ -80,11 +106,11 @@ public class InternalController {
             return codec.encodeBlocks(manager.getOrphans());
         }
         if (blockInfo.equals("unconfirmed")) {
-            return codec.encodeBlocks(stateDB.getAll());
+            return codec.encodeBlocks(wisdomRepository.getStaged());
         }
         try {
             byte[] hash = Hex.decodeHex(blockInfo);
-            return stateDB.getBlock(hash);
+            return wisdomRepository.getBlockByHash(hash);
         } catch (Exception e) {
             return getBlocksByHeight(blockInfo);
         }
@@ -93,77 +119,81 @@ public class InternalController {
     public Object getBlocksByHeight(String height) {
         try {
             long h = Long.parseLong(height);
-            return codec.encodeBlocks(stateDB.getBlocks(h, h, Integer.MAX_VALUE, false));
+            return codec.encodeBlocks(wisdomRepository.getBlocksBetween(h, h));
         } catch (Exception e) {
             return "invalid block path variable " + height;
         }
     }
 
-    @GetMapping(value = "/internal/getTxrecordFromAddress", produces = "application/json")
-    public Object getTransactionsByTo(
-            @RequestParam(value = "from", required = false) String from,
-            @RequestParam(value = "to", required = false) String to,
-            @RequestParam(value = "offset", required = false) Integer offset,
-            @RequestParam(value = "limit", required = false) Integer limit,
-            @RequestParam(value = "type", required = false) String type
+
+    @GetMapping(value = "/internal/dump")
+    public Object dump() {
+        Double status = blocksDump.getDumpStatus();
+        if (status != null) return status;
+        CompletableFuture.runAsync(() -> {
+            try {
+                blocksDump.dump();
+            } catch (Exception e) {
+                e.printStackTrace();
+                blocksDump.setDumpStatus(null);
+            }
+        });
+        status = blocksDump.getDumpStatus();
+        return status == null ? "dump success" : String.format("dump status %.2f %%", status * 100);
+    }
+
+
+    @GetMapping(value = "/internal/metric/cache")
+    public Object getCacheMetric() {
+        Map<String, Map<?, ?>> ret = new HashMap<>();
+        Map<String, Double> hitRate = new HashMap<>();
+        Map<String, Long> hits = new HashMap<>();
+        Map<String, Long> miss = new HashMap<>();
+        List<String> keys =
+                Arrays.asList("blocksCache", "headerCache", "hasBlockCache",
+                        "accountTrieCache", "candidateTrieCache");
+
+        List<Cache<?, ?>> caches = Arrays.asList(
+                bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache()
+        );
+
+        for (int i = 0; i < keys.size(); i++) {
+            hitRate.put(keys.get(i), caches.get(i).stats().hitRate());
+            hits.put(keys.get(i), caches.get(i).stats().hitCount());
+            miss.put(keys.get(i), caches.get(i).stats().missCount());
+        }
+
+        ret.put("hitRate", hitRate);
+        ret.put("hits", hits);
+        ret.put("miss", miss);
+        return ret;
+    }
+
+    @GetMapping(value = "/internal/metric/query")
+    public Object getQueryMetric() {
+        Map<String, Long> calls = bc.getCallsCounter();
+        Map<String, Long> consumings = bc.getTimeConsuming();
+        Map<String, String> ret = new HashMap<>();
+        calls.forEach((k, v) -> {
+            ret.put(k,
+                    String.format(
+                            "calls %d, total time consuming %d ms, average time consuming %f ms",
+                            calls.get(k),
+                            consumings.get(k),
+                            consumings.get(k) * 1.0 / calls.get(k)
+                    )
+            );
+        });
+        return ret;
+    }
+
+    @GetMapping(value = {
+            "/internal/getTxrecordFromAddress",
+            "/internal/transaction"
+    }, produces = "application/json")
+    public List<Transaction> getTransactionsByTo(
+            @ModelAttribute  @Validated TransactionQuery query
     ) {
-        Integer typeParsed = Transaction.getTypeFromInput(type);
-
-        if (from == null) {
-            from = "";
-        }
-        if (to == null) {
-            to = "";
-        }
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null || limit <= 0 ) {
-            limit = Integer.MAX_VALUE;
-        }
-
-        if (!from.equals("") && !to.equals("")) {
-            byte[] publicKey;
-            try {
-                publicKey = Hex.decodeHex(from);
-            } catch (Exception e) {
-                return e.getMessage();
-            }
-            if (typeParsed == null) {
-                return codec.encodeTransactions(
-                        stateDB.getTransactionsByFromAndTo(publicKey, Address.getPublicKeyHash(to), offset, limit)
-                );
-            }
-            return codec.encodeTransactions(
-                    stateDB.getTransactionsByFromToAndType(typeParsed, publicKey, Address.getPublicKeyHash(to), offset, limit)
-            );
-        }
-        if (!from.equals("")) {
-            byte[] publicKey;
-            try {
-                publicKey = Hex.decodeHex(from);
-            } catch (Exception e) {
-                return e.getMessage();
-            }
-            if (typeParsed == null) {
-                return codec.encodeTransactions(
-                        stateDB.getTransactionsByFrom(publicKey, offset, limit)
-                );
-            }
-            return codec.encodeTransactions(
-                    stateDB.getTransactionsByFromAndType(typeParsed, publicKey, offset, limit)
-            );
-        }
-        if (!to.equals("")) {
-            if (typeParsed == null) {
-                return codec.encodeTransactions(
-                        stateDB.getTransactionsByTo(Address.getPublicKeyHash(to), offset, limit)
-                );
-            }
-            return codec.encodeTransactions(
-                    stateDB.getTransactionsByToAndType(typeParsed, Address.getPublicKeyHash(to), offset, limit)
-            );
-        }
-        return "please provide from or to";
+        return wisdomRepository.getTransactionByQuery(query);
     }
 }

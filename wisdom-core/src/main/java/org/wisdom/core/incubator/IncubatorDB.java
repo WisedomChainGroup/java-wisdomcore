@@ -18,6 +18,7 @@
 
 package org.wisdom.core.incubator;
 
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -28,7 +29,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
+//@Component
+@Setter
+@Deprecated
 public class IncubatorDB {
 
     @Autowired
@@ -59,6 +62,39 @@ public class IncubatorDB {
             return tmpl.queryForObject(sql, new Object[]{tx}, new IncubatorRowMapper());
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    public Incubator selectIncubator(byte[] pubkeyhash,long height) {
+        try {
+            String sql = "select * from incubator_state s where s.pubkeyhash=? and s.height=?  limit 1";
+            return tmpl.queryForObject(sql, new Object[]{pubkeyhash,height}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public List<Incubator> getList(byte[] pubkeyhash,long height){
+        try {
+            String sql = "select a.* from incubator_state a left join (\n" +
+                    "select s.txid_issue,max(s.height) as height from incubator_state s where s.txid_issue in(\n" +
+                    "select i.txid_issue from incubator_state i where i.pubkeyhash=? and i.height<=?  group by i.txid_issue) \n" +
+                    "and s.height<=? group by s.txid_issue) aa on a.txid_issue=aa.txid_issue where a.height=aa.height";
+            return tmpl.query(sql, new Object[]{pubkeyhash,height,height}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    public List<Incubator> getShareList(byte[] pubkeyhash,long height){
+        try {
+            String sql = "select a.* from incubator_state a left join (\n" +
+                    "select s.txid_issue,max(s.height) as height from incubator_state s where s.txid_issue in(\n" +
+                    "select i.txid_issue from incubator_state i where i.share_pubkeyhash=? and i.height<=?  group by i.txid_issue) \n" +
+                    "and s.height<=? group by s.txid_issue) aa on a.txid_issue=aa.txid_issue where a.height=aa.height";
+            return tmpl.query(sql, new Object[]{pubkeyhash,height,height}, new IncubatorRowMapper());
+        } catch (Exception e) {
+            return new ArrayList<>();
         }
     }
 

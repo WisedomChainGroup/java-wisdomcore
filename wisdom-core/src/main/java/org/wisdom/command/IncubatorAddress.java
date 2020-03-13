@@ -27,4 +27,5 @@ public class IncubatorAddress {
     public static byte[] resultpubhash() {
         return KeystoreAction.addressToPubkeyHash(address);
     }
+
 }

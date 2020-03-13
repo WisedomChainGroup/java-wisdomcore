@@ -23,15 +23,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
-import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.protobuf.tcp.command.HatchModel;
-import org.wisdom.tools.TransactionTestTool;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
@@ -78,12 +77,18 @@ public class Transaction {
     public static final long[] GAS_TABLE = new long[]{
             0, 50000, 20000,
             100000, 50000, 50000,
-            50000, 50000, 50000,
+            100000, 100000, 100000,
             100000, 100000, 100000,
             100000, 20000, 20000, 20000
     };
 
     public Transaction() {
+    }
+
+    public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature, byte[] blockHash, long height) {
+        this(version, type, nonce, from, gasPrice, amount, payload, to, signature);
+        this.blockHash = blockHash;
+        this.height = height;
     }
 
     public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature) {
@@ -96,6 +101,13 @@ public class Transaction {
         this.payload = payload;
         this.to = to;
         this.signature = signature;
+        if (type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
+            contractType = payload[0];
+        }
+        if (type == Transaction.Type.CALL_CONTRACT.ordinal()) {
+            methodType = payload[0];
+            contractType = Transaction.getContract(methodType);
+        }
     }
 
     public Transaction copy() {
@@ -104,10 +116,12 @@ public class Transaction {
 
     public static final int TYPE_MAX = 16;
 
+    public static final int minFee = 200000;
+
     public enum Type {
         COINBASE, TRANSFER, VOTE,
         DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
-        TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
+        TRANSFER_NORMAL_MULTISIG, DEPLOY_CONTRACT, CALL_CONTRACT,
         INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
         EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
     }
@@ -115,7 +129,7 @@ public class Transaction {
     public static final Type[] TYPES_TABLE = new Type[]{
             Type.COINBASE, Type.TRANSFER, Type.VOTE,
             Type.DEPOSIT, Type.TRANSFER_MULTISIG_MULTISIG, Type.TRANSFER_MULTISIG_NORMAL,
-            Type.TRANSFER_NORMAL_MULTISIG, Type.ASSET_DEFINE, Type.ATOMIC_EXCHANGE,
+            Type.TRANSFER_NORMAL_MULTISIG, Type.DEPLOY_CONTRACT, Type.CALL_CONTRACT,
             Type.INCUBATE, Type.EXTRACT_INTEREST, Type.EXTRACT_SHARING_PROFIT,
             Type.EXTRACT_COST, Type.EXIT_VOTE, Type.MORTGAGE, Type.EXIT_MORTGAGE
     };
@@ -164,6 +178,12 @@ public class Transaction {
         res.amount = tx.getAmount();
         if (tx.getPayload() != null) {
             res.payload = tx.getPayload().toByteArray();
+            if (res.type == Type.DEPLOY_CONTRACT.ordinal()) {
+                res.contractType = res.payload[0];
+            } else if (res.type == Type.CALL_CONTRACT.ordinal()) {
+                res.methodType = res.payload[0];
+                res.contractType = getContract(res.methodType);
+            }
         }
         if (tx.getTo() != null) {
             res.to = tx.getTo().toByteArray();
@@ -172,6 +192,22 @@ public class Transaction {
             res.signature = tx.getSignature().toByteArray();
         }
         return res;
+    }
+
+    public static int getContract(int methodType) {
+        if (methodType >= 0 && methodType < 3) {
+            return 0;
+        }
+        if (methodType == 3) {
+            return 1;
+        }
+        if (methodType >= 4 && methodType < 6) {
+            return 2;
+        }
+        if (methodType > 5) {
+            return 3;
+        }
+        throw new RuntimeException("Illegal invocation contract " + methodType + " type");
     }
 
     // 防止 jackson 解析时报错
@@ -199,32 +235,41 @@ public class Transaction {
         return hashCache;
     }
 
+    @RLP(0)
     public int version;
 
+    @RLP(1)
     @Min(0)
     @Max(TYPE_MAX)
     public int type;
 
+    @RLP(2)
     @Min(0)
     public long nonce;
 
+    @RLP(3)
     @NotNull
     @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE)
     public byte[] from;
 
+    @RLP(4)
     // unit brain
     @Min(0)
     public long gasPrice;
 
+    @RLP(5)
     @Min(0)
     public long amount;
 
+    @RLP(6)
     public byte[] payload;
 
+    @RLP(7)
     @NotNull
     @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE)
     public byte[] to;
 
+    @RLP(8)
     @NotNull
     @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE)
     public byte[] signature;
@@ -368,6 +413,28 @@ public class Transaction {
         return Arrays.concatenate(new byte[]{(byte) version}, getHash(), Arrays.copyOfRange(raw, 1, raw.length));
     }
 
+    public int getContractType() {
+        return contractType;
+    }
+
+    public void setContractType(int contractType) {
+        this.contractType = contractType;
+    }
+
+    @JsonIgnore
+    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希,3:锁定高度哈希
+
+    @JsonIgnore
+    public int methodType;//调用合约方法类型
+
+    public int getMethodType() {
+        return methodType;
+    }
+
+    public void setMethodType(int methodType) {
+        this.methodType = methodType;
+    }
+
     public static Transaction fromRPCBytes(byte[] msg) {
         Transaction transaction = new Transaction();
         BytesReader reader = new BytesReader(msg);
@@ -393,6 +460,13 @@ public class Transaction {
 //            transaction.payload = reader.read(ByteUtil.byteArrayToInt(payloadLength));
 //        }
         transaction.payload = reader.read((int) payloadLength);
+        if (transaction.type == Type.DEPLOY_CONTRACT.ordinal()) {//部署合约
+            transaction.contractType = transaction.payload[0];
+        }
+        if (transaction.type == Type.CALL_CONTRACT.ordinal()) {//调用合约
+            transaction.methodType = transaction.payload[0];
+            transaction.contractType = getContract(transaction.methodType);
+        }
         return transaction;
     }
 
@@ -492,25 +566,4 @@ public class Transaction {
         }
         return tran.build();
     }
-
-    public static void main(String[] args) {
-        String json = "{\n" +
-                "    \"transactionHash\" : \"4ea9bf0a72af76cdc93d68e1205def4825108c855ae9a9fdb95593d79a58ecb8\",\n" +
-                "    \"version\" : 1,\n" +
-                "    \"type\" : 0,\n" +
-                "    \"nonce\" : 2,\n" +
-                "    \"from\" : \"0000000000000000000000000000000000000000000000000000000000000000\",\n" +
-                "    \"gasPrice\" : 0,\n" +
-                "    \"amount\" : 2000200000,\n" +
-                "    \"payload\" : null,\n" +
-                "    \"to\" : \"552f6d4390367de2b05f4c9fc345eeaaf0750db9\",\n" +
-                "    \"signature\" : \"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\n" +
-                "    \"blockHash\" : null,\n" +
-                "    \"fee\" : 0,\n" +
-                "    \"blockHeight\" : 0\n" +
-                "  }";
-        Transaction tx = new JSONEncodeDecoder().decodeTransaction(json.getBytes());
-        System.out.println(tx.getHashHexString());
-    }
-
 }

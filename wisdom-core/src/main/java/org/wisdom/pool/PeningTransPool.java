@@ -2,6 +2,7 @@ package org.wisdom.pool;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -9,16 +10,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.tdf.common.store.Store;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@Setter
 public class PeningTransPool {
 
     private static final Logger logger = LoggerFactory.getLogger(PeningTransPool.class);
@@ -29,8 +33,7 @@ public class PeningTransPool {
     @Autowired
     WisdomBlockChain wisdomBlockChain;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> leveldb;
 
     @Value("${wisdom.ceo.trace}")
     private boolean type;
@@ -43,16 +46,17 @@ public class PeningTransPool {
 
     private Map<String, PendingNonce> ptnonce;
 
-    public PeningTransPool() {
+    public PeningTransPool(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
         ptpool = new ConcurrentHashMap<>();
         ptnonce = new ConcurrentHashMap<>();
         try {
-            String dbdata = leveldb.readPoolDb("PendingPool");
-            if (dbdata != null && !dbdata.equals("")) {
-                List<TransPool> transPoolList = JSON.parseObject(dbdata, new TypeReference<ArrayList<TransPool>>() {
+            Optional<byte[]> dbdata = leveldb.get("PendingPool".getBytes(StandardCharsets.UTF_8));
+            dbdata.ifPresent(value->{
+                List<TransPool> transPoolList = JSON.parseObject(new String(value), new TypeReference<ArrayList<TransPool>>() {
                 });
                 add(transPoolList);
-            }
+            });
         } catch (Exception e) {
             ptpool = new ConcurrentHashMap<>();
             ptnonce = new ConcurrentHashMap<>();
@@ -275,7 +279,7 @@ public class PeningTransPool {
                     map.put(t.nonce, transPool);
                     ptpool.put(fromhash, map);
                     if (type == 2) {//2 进db
-                        if (t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
+                        if (t.type == 7 || t.type == 8 || t.type == 9 || t.type == 10 || t.type == 11 || t.type == 12) {//部署合约、调用合约、孵化、提取利息、提取分享、提取本金，单nonce进db修改为2
                             //ptnonce
                             nonceupdate(fromhash, t.nonce);
                         }
@@ -294,7 +298,7 @@ public class PeningTransPool {
     }
 
     public void updateNonce(int type, long nonce, String fromhash) {
-        if ( type == 9 || type == 10 || type == 11 || type == 12 ) {//孵化、提取利息、提取分享、提取本金，单nonce
+        if ( type == 7 || type == 8 || type == 9 || type == 10 || type == 11 || type == 12 ) {//部署合约、调用合约、孵化、提取利息、提取分享、提取本金，单nonce
             ptnonce.put(fromhash, new PendingNonce(nonce, 0));
         } else {
             ptnonce.put(fromhash, new PendingNonce(nonce, 2));

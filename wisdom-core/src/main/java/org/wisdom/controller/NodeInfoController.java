@@ -9,10 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.account.PublicKeyHash;
 import org.wisdom.consensus.pow.EconomicModel;
-import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.core.Block;
-import org.wisdom.db.AccountState;
-import org.wisdom.db.StateDB;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.db.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.Peer;
 import org.wisdom.p2p.PeerServer;
@@ -47,7 +46,7 @@ public class NodeInfoController {
     private boolean allowFork;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     private JSONEncodeDecoder encodeDecoder;
@@ -75,11 +74,11 @@ public class NodeInfoController {
     @GetMapping(value = "/peers/status", produces = "application/json")
     public Object getP2P() {
         Map<String, Object> info = new HashMap<>();
-        info.put("peers", peerServer.getPeers().stream().map(NodeInfoController::getPeerInfo));
-        info.put("bootstraps", peerServer.getBootstraps().stream().map(Peer::toString));
-        info.put("blockList", peerServer.getPeersCache().getBlocked().stream().map(NodeInfoController::getPeerInfo));
-        info.put("trusted", peerServer.getPeersCache().getTrusted().stream().map(Peer::toString));
-        info.put("self", peerServer.getSelf().toString());
+        info.put("peers", peerServer.getPeers());
+        info.put("bootstraps", peerServer.getBootstraps());
+        info.put("blockList", peerServer.getPeersCache().getBlocked());
+        info.put("trusted", peerServer.getPeersCache().getTrusted());
+        info.put("self", peerServer.getSelf());
         info.put("p2pMode", p2pMode);
         info.put("enableDiscovery", enableDiscovery);
         info.put("maxBlocksPerTransfer", maxBlocksPerTransfer);
@@ -89,12 +88,12 @@ public class NodeInfoController {
 
     @GetMapping(value = "/blocks/unconfirmed", produces = "application/json")
     public Object getNotConfirmed() {
-        return encodeDecoder.encodeBlocks(stateDB.getAll());
+        return encodeDecoder.encodeBlocks(repository.getStaged());
     }
 
     @GetMapping(value = "/proposers", produces = "application/json")
     public Object getProposers() {
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
         Map<String, Object> res = new HashMap<>();
         res.put("height", best.nHeight);
         if (allowMinersJoinEra >= 0) {
@@ -103,33 +102,37 @@ public class NodeInfoController {
         } else {
             res.put("enableMinerJoins", false);
         }
-        ProposersState proposersState = stateDB.getProposersFactory().getInstance(best);
-        res.put("proposers", proposersState.getProposers().stream().map(p -> p.publicKeyHash).toArray());
-        res.put("blockList", proposersState.getBlockList().map(this::toProposer));
-        res.put("votes", proposersState.getCandidates().stream().map(this::toProposer).toArray());
+        List<CandidateInfo> proposers = repository.getLatestTopCandidates();
+        List<CandidateInfo> blocksList = repository.getLatestBlockedCandidates();
+        res.put("proposers", proposers.stream()
+                .map(CandidateInfo::getPublicKeyHash)
+                .toArray()
+        );
+        res.put("blockList", blocksList.stream().map(this::toProposer).toArray());
+        res.put("votes", repository.getLatestCandidates().stream().map(this::toProposer).toArray());
         return res;
     }
 
-    private Map<String, Object> toProposer(ProposersState.Proposer p){
+    private Map<String, Object> toProposer(CandidateInfo candidate){
         Map<String, Object> m = new HashMap<>();
-        m.put("publicKeyHash", p.publicKeyHash);
-        m.put("amount", p.getAmount());
-        m.put("mortgage", p.mortgage);
-        m.put("accumulated", p.getAccumulated());
+        m.put("publicKeyHash", candidate.getPublicKeyHash());
+        m.put("amount", candidate.getAmount());
+        m.put("mortgage", candidate.getMortgage());
+        m.put("accumulated", candidate.getAccumulated());
         return m;
     }
 
     @GetMapping(value = "/account/{account}", produces = APPLICATION_JSON_VALUE)
     public Object getAccount(@PathVariable("account") String account) {
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
         Optional<PublicKeyHash> publicKeyHash = PublicKeyHash.fromHex(account);
         if (!publicKeyHash.isPresent()) {
             return "invalid account";
         }
-        AccountState state = stateDB.getAccount(best.getHash(), publicKeyHash.get().getPublicKeyHash());
-        if (state == null) {
-            return "database error";
-        }
+        AccountState state = repository
+                .getConfirmedAccountState(publicKeyHash.get().getPublicKeyHash())
+                .orElse(new AccountState(publicKeyHash.get().getPublicKeyHash()));
+
         state.getAccount().setBlockHeight(best.nHeight);
         return encodeDecoder.encode(new Account(
                 state.getAccount().getPubkeyHash(),
@@ -158,16 +161,21 @@ public class NodeInfoController {
 
     @GetMapping(value = "/votes/{account}", produces = APPLICATION_JSON_VALUE)
     public Object getVotes(@PathVariable("account") String account) {
-        Block best = stateDB.getBestBlock();
         Optional<PublicKeyHash> o = PublicKeyHash.fromHex(account);
         if (!o.isPresent()) {
             return "invalid account";
         }
+        long currentEra = repository.getLatestEra();
         PublicKeyHash publicKeyHash = o.get();
-        ProposersState state = stateDB.getProposersFactory().getInstance(best);
-        return state.getAll().get(publicKeyHash.getHex()).getReceivedVotes()
+        Optional<Candidate> o2 = repository
+                .getLatestCandidate(publicKeyHash.getPublicKeyHash());
+        if(!o2.isPresent()) return Collections.emptyList();
+        return  o2.get().getReceivedVotes()
                 .values().stream()
-                .map(x -> new Vote(x.from.getAddress(), x.amount, x.accumulated))
+                .map(x -> new Vote(
+                        new PublicKeyHash(x.getFrom()).getAddress(),
+                        x.getAmount(), x.getAccumulated(currentEra))
+                )
                 .collect(Collectors.groupingBy(
                         x -> x.address,
                         Collectors.reducing(new Vote(), (x, y) -> {
@@ -180,11 +188,15 @@ public class NodeInfoController {
 
     @GetMapping(value = "/getAccumulatedByTransactionHash/{transactionHash}", produces = APPLICATION_JSON_VALUE)
     public Object getAccumulatedByAddress(@PathVariable("transactionHash") String transactionHash) throws Exception{
-        Block best = stateDB.getBestBlock();
-        ProposersState state = stateDB.getProposersFactory().getInstance(best);
+        Transaction tx = repository.getLatestTransaction(Hex.decodeHex(transactionHash)).get();
+        long currentEra = repository.getLatestEra();
+        Candidate candidate = repository
+                .getLatestCandidate(tx.to)
+                .get();
         Map<String, Object> res = new HashMap<>();
+        org.wisdom.db.Vote v = candidate.getReceivedVotes().get(Hex.decodeHex(transactionHash));
         res.put("transactionHash", transactionHash);
-        res.put("accumulated", state.getAccumulatedByTransactionHash(Hex.decodeHex(transactionHash)).orElse(0L));
+        res.put("accumulated", v == null ? 0 : v.getAccumulated(currentEra));
         return res;
     }
 

@@ -20,21 +20,27 @@ package org.wisdom.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.wisdom.core.event.NewBlockEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.db.Leveldb;
-import org.wisdom.db.StateDB;
+import org.tdf.common.serialize.Codecs;
+import org.tdf.common.store.Store;
+import org.tdf.common.store.StoreWrapper;
+import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.ChainCacheImpl;
+import org.tdf.common.util.ChainedWrapper;
+import org.wisdom.core.event.NewBlockEvent;
+import org.wisdom.db.BlockWrapper;
+import org.wisdom.db.DatabaseStoreFactory;
+import org.wisdom.db.WisdomRepository;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
@@ -44,10 +50,16 @@ import java.util.stream.Collectors;
  */
 @Component
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
-    private BlocksCacheWrapper orphans;
+    private volatile long lock;
+
+    private ChainCache<BlockWrapper> orphans
+            = ChainCache.<BlockWrapper>builder()
+            .concurrentLevel(ChainCache.CONCURRENT_LEVEL_ONE)
+            .comparator(BlockWrapper.COMPARATOR)
+            .build();
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     private PendingBlocksManager pool;
@@ -57,93 +69,115 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(OrphanBlocksManager.class);
 
+    private Store<String, String> leveldb;
 
-    public OrphanBlocksManager() {
-        this.orphans = new BlocksCacheWrapper();
+    public OrphanBlocksManager(DatabaseStoreFactory factory) {
+        leveldb = new StoreWrapper<>(
+                factory.create("orphans", false)
+                , Codecs.STRING, Codecs.STRING);
     }
 
     private boolean isOrphan(Block block) {
-        return !stateDB.hasBlock(block.hashPrevBlock);
+        return !repository.containsBlock(block.hashPrevBlock);
     }
 
     public void addBlock(Block block) {
-        orphans.addBlock(block);
+        orphans.add(new BlockWrapper(block));
     }
 
     // remove orphans return writable blocks，过滤掉孤块
-    public BlocksCache removeAndCacheOrphans(List<Block> blocks) {
-        Block lastConfirmed = stateDB.getLastConfirmed();
-        BlocksCache cache = new BlocksCache(blocks.stream()
-                .filter(b -> b.nHeight > lastConfirmed.nHeight)
-                .collect(Collectors.toList())
-        );
-        BlocksCache res = new BlocksCache();
-        Block best = stateDB.getBestBlock();
-        for (Block init : cache.getInitials()) {
-            List<Block> descendantBlocks = cache.getDescendantBlocks(init);
-            if (!isOrphan(init)) {
-                res.addBlocks(descendantBlocks);
+    public ChainCache<BlockWrapper> removeAndCacheOrphans(List<Block> blocks) {
+        ChainCache<BlockWrapper> cache = ChainCache.<BlockWrapper>builder()
+                .comparator(BlockWrapper.COMPARATOR)
+                .build();
+
+        cache.addAll(blocks.stream().map(BlockWrapper::new)
+                .collect(Collectors.toList()));
+
+        ChainCache<BlockWrapper> ret = ChainCache.<BlockWrapper>builder()
+                .comparator(BlockWrapper.COMPARATOR).build();
+
+        Block best = repository.getBestBlock();
+        for (BlockWrapper init : cache.getInitials()) {
+            List<BlockWrapper> descendantBlocks =
+                    cache.getDescendants(init.getHash().getBytes());
+
+            if (!isOrphan(init.get())) {
+                ret.addAll(descendantBlocks);
                 continue;
             }
-            for (Block b : descendantBlocks) {
-                if (Math.abs(best.nHeight - b.nHeight) < orphanHeightsRange && !orphans.hasBlock(b.getHash())) {
-                    logger.info("add block at height = " + b.nHeight + " to orphans pool");
-                    addBlock(b);
+
+            for (BlockWrapper b : descendantBlocks) {
+                if (Math.abs(best.nHeight - b.get().nHeight) < orphanHeightsRange
+                        && !orphans.containsHash(b.getHash().getBytes())
+                ) {
+                    logger.info("add block at height = " + b.get().nHeight + " to orphans pool");
+                    addBlock(b.get());
                 }
             }
         }
-        return res;
+        return ret;
     }
 
     public List<Block> getInitials() {
-        return orphans.getInitials();
+        return orphans.getInitials()
+                .stream()
+                .map(BlockWrapper::get)
+                .collect(Collectors.toList());
     }
 
-    private void tryWriteNonOrphans() {
-        for (Block ini : orphans.getInitials()) {
-            if (!isOrphan(ini)) {
+    public void tryWriteNonOrphans() {
+        for (BlockWrapper ini : orphans.getInitials()) {
+            if (!isOrphan(ini.get())) {
                 logger.info("writable orphan block found in pool");
-                List<Block> descendants = orphans.getDescendantBlocks(ini);
-                orphans.deleteBlocks(descendants);
-                pool.addPendingBlocks(new BlocksCache(descendants));
+                List<BlockWrapper> descendants = orphans.getDescendants(ini.get().getHash());
+                orphans.removeAll(descendants);
+                pool.addPendingBlocks(
+                                descendants.stream()
+                                        .map(ChainedWrapper::get)
+                                        .collect(Collectors.toList())
+                );
             }
         }
     }
 
     @Override
     public void onApplicationEvent(NewBlockEvent event) {
-        tryWriteNonOrphans();
+        long now = System.currentTimeMillis();
+        if(now - lock < 1000) return;
+        lock = now;
+        CompletableFuture.runAsync(this::tryWriteNonOrphans);
     }
 
 
     // 定时清理距离当前高度已经被确认的区块
     @Scheduled(fixedRate = 30 * 1000)
     public void clearOrphans() {
-        Block lastConfirmed = stateDB.getLastConfirmed();
-        orphans.getAll().stream()
-                .filter(b -> b.nHeight <= lastConfirmed.nHeight || stateDB.hasBlock(b.getHash()))
-                .forEach(b -> orphans.deleteBlock(b));
+        Block lastConfirmed = repository.getLatestConfirmed();
+        orphans.stream()
+                .map(BlockWrapper::get)
+                .filter(b -> b.nHeight <= lastConfirmed.nHeight || repository.containsBlock(b.getHash()))
+                .forEach(b -> orphans.removeByHash(b.getHash()));
+        tryWriteNonOrphans();
     }
 
-    public List<Block> getOrphans(){
-        return orphans.getAll();
+    public List<Block> getOrphans() {
+        return orphans.stream()
+                .map(BlockWrapper::get)
+                .collect(Collectors.toList()
+                );
     }
 
 
-    @Autowired
-    private Leveldb leveldb;
-
-    @PreDestroy
     public void saveOrphanBlocks() {
         List<Block> list = getOrphans();
         String json = JSON.toJSONString(list, true);
-        leveldb.addPoolDb("OrphanBlocksPool", json);
+        leveldb.put("OrphanBlocksPool", json);
     }
 
-    @PostConstruct
     public void loadOrphanBlocks() {
-        String json = leveldb.readPoolDb("OrphanBlocksPool");
-        if (json != null && !json.equals("")) {
+        String json = leveldb.get("OrphanBlocksPool").orElse("");
+        if (!json.equals("")) {
             List<Block> blocks = JSON.parseObject(json, new TypeReference<ArrayList<Block>>() {
             });
             blocks.forEach(this::addBlock);

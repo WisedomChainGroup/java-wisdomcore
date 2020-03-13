@@ -20,20 +20,19 @@ package org.wisdom.controller;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.wisdom.ApiResult.APIResult;
-import org.wisdom.db.StateDB;
-import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.ipc.IpcConfig;
-import org.wisdom.service.CommandService;
-import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.wisdom.ApiResult.APIResult;
+import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.db.WisdomRepository;
+import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.ipc.IpcConfig;
+import org.wisdom.service.CommandService;
 import org.wisdom.sync.TransactionHandler;
 
 import java.util.Collections;
@@ -60,16 +59,13 @@ public class CommandController {
     JSONEncodeDecoder encodeDecoder;
 
     @Autowired
-    AccountDB accountDB;
-
-    @Autowired
     Block genesis;
 
     @Autowired
     RPCClient RPCClient;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository wisdomRepository;
 
     @Autowired
     private TransactionHandler transactionHandler;
@@ -78,16 +74,17 @@ public class CommandController {
     IpcConfig ipcConfig;
 
     @PostMapping(value = {"/sendTransaction", "/sendIncubator", "/sendInterest",
-            "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote"})
+            "/sendShare", "/sendDeposit", "/sendCost", "/sendVote", "/sendExitVote",
+            "/sendDeployContract", "/sendCallContract"})
     public Object sendTransaction(@RequestParam(value = "traninfo") String traninfo) {
         try {
             byte[] traninfos = Hex.decodeHex(traninfo.toCharArray());
             APIResult result = commandService.verifyTransfer(traninfos);
             if (result.getCode() == 2000) {
                 Transaction t = (Transaction) result.getData();
-                if(ipcConfig.getP2pMode().equals("rest")){
+                if (ipcConfig.getP2pMode().equals("rest")) {
                     RPCClient.broadcastTransactions(Collections.singletonList(t));
-                }else{
+                } else {
                     transactionHandler.broadcastTransactions(Collections.singletonList(t));
                 }
             }
@@ -110,10 +107,7 @@ public class CommandController {
                 return commandService.getTransactionList(height, types);
             }
         } catch (Exception e) {
-            APIResult apiResult = new APIResult();
-            apiResult.setCode(5000);
-            apiResult.setMessage("Error");
-            return apiResult;
+            return ConsensusResult.ERROR("Blockhash exception error");
         }
     }
 
@@ -122,16 +116,13 @@ public class CommandController {
         try {
             byte[] block_hash = Hex.decodeHex(blockhash.toCharArray());
             if (type == null || type.equals("")) {//默认转账事务
-                return commandService.getTransactionBlcok(block_hash, 1);
+                return commandService.getTransactionBlock(block_hash, 1);
             } else {
                 int types = Integer.valueOf(type);
-                return commandService.getTransactionBlcok(block_hash, types);
+                return commandService.getTransactionBlock(block_hash, types);
             }
         } catch (DecoderException e) {
-            APIResult apiResult = new APIResult();
-            apiResult.setCode(5000);
-            apiResult.setMessage("Error");
-            return apiResult;
+            return ConsensusResult.ERROR("Blockhash exception error");
         }
     }
 
@@ -142,9 +133,9 @@ public class CommandController {
         try {
             int height = Integer.parseInt(id);
             if (height < 0) {
-                b = stateDB.getBestBlock();
+                b = wisdomRepository.getBestBlock();
             } else {
-                b = bc.getCanonicalBlock(height);
+                b = bc.getBlockByHeight(height);
             }
             if (b == null) {
                 return ConsensusResult.ERROR("cannot find block at height = " + height);
@@ -161,7 +152,7 @@ public class CommandController {
     private Object handleGetBlockByHash(String hash) {
         try {
             byte[] h = Hex.decodeHex(hash);
-            Block b = bc.getBlock(h);
+            Block b = bc.getBlockByHash(h);
             if (b != null) {
                 return encodeDecoder.encodeBlock(b);
             }
@@ -201,14 +192,14 @@ public class CommandController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/height")
     public Object getCurrentHeight() {
-        Block current = bc.currentHeader();
+        Block current = bc.getTopHeader();
         return APIResult.newFailResult(APIResult.SUCCESS, "success", current.nHeight);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/transactionConfirmed")
     public Object getConfirms(@RequestParam("txHash") String hash) {
         try {
-            Block current = bc.currentHeader();
+            Block current = bc.getTopHeader();
             Transaction tx = bc.getTransaction(Hex.decodeHex(hash));
             long res = NOT_CONFIRMED;
             if (current.nHeight - tx.height > 2) {

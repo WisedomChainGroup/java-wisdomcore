@@ -12,7 +12,7 @@ public class WisdomChainTestConfig extends TestConfig {
     @Scope("prototype")
     public RDBMSBlockChainImpl getRDBMSBlockChainImpl(JdbcTemplate tpl, TransactionTemplate txtmpl, Block genesis, ApplicationContext ctx, BlockChainOptional blockChainOptional) throws Exception {
         clearData(tpl);
-        return new RDBMSBlockChainImpl(tpl, txtmpl, genesis, ctx, "", true, blockChainOptional, true);
+        return null;
     }
 
 }

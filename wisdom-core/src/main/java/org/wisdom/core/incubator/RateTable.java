@@ -19,6 +19,7 @@
 package org.wisdom.core.incubator;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import java.util.*;
 
 @Component
+@Setter
 public class RateTable {
 
     public List<Rate> ratemap=new ArrayList<>();

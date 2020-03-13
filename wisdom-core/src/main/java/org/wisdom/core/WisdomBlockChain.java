@@ -19,6 +19,7 @@
 package org.wisdom.core;
 
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionQuery;
 
 import java.util.List;
 
@@ -26,82 +27,79 @@ public interface WisdomBlockChain {
 
     Block getGenesis();
 
-    boolean hasBlock(byte[] hash);
+    boolean containsBlock(byte[] hash);
 
     // currentHeader retrieves the current head header of the canonical chain
-    Block currentHeader();
+    Block getTopHeader();
 
     // currentBlock retrieves the current head Block of the canonical chain
-    Block currentBlock();
+    Block getTopBlock();
 
     // getHeader retrieves a block header from the database by hash
-    Block getHeader(byte[] blockHash);
+    Block getHeaderByHash(byte[] blockHash);
 
-    Block getBlock(byte[] blockHash);
+    Block getBlockByHash(byte[] blockHash);
 
-    List<Block> getHeaders(long startHeight, int headersCount);
+    List<Block> getHeadersSince(long startHeight, int headersCount);
 
-    List<Block> getBlocks(long startHeight, int headersCount);
+    List<Block> getBlocksSince(long startHeight, int headersCount);
 
-    List<Block> getBlocks(long startHeight, long stopHeight);
+    List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
 
-    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit);
+    default List<Block> getHeadersBetween(long startHeight, long stopHeight, int sizeLimit){
+        return getHeadersBetween(startHeight, stopHeight, sizeLimit, false);
+    }
 
-    List<Block> getBlocks(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+    default List<Block> getHeadersBetween(long startHeight, long stopHeight){
+        return getHeadersBetween(startHeight, stopHeight, Integer.MAX_VALUE);
+    }
+
+    List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit, boolean clipInitial);
+
+    default List<Block> getBlocksBetween(long startHeight, long stopHeight, int sizeLimit){
+        return getBlocksBetween(startHeight, stopHeight, sizeLimit, false);
+    }
+
+    default List<Block> getBlocksBetween(long startHeight, long stopHeight){
+        return getBlocksBetween(startHeight, stopHeight, Integer.MAX_VALUE);
+    }
 
     // retrieves the header assigned to a canonical block number
-    Block getCanonicalHeader(long height);
-
-    List<Block> getCanonicalHeaders(long startHeight, int headersCount);
+    Block getHeaderByHeight(long height);
 
     // retrieves the block assigned to a canonical block number
-    Block getCanonicalBlock(long height);
-
-    // retrieves canonical blocks starts from the block number
-    List<Block> getCanonicalBlocks(long startHeight, int headersCount);
-
-    // lookup the whether the block is canonical
-    boolean isCanonical(byte[] hash);
+    Block getBlockByHeight(long height);
 
     // write the block to the database
     boolean writeBlock(Block block);
 
-    // find b's ancestor header at height of anum
-    Block findAncestorHeader(byte[] bhash, long anum);
+    List<Block> getAncestorHeaders(byte[] hash, long ancestorHeight);
 
-    // find b's ancestor block at height of anum
-    Block findAncestorBlock(byte[] bhash, long anum);
+    List<Block> getAncestorBlocks(byte[] hash, long ancestorHeight);
 
-    // find b's ancestor blocks until height of anum, both inclusive
-    List<Block> getAncestorHeaders(byte[] bhash, long anum);
+    long getTopHeight();
 
-    List<Block> getAncestorBlocks(byte[] bhash, long anum);
+    boolean containsTransaction(byte[] txHash);
 
-    long getCurrentTotalWeight();
+    boolean containsPayload(int type, byte[] payload);
 
-    boolean hasTransaction(byte[] txHash);
-
-    boolean hasPayload(int type, byte[] payload);
+    List<Transaction> getTransactionByQuery(TransactionQuery transactionQuery);
 
     Transaction getTransaction(byte[] txHash);
-
-    void writeBlocksAsync(List<Block> blocks);
 
     Transaction getTransactionByTo(byte[] pubKeyHash);
 
     List<Transaction> getTransactionsByFrom(byte[] publicKey, int offset, int limit);
 
-    List<Transaction> getTransactionsByFromAndType(int type, byte[] publicKey, int offset, int limit);
+    List<Transaction> getTransactionsByTypeAndFrom(int type, byte[] publicKey, int offset, int limit);
 
     List<Transaction> getTransactionsByTo(byte[] publicKeyHash, int offset, int limit);
 
-    List<Transaction> getTransactionsByToAndType(int type, byte[] publicKeyHash, int offset, int limit);
+    List<Transaction> getTransactionsByTypeAndTo(int type, byte[] to, int offset, int limit);
 
     List<Transaction> getTransactionsByFromAndTo(byte[] from, byte[] to, int offset, int limit);
 
-    List<Transaction> getTransactionsByFromToAndType(int type, byte[] from, byte[] to, int offset, int limit);
-
-    Block getLastConfirmedBlock();
+    List<Transaction> getTransactionsByTypeFromAndTo(int type, byte[] from, byte[] to, int offset, int limit);
 
     long countBlocksAfter(long timestamp);
 }

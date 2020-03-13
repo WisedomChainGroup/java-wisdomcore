@@ -19,16 +19,14 @@
 package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.FastByteComparisons;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
 import org.wisdom.crypto.HashUtil;
-import org.wisdom.db.StateDB;
-import org.wisdom.encoding.BigEndian;
-import org.wisdom.core.account.Account;
+import org.wisdom.db.*;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
-import org.wisdom.core.incubator.Incubator;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.OfficialIncubateBalanceRule;
 import org.slf4j.Logger;
@@ -46,6 +44,7 @@ import org.wisdom.pool.PeningTransPool;
 import org.wisdom.util.Address;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class Miner implements ApplicationListener {
@@ -69,7 +68,7 @@ public class Miner implements ApplicationListener {
     private WisdomBlockChain bc;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     private PendingBlocksManager pendingBlocksManager;
@@ -91,10 +90,15 @@ public class Miner implements ApplicationListener {
 
     @Autowired
     private CheckPointRule checkPointRule;
-    
+
     @Autowired
     private EconomicModel economicModel;
 
+    @Autowired
+    AccountStateUpdater accountStateUpdater;
+
+    @Autowired
+    AccountStateTrie accountStateTrie;
 
     public Miner() {
     }
@@ -102,26 +106,24 @@ public class Miner implements ApplicationListener {
     private Transaction createCoinBase(long height) throws Exception {
         Transaction tx = Transaction.createEmpty();
         tx.amount = economicModel.getConsensusRewardAtHeight(height);
-        tx.to = Hex.decodeHex(consensusConfig.getMinerPubKeyHash().toCharArray());
+        tx.to = consensusConfig.getMinerPubKeyHash();
         return tx;
     }
 
     private Block createBlock() throws Exception {
-        Block parent = stateDB.getBestBlock();
+        Block parent = repository.getBestBlock();
         Block block = new Block();
         block.nVersion = parent.nVersion;
         block.hashPrevBlock = parent.getHash();
 
         // merkle state root
         block.nHeight = parent.nHeight + 1;
-        TargetState targetState = stateDB.getTargetStateFactory().getInstance(block);
-        block.nBits = BigEndian.encodeUint256(targetState.getTarget());
+        block.nBits = repository.getTargetByParent(parent);
         block.nNonce = new byte[Block.HASH_SIZE];
         block.body = new ArrayList<>();
         block.body.add(createCoinBase(block.nHeight));
-        ValidatorState validatorState = stateDB.getValidatorStateFactory().getInstance(parent);
-        long nonce = validatorState.
-                getNonceFromPublicKeyHash(block.body.get(0).to);
+
+        long nonce = repository.getValidatorNonceAt(block.hashPrevBlock, consensusConfig.getMinerPubKeyHash());
 
         block.body.get(0).nonce = nonce + 1;
 
@@ -129,17 +131,17 @@ public class Miner implements ApplicationListener {
         List<Transaction> notWrittern = packageMiner.TransferCheck(parent.getHash(), block.nHeight, block);
 
         // 校验官方孵化余额
-        List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern);
+        List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern, parent.getHash());
         Set<String> payloads = new HashSet<>();
         for (Transaction tx : newTranList) {
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
-            if(isExit && tx.payload !=null && payloads.contains(Hex.encodeHexString(tx.payload))){
+            if (isExit && tx.payload != null && payloads.contains(Hex.encodeHexString(tx.payload))) {
                 String from = Hex.encodeHexString(Address.publicKeyToHash(tx.from));
                 peningTransPool.removeOne(from, tx.nonce);
                 adoptTransPool.removeOne(from, adoptTransPool.getKeyTrans(tx));
                 continue;
             }
-            if(isExit && tx.payload !=null){
+            if (isExit && tx.payload != null) {
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
             block.body.get(0).amount += tx.getFee();
@@ -149,13 +151,16 @@ public class Miner implements ApplicationListener {
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
 
-        Map<String, Object> merklemap = merkleRule.validateMerkle(block.body, block.nHeight);
-        List<Account> accountList = (List<Account>) merklemap.get("account");
-        List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
+        Map<byte[], AccountState> accountStateMap = accountStateUpdater.
+                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
+                        block.body.stream().map(tx -> {
+                            return new TransactionInfo(tx, block.nHeight);
+                        }).collect(Collectors.toList()));
+        List<AccountState> accountList = new ArrayList<>(accountStateMap.values());
         // hash merkle root
         block.hashMerkleRoot = Block.calculateMerkleRoot(block.body);
         block.hashMerkleState = Block.calculateMerkleState(accountList);
-        block.hashMerkleIncubate = Block.calculateMerkleIncubate(incubatorList);
+        block.hashMerkleIncubate = Block.calculateMerkleIncubate(new ArrayList<>());
         peningTransPool.updatePool(newTranList, 1, block.nHeight);
         return block;
     }
@@ -175,11 +180,17 @@ public class Miner implements ApplicationListener {
         if (!result.isSuccess()) {
             return;
         }
-        Block bestBlock = stateDB.getBestBlock();
+        Block bestBlock = repository.getBestBlock();
         // 判断是否轮到自己出块
-        Optional<Proposer> p = stateDB.getProposersFactory().getProposer(bestBlock, System.currentTimeMillis() / 1000);
+        Optional<Proposer> p;
+        try {
+            p = repository.getProposerByParentAndEpoch(bestBlock, System.currentTimeMillis() / 1000);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
         p.ifPresent(proposer -> {
-            if (!proposer.pubkeyHash.equals(consensusConfig.getMinerPubKeyHash())) {
+            if (!FastByteComparisons.equal(proposer.pubkeyHash, consensusConfig.getMinerPubKeyHash())) {
                 return;
             }
             try {
@@ -197,7 +208,7 @@ public class Miner implements ApplicationListener {
         if (event instanceof NewBlockMinedEvent) {
             Block o = ((NewBlockMinedEvent) event).getBlock();
             logger.info("new block mined event triggered");
-            pendingBlocksManager.addPendingBlocks(new BlocksCache(o));
+            pendingBlocksManager.addPendingBlock(o);
         }
         if (event instanceof NewBestBlockEvent && thread != null) {
             thread.terminate();

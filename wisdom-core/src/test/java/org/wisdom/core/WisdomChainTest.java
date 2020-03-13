@@ -58,7 +58,7 @@ public abstract class WisdomChainTest {
     @Test
     public void testGetChain() {
         WisdomBlockChain chain = getChain();
-        assert Arrays.areEqual(chain.getCanonicalHeader(0).getHash(), getGenesis().getHash());
+        assert Arrays.areEqual(chain.getHeaderByHeight(0).getHash(), getGenesis().getHash());
     }
 
     @Test
@@ -71,56 +71,56 @@ public abstract class WisdomChainTest {
     public void testHasBlock() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.hasBlock(getHeightOne().getHash());
+        assert bc.containsBlock(getHeightOne().getHash());
     }
 
     @Test
     public void testGetCurrentHeader() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert Arrays.areEqual(bc.currentHeader().getHash(), getHeightOne().getHash());
+        assert Arrays.areEqual(bc.getTopHeader().getHash(), getHeightOne().getHash());
     }
 
     @Test
     public void testGetCurrentBlock() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert Arrays.areEqual(bc.currentBlock().getHash(), getHeightOne().getHash());
+        assert Arrays.areEqual(bc.getTopBlock().getHash(), getHeightOne().getHash());
     }
 
     @Test
     public void testGetHeader() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.getHeader(getHeightOne().getHash()) != null;
+        assert bc.getHeaderByHash(getHeightOne().getHash()) != null;
     }
 
     @Test
     public void testGetBlock() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.getBlock(getHeightOne().getHash()) != null;
+        assert bc.getBlockByHash(getHeightOne().getHash()) != null;
     }
 
     @Test
     public void testGetHeaders() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.getHeaders(1, 1000).size() == 1;
+        assert bc.getHeadersBetween(1, 1000).size() == 1;
     }
 
     @Test
     public void testGetBlocks() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.getBlocks(1, 1000).size() == 1;
+        assert bc.getBlocksBetween(1, 1000).size() == 1;
     }
 
     @Test
     public void testGetCanonicalHeader() {
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert Arrays.areEqual(bc.getCanonicalHeader(1).getHash(), getHeightOne().getHash());
+        assert Arrays.areEqual(bc.getHeaderByHeight(1).getHash(), getHeightOne().getHash());
     }
 
     @Test
@@ -130,12 +130,12 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        List<Block> headers = bc.getCanonicalHeaders(0, 11);
+        List<Block> headers = bc.getHeadersBetween(0, 11);
         assert headers != null;
         assert headers.size() == 11;
         assert headers.get(0) != null;
         assert Arrays.areEqual(headers.get(0).getHash(), getGenesis().getHash());
-        assert Arrays.areEqual(headers.get(10).getHash(), bc.currentHeader().getHash());
+        assert Arrays.areEqual(headers.get(10).getHash(), bc.getTopHeader().getHash());
     }
 
     @Test
@@ -145,7 +145,7 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        Block block9 = bc.getCanonicalBlock(9);
+        Block block9 = bc.getBlockByHeight(9);
         assert block9 != null;
     }
 
@@ -156,7 +156,7 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        List<Block> canonicalBlocks = bc.getCanonicalBlocks(0, 10);
+        List<Block> canonicalBlocks = bc.getBlocksBetween(0, 10);
         assert canonicalBlocks != null;
         assert Arrays.areEqual(getGenesis().getHash(), canonicalBlocks.get(0).getHash());
         assert canonicalBlocks.size() == 10;
@@ -166,7 +166,7 @@ public abstract class WisdomChainTest {
     public void testIsCanonical(){
         WisdomBlockChain bc = getChain();
         bc.writeBlock(getHeightOne());
-        assert bc.isCanonical(getHeightOne().getHash());
+        assert bc.containsBlock(getHeightOne().getHash());
     }
 
     @Test
@@ -176,10 +176,11 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        Block currentHeader = bc.currentHeader();
-        Block foundHeader = bc.findAncestorHeader(currentHeader.getHash(), 0);
+        Block currentHeader = bc.getTopHeader();
+        List<Block> foundHeader = bc.getAncestorBlocks(currentHeader.getHash(), 0);
         assert foundHeader != null;
-        assert foundHeader.nHeight == 0;
+        assert foundHeader.size() == 0;
+        assert foundHeader.get(0).getnHeight() == 0L;
     }
 
     @Test
@@ -189,7 +190,7 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        Block currentHeader = bc.currentHeader();
+        Block currentHeader = bc.getTopHeader();
         List<Block> foundHeaders = bc.getAncestorHeaders(currentHeader.getHash(), 0);
         assert foundHeaders != null;
         assert foundHeaders.size() == currentHeader.nHeight + 1;
@@ -202,10 +203,10 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        Block currentHeader = bc.currentHeader();
-        Block b = bc.findAncestorBlock(currentHeader.getHash(), 0);
+        Block currentHeader = bc.getTopHeader();
+        List<Block> b = bc.getAncestorBlocks(currentHeader.getHash(), 0);
         assert b != null;
-        assert Arrays.areEqual(getGenesis().getHash(), b.getHash());
+        assert Arrays.areEqual(getGenesis().getHash(), b.get(0).getHash());
     }
 
     @Test
@@ -215,26 +216,16 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        Block currentHeader = bc.currentHeader();
-        Block b = bc.findAncestorBlock(currentHeader.getHash(), 0);
+        Block currentHeader = bc.getTopHeader();
+        List<Block> b = bc.getAncestorBlocks(currentHeader.getHash(), 0);
         assert b != null;
-        assert Arrays.areEqual(getGenesis().getHash(), b.getHash());
-    }
-
-    @Test
-    public void testGetCurrentTotalWeight(){
-        WisdomBlockChain bc = getChain();
-        List<Block> blocks = getHeightN(10, null);
-        for (Block b : blocks) {
-            bc.writeBlock(b);
-        }
-        assert bc.getCurrentTotalWeight() == 10;
+        assert Arrays.areEqual(getGenesis().getHash(), b.get(0).getHash());
     }
 
     @Test
     public void testHasTransaction() {
         WisdomBlockChain bc = getChain();
-        assert bc.hasTransaction(getGenesis().body.get(0).getHash());
+        assert bc.containsTransaction(getGenesis().body.get(0).getHash());
     }
 
     @Test
@@ -250,7 +241,7 @@ public abstract class WisdomChainTest {
         for (Block b : blocks) {
             bc.writeBlock(b);
         }
-        assert bc.getCanonicalHeader(10) != null;
+        assert bc.getHeaderByHeight(10) != null;
     }
 
     // test fork when a longer chain occurs
@@ -265,8 +256,8 @@ public abstract class WisdomChainTest {
         for (Block b : fork2) {
             bc.writeBlock(b);
         }
-        assert bc.isCanonical(fork2.get(9).getHash());
-        assert bc.isCanonical(fork2.get(5).getHash());
+        assert bc.containsBlock(fork2.get(9).getHash());
+        assert bc.containsBlock(fork2.get(5).getHash());
     }
 
 
@@ -288,9 +279,9 @@ public abstract class WisdomChainTest {
         }
         byte[] h = fork2.get(2).getHash();
         String hx = Hex.encodeHexString(h);
-        assert bc.isCanonical(h);
+        assert bc.containsBlock(h);
         h = fork2.get(5).getHash();
-        assert bc.isCanonical(h);
-        assert Arrays.areEqual(bc.currentHeader().getHash(), fork2.get(fork2.size() - 1).getHash());
+        assert bc.containsBlock(h);
+        assert Arrays.areEqual(bc.getTopHeader().getHash(), fork2.get(fork2.size() - 1).getHash());
     }
 }

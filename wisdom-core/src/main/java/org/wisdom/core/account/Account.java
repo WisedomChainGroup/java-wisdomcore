@@ -18,30 +18,32 @@
 
 package org.wisdom.core.account;
 
+import lombok.Builder;
 import org.apache.commons.codec.binary.Hex;
-import org.wisdom.encoding.BigEndian;
-import org.wisdom.util.ByteUtil;
+import org.tdf.rlp.RLP;
+
+import java.util.Arrays;
 
 public class Account {
-    private byte[] id;
-
+    @RLP(0)
     private long blockHeight;
-
+    @RLP(1)
     private byte[] pubkeyHash;
-
+    @RLP(2)
     private long nonce;
-
+    @RLP(3)
     private long balance;
-
+    @RLP(4)
     private long incubatecost;
-
+    @RLP(5)
     private long mortgage;
-
+    @RLP(6)
     private long vote;
 
     public Account() {
     }
 
+    @Builder
     public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote) {
         this.blockHeight = blockHeight;
         this.pubkeyHash = pubkeyHash;
@@ -50,18 +52,6 @@ public class Account {
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
         this.vote = vote;
-    }
-
-    public String getIdHexString() {
-        return Hex.encodeHexString(getId());
-    }
-
-    public byte[] getId() {
-        return ByteUtil.merge(pubkeyHash, BigEndian.encodeUint32(blockHeight));
-    }
-
-    public void setId(byte[] id) {
-        this.id = id;
     }
 
     public long getBlockHeight() {
@@ -123,4 +113,23 @@ public class Account {
     public Account copy() {
         return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Account account = (Account) o;
+        return blockHeight == account.blockHeight &&
+                nonce == account.nonce &&
+                balance == account.balance &&
+                incubatecost == account.incubatecost &&
+                mortgage == account.mortgage &&
+                vote == account.vote &&
+                Arrays.equals(pubkeyHash, account.pubkeyHash);
+    }
+
+    public String getKey(){
+        return Hex.encodeHexString(this.pubkeyHash);
+    }
+
 }

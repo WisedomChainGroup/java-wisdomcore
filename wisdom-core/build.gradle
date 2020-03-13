@@ -2,8 +2,24 @@ import java.text.SimpleDateFormat
 
 buildscript {
     repositories {
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/groups/public/'
+        }
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+        }
+        mavenLocal()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/TrustedDataFramework/java-rlp")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven { url "http://repo.springsource.org/plugins-release" }
         jcenter()
-        maven { url 'http://repo.spring.io/plugins-release' }
+        mavenCentral()
     }
     dependencies {
         classpath 'io.spring.gradle:propdeps-plugin:0.0.9.RELEASE'
@@ -26,6 +42,10 @@ plugins {
 apply plugin: 'propdeps-maven'
 apply plugin: 'com.jfrog.artifactory-upload'
 apply plugin: 'docker'
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
 
 processResources{
     exclude('genesis/wisdom-genesis-generator.json')
@@ -208,22 +228,33 @@ test {
 
 ext {
     slf4jVersion = '1.7.7'
-    leveldbVersion = '0.7'
+    leveldbVersion = '0.12'
     scastleVersion = '1.58.0.0'
     springVersion = '4.3.19.RELEASE'
     hibernateVersion = '4.3.7.Final'
     junitVersion = '4.11'
     springbootVersion = '2.1.0.RELEASE'
+    guavaVersion = '28.1-jre'
+    gRPCVersion = '1.25.0'
+    lombokVersion = '1.18.10'
+    commonsCliVersion = '1.4'
+    math3Version = '3.6'
+    commonsLang3Version = '3.4'
+    leveldbJNIVersion = '1.18'
+    jargon2Version = '1.1.1'
+    bouncycastleVersion = '1.61'
+    commonsCollections4Version = '4.0'
+    rocksdbVersion = '6.6.4'
 }
 
 dependencies {
 
-    compile "com.google.guava:guava:24.1-jre"
+    compile "com.google.guava:guava:${guavaVersion}"
     compile "org.slf4j:slf4j-api:${slf4jVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:2.5.1"
-    compile "org.apache.commons:commons-collections4:4.0"
-    compile "org.apache.commons:commons-lang3:3.4"
-    compile 'org.apache.commons:commons-math3:3.6'
+    compile "org.apache.commons:commons-collections4:${commonsCollections4Version}"
+    compile "org.apache.commons:commons-lang3:${commonsLang3Version}"
+    compile "org.apache.commons:commons-math3:${math3Version}"
     compile "commons-codec:commons-codec:1.10"
     compile "org.springframework:spring-context:${springVersion}"
     compile "com.typesafe:config:1.2.1"
@@ -245,11 +276,11 @@ dependencies {
 
     compile group: 'com.google.code.gson', name: 'gson', version: '2.8.5'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
-    compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.61'
+    compile "org.bouncycastle:bcprov-jdk15on:${bouncycastleVersion}"
     // https://mvnrepository.com/artifact/com.kosprov.jargon2/jargon2-api
-    compile group: 'com.kosprov.jargon2', name: 'jargon2-api', version: '1.1.1'
+    compile "com.kosprov.jargon2:jargon2-api:${jargon2Version}"
     // https://mvnrepository.com/artifact/com.kosprov.jargon2/jargon2-native-ri-backend
-    compile group: 'com.kosprov.jargon2', name: 'jargon2-native-ri-backend', version: '1.1.1'
+    compile "com.kosprov.jargon2:jargon2-native-ri-backend:${jargon2Version}"
     // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
     compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.6.1'
     // https://mvnrepository.com/artifact/net.sf.json-lib/json-lib
@@ -274,26 +305,39 @@ dependencies {
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.8'
 
     compile group: 'io.netty', name: 'netty-all', version: '4.1.42.Final'
-    compile 'io.grpc:grpc-netty-shaded:1.24.0'
-    compile 'io.grpc:grpc-protobuf:1.24.0'
-    compile 'io.grpc:grpc-stub:1.24.0'
+    compile "io.grpc:grpc-netty-shaded:${gRPCVersion}"
+    compile "io.grpc:grpc-protobuf:${gRPCVersion}"
+    compile "io.grpc:grpc-stub:${gRPCVersion}"
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
-    compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.7'
-    // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb-api
-    compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.7'
+    compile "org.iq80.leveldb:leveldb:${leveldbVersion}"
+    compile group: 'org.ethereum', name: 'leveldbjni-all', version: '1.18.3'
+
 
     compile group: 'org.quartz-scheduler', name: 'quartz',version: '2.2.3'
-    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile "commons-cli:commons-cli:${commonsCliVersion}"
     compile group: 'com.beust', name: 'jcommander', version: '1.72'
     compile group: 'io.jsonwebtoken', name: 'jjwt-api', version: '0.10.5'
     compile group: 'io.jsonwebtoken', name: 'jjwt-impl', version: '0.10.5'
     compile group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.10.5'
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    compile "org.rocksdb:rocksdbjni:${rocksdbVersion}"
+
+
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+
 
     compile fileTree(dir:'libs',include:['*.jar'])
     compile "org.springframework.boot:spring-boot-starter-actuator:${springbootVersion}"
     compile "org.springframework.boot:spring-boot-starter-security:${springbootVersion}"
 
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.5"
+    compile 'com.github.ben-manes.caffeine:caffeine:2.8.0'
+
+    compile "org.springframework.boot:spring-boot-starter-data-jpa:${springbootVersion}"
+    compile group: 'com.h2database', name: 'h2', version: '1.4.200'
 }
 
 
@@ -467,3 +511,5 @@ def prepareGithubTests() {
         }
     }
 }
+
+run.jvmArgs=['-Xms16g']

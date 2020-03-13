@@ -101,6 +101,12 @@ public class ByteUtil {
         return r;
     }
 
+    public static byte[] bytearrayridfirst(byte[] s){
+        byte[] t=new byte[s.length-1];
+        System.arraycopy(s,1,t,0,t.length);
+        return t;
+    }
+
     /**
      *
      * @param b

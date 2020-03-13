@@ -22,19 +22,18 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.db.AccountState;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
-import org.wisdom.keystore.crypto.RipemdUtility;
-import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.merkletree.MerkleTree;
 import org.wisdom.merkletree.TreeNode;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
-import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
 import org.slf4j.Logger;
@@ -51,9 +50,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 @Component
 public class Block {
@@ -125,11 +124,8 @@ public class Block {
         return new byte[32];
     }
 
-    public static byte[] calculateMerkleState(List<Account> accounts) {
-        List<String> hashes = new ArrayList<>();
-        for (Account account : accounts) {
-            hashes.add(account.getIdHexString());
-        }
+    public static byte[] calculateMerkleState(List<AccountState> accountStateList) {
+        List<String> hashes = accountStateList.stream().map(AccountState::getHexAccountState).collect(Collectors.toList());
         if (hashes.size() > 0) {
             try {
                 return Hex.decodeHex(new MerkleTree(hashes).getRoot().getHash().toCharArray());
@@ -226,43 +222,52 @@ public class Block {
     }
 
     // block version 0 ~ 2^32-1
+    @RLP(0)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
     public long nVersion;
 
+    @RLP(1)
     // parent block hash
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashPrevBlock;
 
     // merkle root of transactions
+    @RLP(2)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashMerkleRoot;
 
+    @RLP(3)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashMerkleState;
 
+    @RLP(4)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] hashMerkleIncubate;
 
     // 32bit unsigned block number
+    @RLP(5)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
     public long nHeight;
 
     // 32bit unsigned unix epoch
+    @RLP(6)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
     public long nTime;
 
+    @RLP(7)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] nBits;
 
     // random value from proposer 256bit, next block's seed
+    @RLP(8)
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
     public byte[] nNonce;
@@ -270,6 +275,7 @@ public class Block {
     @Size(max = MAX_NOTICE_LENGTH)
     public byte[] blockNotice;
 
+    @RLP(9)
     public List<Transaction> body;
 
     @JsonIgnore
@@ -320,7 +326,6 @@ public class Block {
         nTime = genesis.timestamp;
         // init initial pow target
         nBits = Hex.decodeHex(genesis.nBits.toCharArray());
-
         // add coin base
         for (Genesis.InitAmount el : genesis.alloc.initAmount) {
             Transaction tx = Transaction.createEmpty();

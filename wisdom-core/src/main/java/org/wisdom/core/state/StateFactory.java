@@ -25,6 +25,7 @@ import org.wisdom.db.StateDB;
  * @author sal 1564319846@qq.com
  * state factory, lru cached
  */
+@Deprecated // use state trie instead
 public class StateFactory<T extends State<T>> extends AbstractStateFactory<T> {
 
     public StateFactory(int cacheSize, T genesisState) {

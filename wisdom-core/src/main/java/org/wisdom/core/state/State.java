@@ -23,6 +23,7 @@ import org.wisdom.core.account.Transaction;
 
 import java.util.List;
 
+@Deprecated
 public interface State<T> {
     // transition and return self
     T updateBlock(Block block);

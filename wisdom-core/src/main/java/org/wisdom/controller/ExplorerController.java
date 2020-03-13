@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.pool.PeningTransPool;
 
@@ -47,7 +47,7 @@ public class ExplorerController {
     }
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Autowired
     AdoptTransPool adoptTransPool;
@@ -60,17 +60,17 @@ public class ExplorerController {
 
     @GetMapping(value = "/WisdomCore/ExplorerInfo")
     public Object getExplorerInfo() {
-        try{
-            long blocksCount = stateDB.countBlocksAfter(System.currentTimeMillis() / 1000 - 24 * 60 * 60);
-            String target = Hex.encodeHexString(stateDB.getBestBlock().nBits);
-            double avgInterval = stateDB.averageBlocksInterval();
-            long averageFee=stateDB.AverageFee();
-            int adoptcount=adoptTransPool.size();
-            int pengcount=peningTransPool.Unpacksize();
-            long lastConfirmedHeight=wisdomBlockChain.getCurrentTotalWeight();
-            long bestHeight=stateDB.getBestBlock().nHeight;
-            return APIResult.newFailResult(2000,"SUCCESS",new ExploreResult(blocksCount,target,avgInterval,averageFee,pengcount,adoptcount,lastConfirmedHeight,bestHeight));
-        }catch (Exception e){
+        try {
+            long blocksCount = repository.countBlocksAfter(System.currentTimeMillis() / 1000 - 24 * 60 * 60);
+            String target = Hex.encodeHexString(repository.getBestBlock().nBits);
+            double avgInterval = repository.getAverageBlocksInterval();
+            long averageFee = repository.getAverageFee();
+            int adoptcount = adoptTransPool.size();
+            int pengcount = peningTransPool.Unpacksize();
+            long lastConfirmedHeight = wisdomBlockChain.getTopHeight();
+            long bestHeight = repository.getBestBlock().nHeight;
+            return APIResult.newFailResult(2000, "SUCCESS", new ExploreResult(blocksCount, target, avgInterval, averageFee, pengcount, adoptcount, lastConfirmedHeight, bestHeight));
+        } catch (Exception e) {
             return APIResult.newFailResult(5000, "Exception error");
         }
     }

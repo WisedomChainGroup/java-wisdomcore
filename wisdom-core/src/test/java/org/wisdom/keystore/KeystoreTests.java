@@ -2,7 +2,10 @@ package org.wisdom.keystore;
 
 
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.keystore.crypto.RipemdUtility;
+import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.Keystore;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.junit.Test;
@@ -66,5 +69,35 @@ public class KeystoreTests {
                 "    \"salt\": \"c5b5aef708139af895a52eef251ef7d747680ee785f30e9bc0f5c897fed2a1d0\"," +
                 "  \"mac\": \"b5a1e277c2d4f8947fe7c0f43430ab8c5f2df144d1691ca1fb7335c198932a4d9e269a0e5ff27bd818092bbc2c1b68df9fad4ea5e5e9f1ee6d4507b6390c1a0d\"" +
                 "}";
+    }
+
+    @Test
+    public void test1() throws DecoderException {
+        String privates=KeystoreAction.readKeystoreByPath("2x50901q8w","C:\\Users\\Administrator\\IdeaProjects\\java-wisdomcore\\Keystore\\keystore");
+        System.out.println(privates);
+
+        byte[] pubkey=Hex.decodeHex("5ac9cc553fe5047cf0b33b983f50afe228c17b050c688a7d22800bfbdef9af66".toCharArray());
+        System.out.println("pubkey-->pubkeyhash:"+Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(pubkey))));
+
+//        System.out.println("pubkey-->address:"+KeystoreAction.pubkeyToAddress(pubkey, (byte) 0x00));
+//
+//        byte[] pubhash=Hex.decodeHex("97a87c356867327bfbc1a600cce02546ba07bf20".toCharArray());
+//
+//        System.out.println("pubhash-->address:"+KeystoreAction.pubkeyHashToAddress(pubhash, (byte) 0x00));
+
+        String address1="1pQfDX4fvz7uzBQuM9FbuoKWohmhg9TmY";
+        String address2="12hk3cWr28BJWjASCy9Diw4bqH8SnWvSpP";
+        String address3="18mRFaYHguJyCWtAA9ZV1PZuGAb6UzAijE";
+        String address4="19JNq2jAprkxVrpkgBiRaa1m47WcUMXtCb";
+        String address5="1317J5fZb8kVrACnfi3PXN1T21573hYata";
+
+        System.out.println("种子节点---> address-->pubhash:"+Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address1))+"\n"+
+                Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address2))+"\n"+
+                Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address3))+"\n"+
+                Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address4))+"\n"+
+                Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address5))+"\n");
+
+        String address="18mRFaYHguJyCWtAA9ZV1PZuGAb6UzAijE";
+        System.out.println("address-->pubhash:"+Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(address)));
     }
 }

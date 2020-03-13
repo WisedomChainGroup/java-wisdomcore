@@ -151,7 +151,7 @@ public class UTXOSets {
 
     @Scheduled(cron="0 0 */1 * * ?")
     public void UTXOTask(){
-        long height=wisdomBlockChain.currentHeader().nHeight;
+        long height=wisdomBlockChain.getTopHeader().nHeight;
         //引用默认2个礼拜
         long restheight=14*5760;
         for (Map.Entry<String, UTXO> entry : utxos.entrySet()) {

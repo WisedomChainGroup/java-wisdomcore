@@ -18,42 +18,36 @@
 
 package org.wisdom.consensus.pow;
 
-import org.wisdom.crypto.HashUtil;
+import org.tdf.common.util.ByteArrayMap;
+import org.wisdom.account.PublicKeyHash;
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.state.State;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
+//@Component
 public class ValidatorState implements State<ValidatorState> {
-    static final Base64.Encoder encoder = Base64.getEncoder();
 
     // public key hash base64 -> nonce
-    private Map<String, Long> nonce;
+    private Map<byte[], Long> nonce = new ByteArrayMap<>();
 
 
-    private String getKeyFromPublicKeyHash(byte[] hash) {
-        return encoder.encodeToString(hash);
+    private byte[] getKeyFromPublicKey(byte[] pubKey) {
+        if(pubKey.length == 20) return pubKey;
+        return PublicKeyHash.fromPublicKey(pubKey).getPublicKeyHash();
     }
 
-    private String getKeyFromPublicKey(byte[] pubKey) {
-        return encoder.encodeToString(HashUtil.ripemd160(pubKey));
-    }
-
-    private void incNonce(String key) {
+    private void incNonce(byte[] key) {
         nonce.putIfAbsent(key, 0L);
         nonce.put(key, nonce.get(key) + 1);
     }
 
     private void updateNonce(Transaction tx) {
         if (tx.type == Transaction.Type.COINBASE.ordinal()) {
-            incNonce(getKeyFromPublicKeyHash(tx.to));
+            incNonce(tx.to);
             return;
         }
         incNonce(getKeyFromPublicKey(tx.from));
@@ -90,29 +84,25 @@ public class ValidatorState implements State<ValidatorState> {
 
 
     public long getNonceFromPublicKeyHash(byte[] publicKeyHash) {
-        String key = getKeyFromPublicKeyHash(publicKeyHash);
-        nonce.putIfAbsent(key, 0L);
-        return nonce.get(key);
+        nonce.putIfAbsent(publicKeyHash, 0L);
+        return nonce.get(publicKeyHash);
     }
 
 
     @Override
     public ValidatorState copy() {
         return new ValidatorState(
-                new HashMap<>(nonce)
+                new ByteArrayMap<>(nonce)
         );
     }
 
 
-    public ValidatorState(Map<String, Long> nonce) {
+    public ValidatorState(Map<byte[], Long> nonce) {
         this.nonce = nonce;
     }
 
     @Autowired
     public ValidatorState(Block genesis) {
-        nonce = new HashMap<>();
         updateBlock(genesis);
     }
-
-
 }

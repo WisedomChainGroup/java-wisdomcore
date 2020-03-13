@@ -1,0 +1,69 @@
+spring:
+  datasource:
+    url: 'jdbc:h2:mem:h2test'
+    platform: 'h2'
+    username: 'sa'
+    password: 'sa'
+    driverClassName: 'org.h2.Driver'
+  jpa:
+    hibernate:
+      ddl-auto: create # create, update
+    show-sql: false # enable jpa sql logs
+
+wisdom:
+  wip-1217:
+    height: '769876'
+  allow-miner-joins-era: '2380'
+  block-interval-switch-era: '2380'
+  block-interval-switch-to: '10'
+  consensus:
+    genesis: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\wisdom-genesis-generator.json'
+    block-interval: '30'
+    blocks-per-era: '120'
+    fast-sync:
+      directory: 'E:\dumps\genesis'
+    enable-mining: 'false'
+  database:
+    type: 'leveldb'
+    directory: 'database'
+
+  open-check-point: 'true'
+  ceo:
+    trace: 'true'
+  trace:
+    address: 'ca33fead17d601b83e220927703a703c6d1ea1c9697375fabf0bf307f003f999'
+
+miner:
+  validators: 'F:\java-wisdomcore\wisdom-core\src\main\resources\genesis\validators.json'
+  coinbase: '12hk3cWr28BJWjASCy9Diw4bqH8SnWvSpP'
+node-character: 'default'
+
+wisdom-test:
+  blocks-directory: 'E:\dump'
+  genesis-dump-out: 'E:\dumps\genesis'
+  genesis-dump-height: '522240'
+
+transaction:
+  day:
+    count: '2880'
+  nonce: '128'
+
+min:
+  procedurefee: '200000'
+
+pool:
+  clear:
+    days: '2'
+  queued:
+    maxcount: '60000'
+  pending:
+    maxcount: '30000'
+  queuedtopending:
+    maxcount: '5000'
+
+clear-data: 'false'
+
+p2p:
+  max-blocks-per-transfer: '50'
+  bootstraps: 'wisdom://192.168.1.40:9585'
+  address: 'wisdom://@192.168.1.52:9589'

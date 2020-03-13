@@ -2,10 +2,8 @@ package org.wisdom.db;
 
 import org.wisdom.core.Block;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.keystore.account.Address;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
-import org.wisdom.keystore.wallet.KeystoreAction;
 
 import java.util.*;
 

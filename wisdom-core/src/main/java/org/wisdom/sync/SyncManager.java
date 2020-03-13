@@ -1,5 +1,8 @@
 package org.wisdom.sync;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.cache.CacheBuilder;
 import com.google.protobuf.ByteString;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.slf4j.Logger;
@@ -9,12 +12,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.ChainedWrapper;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.*;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.BlockWrapper;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
 import org.wisdom.p2p.entity.GetBlockQuery;
 
@@ -22,8 +29,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 
 /**
@@ -36,7 +43,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private static final int CACHE_SIZE = 64;
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
 
-    private ConcurrentMap<String, Boolean> proposalCache;
+    private Cache<HexBytes, Boolean> proposalCache;
 
     @Value("${p2p.max-blocks-per-transfer}")
     private int maxBlocksPerTransfer;
@@ -54,7 +61,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private BasicRule rule;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Value("${wisdom.consensus.allow-fork}")
     private boolean allowFork;
@@ -66,7 +73,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private CheckPointRule checkPointRule;
 
     public SyncManager() {
-        this.proposalCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
+        this.proposalCache = Caffeine
+                .newBuilder()
+                .maximumSize(CACHE_SIZE).build();
     }
 
     @Override
@@ -131,7 +140,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
         logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
-        List<Block> blocksToSend = stateDB.getBlocks(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
+        List<Block> blocksToSend = repository.getBlocksBetween(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         if (blocksToSend == null || blocksToSend.size() == 0) {
             return;
         }
@@ -155,17 +164,20 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
         WisdomOuterClass.Proposal proposal = context.getPayload().getProposal();
         Block block = Utils.parseBlock(proposal.getBlock());
-        if (proposalCache.containsKey(block.getHashHexString())) {
+        if (proposalCache
+                .asMap()
+                .containsKey(HexBytes.fromBytes(block.getHash()))
+        ) {
             return;
         }
-        proposalCache.put(block.getHashHexString(), true);
+        proposalCache.put(HexBytes.fromBytes(block.getHash()), true);
         receiveBlocks(Collections.singletonList(block));
         context.relay();
     }
 
     private void onStatus(Context context, PeerServer server) {
         WisdomOuterClass.Status status = context.getPayload().getStatus();
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
 
         // 拉黑创世区块不相同的节点
         if (!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())) {
@@ -194,7 +206,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onGetStatus(Context context, PeerServer server) {
-        Block best = stateDB.getBestBlock();
+        Block best = repository.getBestBlock();
         WisdomOuterClass.Status resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
                 .setCurrentHeight(best.nHeight)
@@ -206,9 +218,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private synchronized void receiveBlocks(List<Block> blocks) {
         logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         blocks = blocks.subList(0, maxBlocksPerTransfer > blocks.size() ? blocks.size() : maxBlocksPerTransfer);
-        List<Block> validBlocks = new ArrayList<>();
+        List<Block> validBlocks = new ArrayList<>(blocks.size());
         for (Block b : blocks) {
-            if (b == null || b.nHeight == 0) {
+            if (b == null || b.nHeight == 0 || repository.containsBlock(b.getHash())) {
                 continue;
             }
             Result res = rule.validateBlock(b);
@@ -224,8 +236,10 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             validBlocks.add(b);
         }
         if (validBlocks.size() > 0) {
-            BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
-            pendingBlocksManager.addPendingBlocks(blocksWritable);
+            ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
+            pendingBlocksManager
+                    .addPendingBlocks(blocksWritable.stream().map(ChainedWrapper::get)
+                            .collect(Collectors.toList()));
         }
     }
 
@@ -234,7 +248,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (server == null) {
             return;
         }
-        proposalCache.put(event.getBlock().getHashHexString(), true);
+        proposalCache.put(HexBytes.fromBytes(event.getBlock().getHash()), true);
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(event.getBlock())).build());
     }
 }

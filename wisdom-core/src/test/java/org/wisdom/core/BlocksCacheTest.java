@@ -40,7 +40,7 @@ public class BlocksCacheTest {
     }
 
     private List<Block> getBlocks() {
-        return ctx.getBean(RDBMSBlockChainImpl.class).getBlocks(0, 700);
+        return ctx.getBean(RDBMSBlockChainImpl.class).getBlocksBetween(0, 700);
     }
 
     public BlocksCache blocksCache() {

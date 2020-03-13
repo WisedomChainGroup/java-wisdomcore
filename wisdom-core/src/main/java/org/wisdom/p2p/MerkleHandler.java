@@ -2,8 +2,6 @@ package org.wisdom.p2p;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
@@ -13,7 +11,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.validate.CompositeBlockRule;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.db.StateDB;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.merkletree.*;
 import org.wisdom.sync.Utils;
 
@@ -23,8 +21,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageEvent> {
-
-    private static final Logger logger = LoggerFactory.getLogger(MerkleHandler.class);
 
     private PeerServer server;
 
@@ -41,7 +37,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     private WisdomBlockChain bc;
 
     @Autowired
-    private StateDB stateDB;
+    private WisdomRepository repository;
 
     @Override
     public void onMessage(Context context, PeerServer server) {
@@ -108,7 +104,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         }
         merkleTreeManager.removeBlockToCache(Hex.encodeHexString(blockHash));
         block.weight = 1;
-        stateDB.writeBlock(block);
+        repository.writeBlock(block);
     }
 
     private void onGetMerkleTransactions(Context context, PeerServer server) {
@@ -125,7 +121,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
     }
 
     private List<WisdomOuterClass.MerkleTransaction> getMerkleTransactions(byte[] blockHash, List<TreeNode> treeNodes) {
-        Block block = bc.getBlock(blockHash);
+        Block block = bc.getBlockByHash(blockHash);
         List<WisdomOuterClass.MerkleTransaction> res = new ArrayList<>();
         if (block != null) {
             List<Transaction> txs = block.body;
@@ -204,7 +200,7 @@ public class MerkleHandler implements Plugin, ApplicationListener<MerkleMessageE
         List<TreeNode> parentNodes = Utils.parseTreeNodes(getTreeNodes.getParentNodesList());
         List<TreeNode> treeNodes = new ArrayList<>();
         byte[] blockHash = getTreeNodes.getBlockHash().toByteArray();
-        Block block = bc.getBlock(blockHash);
+        Block block = bc.getBlockByHash(blockHash);
         if (block != null) {
             MerkleTree merkleTree = getMerkleTree(block);
             for (TreeNode parentNode : parentNodes) {

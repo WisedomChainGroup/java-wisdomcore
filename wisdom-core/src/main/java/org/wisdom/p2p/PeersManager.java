@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,7 +73,7 @@ public class PeersManager implements Plugin {
 
     public List<Peer> getPeers() {
         return Optional.ofNullable(server)
-                .map(PeerServer::getPeers).orElse(new ArrayList<>());
+                .map(PeerServer::getPeers).orElse(Collections.emptyList());
     }
 
     public String getSelfAddress() {

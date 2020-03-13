@@ -46,7 +46,7 @@ public class ConsensusConfig {
 
     private List<String> validatorPubKeyHashes;
 
-    private String minerPubKeyHash;
+    private byte[] minerPubKeyHash;
 
     @Value("${wisdom.consensus.enable-mining}")
     private volatile boolean enableMining;
@@ -63,7 +63,7 @@ public class ConsensusConfig {
         return validatorPubKeyHashes;
     }
 
-    public String getMinerPubKeyHash() {
+    public byte[] getMinerPubKeyHash() {
         return minerPubKeyHash;
     }
 
@@ -81,7 +81,7 @@ public class ConsensusConfig {
             resource = new ClassPathResource(env.validatorsFile);
         }
         if (enableMining) {
-            minerPubKeyHash = Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(coinbase));
+            minerPubKeyHash = KeystoreAction.addressToPubkeyHash(coinbase);
             logger.info("mining is enabled, your coin base address is " + coinbase);
         }
         validators = Arrays.asList(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class));

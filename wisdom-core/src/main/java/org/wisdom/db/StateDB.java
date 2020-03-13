@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -10,11 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
-import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.ProposersFactory;
+import org.wisdom.contract.AssetCode;
+import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.core.Block;
 import org.wisdom.core.BlocksCache;
 import org.wisdom.core.WisdomBlockChain;
@@ -33,19 +35,19 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.ByteUtil;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 
-@Component
+@Deprecated
+// use WisdomRepository instead
+@Setter
 public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private static final Logger logger = LoggerFactory.getLogger(StateDB.class);
     private static final JSONEncodeDecoder codec = new JSONEncodeDecoder();
@@ -69,12 +71,12 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
     private Map<String, Set<String>> transactionIndex;
 
     private static final Base64.Encoder encodeNr = Base64.getEncoder();
-    public static final int CACHE_SIZE = 512;
+    public static final int CACHE_SIZE = 256;
 
     @Autowired
     private WisdomBlockChain bc;
 
-    @Autowired
+//    @Autowired
     private AccountDB accountDB;
 
     @Autowired
@@ -91,6 +93,9 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     @Autowired
     private Block genesis;
+
+    @Autowired
+    private AssetCode assetCode;
 
     public ValidatorStateFactory getValidatorStateFactory() {
         return validatorStateFactory;
@@ -179,7 +184,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
-    @PostConstruct
+//    @PostConstruct
     public void init() {
         readWriteLock.writeLock().lock();
         try {
@@ -194,14 +199,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         validatorStateFactory.setStateDB(this);
         targetStateFactory.setStateDB(this);
 
-        this.latestConfirmed = bc.getLastConfirmedBlock();
+        this.latestConfirmed = bc.getTopBlock();
         Block last = genesis;
         int blocksPerUpdate = 0;
         while (blocksPerUpdate < BLOCKS_PER_UPDATE_LOWER_BOUNDS) {
             blocksPerUpdate += blocksPerEra;
         }
         while (true) {
-            List<Block> blocks = bc.getCanonicalBlocks(last.nHeight + 1, blocksPerUpdate);
+            List<Block> blocks = bc.getBlocksSince(last.nHeight + 1, blocksPerUpdate);
             int size = blocks.size();
             if (size < blocksPerEra) {
                 break;
@@ -221,6 +226,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
+    @Deprecated
+    // use ForkedWisdomBlockChain.currentBlock
     public Block getBestBlock() {
         this.readWriteLock.readLock().lock();
         try {
@@ -236,6 +243,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                     if (a.nHeight != b.nHeight) {
                         return Long.compare(a.nHeight, b.nHeight);
                     }
+
                     if (a.body.get(0).amount != b.body.get(0).amount) {
                         return (int) (a.body.get(0).amount - b.body.get(0).amount);
                     }
@@ -253,7 +261,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             return this.latestConfirmed;
         }
         return Optional.ofNullable(blocksCache.getBlock(hash))
-                .orElseGet(() -> bc.getHeader(hash));
+                .orElseGet(() -> bc.getHeaderByHash(hash));
     }
 
     public Block getHeader(byte[] hash) {
@@ -338,7 +346,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return this.latestConfirmed;
             }
             return Optional.ofNullable(blocksCache.getBlock(hash))
-                    .orElseGet(() -> bc.getBlock(hash));
+                    .orElseGet(() -> bc.getBlockByHash(hash));
         } finally {
             this.readWriteLock.readLock().unlock();
         }
@@ -350,7 +358,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         try {
             return blocksCache.hasBlock(hash) ||
                     Arrays.equals(latestConfirmed.getHash(), hash) ||
-                    bc.hasBlock(hash);
+                    bc.containsBlock(hash);
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -367,7 +375,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private boolean hasTransactionUnsafe(byte[] blockHash, byte[] transactionHash) {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasTransaction(transactionHash);
+            return bc.containsTransaction(transactionHash);
         }
         String key = Hex.encodeHexString(blockHash);
         Block b = blocksCache.getBlock(blockHash);
@@ -415,9 +423,39 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
     }
 
+    public boolean hasAssetCode(byte[] hash, int type, String code) {
+        readWriteLock.readLock().lock();
+        try {
+            return hasAssetCodeUnsafe(hash, type, code);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private boolean hasAssetCodeUnsafe(byte[] blockHash, int type, String code) {
+        if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
+            return assetCode.isContainsKey(code);
+        }
+        Block b = blocksCache.getBlock(blockHash);
+        if (b == null) {
+            return true;
+        }
+        for (Transaction t : b.body) {
+            if (t.payload != null && t.type == type) {
+                if (t.payload[0] == 0) {//代币
+                    Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(t.payload));
+                    if (asset.getCode().equals(code)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return hasAssetCodeUnsafe(b.hashPrevBlock, type, code);
+    }
+
     private boolean hasPayloadUnsafe(byte[] blockHash, int type, byte[] payload) {
         if (Arrays.equals(latestConfirmed.getHash(), blockHash)) {
-            return bc.hasPayload(type, payload);
+            return bc.containsPayload(type, payload);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
@@ -539,7 +577,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             BlocksCache c = new BlocksCache();
             // 从数据库获取一部分
             if (startHeight < latestConfirmed.nHeight) {
-                c.addBlocks(bc.getBlocks(startHeight, stopHeight, sizeLimit, clipInitial));
+                c.addBlocks(bc.getBlocksBetween(startHeight, stopHeight, sizeLimit, clipInitial));
             }
             List<Block> blocks = blocksCache.getAll();
             blocks.add(latestConfirmed);
@@ -641,15 +679,15 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }).orElse(new AccountState(publicKeyHash));
 
         List<Incubator> incubatorList = incubatorDB.selectList(publicKeyHash);
-        Map<String, Incubator> inester = new HashMap<>();
+        Map<byte[], Incubator> inester = new HashMap<>();
         if (incubatorList.size() > 0) {
-            inester = incubatorList.stream().collect(toMap(i -> Hex.encodeHexString(i.getTxid_issue()), i -> i));
+            inester = incubatorList.stream().collect(toMap(i -> i.getTxid_issue(), i -> i));
         }
         accountState.setInterestMap(inester);
         List<Incubator> shareList = incubatorDB.selectShareList(publicKeyHash);
-        Map<String, Incubator> share = new HashMap<>();
+        Map<byte[], Incubator> share = new HashMap<>();
         if (shareList.size() > 0) {
-            share = shareList.stream().collect(toMap(i -> Hex.encodeHexString(i.getTxid_issue()), i -> i));
+            share = shareList.stream().collect(toMap(i -> i.getTxid_issue(), i -> i));
         }
         accountState.setShareMap(share);
         return accountState;
@@ -685,7 +723,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             List<Block> blocks = blocksCache.getAllForks().get(0);
             if (blocks.size() >= limit) return blocks.subList(0, limit);
             long toFetch = limit - blocks.size();
-            List<Block> fetched = bc.getHeaders(blocks.get(0).nHeight - toFetch, (int) toFetch);
+            List<Block> fetched = bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
             fetched.addAll(blocks);
             return fetched;
         } finally {
@@ -715,7 +753,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
                 return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
             }
             long toFetch = 10 - best.size();
-            List<Block> fetched = bc.getHeaders(best.get(0).nHeight - toFetch, (int) toFetch);
+            List<Block> fetched = bc.getHeadersSince(best.get(0).nHeight - toFetch, (int) toFetch);
             BigDecimal bd = new BigDecimal((best.get(best.size() - 1).nTime - fetched.get(0).nTime) / (9.0));
             return bd.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
         } finally {
@@ -778,8 +816,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             account.setNonce(tx.nonce);
             account.setBlockHeight(tx.height);
             Incubator incubator = new Incubator(tx.to, tx.getHash(), tx.height, tx.amount, tx.getInterest(tx.height, rateTable, days), tx.height, days);
-            Map<String, Incubator> maps = accountState.getInterestMap();
-            maps.put(Hex.encodeHexString(tx.getHash()), incubator);
+            Map<byte[], Incubator> maps = accountState.getInterestMap();
+            maps.put(tx.getHash(), incubator);
             accountState.setInterestMap(maps);
             accountState.setAccount(account);
         }
@@ -787,8 +825,8 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
             byte[] sharepublic = Hex.decodeHex(sharpub.toCharArray());
             if (Arrays.equals(sharepublic, account.getPubkeyHash())) {
                 Incubator share = new Incubator(sharepublic, tx.getHash(), tx.height, tx.amount, days, tx.getShare(tx.height, rateTable, days), tx.height);
-                Map<String, Incubator> sharemaps = accountState.getShareMap();
-                sharemaps.put(Hex.encodeHexString(tx.getHash()), share);
+                Map<byte[], Incubator> sharemaps = accountState.getShareMap();
+                sharemaps.put(tx.getHash(), share);
                 accountState.setShareMap(sharemaps);
             }
         }
@@ -819,14 +857,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String, Incubator> map = accountState.getInterestMap();
+        Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
         if (incubator == null) {
             logger.info("Interest payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
         incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
-        map.put(Hex.encodeHexString(tx.payload), incubator);
+        map.put(tx.payload, incubator);
         accountState.setInterestMap(map);
         return accountState;
     }
@@ -844,14 +882,14 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String, Incubator> map = accountState.getShareMap();
+        Map<byte[], Incubator> map = accountState.getShareMap();
         Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
         if (incubator == null) {
             logger.info("Share payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
             return accountState;
         }
         incubator = merkleRule.UpdateExtIncuator(tx, tx.height, incubator);
-        map.put(Hex.encodeHexString(tx.payload), incubator);
+        map.put(tx.payload, incubator);
         accountState.setShareMap(map);
         return accountState;
     }
@@ -903,7 +941,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         account.setBlockHeight(tx.height);
         accountState.setAccount(account);
 
-        Map<String, Incubator> map = accountState.getInterestMap();
+        Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(Hex.encodeHexString(tx.payload));
         if (incubator == null) {
             logger.info("Cost payload:" + Hex.encodeHexString(tx.payload) + "--->tx:" + tx.getHashHexString());
@@ -911,7 +949,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
         }
         incubator.setCost(0);
         incubator.setHeight(tx.height);
-        map.put(Hex.encodeHexString(tx.payload), incubator);
+        map.put(tx.payload, incubator);
         accountState.setInterestMap(map);
         return accountState;
     }
@@ -1138,7 +1176,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private List<Transaction> getTransactionsByToAndType(int type, byte[] blockHash, byte[] publicKeyHash, int offset, int limit) {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return bc.getTransactionsByToAndType(type, publicKeyHash, offset, limit);
+            return bc.getTransactionsByTypeAndTo(type, publicKeyHash, offset, limit);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
@@ -1155,7 +1193,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private List<Transaction> getTransactionsByFromAndType(int type, byte[] blockHash, byte[] publicKey, int offset, int limit) {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return bc.getTransactionsByFromAndType(type, publicKey, offset, limit);
+            return bc.getTransactionsByTypeAndFrom(type, publicKey, offset, limit);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {
@@ -1172,7 +1210,7 @@ public class StateDB implements ApplicationListener<AccountUpdatedEvent> {
 
     private List<Transaction> getTransactionsByFromToAndType(int type, byte[] blockHash, byte[] from, byte[] to, int offset, int limit) {
         if (Arrays.equals(blockHash, latestConfirmed.getHash())) {
-            return bc.getTransactionsByFromToAndType(type, from, to, offset, limit);
+            return bc.getTransactionsByTypeFromAndTo(type, from, to, offset, limit);
         }
         Block b = blocksCache.getBlock(blockHash);
         if (b == null) {

@@ -8,10 +8,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.ChainCache;
+import org.tdf.common.util.ChainedWrapper;
 import org.wisdom.consensus.pow.ConsensusConfig;
 import org.wisdom.core.*;
 import org.wisdom.core.validate.BasicRule;
 import org.wisdom.core.validate.Result;
+import org.wisdom.db.BlockWrapper;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.p2p.entity.GetBlockQuery;
 import org.wisdom.p2p.entity.Status;
@@ -21,9 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "rest")
 @Component
+@Deprecated // use grpc for sync
 public class SyncClient {
     private static final int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 50;
     private static final Logger logger = LoggerFactory.getLogger(SyncClient.class);
@@ -93,8 +98,8 @@ public class SyncClient {
         }
         if (validBlocks.size() > 0) {
             logger.info("receive blocks startListening from " + validBlocks.get(0).nHeight + " stop at " + validBlocks.get(validBlocks.size() - 1).nHeight);
-            BlocksCache blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
-            pendingBlocksManager.addPendingBlocks(blocksWritable);
+            ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
+            pendingBlocksManager.addPendingBlocks(blocksWritable.stream().map(ChainedWrapper::get).collect(Collectors.toList()));
         }
         return null;
     }
@@ -105,7 +110,7 @@ public class SyncClient {
             return;
         }
         ConsensuEntity.Status status = new ConsensuEntity.Status();
-        Block best = bc.currentHeader();
+        Block best = bc.getTopHeader();
         status.version = best.nVersion;
         status.currentHeight = best.nHeight;
         status.bestBlockHash = best.getHash();
@@ -126,7 +131,7 @@ public class SyncClient {
                 logger.error("invalid status received " + new String(resp));
                 return null;
             }
-            Block header = bc.currentHeader();
+            Block header = bc.getTopHeader();
             if (status.currentHeight <= header.nHeight) {
                 return null;
             }

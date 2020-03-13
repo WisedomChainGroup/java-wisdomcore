@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.tdf.common.store.Store;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Component
@@ -18,8 +20,11 @@ public class PoolTask {
     @Autowired
     PeningTransPool peningTransPool;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> leveldb;
+
+    public PoolTask(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
+    }
 
     @Scheduled(cron = "0 0/10 * * * ?")
     public void updatedbPool() {
@@ -29,11 +34,11 @@ public class PoolTask {
             queuedlist.add(transPool.getTransaction());
         }
         String queuedjson = JSON.toJSONString(queuedlist, true);
-        leveldb.addPoolDb("QueuedPool", queuedjson);
+        leveldb.put("QueuedPool".getBytes(StandardCharsets.UTF_8),queuedjson.getBytes(StandardCharsets.UTF_8));
 
         List<TransPool> transPoolList = peningTransPool.getAllstate();
         String pendingjson = JSON.toJSONString(transPoolList, true);
-        leveldb.addPoolDb("PendingPool", pendingjson);
+        leveldb.put("PendingPool".getBytes(StandardCharsets.UTF_8), pendingjson.getBytes(StandardCharsets.UTF_8));
     }
 
 //    //pendingnonce修正

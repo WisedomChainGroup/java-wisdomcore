@@ -22,6 +22,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.command.IncubatorAddress;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Account;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.pool.PeningTransPool;
@@ -40,7 +45,7 @@ import java.util.*;
 public class OfficialIncubateBalanceRule {
 
     @Autowired
-    AccountDB accountDB;
+    AccountStateTrie accountStateTrie;
 
     @Autowired
     RateTable rateTable;
@@ -48,10 +53,16 @@ public class OfficialIncubateBalanceRule {
     @Autowired
     PeningTransPool peningTransPool;
 
-    public List<Transaction> validateTransaction(List<Transaction> transaction) throws InvalidProtocolBufferException, DecoderException {
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
+
+    public List<Transaction> validateTransaction(List<Transaction> transaction, byte[] blockHash) throws InvalidProtocolBufferException, DecoderException {
         List<Transaction> newlsit = new ArrayList<>();
-        long totalincubate = accountDB.getBalance(IncubatorAddress.resultpubhash());
-        IdentityHashMap<String,Long> maps=new IdentityHashMap<>();
+        Account account = accountStateTrie.getTrieByBlockHash(blockHash)
+                .get(IncubatorAddress.resultpubhash())
+                .map(AccountState::getAccount).orElseThrow(() -> new RuntimeException("unexpected"));
+        long totalincubate = account.getBalance();
+        IdentityHashMap<String, Long> maps = new IdentityHashMap<>();
         for (Transaction tx : transaction) {
             if (tx.type == Transaction.Type.INCUBATE.ordinal()) {
                 long height = tx.height;
@@ -66,8 +77,8 @@ public class OfficialIncubateBalanceRule {
                 long interest = tx.getInterest(height, rateTable, days);
                 long total = share + interest;
                 if (totalincubate < total) {
-                    String from=Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)));
-                    maps.put(new String(from),tx.nonce);
+                    String from = Hex.encodeHexString(RipemdUtility.ripemd160(SHA3Utility.keccak256(tx.from)));
+                    maps.put(new String(from), tx.nonce);
                     continue;
                 }
                 totalincubate -= total;

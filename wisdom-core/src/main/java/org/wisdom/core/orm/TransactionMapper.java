@@ -23,6 +23,7 @@ import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.core.account.Transaction;
 import org.springframework.jdbc.core.RowMapper;
+import org.wisdom.util.ByteUtil;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,7 +44,14 @@ public class TransactionMapper implements RowMapper<Transaction> {
         tx.to = rs.getBytes("to");
         tx.height = rs.getLong("height");
         tx.blockHash = rs.getBytes("block_hash");
-        if(Start.ENABLE_ASSERTION){
+        if (tx.type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
+            tx.contractType = tx.payload[0];
+        }
+        if (tx.type == Transaction.Type.CALL_CONTRACT.ordinal()) {
+            tx.methodType = tx.payload[0];
+            tx.contractType = Transaction.getContract(tx.methodType);
+        }
+        if (Start.ENABLE_ASSERTION) {
             Assert.isTrue(Arrays.equals(tx.getHash(), rs.getBytes("tx_hash")), "transaction in database had been modified");
             Assert.isTrue(tx.blockHash != null && tx.blockHash.length == 32, "block hash not found");
         }

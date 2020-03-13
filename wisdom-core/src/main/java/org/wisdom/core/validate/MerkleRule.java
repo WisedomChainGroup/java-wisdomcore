@@ -19,41 +19,43 @@
 package org.wisdom.core.validate;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Account;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.incubator.Incubator;
+import org.wisdom.core.incubator.RateTable;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
+import org.wisdom.db.AccountStateUpdater;
+import org.wisdom.db.TransactionInfo;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.protobuf.tcp.command.HatchModel;
-import org.wisdom.core.WisdomBlockChain;
-import org.wisdom.core.account.Account;
-import org.wisdom.core.account.AccountDB;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.incubator.Incubator;
-import org.wisdom.core.incubator.IncubatorDB;
-import org.wisdom.core.incubator.RateTable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
+@Setter
 public class MerkleRule implements BlockRule {
 
-    private static final Logger logger = LoggerFactory.getLogger(MerkleRule.class);
+    @Autowired
+    AccountStateTrie accountStateTrie;
 
     @Autowired
-    AccountDB accountDB;
-
-    @Autowired
-    IncubatorDB incubatorDB;
+    AccountStateUpdater accountStateUpdater;
 
     @Autowired
     RateTable rateTable;
@@ -68,8 +70,11 @@ public class MerkleRule implements BlockRule {
 
     private boolean validateIncubator;
 
-    public MerkleRule(@Value("${node-character}") String character) {
+    private long validateHeight;
+
+    public MerkleRule(@Value("${node-character}") String character, @Value("${merkle-height}") long merkleheight) {
         this.validateIncubator = !character.equals("exchange");
+        this.validateHeight = merkleheight;
     }
 
     @Override
@@ -78,185 +83,176 @@ public class MerkleRule implements BlockRule {
         if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleRoot, Block.calculateMerkleRoot(block.body))) {
             return Result.Error("merkle root validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleRoot) + " " + Hex.encodeHexString(Block.calculateMerkleRoot(block.body)));
         }
-        try {
-            Map<String, Object> merklemap = validateMerkle(block.body, block.nHeight);
-            List<Account> accountList = (List<Account>) merklemap.get("account");
-            List<Incubator> incubatorList = (List<Incubator>) merklemap.get("incubator");
-            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleState, Block.calculateMerkleState(accountList))) {
-                return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountList)));
-            }
-            // 交易所不校验孵化状态
-            if (!validateIncubator) {
-                return Result.SUCCESS;
-            }
-            if (!org.bouncycastle.util.Arrays.areEqual(block.hashMerkleIncubate, Block.calculateMerkleIncubate(incubatorList))) {
-                return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(Block.calculateMerkleIncubate(incubatorList)));
-            }
-        } catch (Exception e) {
-            return Result.Error("error occurs when validate merle hash");
+        // 交易所不校验孵化状态
+        if (!validateIncubator) {
+            return Result.SUCCESS;
+        }
+        // 梅克尔校验指定高度校验
+        if (block.getnHeight() < validateHeight) {
+            return Result.SUCCESS;
+        }
+        Map<byte[], AccountState> accountStateMap = accountStateUpdater.
+                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block)),
+                        block.body.stream().map(tx -> new TransactionInfo(tx, block.nHeight)).collect(Collectors.toList()));
+        List<AccountState> accountStateList = new ArrayList<>(accountStateMap.values());
+        if (!Arrays.equals(block.hashMerkleState, Block.calculateMerkleState(accountStateList))) {
+            return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountStateList)));
+        }
+        if (!Arrays.equals(block.hashMerkleIncubate, new byte[32])) {
+            return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(new byte[32]));
         }
         return Result.SUCCESS;
     }
 
-    public Map<String, Object> validateMerkle(List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
+    @Deprecated
+    public Map<String, Object> validateMerkle(Block block, List<Transaction> transactionList, long nowheight) throws InvalidProtocolBufferException, DecoderException {
         Map<String, Account> accmap = new HashMap<>();
         Map<String, Incubator> incumap = new HashMap<>();
-        Account totalaccount = accountDB.selectaccount(IncubatorAddress.resultpubhash());
+
+        Account totalaccount = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock)
+                .get(IncubatorAddress.resultpubhash())
+                .map(AccountState::getAccount)
+                .orElseThrow(() -> new RuntimeException("unexpected"));
+
         long totalbalance = totalaccount.getBalance();
         boolean isdisplay = false;
         for (Transaction tran : transactionList) {
-            Account toaccount;
-            if (accmap.containsKey(Hex.encodeHexString(tran.to))) {
-                toaccount = accmap.get(Hex.encodeHexString(tran.to));
-            } else {
-                toaccount = Optional.ofNullable(accountDB.selectaccount(tran.to))
-                        .orElse(new Account(nowheight, tran.to, 0, 0, 0, 0, 0));
+            Account toaccount = accmap.get(
+                    HexBytes.encode(tran.to));
+
+            if (toaccount == null) {
+                toaccount = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock)
+                        .get(tran.to)
+                        .map(AccountState::getAccount)
+                        .orElse(Account.builder()
+                                .pubkeyHash(tran.to)
+                                .blockHeight(nowheight)
+                                .build()
+                        );
             }
-            switch (tran.type) {
-                case 0x00://CoinBase
-                    Account cionaccount = UpdateCoinBase(tran, toaccount, nowheight);
-                    accmap.put(Hex.encodeHexString(tran.to), cionaccount);
-                    break;
-                case 0x01://transfer
-                    Account fromaccount = new Account();
-                    byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
-                    List<Account> accountList = UpdateTransfer(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    accountList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
-                    break;
-                case 0x02://Vote
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
-                    List<Account> list = UpdateVoteAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    list.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
-                    break;
-                case 0x03://Deposit
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
-                    Account dopaccount = UpdateDepAccount(tran, fromaccount, nowheight);
-                    accmap.put(Hex.encodeHexString(frompubhash), dopaccount);
-                    break;
-                case 0x09://hatch
-                    Account hatchaccount = UpdateHatAccount(tran, toaccount, nowheight);
-                    accmap.put(Hex.encodeHexString(tran.to), hatchaccount);
-                    //分享
-                    Incubator hatchincubator = UpdateHatIncuator(tran, nowheight);
-                    incumap.put(Hex.encodeHexString(tran.to), hatchincubator);
-                    isdisplay = true;
-                    totalbalance -= (hatchincubator.getShare_amount() + hatchincubator.getInterest_amount());
-                    break;
-                case 0x0a:
-                case 0x0b://extract
-                    Account extractaccount = UpdateExtAccount(tran, toaccount, nowheight);
-                    accmap.put(Hex.encodeHexString(tran.to), extractaccount);
-                    //孵化状态
-                    Incubator incubator = incubatorDB.selectIncubator(tran.payload);
-                    if (nowheight > 30800 && nowheight < 40271) {
-                        if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
-                            if (incubator.getShare_pubkeyhash() != null) {
-                                if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
-                                    incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+
+            byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
+            Account fromaccount = accmap.get(HexBytes.encode(frompubhash));
+
+            if (fromaccount == null) {
+                fromaccount = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock)
+                        .get(frompubhash)
+                        .map(AccountState::getAccount)
+                        .orElse(Account.builder()
+                                .pubkeyHash(frompubhash)
+                                .blockHeight(nowheight)
+                                .build()
+                        );
+            }
+            Map<byte[], AccountState> accountStateMap = accountStateTrie
+                    .getTrieByBlockHash(block.hashPrevBlock).asMap();
+                    switch (tran.type) {
+                        case 0x00://CoinBase
+                            Account cionaccount = UpdateCoinBase(tran, toaccount, nowheight);
+                            accmap.put(Hex.encodeHexString(tran.to), cionaccount);
+                            break;
+                        case 0x01://transfer
+                            List<Account> accountList = UpdateTransfer(tran, fromaccount, toaccount, nowheight, frompubhash);
+                            accountList.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                            break;
+                        case 0x02://Vote
+                            List<Account> list = UpdateVoteAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
+                            list.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                            break;
+                        case 0x03://Deposit
+                            Account dopaccount = UpdateDepAccount(tran, fromaccount, nowheight);
+                            accmap.put(Hex.encodeHexString(frompubhash), dopaccount);
+                            break;
+                        case 0x09://hatch
+                            Account hatchaccount = UpdateHatAccount(tran, toaccount, nowheight);
+                            accmap.put(Hex.encodeHexString(tran.to), hatchaccount);
+                            //分享
+                            Incubator hatchincubator = UpdateHatIncuator(tran, nowheight);
+                            incumap.put(Hex.encodeHexString(tran.to), hatchincubator);
+                            isdisplay = true;
+                            totalbalance -= (hatchincubator.getShare_amount() + hatchincubator.getInterest_amount());
+                            break;
+                        case 0x0a:
+                        case 0x0b://extract
+                            Account extractaccount = UpdateExtAccount(tran, toaccount, nowheight);
+                            accmap.put(Hex.encodeHexString(tran.to), extractaccount);
+                            //孵化状态
+                            Incubator incubator = accountStateMap.get(tran.to).getInterestMap().get(tran.payload);
+                            if (nowheight > 30800 && nowheight < 40271) {
+                                if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
+                                    if (incubator.getShare_pubkeyhash() != null) {
+                                        if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                            incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                        }
+                                    }
                                 }
-                            }
-                        }
-                        if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
-                            if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
-                                incubator = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
-                            }
-                        }
-                    }
-                    if (nowheight >= 40271) {
-                        if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
-                            if (incubator.getShare_pubkeyhash() != null) {
-                                if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
-                                    Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-                                    if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
-                                        incubator = incubators;
+                                if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
+                                    if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
+                                        incubator = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
                                     }
                                 }
                             }
-                        }
-                        if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
-                            if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
-                                Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
-                                if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
-                                    incubator = incubators;
+                            if (nowheight >= 40271) {
+                                if (Arrays.equals(incubator.getPubkeyhash(), tran.to)) {
+                                    if (incubator.getShare_pubkeyhash() != null) {
+                                        if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                            Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                            if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                                incubator = incubators;
+                                            }
+                                        }
+                                    }
+                                }
+                                if (Arrays.equals(incubator.getShare_pubkeyhash(), tran.to)) {
+                                    if (incumap.containsKey(Hex.encodeHexString(incubator.getPubkeyhash()))) {
+                                        Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getPubkeyhash()));
+                                        if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                            incubator = incubators;
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-                    Incubator extrincubator = UpdateExtIncuator(tran, nowheight, incubator);
-                    incumap.put(Hex.encodeHexString(tran.to), extrincubator);
-                    break;
-                case 0x0c://extract cost
-                    Account costaccount = UpdateCostAccount(tran, toaccount, nowheight);
-                    accmap.put(Hex.encodeHexString(tran.to), costaccount);
-                    //孵化状态
-                    byte[] playload = tran.payload;//孵化哈希
-                    incubator = incubatorDB.selectIncubator(playload);
-                    if (nowheight > 30800 && nowheight < 40271) {
-                        if (incubator.getShare_pubkeyhash() != null) {
-                            if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
-                                incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-                            }
-                        }
-                    }
-                    if (nowheight >= 40271) {
-                        if (incubator.getShare_pubkeyhash() != null) {
-                            if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
-                                Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
-                                if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
-                                    incubator = incubators;
+                            Incubator extrincubator = UpdateExtIncuator(tran, nowheight, incubator);
+                            incumap.put(Hex.encodeHexString(tran.to), extrincubator);
+                            break;
+                        case 0x0c://extract cost
+                            Account costaccount = UpdateCostAccount(tran, toaccount, nowheight);
+                            accmap.put(Hex.encodeHexString(tran.to), costaccount);
+                            //孵化状态
+                            incubator = accountStateMap.get(tran.to).getInterestMap().get(tran.payload);
+                            if (nowheight > 30800 && nowheight < 40271) {
+                                if (incubator.getShare_pubkeyhash() != null) {
+                                    if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                        incubator = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                    }
                                 }
                             }
-                        }
+                            if (nowheight >= 40271) {
+                                if (incubator.getShare_pubkeyhash() != null) {
+                                    if (incumap.containsKey(Hex.encodeHexString(incubator.getShare_pubkeyhash()))) {
+                                        Incubator incubators = incumap.get(Hex.encodeHexString(incubator.getShare_pubkeyhash()));
+                                        if (Arrays.equals(incubators.getTxid_issue(), tran.payload)) {
+                                            incubator = incubators;
+                                        }
+                                    }
+                                }
+                            }
+                            Incubator costIncubator = UpdateCostIncubator(incubator, nowheight);
+                            incumap.put(Hex.encodeHexString(tran.to), costIncubator);
+                            break;
+                        case 0x0d://Cancel Vote
+                            List<Account> celvotelist = UpdateCancelVote(tran, fromaccount, toaccount, nowheight, frompubhash);
+                            celvotelist.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                            break;
+                        case 0x0e://mortgage
+                            List<Account> mortgageList = UpdateMortgageAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
+                            mortgageList.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                            break;
+                        case 0x0f:
+                            List<Account> celMortgageList = UpdateCancelMortgage(tran, fromaccount, toaccount, nowheight, frompubhash);
+                            celMortgageList.forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
+                            break;
                     }
-                    Incubator costIncubator = UpdateCostIncubator(incubator, nowheight);
-                    incumap.put(Hex.encodeHexString(tran.to), costIncubator);
-                    break;
-                case 0x0d://Cancel Vote
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
-                    List<Account> celvotelist = UpdateCancelVote(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    celvotelist.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
-                    break;
-                case 0x0e://mortgage
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
-                    List<Account> mortgageList = UpdateMortgageAccount(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    mortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
-                    break;
-                case 0x0f:
-                    frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
-                    if (accmap.containsKey(Hex.encodeHexString(frompubhash))) {
-                        fromaccount = accmap.get(Hex.encodeHexString(frompubhash));
-                    } else {
-                        fromaccount = accountDB.selectaccount(frompubhash);
-                    }
-                    List<Account> celMortgageList = UpdateCancelMortgage(tran, fromaccount, toaccount, nowheight, frompubhash);
-                    celMortgageList.stream().forEach(a -> accmap.put(Hex.encodeHexString(a.getPubkeyHash()), a));
-                    break;
-            }
         }
         if (isdisplay) {
             totalaccount.setBalance(totalbalance);

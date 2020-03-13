@@ -2,28 +2,31 @@ package org.wisdom.pool;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import lombok.Setter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections.map.LinkedMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.tdf.common.store.Store;
 import org.wisdom.command.Configuration;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.db.Leveldb;
+import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@Setter
 public class AdoptTransPool {
 
     @Autowired
     Configuration configuration;
 
-    @Autowired
-    private Leveldb leveldb;
+    private Store<byte[], byte[]> leveldb;
 
     @Value("${wisdom.ceo.trace}")
     private boolean type;
@@ -34,15 +37,16 @@ public class AdoptTransPool {
     // publicKeyHash -> Strings.concat(publicKeyHash, nonce) -> transaction
     private ConcurrentHashMap<String, ConcurrentHashMap<String, TransPool>> atpool;
 
-    public AdoptTransPool() {
+    public AdoptTransPool(DatabaseStoreFactory factory) {
+        leveldb = factory.create("leveldb", false);
         atpool = new ConcurrentHashMap<>();
         try {
-            String dbdata = leveldb.readPoolDb("QueuedPool");
-            if (dbdata != null && !dbdata.equals("")) {
-                List<Transaction> list = JSON.parseObject(dbdata, new TypeReference<ArrayList<Transaction>>() {
+            Optional<byte[]> dbdata  = leveldb.get("QueuedPool".getBytes(StandardCharsets.UTF_8));
+            dbdata.ifPresent(value->{
+                List<Transaction> list = JSON.parseObject(new String(value), new TypeReference<ArrayList<Transaction>>() {
                 });
                 add(list);
-            }
+            });
         } catch (Exception e) {
             atpool = new ConcurrentHashMap<>();
         }

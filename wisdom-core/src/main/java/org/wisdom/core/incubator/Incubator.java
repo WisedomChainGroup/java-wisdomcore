@@ -19,20 +19,35 @@
 package org.wisdom.core.incubator;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.rlp.RLP;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.util.ByteUtil;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public class Incubator {
+    @RLP(0)
     private byte[] id;
+    @RLP(1)
     private byte[] share_pubkeyhash;
+    @RLP(2)
     private byte[] pubkeyhash;
+    @RLP(3)
     private byte[] txid_issue;
+    @RLP(4)
     private long height;
+    @RLP(5)
     private long cost;
+    @RLP(6)
     private long interest_amount;
+    @RLP(7)
     private long share_amount;
+    @RLP(8)
     private long last_blockheight_interest;
+    @RLP(9)
     private long last_blockheight_share;
+    @RLP(10)
     private int days;
 
     public Incubator(){}
@@ -171,5 +186,78 @@ public class Incubator {
         incubator.setDays(days);
         incubator.setId(id);
         return incubator;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incubator incubator = (Incubator) o;
+        return height == incubator.height &&
+                cost == incubator.cost &&
+                interest_amount == incubator.interest_amount &&
+                share_amount == incubator.share_amount &&
+                last_blockheight_interest == incubator.last_blockheight_interest &&
+                last_blockheight_share == incubator.last_blockheight_share &&
+                days == incubator.days &&
+                Arrays.equals(share_pubkeyhash, incubator.share_pubkeyhash) &&
+                Arrays.equals(pubkeyhash, incubator.pubkeyhash) &&
+                Arrays.equals(txid_issue, incubator.txid_issue);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(height, cost, interest_amount, share_amount, last_blockheight_interest, last_blockheight_share, days);
+        result = 31 * result + Arrays.hashCode(id);
+        result = 31 * result + Arrays.hashCode(share_pubkeyhash);
+        result = 31 * result + Arrays.hashCode(pubkeyhash);
+        result = 31 * result + Arrays.hashCode(txid_issue);
+        return result;
+    }
+
+    public boolean equalsInterest(Object o){
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incubator incubator = (Incubator) o;
+        return cost == incubator.cost &&
+                interest_amount == incubator.interest_amount &&
+                last_blockheight_interest == incubator.last_blockheight_interest &&
+                Arrays.equals(pubkeyhash, incubator.pubkeyhash) &&
+                Arrays.equals(txid_issue, incubator.txid_issue);
+
+    }
+
+    public boolean equalsShare(Object o){
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Incubator incubator = (Incubator) o;
+        return share_amount == incubator.share_amount &&
+                last_blockheight_share == incubator.last_blockheight_share &&
+                Arrays.equals(share_pubkeyhash, incubator.share_pubkeyhash) &&
+                Arrays.equals(txid_issue, incubator.txid_issue);
+    }
+
+    public String toStringInterest() {
+        return "Incubator{" +
+                ", pubkeyhash=" + Hex.encodeHexString(pubkeyhash) +
+                ", txid_issue=" + Hex.encodeHexString(txid_issue) +
+                ", height=" + height +
+                ", cost=" + cost +
+                ", interest_amount=" + interest_amount +
+                ", last_blockheight_interest=" + last_blockheight_interest +
+                ", days=" + days +
+                '}';
+    }
+
+    public String toStringShare() {
+        return "Incubator{" +
+                ", share_pubkeyhash=" + Hex.encodeHexString(share_pubkeyhash) +
+                ", txid_issue=" + Hex.encodeHexString(txid_issue) +
+                ", height=" + height +
+                ", cost=" + cost +
+                ", share_amount=" + share_amount +
+                ", last_blockheight_share=" + last_blockheight_share +
+                ", days=" + days +
+                '}';
     }
 }
