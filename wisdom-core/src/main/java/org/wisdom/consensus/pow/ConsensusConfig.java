@@ -73,8 +73,8 @@ public class ConsensusConfig {
 
     public ConsensusConfig(JSONEncodeDecoder codec,
                            @Value("${miner.coinbase}") String coinbase,
-                           @Value("${miner.validators}") String validatorsFile,
-                           @Value("${wisdom.consensus.enable-mining}") boolean enableMining
+                           @Value("${wisdom.consensus.enable-mining}") boolean enableMining,
+                           @Value("${miner.validators}") String validatorsFile
     ) throws Exception {
         Resource  resource = FileUtil.getResource(validatorsFile);
         if (enableMining) {

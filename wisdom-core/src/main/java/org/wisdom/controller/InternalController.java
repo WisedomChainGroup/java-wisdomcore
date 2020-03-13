@@ -5,7 +5,11 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jackson.JsonComponent;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.OrphanBlocksManager;
@@ -51,7 +55,12 @@ public class InternalController {
     @Autowired
     private BlocksDump blocksDump;
 
-
+    // 根据区块哈希获取状态树根
+    // 获取 forkdb 里面的事务
+    @GetMapping(value = "/internal/trie-root/{hash}", produces = "application/json")
+    public Object getTrieRoot(@PathVariable("hash") String hash) throws Exception{
+        return HexBytes.fromBytes(accountStateTrie.getTrieByBlockHash(Hex.decodeHex(hash)).getRootHash());
+    }
 
     // 获取 forkdb 里面的事务
     @GetMapping(value = "/internal/transaction/{transactionHash}", produces = "application/json")
@@ -145,7 +154,8 @@ public class InternalController {
                         "accountTrieCache", "candidateTrieCache");
 
         List<Cache<?, ?>> caches = Arrays.asList(
-                bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache());
+                bc.getBlockCache(), bc.getHeaderCache(), bc.getHasBlockCache()
+        );
 
         for (int i = 0; i < keys.size(); i++) {
             hitRate.put(keys.get(i), caches.get(i).stats().hitRate());

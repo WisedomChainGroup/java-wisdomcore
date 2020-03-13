@@ -27,6 +27,7 @@ services:
       - ./version.json:/version.json
       - /opt/wdc_leveldb:/leveldb
       - /opt/ipc:/root/ipc
+      - ./env-config.yml:/env-config.yml
     entrypoint: /usr/bin/env bash /entry_point.sh -d wdc_pgsql_v0.0.3:5432 -c '/usr/bin/env bash /run_wdc_core.sh';
     ports:
       - 19585:19585

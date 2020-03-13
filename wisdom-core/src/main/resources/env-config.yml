@@ -1,0 +1,7 @@
+env:
+  production:
+    miner-validators: 'genesis/validators.json'
+    wisdom-consensus-genesis: 'genesis/wisdom-genesis-generator.json'
+  testing:
+    miner-validators: 'genesis/validators-test.json'
+    wisdom-consensus-genesis: 'genesis/wisdom-genesis-generator-test.json'
