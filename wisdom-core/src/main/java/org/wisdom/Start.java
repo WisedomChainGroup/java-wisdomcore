@@ -51,10 +51,7 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.IOException;
 import java.util.Map;
 
-/**
- * @author Roman Mandeleil
- * @since 14.11.2014
- */
+// test cache
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
