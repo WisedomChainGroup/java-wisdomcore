@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
  * @author sal 1564319846@qq.com
  * manage orphan blocks
  */
-@Component
+//@Component
 @Deprecated
 public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
     private volatile long lock;
@@ -59,10 +59,9 @@ public class OrphanBlocksManager implements ApplicationListener<NewBlockEvent> {
             .comparator(BlockWrapper.COMPARATOR)
             .build();
 
-    @Autowired
+
     private WisdomRepository repository;
 
-    @Autowired
     private PendingBlocksManager pool;
 
     @Value("${p2p.max-blocks-per-transfer}")

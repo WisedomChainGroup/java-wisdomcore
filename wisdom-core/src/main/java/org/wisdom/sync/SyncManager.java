@@ -349,6 +349,16 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         }
     }
 
+    @SneakyThrows
+    public List<Block> getOrphans(){
+        blockQueueLock.lock();
+        try {
+            return getOrphansInternal();
+        } finally {
+            blockQueueLock.unlock();
+        }
+    }
+
     private List<Block> getOrphansInternal() {
         List<Block> orphanHeads = new ArrayList<>();
         Set<byte[]> orphans = new ByteArraySet();

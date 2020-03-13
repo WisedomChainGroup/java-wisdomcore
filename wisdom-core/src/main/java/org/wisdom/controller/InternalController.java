@@ -3,7 +3,6 @@ package org.wisdom.controller;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jackson.JsonComponent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
-import org.wisdom.core.OrphanBlocksManager;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.dao.TransactionQuery;
 import org.wisdom.db.AccountStateTrie;
@@ -20,6 +18,7 @@ import org.wisdom.db.BlocksDump;
 import org.wisdom.db.CandidateStateTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.sync.SyncManager;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -50,7 +49,7 @@ public class InternalController {
     private JSONEncodeDecoder codec;
 
     @Autowired
-    private OrphanBlocksManager manager;
+    private SyncManager syncManager;
 
     @Autowired
     private BlocksDump blocksDump;
@@ -103,7 +102,7 @@ public class InternalController {
     @GetMapping(value = "/internal/block/{blockInfo}", produces = "application/json")
     public Object getBlocks(@PathVariable("blockInfo") String blockInfo) {
         if (blockInfo.equals("orphan")) {
-            return codec.encodeBlocks(manager.getOrphans());
+            return codec.encodeBlocks(syncManager.getOrphans());
         }
         if (blockInfo.equals("unconfirmed")) {
             return codec.encodeBlocks(wisdomRepository.getStaged());

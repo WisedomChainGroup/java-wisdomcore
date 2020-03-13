@@ -51,9 +51,6 @@ public class SyncClient {
     private BasicRule rule;
 
     @Autowired
-    private OrphanBlocksManager orphanBlocksManager;
-
-    @Autowired
     private PendingBlocksManager pendingBlocksManager;
 
     @Autowired
@@ -98,8 +95,6 @@ public class SyncClient {
         }
         if (validBlocks.size() > 0) {
             logger.info("receive blocks startListening from " + validBlocks.get(0).nHeight + " stop at " + validBlocks.get(validBlocks.size() - 1).nHeight);
-            ChainCache<BlockWrapper> blocksWritable = orphanBlocksManager.removeAndCacheOrphans(validBlocks);
-            pendingBlocksManager.addPendingBlocks(blocksWritable.stream().map(ChainedWrapper::get).collect(Collectors.toList()));
         }
         return null;
     }
@@ -150,14 +145,14 @@ public class SyncClient {
 
     @Scheduled(fixedRate = 30 * 1000)
     public void syncOrphan() {
-        for (Block b : orphanBlocksManager.getInitials()) {
-            logger.info("try to sync orphans");
-            long startHeight = b.nHeight - MAX_BLOCKS_IN_TRANSIT_PER_PEER + 1;
-            if (startHeight <= 0) {
-                startHeight = 1;
-            }
-            getBlocks(startHeight, b.nHeight, true);
-        }
+//        for (Block b : orphanBlocksManager.getInitials()) {
+//            logger.info("try to sync orphans");
+//            long startHeight = b.nHeight - MAX_BLOCKS_IN_TRANSIT_PER_PEER + 1;
+//            if (startHeight <= 0) {
+//                startHeight = 1;
+//            }
+//            getBlocks(startHeight, b.nHeight, true);
+//        }
     }
 
 }
