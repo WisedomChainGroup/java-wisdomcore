@@ -48,6 +48,11 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 See also：[https://docs.docker.com/compose/install/](https://docs.docker.com/compose/install/)
 
+#### 1.3.3. Docker Image Mirror
+
+```sh
+docker pull registry.cn-hangzhou.aliyuncs.com/wisdomchain/wdc_core
+```
 
 ## 2.	YML file
 
