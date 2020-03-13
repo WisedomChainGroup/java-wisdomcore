@@ -81,6 +81,7 @@ public class CommandServiceImpl implements CommandService {
             Optional<AccountState> accountStateOptional = repository.getConfirmedAccountState(Address.publicKeyToHash(tran.from));
             if (!accountStateOptional.isPresent()) {
                 apiResult.setCode(5000);
+                apiResult.setData("");
                 apiResult.setMessage("The from account does not exist");
                 return apiResult;
             }
@@ -92,6 +93,7 @@ public class CommandServiceImpl implements CommandService {
                 byte[] fromPublicHash = RipemdUtility.ripemd160(SHA3Utility.keccak256(tran.from));
                 if (list.size() > 0 && list.contains(Hex.encodeHexString(fromPublicHash))) {
                     apiResult.setCode(5000);
+                    apiResult.setData("");
                     apiResult.setMessage("The miner cannot withdraw the mortgage");
                     return apiResult;
                 }

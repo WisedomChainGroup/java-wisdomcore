@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
+import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.core.Block;
 import org.wisdom.db.AccountState;
@@ -39,6 +41,10 @@ public class ContractServiceImpl implements ContractService {
                 return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
             } else if (accountState.getType() == 2) {//多签
                 return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
+            }else if (accountState.getType() == 3){//哈希时间锁定
+                return APIResult.newSuccess(Hashtimeblock.getHashtimeblock(RLPByte));
+            }else if (accountState.getType() == 4){//哈希高度锁定
+                return APIResult.newSuccess(Hashheightblock.getHashheightblock(RLPByte));
             }
         } catch (DecoderException e) {
             return APIResult.newFailed("Transaction hash resolution error");
@@ -65,10 +71,7 @@ public class ContractServiceImpl implements ContractService {
         if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() != 1) {
             return APIResult.newFailed("The thing hash does not exist or is not a asset contract transaction");
         }
-        JSONObject json = (JSONObject) JSONObject.toJSON(Asset.getConvertAsset(accountStateOptional.get().getContract()));
-        json.put("createuser",Asset.getConvertAsset(accountStateOptional.get().getContract()).getCreateuser());
-        json.put("owner",Asset.getConvertAsset(accountStateOptional.get().getContract()).getOwner());
-        return APIResult.newSuccess(json);
+        return APIResult.newSuccess(Asset.getConvertAsset(accountStateOptional.get().getContract()));
     }
 
     @Deprecated

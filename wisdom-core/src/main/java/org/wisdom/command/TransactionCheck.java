@@ -766,22 +766,16 @@ public class TransactionCheck {
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
             //fromlist
-            if (multTransfer.getFrom().size()>8 || multTransfer.getFrom().size()<1)
-                return APIResult.newFailed("Wrong length of fromlist");
             if (ByteUtil.containsDuplicate(multTransfer.getFrom()))
                 return APIResult.newFailed("From Contains repeating elements");
             //pubkeyhashlist
-            if (multTransfer.getPubkeyHashList().size()>8 || multTransfer.getPubkeyHashList().size()<1)
-                return APIResult.newFailed("Wrong length of pubkeyHashList");
             if (ByteUtil.containsDuplicate(multTransfer.getPubkeyHashList()))
                 return APIResult.newFailed("PubkeyHashList Contains repeating elements");
             //signaturesList
-            if (multTransfer.getSignatures().size()>8 || multTransfer.getSignatures().size()<1)
-                return APIResult.newFailed("Wrong length of signatures");
             if (ByteUtil.containsDuplicate(multTransfer.getSignatures()))
                 return APIResult.newFailed("Signatures Contains repeating elements");
-            if (multTransfer.getFrom().size() != multTransfer.getPubkeyHashList().size() || multTransfer.getFrom().size() != multTransfer.getSignatures().size())
-                return APIResult.newFailed("The lengths of PubkeyList, SignatureList and PubkeyHashList are different");
+            if (multTransfer.getFrom().size() != multTransfer.getSignatures().size())
+                return APIResult.newFailed("The lengths of PubkeyList and SignatureList are different");
             //fromlist 与 pubkeyhashList第一个元素一致
             if (!Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(0)),multTransfer.getPubkeyHashList().get(0)))
                 return APIResult.newFailed("The first of fromlist is different from pubkeyhashList");
@@ -794,7 +788,7 @@ public class TransactionCheck {
                     }
                 }
             }
-            if (froms != multTransfer.getFrom().size())
+            if (froms < multTransfer.getFrom().size())
                 return APIResult.newFailed("Fromlist is different from pubkeyHashList");
             //构造签名原文
             byte[] version = new byte[1];
@@ -816,11 +810,18 @@ public class TransactionCheck {
                     return APIResult.newFailed("Transaction to is different from payload to");
                 if(multTransfer.getFrom() != null){
                     if (multTransfer.getFrom().size() != 1){
-                        return APIResult.newFailed("The size of Payload fromList is error");
+                        //fromList
+                        return APIResult.newFailed("Wrong length of fromList");
                     }
                 }else {
                     return APIResult.newFailed("Payload fromList can not be null");
                 }
+                //pubkeyHashList
+                if (multTransfer.getPubkeyHashList().size() != 1)
+                    return APIResult.newFailed("Wrong length of pubkeyHashList");
+                //signaturesList
+                if (multTransfer.getSignatures().size() != 1)
+                    return APIResult.newFailed("Wrong length of signatures");
 
                 if(multTransfer.getSignatures() != null){
                     if (multTransfer.getSignatures().size() != 1){
@@ -852,6 +853,15 @@ public class TransactionCheck {
                 //多签规则
                 Multiple multiple = new Multiple();
                 if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
+                    //fromlist
+                    if (multTransfer.getFrom().size()>multiple.getMax() || multTransfer.getFrom().size()<multiple.getMin())
+                        return APIResult.newFailed("Wrong length of fromlist");
+                    //signaturesList
+                    if (multTransfer.getSignatures().size()>multiple.getMax() || multTransfer.getSignatures().size()<multiple.getMin())
+                        return APIResult.newFailed("Wrong length of signatures");
+                    //pubkeyHashList
+                    if (multTransfer.getPubkeyHashList().size()>multiple.getMax() || multTransfer.getPubkeyHashList().size()<multiple.getMin())
+                        return APIResult.newFailed("Wrong length of pubkeyHashList");
                     //payload from
                     List<byte[]> payload_from = new ArrayList<>();
                     List<byte[]> from = new ArrayList<>();
