@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-#
 # This is a rather minimal example Argbash potential
 # Example taken from http://argbash.readthedocs.io/en/stable/example.html
 #
-# ARG_OPTIONAL_SINGLE([image],[i],[image name])
+#
+# ARG_OPTIONAL_SINGLE([image],[i],[image name],[wisdomchain/wdc_core])
 # ARG_OPTIONAL_BOOLEAN([push],[],[push image])
 # ARG_HELP([The general script's help msg])
 # ARGBASH_GO()
@@ -33,7 +33,7 @@ begins_with_short_option()
 }
 
 # THE DEFAULTS INITIALIZATION - OPTIONALS
-_arg_image=
+_arg_image="wisdomchain/wdc_core"
 _arg_push="off"
 
 
@@ -41,7 +41,7 @@ print_help()
 {
 	printf '%s\n' "The general script's help msg"
 	printf 'Usage: %s [-i|--image <arg>] [--(no-)push] [-h|--help]\n' "$0"
-	printf '\t%s\n' "-i, --image: image name (no default)"
+	printf '\t%s\n' "-i, --image: image name (default: 'wisdomchain/wdc_core')"
 	printf '\t%s\n' "--push, --no-push: push image (off by default)"
 	printf '\t%s\n' "-h, --help: Prints help"
 }
@@ -95,6 +95,7 @@ PROJECT_ROOT=$CUR/../../../..
 PROJECT_ROOT=`cd $PROJECT_ROOT; pwd`
 GRADLE_WRAPPER=$PROJECT_ROOT/../gradlew
 
+echo "image name = $_arg_image"
 
 if [[ "$(expr substr $(uname -s) 1 5)" == "MINGW" ]]; then
   GRADLE_WRAPPER=$PROJECT_ROOT/../gradlew.bat
