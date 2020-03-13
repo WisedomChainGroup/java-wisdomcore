@@ -13,7 +13,7 @@ on:
 
 env:
   # TODO: Change variable to your image's name.
-  IMAGE_NAME: wisdomchain/wdc_core:latest
+  IMAGE_NAME: wisdomchain/wdc_core
 jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
