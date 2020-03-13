@@ -51,3 +51,19 @@ jobs:
           echo VERSION=$VERSION
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
+      - name: Log into ali registry
+        run: echo "${{ secrets.ALI_DOCKER_PASSWORD }}" | docker login registry.cn-hangzhou.aliyuncs.com -u github@1731051433877231 --password-stdin
+
+      - name: Push image to ali
+        run: |
+          IMAGE_ID=$IMAGE_NAME
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "release" ] && VERSION=latest
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION    
+          docker tag $IMAGE_NAME registry.cn-hangzhou.aliyuncs.com/wisdomchain/wdc_core:$VERSION
+          docker push registry.cn-hangzhou.aliyuncs.com/wisdomchain/wdc_core:$VERSION
