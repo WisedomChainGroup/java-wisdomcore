@@ -93,7 +93,7 @@ CUR=`cd $CUR; pwd`
 # project root path java-wisdomcore/wisdomcore
 PROJECT_ROOT=$CUR/../../../..
 PROJECT_ROOT=`cd $PROJECT_ROOT; pwd`
-GRADLE_WRAPPER=$PROJECT_ROOT/../gradlew
+GRADLE_WRAPPER="bash $PROJECT_ROOT/../gradlew"
 
 
 if [[ "$(expr substr $(uname -s) 1 5)" == "MINGW" ]]; then
