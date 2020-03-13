@@ -20,7 +20,6 @@ package org.wisdom.consensus.pow;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.wisdom.Env;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.slf4j.Logger;
@@ -73,12 +72,12 @@ public class ConsensusConfig {
 
     public ConsensusConfig(JSONEncodeDecoder codec,
                            @Value("${miner.coinbase}") String coinbase,
-                           Env env,
-                           @Value("${wisdom.consensus.enable-mining}") boolean enableMining
+                           @Value("${wisdom.consensus.enable-mining}") boolean enableMining,
+                           @Value("${miner.validators}") String validatorsFile
     ) throws Exception {
-        Resource  resource = new FileSystemResource(env.validatorsFile);
+        Resource  resource = new FileSystemResource(validatorsFile);
         if(!resource.exists()){
-            resource = new ClassPathResource(env.validatorsFile);
+            resource = new ClassPathResource(validatorsFile);
         }
         if (enableMining) {
             minerPubKeyHash = KeystoreAction.addressToPubkeyHash(coinbase);
