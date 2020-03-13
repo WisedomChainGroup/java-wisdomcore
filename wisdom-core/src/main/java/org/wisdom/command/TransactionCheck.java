@@ -120,11 +120,12 @@ public class TransactionCheck {
             //gas
             long gas = 0;
             //hatch disabled
-//            if (type[0] == 9) {
-//                apiResult.setCode(5000);
-//                apiResult.setMessage("Hatching transactions have been disabled");
-//                return apiResult;
-//            }
+            long nowheight = wisdomRepository.getBestBlock().nHeight;
+            if (nowheight > 1305500 && type[0] == 9){
+                apiResult.setCode(5000);
+                apiResult.setMessage("Hatching transactions have been disabled");
+                return apiResult;
+            }
             if (15 >= type[0] && type[0] >= 0) {
                 gas = Transaction.GAS_TABLE[type[0]];
             } else {
@@ -486,21 +487,30 @@ public class TransactionCheck {
             //pubkeyList
             if (multiple.getPubList().size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyList do not match max");
+            if (ByteUtil.containsDuplicate(multiple.getPubList()))
+                return APIResult.newFailed("PubkeyList Contains repeating elements");
             if (!ByteUtil.byteListContains(multiple.getPubList(),from)) return APIResult.newFailed("From must be in payload");
             //signatureList
             if (multiple.getSignatureList().size() != multiple.getMax())
                 return APIResult.newFailed("SignatureList do not match max");
+            if (ByteUtil.containsDuplicate(multiple.getSignatureList()))
+                return APIResult.newFailed("SignatureList Contains repeating elements");
             //pubkeyHashList
             if (multiple.getPubkeyHashList().size() != multiple.getMax())
                 return APIResult.newFailed("PubkeyHashList do not match max");
+            if (ByteUtil.containsDuplicate(multiple.getPubkeyHashList()))
+                return APIResult.newFailed("PubkeyHashList Contains repeating elements");
+            //三个数组元素数量保持一致
+            if (multiple.getPubkeyHashList().size() != multiple.getPubList().size() || multiple.getPubkeyHashList().size() != multiple.getSignatureList().size())
+                return APIResult.newFailed("The lengths of PubkeyList, SignatureList and PubkeyHashList are different");
             //pubkeyHashList第一个元素必须与事务签发者一致
             if (!Arrays.equals(multiple.getPubkeyHashList().get(0),KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(0))))
                 return APIResult.newFailed("The first from of fromPubkeyList is different form pubkeyHashList");
             //验证pubkeyList 与 pubkeyHashList是否一致
             int pubkeys = 0;
-            for (int i = 0;i<ByteUtil.byteListsDistinct(multiple.getPubList()).size();i++){
-                for (int j = 0;j<ByteUtil.byteListsDistinct(multiple.getPubkeyHashList()).size();j++){
-                    if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(ByteUtil.byteListsDistinct(multiple.getPubList()).get(i)),ByteUtil.byteListsDistinct(multiple.getPubkeyHashList()).get(j))){
+            for (int i = 0;i<multiple.getPubList().size();i++){
+                for (int j = 0;j<multiple.getPubkeyHashList().size();j++){
+                    if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(i)),multiple.getPubkeyHashList().get(j))){
                         pubkeys++;
                     }
                 }
@@ -532,8 +542,8 @@ public class TransactionCheck {
             Ed25519PublicKey ed25519PublicKey = new Ed25519PublicKey(from);
             if (!Arrays.equals(from,multiple.getPubList().get(0)) || !ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
                 return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
-            List<byte[]> pubkeylist = ByteUtil.byteListsDistinct(multiple.getPubList());
-            List<byte[]> signatureList = ByteUtil.byteListsDistinct(multiple.getSignatureList());
+            List<byte[]> pubkeylist = multiple.getPubList();
+            List<byte[]> signatureList = multiple.getSignatureList();
             int number = 0;
             //验证签名
             for (int i=0;i<pubkeylist.size();i++){
@@ -755,19 +765,36 @@ public class TransactionCheck {
                 if (!accountStatePayloadTo.isPresent()) return  APIResult.newFailed("To multiple do not exist");
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
+            //fromlist
+            if (multTransfer.getFrom().size()>8 || multTransfer.getFrom().size()<2)
+                return APIResult.newFailed("Wrong length of fromlist");
+            if (ByteUtil.containsDuplicate(multTransfer.getFrom()))
+                return APIResult.newFailed("From Contains repeating elements");
+            //pubkeyhashlist
+            if (multTransfer.getPubkeyHashList().size()>8 || multTransfer.getPubkeyHashList().size()<2)
+                return APIResult.newFailed("Wrong length of pubkeyHashList");
+            if (ByteUtil.containsDuplicate(multTransfer.getPubkeyHashList()))
+                return APIResult.newFailed("PubkeyHashList Contains repeating elements");
+            //signaturesList
+            if (multTransfer.getSignatures().size()>8 || multTransfer.getSignatures().size()<2)
+                return APIResult.newFailed("Wrong length of signatures");
+            if (ByteUtil.containsDuplicate(multTransfer.getSignatures()))
+                return APIResult.newFailed("Signatures Contains repeating elements");
+            if (multTransfer.getFrom().size() != multTransfer.getPubkeyHashList().size() || multTransfer.getFrom().size() != multTransfer.getSignatures().size())
+                return APIResult.newFailed("The lengths of PubkeyList, SignatureList and PubkeyHashList are different");
             //fromlist 与 pubkeyhashList第一个元素一致
             if (!Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(0)),multTransfer.getPubkeyHashList().get(0)))
                 return APIResult.newFailed("The first of fromlist is different from pubkeyhashList");
             //fromlist 与 pubkeyhashList 一致
             int froms = 0;
-            for (int i = 0;i<ByteUtil.byteListsDistinct(multTransfer.getFrom()).size();i++){
-                for (int j = 0;j<ByteUtil.byteListsDistinct(multTransfer.getPubkeyHashList()).size();j++){
-                    if (Arrays.equals(ByteUtil.byteListsDistinct(multTransfer.getPubkeyHashList()).get(j),KeystoreAction.pubkeybyteToPubkeyhashbyte(ByteUtil.byteListsDistinct(multTransfer.getFrom()).get(i)))){
+            for (int i = 0;i<multTransfer.getFrom().size();i++){
+                for (int j = 0;j<multTransfer.getPubkeyHashList().size();j++){
+                    if (Arrays.equals(multTransfer.getPubkeyHashList().get(j),KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(i)))){
                         froms++;
                     }
                 }
             }
-            if (froms != ByteUtil.byteListsDistinct(multTransfer.getFrom()).size())
+            if (froms != multTransfer.getFrom().size())
                 return APIResult.newFailed("Fromlist is different from pubkeyHashList");
             //构造签名原文
             byte[] version = new byte[1];
@@ -829,15 +856,15 @@ public class TransactionCheck {
                     List<byte[]> payload_from = new ArrayList<>();
                     List<byte[]> from = new ArrayList<>();
                     //signatures 去重
-                    List<byte[]> signatures = ByteUtil.byteListsDistinct(multTransfer.getSignatures());
+                    List<byte[]> signatures = multTransfer.getSignatures();
                     int n = multiple.getMin();
                     if (signatures.size() < n) return APIResult.newFailed("Sign numbers less than n");
                     if (multTransfer.getOrigin() == 1) {
                         //查询部署时多签的pubkey List
-                        List<byte[]> pubkeylist = ByteUtil.byteListsDistinct(multiple.getPubList());
+                        List<byte[]> pubkeylist = multiple.getPubList();
                         //去重 取交集
-                        payload_from = ByteUtil.byteListsDistinct(multTransfer.getFrom());
-                        from = ByteUtil.byteListsIntersection(pubkeylist,payload_from);
+                        payload_from = multTransfer.getFrom();
+                        from = ByteUtil.intersect(pubkeylist,payload_from);
                     }
                     if (! ByteUtil.byteListContains(from,transaction.from)) return APIResult.newFailed("From must be in payload");
                     int signAdopt = 0;
