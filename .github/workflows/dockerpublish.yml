@@ -34,10 +34,7 @@ jobs:
         with:
           java-version: 1.8
       - name: Build image
-        run: | 
-          bash wisdom-core/src/main/docker/server_jre8_with_dependencies/build-docker.sh
-          bash wisdom-core/src/main/docker/core_v2/build-docker.sh
-
+        run: bash wisdom-core/src/main/docker/core_v2/build-docker.sh
       - name: Log into registry
         run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u wisdomchain --password-stdin
 
