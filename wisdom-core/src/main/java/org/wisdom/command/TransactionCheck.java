@@ -766,17 +766,17 @@ public class TransactionCheck {
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
             //fromlist
-            if (multTransfer.getFrom().size()>8 || multTransfer.getFrom().size()<2)
+            if (multTransfer.getFrom().size()>8 || multTransfer.getFrom().size()<1)
                 return APIResult.newFailed("Wrong length of fromlist");
             if (ByteUtil.containsDuplicate(multTransfer.getFrom()))
                 return APIResult.newFailed("From Contains repeating elements");
             //pubkeyhashlist
-            if (multTransfer.getPubkeyHashList().size()>8 || multTransfer.getPubkeyHashList().size()<2)
+            if (multTransfer.getPubkeyHashList().size()>8 || multTransfer.getPubkeyHashList().size()<1)
                 return APIResult.newFailed("Wrong length of pubkeyHashList");
             if (ByteUtil.containsDuplicate(multTransfer.getPubkeyHashList()))
                 return APIResult.newFailed("PubkeyHashList Contains repeating elements");
             //signaturesList
-            if (multTransfer.getSignatures().size()>8 || multTransfer.getSignatures().size()<2)
+            if (multTransfer.getSignatures().size()>8 || multTransfer.getSignatures().size()<1)
                 return APIResult.newFailed("Wrong length of signatures");
             if (ByteUtil.containsDuplicate(multTransfer.getSignatures()))
                 return APIResult.newFailed("Signatures Contains repeating elements");
