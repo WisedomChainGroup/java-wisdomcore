@@ -173,10 +173,14 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
                     .setStartHeight(startHeight)
                     .setStopHeight(b.nHeight).build();
-            logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
+            log.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
             ps.forEach(p->server.dial(p, getBlocks));
         }
-        ps.forEach(p->server.dial(p, WisdomOuterClass.GetStatus.newBuilder().build()));
+
+        ps.forEach(p->{
+            log.debug("try to fetch status from peer {}", p);
+            server.dial(p, WisdomOuterClass.GetStatus.newBuilder().build());
+        });
     }
 
     private void onGetBlocks(Context context, PeerServer server) {
@@ -247,9 +251,12 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onStatus(Context context, PeerServer server) {
-        log.debug("receive status message from remote {}", context.getPayload().getRemote());
         WisdomOuterClass.Status status = context.getPayload().getStatus();
         Block best = repository.getBestBlock();
+        log.debug("receive status message from remote {}, the remote height = {}",
+                context.getPayload().getRemote(),
+                status.getCurrentHeight()
+        );
 
         // 拉黑创世区块不相同的节点
         if (!Arrays.equals(genesis.getHash(), status.getGenesisHash().toByteArray())) {
@@ -291,10 +298,13 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private void tryWrite() {
         Set<HexBytes> orphans = new HashSet<>();
         Block best = repository.getBestBlock();
+        long start = System.currentTimeMillis();
+        int count = 0;
         blockQueueLock.lock();
         try {
             Iterator<Block> iterator = queue.iterator();
             while (iterator.hasNext()) {
+                count ++;
                 Block b = null;
                 try {
                     b = iterator.next();
@@ -341,6 +351,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 repository.writeBlock(b);
             }
         } finally {
+            long end = System.currentTimeMillis();
+            log.debug("traverse through {} blocks success consuming {} ms", count, end - start);
+            log.debug("current block queue size = {}", queue.size());
             blockQueueLock.unlock();
         }
     }
@@ -375,6 +388,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 orphans.add(block.getHash());
             }
         }
+        log.debug("{} orphans exists in queue", orphans.size());
         return orphanHeads;
     }
 
