@@ -153,7 +153,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (ps == null || ps.size() == 0) {
             return;
         }
-        int index = Math.abs(ThreadLocalRandom.current().nextInt()) % ps.size();
 
         List<Block> orphans;
         // try to sync orphans
@@ -174,11 +173,10 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
                     .setStartHeight(startHeight)
                     .setStopHeight(b.nHeight).build();
-            log.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
-            server.dial(ps.get(index), getBlocks);
+            logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
+            ps.forEach(p->server.dial(p, getBlocks));
         }
-
-        server.dial(ps.get(index), WisdomOuterClass.GetStatus.newBuilder().build());
+        ps.forEach(p->server.dial(p, WisdomOuterClass.GetStatus.newBuilder().build()));
     }
 
     private void onGetBlocks(Context context, PeerServer server) {
