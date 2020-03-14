@@ -99,7 +99,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         executorService.scheduleWithFixedDelay(
                 this::getStatus, 0,
-                30, TimeUnit.SECONDS
+                10, TimeUnit.SECONDS
         );
     }
 
@@ -249,6 +249,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onStatus(Context context, PeerServer server) {
+        log.debug("receive status message from remote {}", context.getPayload().getRemote());
         WisdomOuterClass.Status status = context.getPayload().getStatus();
         Block best = repository.getBestBlock();
 
@@ -278,6 +279,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onGetStatus(Context context, PeerServer server) {
+        log.debug("receive get status from remote {}", context.getPayload().getRemote());
         Block best = repository.getBestBlock();
         WisdomOuterClass.Status resp = WisdomOuterClass.Status.newBuilder()
                 .setBestBlockHash(ByteString.copyFrom(best.getHash()))
@@ -291,10 +293,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private void tryWrite() {
         Set<HexBytes> orphans = new HashSet<>();
         Block best = repository.getBestBlock();
-        if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS))
-            return;
-        Iterator<Block> iterator = queue.iterator();
+        blockQueueLock.lock();
         try {
+            Iterator<Block> iterator = queue.iterator();
             while (iterator.hasNext()) {
                 Block b = null;
                 try {
