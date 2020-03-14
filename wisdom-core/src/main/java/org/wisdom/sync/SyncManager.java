@@ -4,16 +4,13 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.protobuf.ByteString;
 import lombok.SneakyThrows;
-import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
-import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArraySet;
-import org.tdf.common.util.FastByteComparisons;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
@@ -21,7 +18,6 @@ import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.CompositeBlockRule;
 import org.wisdom.core.validate.Result;
-import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.p2p.*;
@@ -42,11 +38,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * wisdom protocol block synchronize manager
  */
 @Component
+@Slf4j(topic = "sync")
 public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEvent> {
     private static final int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 50;
     private PeerServer server;
     private static final int CACHE_SIZE = 64;
-    private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
 
     private Cache<HexBytes, Boolean> proposalCache;
 
@@ -117,14 +113,14 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 return;
             case STATUS:
                 if (limiters.status() != null && !limiters.status().tryAcquire()) {
-                    logger.error("receive status message too frequent");
+                    log.error("receive status message too frequent");
                     return;
                 }
                 onStatus(context, server);
                 return;
             case GET_BLOCKS:
                 if (limiters.getBlocks() != null && !limiters.getBlocks().tryAcquire()) {
-                    logger.error("receive get-blocks message too frequent");
+                    log.error("receive get-blocks message too frequent");
                     return;
                 }
                 onGetBlocks(context, server);
@@ -140,6 +136,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @Override
     public void onStart(PeerServer server) {
         this.server = server;
+        log.debug("peer server stated... ");
     }
 
     public void getStatus() {
@@ -149,7 +146,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         // check checkpoint in db
         Result result = checkPointRule.validateDBCheckPoint();
         if (!result.isSuccess()) {
-            logger.info("cannot try to fetch block, reason: " + result.getMessage());
+            log.info("cannot try to fetch block, reason: " + result.getMessage());
             return;
         }
         List<Peer> ps = server.getPeers();
@@ -177,7 +174,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_INITIAL)
                     .setStartHeight(startHeight)
                     .setStopHeight(b.nHeight).build();
-            logger.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
+            log.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
             server.dial(ps.get(index), getBlocks);
         }
 
@@ -188,7 +185,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         WisdomOuterClass.GetBlocks getBlocks = context.getPayload().getGetBlocks();
         GetBlockQuery query = new GetBlockQuery(getBlocks.getStartHeight(), getBlocks.getStopHeight()).clip(maxBlocksPerTransfer, getBlocks.getClipDirection() == WisdomOuterClass.ClipDirection.CLIP_INITIAL);
 
-        logger.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
+        log.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = repository.getBlocksBetween(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
         blocksToSend.forEach(x -> x.accountStateTrieRoot = accountStateTrie.getTrieByBlockHash(x.getHash()).getRootHash());
         if (blocksToSend == null || blocksToSend.size() == 0) {
@@ -206,7 +203,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     private void onBlocks(Context context, PeerServer server) throws InterruptedException {
         WisdomOuterClass.Blocks blocksMessage = context.getPayload().getBlocks();
         List<Block> blocks = Utils.parseBlocks(blocksMessage.getBlocksList());
-        logger.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
+        log.info("blocks received start from " + blocks.get(0).nHeight + " stop at " + blocks.get(blocks.size() - 1).nHeight);
         Block best = repository.getBestBlock();
         blocks.sort(Block.FAT_COMPARATOR);
         if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS))
@@ -275,7 +272,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setStartHeight(getBlockQuery.start)
                     .setStopHeight(getBlockQuery.stop)
                     .setClipDirection(WisdomOuterClass.ClipDirection.CLIP_TAIL).build();
-            logger.info("require blocks start from " + req.getStartHeight() + " stop at " + req.getStopHeight());
+            log.info("require blocks start from " + req.getStartHeight() + " stop at " + req.getStopHeight());
             server.dial(context.getPayload().getRemote(), req);
         }
     }
@@ -326,13 +323,13 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 Result res = rule.validateBlock(b);
                 if (!res.isSuccess()) {
                     iterator.remove();
-                    logger.error("invalid block received reason = " + res.getMessage());
+                    log.error("invalid block received reason = " + res.getMessage());
                     continue;
                 }
                 Result resCheckPointRule = checkPointRule.validateBlock(b);
                 if (!resCheckPointRule.isSuccess()) {
                     iterator.remove();
-                    logger.error("invalid block received reason = " + resCheckPointRule.getMessage());
+                    log.error("invalid block received reason = " + resCheckPointRule.getMessage());
                     continue;
                 }
                 iterator.remove();
