@@ -240,9 +240,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (Math.abs(block.nHeight - repository.getBestBlock().getnHeight()) > maxBlocksPerTransfer) {
             return;
         }
-        if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS)) return;
         if (queue.contains(block) || repository.containsBlock(block.getHash()))
             return;
+        if (!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS)) return;
         try {
             queue.add(block);
         } finally {
