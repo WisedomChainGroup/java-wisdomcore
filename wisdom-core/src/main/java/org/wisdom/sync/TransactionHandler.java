@@ -1,10 +1,8 @@
 package org.wisdom.sync;
 
-import com.google.protobuf.AbstractMessage;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
@@ -13,17 +11,16 @@ import org.wisdom.p2p.*;
 import org.wisdom.service.CommandService;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 @Component
+@Slf4j(topic = "sync")
 public class TransactionHandler implements Plugin {
     private PeerServer server;
     private static final int CACHE_SIZE = 256;
     private ConcurrentMap<String, Boolean> transactionCache;
 
-    private static final Logger logger = LoggerFactory.getLogger(TransactionHandler.class);
     @Autowired
     private CommandService commandService;
 
@@ -37,6 +34,7 @@ public class TransactionHandler implements Plugin {
             return;
         }
         WisdomOuterClass.Transactions txs = (WisdomOuterClass.Transactions) context.getPayload().getBody();
+
         String key = Hex.encodeHexString(Utils.getTransactionsHash(txs.getTransactionsList()));
         if (transactionCache.containsKey(key)) {
             return;
@@ -46,11 +44,12 @@ public class TransactionHandler implements Plugin {
                 .stream()
                 .map(Utils::parseTransaction)
                 .forEach(t -> {
+                    log.debug("receive transaction {} ", t.getHashHexString());
                     transactionCache.put(t.getHashHexString(), true);
                     byte[] traninfo = t.toRPCBytes();
                     APIResult apiResult = commandService.verifyTransfer(traninfo);
                     if (apiResult.getCode() == 5000) {
-                        logger.info("transaction Check failure,TxHash=" + Hex.encodeHexString(t.getHash()) + ",message:" + apiResult.getMessage());
+                        log.info("transaction Check failure,TxHash=" + Hex.encodeHexString(t.getHash()) + ",message:" + apiResult.getMessage());
                     }
                 });
         context.relay();

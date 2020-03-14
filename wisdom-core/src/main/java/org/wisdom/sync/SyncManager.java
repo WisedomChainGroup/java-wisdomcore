@@ -224,10 +224,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     private void onProposal(Context context, PeerServer server) throws InterruptedException {
-        if (!allowFork) {
-            return;
-        }
         WisdomOuterClass.Proposal proposal = context.getPayload().getProposal();
+        log.debug("receive new mined block from {} height = {}", context.getPayload().getRemote(), proposal.getBlock().getHeight());
         Block block = Utils.parseBlock(proposal.getBlock());
         if (proposalCache
                 .asMap()
@@ -302,9 +300,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         int count = 0;
         blockQueueLock.lock();
         try {
+            count = queue.size();
             Iterator<Block> iterator = queue.iterator();
             while (iterator.hasNext()) {
-                count ++;
                 Block b = null;
                 try {
                     b = iterator.next();
@@ -354,6 +352,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
             long end = System.currentTimeMillis();
             log.debug("traverse through {} blocks success consuming {} ms", count, end - start);
             log.debug("current block queue size = {}", queue.size());
+            log.debug("current orphans size = {}", orphans.size());
             blockQueueLock.unlock();
         }
     }
