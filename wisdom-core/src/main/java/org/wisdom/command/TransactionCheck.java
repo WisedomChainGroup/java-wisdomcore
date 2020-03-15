@@ -436,6 +436,11 @@ public class TransactionCheck {
             //Owner
             if (asset.getOwner().length != 20)
                 return APIResult.newFailed("Owner format check error");
+            Optional<AccountState> ownerAccountState = wisdomRepository.getConfirmedAccountState(asset.getOwner());
+            if (ownerAccountState.isPresent()){
+                if (ownerAccountState.get().getType() != 0)
+                    return APIResult.newFailed("Owner must be Ordinary address");
+            }
             //Createuser frompubhash
             if (!Arrays.equals(from, createUserPublicKey))
                 return APIResult.newFailed("Create and frompubhash are different");
@@ -650,17 +655,11 @@ public class TransactionCheck {
             //value
             if (assetTransfer.getValue() > 0) {
                 //校验是否有足够多的余额
-                byte[] emptyBytes = new byte[20];
-                if (Arrays.equals(emptyBytes, assetTransfer.getTo())) {//WDC
-                    if (assetTransfer.getValue() > accountState.get().getAccount().getBalance())
-                        return APIResult.newFailed("Insufficient funds");
-                } else {
-                    if (accountState.get().getTokensMap().size() == 0) {
-                        return APIResult.newFailed("Insufficient funds");
-                    }
-                    if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to).longValue()))
-                        return APIResult.newFailed("Insufficient funds");
+                if (accountState.get().getTokensMap().size() == 0) {
+                    return APIResult.newFailed("Insufficient funds");
                 }
+                if (assetTransfer.getValue() > (accountState.get().getTokensMap().get(transaction.to) == null ? 0 : accountState.get().getTokensMap().get(transaction.to).longValue()))
+                    return APIResult.newFailed("Insufficient funds");
             } else {
                 return APIResult.newFailed("Value must be greater than zero");
             }
