@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 // TODO: create fast sync manager
-@Slf4j
+@Slf4j(topic = "db")
 public class WisdomRepositoryImpl implements WisdomRepository {
     private ChainCache<BlockWrapper> chainCache;
 

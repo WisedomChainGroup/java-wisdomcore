@@ -3,13 +3,13 @@ package org.wisdom.p2p;
 import com.google.protobuf.AbstractMessage;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.wisdom.sync.SyncManager;
@@ -19,7 +19,6 @@ import javax.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 /**
@@ -28,6 +27,7 @@ import java.util.logging.Level;
  */
 @Component
 @ConditionalOnProperty(name = "p2p.mode", havingValue = "grpc")
+@Slf4j(topic = "net")
 public class PeerServer extends WisdomGrpc.WisdomImplBase {
 
     private static final int HALF_RATE = 60;
@@ -40,7 +40,6 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     private static final WisdomOuterClass.Nothing NOTHING = WisdomOuterClass.Nothing.newBuilder().build();
 
     private Server server;
-    private static final Logger logger = LoggerFactory.getLogger(PeerServer.class);
     private static final int MAX_TTL = 8;
     private List<Plugin> pluginList;
 
@@ -100,11 +99,11 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
     }
 
     public void startListening() throws Exception {
-        logger.info("peer server is listening on " +
+        log.info("peer server is listening on " +
                 Peer.PROTOCOL_NAME + "://" +
                 Hex.encodeHexString(peersCache.getSelf().privateKey.getEncoded()) +
                 Hex.encodeHexString(peersCache.getSelf().peerID) + "@" + peersCache.getSelf().hostPort());
-        logger.info("provide address to your peers to connect " +
+        log.info("provide address to your peers to connect " +
                 Peer.PROTOCOL_NAME + "://" +
                 Hex.encodeHexString(peersCache.getSelf().peerID) +
                 "@" + peersCache.getSelf().hostPort());
@@ -166,7 +165,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
         try {
             Payload payload = new Payload(message);
             if (peersCache.getBlocked().contains(payload.getRemote())) {
-                logger.error("the remote had been blocked");
+                log.error("the remote had been blocked");
                 return gRPCClient.buildMessage(1, NOTHING);
             }
             Context ctx = new Context();
@@ -197,7 +196,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("fail to parse message");
+            log.error("fail to parse message");
         }
         return gRPCClient.buildMessage(1, NOTHING);
     }
@@ -255,7 +254,7 @@ public class PeerServer extends WisdomGrpc.WisdomImplBase {
             try {
                 dialWithTTL(p, payload.getTtl() - 1, payload.getBody());
             } catch (Exception e) {
-                logger.error("parse body fail");
+                log.error("parse body fail");
             }
         }
     }

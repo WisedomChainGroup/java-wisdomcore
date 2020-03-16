@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 // helper to keep all state trie synced
 @Component
-@Slf4j
+@Slf4j(topic = "sync")
 public class TriesSyncManager {
     @Getter(AccessLevel.PACKAGE)
     private static final int BLOCKS_PER_UPDATE_LOWER_BOUNDS = 2048;
