@@ -477,6 +477,7 @@ public class TransactionCheck {
                 //校验AssetHash是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(multiple.getAssetHash());
                 if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exists");
+                if (accountState.get().getType() != 1) return APIResult.newFailed("AssetHash is wrong");
             }
             //M and N
             if (multiple.getMin() >= 0 && multiple.getMax() >= 0) {
@@ -583,6 +584,12 @@ public class TransactionCheck {
                 if (accountStateTo.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
+            //assetHash
+            Optional<AccountState> accountStateAssetHash= wisdomRepository.getConfirmedAccountState(hashtimeblock.getAssetHash());
+            if (!accountStateAssetHash.isPresent())
+                return APIResult.newFailed("AssetHash does not exist");
+            if (accountStateAssetHash.get().getType() != 1)
+                return APIResult.newFailed("AssetHash is wrong");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashtimeblock rules");
@@ -605,6 +612,12 @@ public class TransactionCheck {
                 if (accountStateTo.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
+            //assetHash
+            Optional<AccountState> accountStateAssetHash= wisdomRepository.getConfirmedAccountState(hashheightblock.getAssetHash());
+            if (!accountStateAssetHash.isPresent())
+                return APIResult.newFailed("AssetHash does not exist");
+            if (accountStateAssetHash.get().getType() != 1)
+                return APIResult.newFailed("AssetHash is wrong");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashheightblock rules");
