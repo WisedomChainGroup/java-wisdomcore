@@ -1,13 +1,14 @@
 package org.wisdom.p2p;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j(topic = "net")
 public class MessageLogger implements Plugin {
-    private static final Logger logger = LoggerFactory.getLogger(MessageLogger.class);
 
     @Value("${p2p.enable-message-log}")
     private boolean enableMessageLog;
@@ -20,7 +21,7 @@ public class MessageLogger implements Plugin {
         if (context.getPayload().getCode().equals(WisdomOuterClass.Code.NOTHING)){
             return;
         }
-        logger.info("receive " + context.getPayload().getCode().name() + " message from remote peer " + context.getPayload().getRemote().hostPort());
+        log.debug("receive " + context.getPayload().getCode().name() + " message from remote peer " + context.getPayload().getRemote().hostPort());
     }
 
     @Override

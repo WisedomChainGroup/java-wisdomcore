@@ -18,6 +18,7 @@
 
 package org.wisdom.consensus.pow;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
@@ -35,9 +36,9 @@ import java.util.Date;
 
 @Component
 @Scope("prototype")
+@Slf4j(topic = "miner")
 public class MineThread {
     private volatile boolean terminated;
-    private static final Logger logger = LoggerFactory.getLogger(Miner.class);
 
     private static SecureRandom SECURE_RANDOM;
 
@@ -51,7 +52,7 @@ public class MineThread {
     @Async
     public void mine(Block block, long startTime, long endTime) {
         block.setWeight(1);
-        logger.info("start mining at height " + block.nHeight + " target = " + Hex.encodeHexString(block.nBits));
+        log.info("start mining at height " + block.nHeight + " target = " + Hex.encodeHexString(block.nBits));
         block = pow(block, startTime, endTime);
         terminated = true;
         if (block != null) {
@@ -75,16 +76,14 @@ public class MineThread {
                 continue;
             }
             if (block.nTime >= endTime) {
-                logger.error("mining timeout, dead line = " + new Date(endTime * 1000).toString() + "consider upgrade your hardware");
+                log.error("mining timeout, dead line = " + new Date(endTime * 1000).toString() + "consider upgrade your hardware");
                 return null;
             }
             byte[] hash = Block.calculatePOWHash(block);
             if (BigEndian.compareUint256(hash, nBits) < 0) {
-                logger.info("mining success");
                 return block;
             }
         }
-        logger.info("mining terminated");
         return null;
     }
 

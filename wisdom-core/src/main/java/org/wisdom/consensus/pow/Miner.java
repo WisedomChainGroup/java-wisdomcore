@@ -18,6 +18,7 @@
 
 package org.wisdom.consensus.pow;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.store.CachedStore;
 import org.tdf.common.trie.Trie;
@@ -50,9 +51,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
+@Slf4j(topic = "miner")
 public class Miner implements ApplicationListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(Miner.class);
     private static final int MAX_CACHE_SIZE = 1000;
 
 
@@ -217,8 +218,7 @@ public class Miner implements ApplicationListener {
     public void onApplicationEvent(ApplicationEvent event) {
         if (event instanceof NewBlockMinedEvent) {
             Block o = ((NewBlockMinedEvent) event).getBlock();
-            logger.info("new block mined event triggered");
-            pendingBlocksManager.addPendingBlock(o);
+            log.info("new block mined at height {}", o.nHeight);
         }
         if (event instanceof NewBestBlockEvent && thread != null) {
             thread.terminate();

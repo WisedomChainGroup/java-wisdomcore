@@ -18,6 +18,7 @@
 
 package org.wisdom.consensus.pow;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -37,8 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
+@Slf4j(topic = "init")
 public class ConsensusConfig {
-    private static Logger logger = LoggerFactory.getLogger(ConsensusConfig.class);
 
     private List<String> validators;
 
@@ -79,7 +80,7 @@ public class ConsensusConfig {
         Resource  resource = FileUtil.getResource(validatorsFile);
         if (enableMining) {
             minerPubKeyHash = KeystoreAction.addressToPubkeyHash(coinbase);
-            logger.info("mining is enabled, your coin base address is " + coinbase);
+            log.info("mining is enabled, your coin base address is " + coinbase);
         }
         validators = Arrays.asList(codec.decode(IOUtils.toByteArray(resource.getInputStream()), String[].class));
         validatorPubKeyHashes = new ArrayList<>();
@@ -88,7 +89,7 @@ public class ConsensusConfig {
             URI uri = new URI(v);
             String pubKeyHashes = Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(uri.getRawUserInfo()));
             validatorPubKeyHashes.add(pubKeyHashes);
-            logger.info("initial validator found address = " + uri.getRawUserInfo());
+            log.info("initial validator found address = " + uri.getRawUserInfo());
             if (!pubKeyHashes.equals(minerPubKeyHash)) {
                 peers.add(uri.getHost() + ":" + uri.getPort());
             }

@@ -21,6 +21,7 @@ package org.wisdom.core;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,7 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.toList;
 
 @Component
+@Slf4j(topic = "block")
 public class Block {
     public static final int MAX_NOTICE_LENGTH = 32;
     public static final int HASH_SIZE = 32;
@@ -60,7 +62,6 @@ public class Block {
 
     // reserve 128kb for transports
     public static final int RESERVED_SPACE = 128 * (1 << 10);
-    private static final Logger logger = LoggerFactory.getLogger(Block.class);
 
     public static byte[] calculatePOWHash(Block block) {
         byte[] raw = Block.getHeaderRaw(block);
@@ -117,7 +118,7 @@ public class Block {
         try {
             return Hex.decodeHex(new MerkleTree(hashes).getRoot().getHash().toCharArray());
         } catch (Exception e) {
-            logger.error("error occured when calculate merkle root");
+            log.error("error occurred when calculate merkle root");
         }
         return new byte[32];
     }
@@ -128,7 +129,7 @@ public class Block {
             try {
                 return Hex.decodeHex(new MerkleTree(hashes).getRoot().getHash().toCharArray());
             } catch (Exception e) {
-                logger.error("error occured when calculate merkle state");
+                log.error("error occurred when calculate merkle state");
             }
         }
         return new byte[32];
@@ -143,7 +144,7 @@ public class Block {
             try {
                 return Hex.decodeHex(new MerkleTree(hashes).getRoot().getHash().toCharArray());
             } catch (Exception e) {
-                logger.error("error occured when calculate merkle incubate");
+                log.error("error occurred when calculate merkle incubate");
             }
         }
         return new byte[32];

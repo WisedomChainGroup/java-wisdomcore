@@ -1,5 +1,6 @@
 package org.wisdom.p2p;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -14,8 +15,8 @@ import java.util.Optional;
  * peers manager plugin
  */
 @Component
+@Slf4j(topic = "net")
 public class PeersManager implements Plugin {
-    private static final Logger logger = LoggerFactory.getLogger(PeersManager.class);
     private static final WisdomOuterClass.Ping PING = WisdomOuterClass.Ping.newBuilder().build();
     private static final WisdomOuterClass.Pong PONG = WisdomOuterClass.Pong.newBuilder().build();
     private PeerServer server;
@@ -67,7 +68,7 @@ public class PeersManager implements Plugin {
                 server.pend(pr);
             }
         } catch (Exception e) {
-            logger.error("parse peer fail");
+            log.error("parse peer fail");
         }
     }
 

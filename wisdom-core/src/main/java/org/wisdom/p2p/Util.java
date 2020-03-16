@@ -3,6 +3,7 @@ package org.wisdom.p2p;
 import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wisdom.encoding.BigEndian;
@@ -14,10 +15,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j(topic = "net")
 public class Util {
     private static final long MAX_MESSAGE_SIZE = 4 * (1 << 20) - 128 * 1024;
 
-    private static final Logger logger = LoggerFactory.getLogger(Util.class);
 
     public static byte[] getRawForSign(WisdomOuterClass.Message msg) {
         return Arrays.concatenate(new byte[][]{
@@ -156,7 +157,7 @@ public class Util {
             builder.setCode(WisdomOuterClass.Code.MERKLE_TRANSACTIONS);
             return sign(self, builder.setBody(msg.toByteString())).build();
         }
-        logger.error("cannot deduce message type " + msg.getClass().toString());
+        log.error("cannot deduce message type " + msg.getClass().toString());
         WisdomOuterClass.Message.Builder builder = buildMessageBuilder(self, nonce, ttl);
         builder.setCode(WisdomOuterClass.Code.NOTHING).setBody(WisdomOuterClass.Nothing.newBuilder().build().toByteString());
         return sign(self, builder).build();

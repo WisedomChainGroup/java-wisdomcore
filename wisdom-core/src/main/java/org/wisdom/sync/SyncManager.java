@@ -8,12 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
+import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.CompositeBlockRule;
@@ -393,6 +395,12 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     public void onApplicationEvent(NewBlockMinedEvent event) {
         if (server == null) {
             return;
+        }
+        blockQueueLock.lock();
+        try{
+            queue.add(event.getBlock());
+        }finally {
+            blockQueueLock.unlock();
         }
         proposalCache.put(HexBytes.fromBytes(event.getBlock().getHash()), true);
         Block block = event.getBlock();

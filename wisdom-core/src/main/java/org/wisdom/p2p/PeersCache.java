@@ -1,5 +1,6 @@
 package org.wisdom.p2p;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,8 +8,8 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j(topic = "net")
 public class PeersCache {
-    private static final Logger logger = LoggerFactory.getLogger(PeersCache.class);
     static final int MAX_PEERS = 16;
     private static final int PEER_SCORE = 32;
     private static final int EVIL_SCORE = -(1 << 10);
@@ -62,7 +63,7 @@ public class PeersCache {
                 URI u = new URI(link);
                 this.unresolved.add(new HostPort(u.getHost(), u.getPort()));
             } catch (Exception e) {
-                logger.error("invalid url");
+                log.error("invalid url {}", link);
             }
         }
     }

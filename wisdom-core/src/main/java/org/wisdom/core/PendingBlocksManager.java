@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Component
+@Deprecated
 public class PendingBlocksManager {
 
     @Autowired
