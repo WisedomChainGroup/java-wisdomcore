@@ -131,9 +131,12 @@ public class ContractServiceImpl implements ContractService {
             Long balance = 0L;
             if (code.equals("WDC")) {
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(pubkeyHash);
-                if (!accountState.isPresent()) return APIResult.newFailed("Inactive address");
-                balance = accountState.get().getAccount().getBalance();
-                codeJson.put(code, balance);
+                if (accountState.isPresent()){
+                    balance = accountState.get().getAccount().getBalance();
+                    codeJson.put(code, balance);
+                }else {
+                    codeJson.put(code, 0);
+                }
             } else {
                 APIResult apiResult = (APIResult) getAssetBalanceObject(code, pubkeyHash);
                 if (apiResult.getCode() == 2000){
@@ -147,6 +150,11 @@ public class ContractServiceImpl implements ContractService {
 
     @Override
     public Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash) {
+        Block latestConfirmed = wisdomRepository.getLatestConfirmed();
+        Optional<AssetCodeInfo> info =
+                wisdomRepository.getAssetCodeAt(latestConfirmed.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
+        if (!info.isPresent())
+            return APIResult.newFailed("asset not found");
         Optional<AccountState> asset =
                 wisdomRepository.getConfirmedAccountState(publicKeyHash);
         if (!asset.isPresent())
@@ -154,12 +162,6 @@ public class ContractServiceImpl implements ContractService {
         if (assetCode.equals("WDC")) {
             return APIResult.newSuccess(asset.get().getAccount().getBalance());
         }
-        Block latestConfirmed = wisdomRepository.getLatestConfirmed();
-        Optional<AssetCodeInfo> info =
-                wisdomRepository.getAssetCodeAt(latestConfirmed.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
-        if (!info.isPresent())
-            return APIResult.newFailed("asset not found");
-
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
 }
