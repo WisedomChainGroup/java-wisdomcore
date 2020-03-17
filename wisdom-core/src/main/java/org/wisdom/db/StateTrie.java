@@ -31,4 +31,6 @@ public interface StateTrie<T> {
     void gc(Collection<? extends byte[]> blockHash);
 
     Store<byte[], byte[]> getTrieStore();
+
+    Optional<byte[]> getRootHashByBlockHash(byte[] blockHash);
 }

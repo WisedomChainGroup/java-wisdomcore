@@ -40,6 +40,11 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     @Getter(AccessLevel.PROTECTED)
     private AbstractStateUpdater<T> updater;
 
+    @Override
+    public Optional<byte[]> getRootHashByBlockHash(byte[] blockHash) {
+        return rootStore.get(blockHash);
+    }
+
     public StateTrieAdapter(Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
         TRIE = getPrefix() + "-trie";
         DELETED = getPrefix() + "-deleted";

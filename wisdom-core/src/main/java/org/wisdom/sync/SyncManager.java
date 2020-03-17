@@ -191,8 +191,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         log.info("get blocks received start height = " + query.start + " stop height = " + query.stop);
         List<Block> blocksToSend = repository.getBlocksBetween(query.start, query.stop, maxBlocksPerTransfer, getBlocks.getClipDirectionValue() > 0);
-        blocksToSend.forEach(x -> x.accountStateTrieRoot = accountStateTrie.getTrieByBlockHash(x.getHash()).getRootHash());
-        if (blocksToSend == null || blocksToSend.size() == 0) {
+        blocksToSend.forEach(x -> {
+            Optional<byte[]> o = accountStateTrie.getRootHashByBlockHash(x.getHash());
+            o.ifPresent(bytes -> x.accountStateTrieRoot = bytes);
+        });
+        if (blocksToSend.size() == 0) {
             return;
         }
         WisdomOuterClass.Blocks resp = WisdomOuterClass.Blocks.newBuilder().addAllBlocks(Utils.encodeBlocks(blocksToSend)).build();
@@ -340,11 +343,6 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     continue;
                 }
                 iterator.remove();
-//                Trie<byte[], AccountState> accountState = accountStateTrie.getTrieByBlockHash(block.hashPrevBlock);
-//                byte[] root = accountStateTrie.commit(accountState.asMap(), block.getHash());
-//                if (!FastByteComparisons.equal(root, block.accountStateTrieRoot)) {
-//                    throw new RuntimeException("accountStateTrieRoot is not equal, block height is " + block.nHeight);
-//                }
                 accountStateTrie.commit(b);
                 repository.writeBlock(b);
             }
@@ -399,7 +397,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         repository.writeBlock(event.getBlock());
         proposalCache.put(HexBytes.fromBytes(event.getBlock().getHash()), true);
         Block block = event.getBlock();
-        block.accountStateTrieRoot = accountStateTrie.getTrieByBlockHash(block.getHash()).getRootHash();
+        Optional<byte[]> o = accountStateTrie.getRootHashByBlockHash(block.getHash());
+        o.ifPresent(bytes -> block.accountStateTrieRoot = bytes);
         server.broadcast(WisdomOuterClass.Proposal.newBuilder().setBlock(Utils.encodeBlock(block)).build());
     }
 }
