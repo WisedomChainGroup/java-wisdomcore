@@ -396,12 +396,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         if (server == null) {
             return;
         }
-        blockQueueLock.lock();
-        try{
-            queue.add(event.getBlock());
-        }finally {
-            blockQueueLock.unlock();
-        }
+        repository.writeBlock(event.getBlock());
         proposalCache.put(HexBytes.fromBytes(event.getBlock().getHash()), true);
         Block block = event.getBlock();
         block.accountStateTrieRoot = accountStateTrie.getTrieByBlockHash(block.getHash()).getRootHash();
