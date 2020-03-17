@@ -114,7 +114,7 @@ public class Utils {
                 .setCreatedAt((int) block.nTime)
                 .setNBits(ByteString.copyFrom(getBytes(block.nBits)))
                 .setNonce(ByteString.copyFrom(getBytes(block.nNonce)))
-                .setAccountStateTrieRoot(ByteString.copyFrom(block.accountStateTrieRoot));
+                .setAccountStateTrieRoot(ByteString.copyFrom(block.accountStateTrieRoot == null ? new byte[0] : block.accountStateTrieRoot));
 
         if (block.body == null || block.body.size() == 0) {
             return bd.build();
