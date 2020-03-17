@@ -231,9 +231,8 @@ ext {
     leveldbVersion = '0.12'
     scastleVersion = '1.58.0.0'
     springVersion = '4.3.19.RELEASE'
-    hibernateVersion = '4.3.7.Final'
     junitVersion = '4.11'
-    springbootVersion = '2.1.0.RELEASE'
+    springbootVersion = '2.2.5.RELEASE'
     guavaVersion = '28.1-jre'
     gRPCVersion = '1.25.0'
     lombokVersion = '1.18.10'
@@ -338,7 +337,6 @@ dependencies {
 
     compile "org.springframework.boot:spring-boot-starter-data-jpa:${springbootVersion}"
     compile group: 'com.h2database', name: 'h2', version: '1.4.200'
-    compile 'org.lmdbjava:lmdbjava:0.7.0'
 }
 
 
