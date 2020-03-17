@@ -62,7 +62,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Component
 @Setter
@@ -121,7 +120,7 @@ public class TransactionCheck {
             long gas = 0;
             //hatch disabled
             long nowheight = wisdomRepository.getBestBlock().nHeight;
-            if (nowheight > 1305500 && type[0] == 9){
+            if (nowheight > 1305500 && type[0] == 9) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Hatching transactions have been disabled");
                 return apiResult;
@@ -287,9 +286,9 @@ public class TransactionCheck {
                 }
             }
             //To必须为普通地址
-            if (type == 0x01 || type == 0x02 || type == 0x0d){
+            if (type == 0x01 || type == 0x02 || type == 0x0d) {
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
-                if (accountState.isPresent()){
+                if (accountState.isPresent()) {
                     if (accountState.get().getType() != 0)
                         return APIResult.newFailed("Transaction to must be Ordinary address");
                 }
@@ -437,7 +436,7 @@ public class TransactionCheck {
             if (asset.getOwner().length != 20)
                 return APIResult.newFailed("Owner format check error");
             Optional<AccountState> ownerAccountState = wisdomRepository.getConfirmedAccountState(asset.getOwner());
-            if (ownerAccountState.isPresent()){
+            if (ownerAccountState.isPresent()) {
                 if (ownerAccountState.get().getType() != 0)
                     return APIResult.newFailed("Owner must be Ordinary address");
             }
@@ -495,7 +494,8 @@ public class TransactionCheck {
                 return APIResult.newFailed("PubkeyList do not match max");
             if (ByteUtil.containsDuplicate(multiple.getPubList()))
                 return APIResult.newFailed("PubkeyList Contains repeating elements");
-            if (!ByteUtil.byteListContains(multiple.getPubList(),from)) return APIResult.newFailed("From must be in payload");
+            if (!ByteUtil.byteListContains(multiple.getPubList(), from))
+                return APIResult.newFailed("From must be in payload");
             //signatureList
             if (multiple.getSignatureList().size() != multiple.getMax())
                 return APIResult.newFailed("SignatureList do not match max");
@@ -510,18 +510,18 @@ public class TransactionCheck {
             if (multiple.getPubkeyHashList().size() != multiple.getPubList().size() || multiple.getPubkeyHashList().size() != multiple.getSignatureList().size())
                 return APIResult.newFailed("The lengths of PubkeyList, SignatureList and PubkeyHashList are different");
             //pubkeyHashList第一个元素必须与事务签发者一致
-            if (!Arrays.equals(multiple.getPubkeyHashList().get(0),KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(0))))
+            if (!Arrays.equals(multiple.getPubkeyHashList().get(0), KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(0))))
                 return APIResult.newFailed("The first from of fromPubkeyList is different form pubkeyHashList");
             //验证pubkeyList 与 pubkeyHashList是否一致
             int pubkeys = 0;
-            for (int i = 0;i<multiple.getPubList().size();i++){
-                for (int j = 0;j<multiple.getPubkeyHashList().size();j++){
-                    if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(i)),multiple.getPubkeyHashList().get(j))){
+            for (int i = 0; i < multiple.getPubList().size(); i++) {
+                for (int j = 0; j < multiple.getPubkeyHashList().size(); j++) {
+                    if (Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multiple.getPubList().get(i)), multiple.getPubkeyHashList().get(j))) {
                         pubkeys++;
                     }
                 }
             }
-            if (pubkeys!=multiple.getMax())
+            if (pubkeys != multiple.getMax())
                 return APIResult.newFailed("PubkeyList is different form PubkeyHashList");
             //构造签名原文
             byte[] from_version = new byte[1];
@@ -529,7 +529,7 @@ public class TransactionCheck {
             byte[] from_type = new byte[1];
             from_type[0] = (byte) transaction.type;
             byte[] from_nonce = new byte[1];
-            from_nonce =  ByteUtil.longToBytes(0L);
+            from_nonce = ByteUtil.longToBytes(0L);
             byte[] from_nullsig = new byte[64];
             byte[] from_gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
             byte[] from_amount = ByteUtil.longToBytes(0L);
@@ -541,24 +541,24 @@ public class TransactionCheck {
             from_multiple.setSignatureList(new ArrayList<>());
             from_multiple.setPubkeyHashList(multiple.getPubkeyHashList());
             byte[] from_payload = from_multiple.RLPserialization();
-            from_payload = ByteUtil.merge(new byte[]{0x01},from_payload);
+            from_payload = ByteUtil.merge(new byte[]{0x01}, from_payload);
             byte[] payloadLength = ByteUtil.intToBytes(from_payload.length);
-            byte[] from_allPayload =ByteUtil.merge(payloadLength,from_payload);
+            byte[] from_allPayload = ByteUtil.merge(payloadLength, from_payload);
             byte[] nosig = ByteUtil.merge(from_version, from_type, from_nonce, from, from_gasPrice, from_amount, from_nullsig, topubkeyhash, from_allPayload);
             Ed25519PublicKey ed25519PublicKey = new Ed25519PublicKey(from);
-            if (!Arrays.equals(from,multiple.getPubList().get(0)) || !ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
+            if (!Arrays.equals(from, multiple.getPubList().get(0)) || !ed25519PublicKey.verify(nosig, multiple.getSignatureList().get(0)))
                 return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
             List<byte[]> pubkeylist = multiple.getPubList();
             List<byte[]> signatureList = multiple.getSignatureList();
             int number = 0;
             //验证签名
-            for (int i=0;i<pubkeylist.size();i++){
+            for (int i = 0; i < pubkeylist.size(); i++) {
                 Ed25519PublicKey ed25519PublicKey_payload = new Ed25519PublicKey(pubkeylist.get(i));
-                    for (int j=0;j<signatureList.size();j++){
-                        if (ed25519PublicKey_payload.verify(nosig,multiple.getSignatureList().get(j))){
-                            number++;
-                        }
+                for (int j = 0; j < signatureList.size(); j++) {
+                    if (ed25519PublicKey_payload.verify(nosig, multiple.getSignatureList().get(j))) {
+                        number++;
                     }
+                }
             }
             if (number != multiple.getMax())
                 return APIResult.newFailed("Not enough Pubkey or Signature");
@@ -575,6 +575,8 @@ public class TransactionCheck {
                 //校验如果不是WDC校验区块中是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashtimeblock.getAssetHash());
                 if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+                if (accountState.get().getType() != 1)
+                    return APIResult.newFailed("AssetHash is wrong");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             if (hashtimeblock.getPubkeyHash().length != 20)
@@ -584,12 +586,6 @@ public class TransactionCheck {
                 if (accountStateTo.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
-            //assetHash
-            Optional<AccountState> accountStateAssetHash= wisdomRepository.getConfirmedAccountState(hashtimeblock.getAssetHash());
-            if (!accountStateAssetHash.isPresent())
-                return APIResult.newFailed("AssetHash does not exist");
-            if (accountStateAssetHash.get().getType() != 1)
-                return APIResult.newFailed("AssetHash is wrong");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashtimeblock rules");
@@ -603,6 +599,8 @@ public class TransactionCheck {
                 //校验如果不是WDC校验区块中是否存在
                 Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(hashheightblock.getAssetHash());
                 if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+                if (accountState.get().getType() != 1)
+                    return APIResult.newFailed("AssetHash is wrong");
             }
             //pubkeyhash 为普通账户地址的公钥哈希
             if (hashheightblock.getPubkeyHash().length != 20)
@@ -612,12 +610,6 @@ public class TransactionCheck {
                 if (accountStateTo.get().getType() != 0)
                     return APIResult.newFailed("To must be Ordinary address");
             }
-            //assetHash
-            Optional<AccountState> accountStateAssetHash= wisdomRepository.getConfirmedAccountState(hashheightblock.getAssetHash());
-            if (!accountStateAssetHash.isPresent())
-                return APIResult.newFailed("AssetHash does not exist");
-            if (accountStateAssetHash.get().getType() != 1)
-                return APIResult.newFailed("AssetHash is wrong");
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashheightblock rules");
@@ -770,11 +762,11 @@ public class TransactionCheck {
                 if (accountStateTo.get().getType() != 2) return APIResult.newFailed("Origin error in type");
             }
             if (multTransfer.getDest() == 0) {//普通
-                if (accountStatePayloadTo.isPresent()){
+                if (accountStatePayloadTo.isPresent()) {
                     if (accountStatePayloadTo.get().getType() != 0) return APIResult.newFailed("Dest error in type");
                 }
             } else {//多签
-                if (!accountStatePayloadTo.isPresent()) return  APIResult.newFailed("To multiple do not exist");
+                if (!accountStatePayloadTo.isPresent()) return APIResult.newFailed("To multiple do not exist");
                 if (accountStatePayloadTo.get().getType() != 2) return APIResult.newFailed("Dest error in type");
             }
             //fromlist
@@ -789,13 +781,13 @@ public class TransactionCheck {
             if (multTransfer.getFrom().size() != multTransfer.getSignatures().size())
                 return APIResult.newFailed("The lengths of PubkeyList and SignatureList are different");
             //fromlist 与 pubkeyhashList第一个元素一致
-            if (!Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(0)),multTransfer.getPubkeyHashList().get(0)))
+            if (!Arrays.equals(KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(0)), multTransfer.getPubkeyHashList().get(0)))
                 return APIResult.newFailed("The first of fromlist is different from pubkeyhashList");
             //fromlist 与 pubkeyhashList 一致
             int froms = 0;
-            for (int i = 0;i<multTransfer.getFrom().size();i++){
-                for (int j = 0;j<multTransfer.getPubkeyHashList().size();j++){
-                    if (Arrays.equals(multTransfer.getPubkeyHashList().get(j),KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(i)))){
+            for (int i = 0; i < multTransfer.getFrom().size(); i++) {
+                for (int j = 0; j < multTransfer.getPubkeyHashList().size(); j++) {
+                    if (Arrays.equals(multTransfer.getPubkeyHashList().get(j), KeystoreAction.pubkeybyteToPubkeyhashbyte(multTransfer.getFrom().get(i)))) {
                         froms++;
                     }
                 }
@@ -813,19 +805,19 @@ public class TransactionCheck {
             byte[] amount = ByteUtil.longToBytes(0L);
             //验证签名
             Ed25519PublicKey from_ed25519PublicKey = new Ed25519PublicKey(transaction.from);
-            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), new ArrayList<>(), new ArrayList<>(), multTransfer.getTo(), multTransfer.getValue(),multTransfer.getPubkeyHashList());
-            byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length+1),new byte[]{0x03}, payloadMultTransfer.RLPserialization());
+            MultTransfer payloadMultTransfer = new MultTransfer(multTransfer.getOrigin(), multTransfer.getDest(), new ArrayList<>(), new ArrayList<>(), multTransfer.getTo(), multTransfer.getValue(), multTransfer.getPubkeyHashList());
+            byte[] nosig = ByteUtil.merge(version, type, nonece, transaction.from, gasPrice, amount, nullsig, transaction.to, BigEndian.encodeUint32(payloadMultTransfer.RLPserialization().length + 1), new byte[]{0x03}, payloadMultTransfer.RLPserialization());
             byte[] WDCbyte = new byte[20];
             if (multTransfer.getOrigin() == 0) {//from是普通地址 普通->多签
                 //TO 与payload_to必须一致
-                if (!Arrays.equals(transaction.to,multTransfer.getTo()))
+                if (!Arrays.equals(transaction.to, multTransfer.getTo()))
                     return APIResult.newFailed("Transaction to is different from payload to");
-                if(multTransfer.getFrom() != null){
-                    if (multTransfer.getFrom().size() != 1){
+                if (multTransfer.getFrom() != null) {
+                    if (multTransfer.getFrom().size() != 1) {
                         //fromList
                         return APIResult.newFailed("Wrong length of fromList");
                     }
-                }else {
+                } else {
                     return APIResult.newFailed("Payload fromList can not be null");
                 }
                 //pubkeyHashList
@@ -835,14 +827,14 @@ public class TransactionCheck {
                 if (multTransfer.getSignatures().size() != 1)
                     return APIResult.newFailed("Wrong length of signatures");
 
-                if(multTransfer.getSignatures() != null){
-                    if (multTransfer.getSignatures().size() != 1){
+                if (multTransfer.getSignatures() != null) {
+                    if (multTransfer.getSignatures().size() != 1) {
                         return APIResult.newFailed("The size of Payload signaturesList is error");
                     }
-                }else {
+                } else {
                     return APIResult.newFailed("Payload signaturesList can not be null");
                 }
-                if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
+                if (!Arrays.equals(transaction.from, multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
                     return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
                 //多签规则
                 Multiple multiple = new Multiple();
@@ -866,13 +858,13 @@ public class TransactionCheck {
                 Multiple multiple = new Multiple();
                 if (multiple.RLPdeserialization(accountStateTo.get().getContract())) {
                     //fromlist
-                    if (multTransfer.getFrom().size()>multiple.getMax() || multTransfer.getFrom().size()<multiple.getMin())
+                    if (multTransfer.getFrom().size() > multiple.getMax() || multTransfer.getFrom().size() < multiple.getMin())
                         return APIResult.newFailed("Wrong length of fromlist");
                     //signaturesList
-                    if (multTransfer.getSignatures().size()>multiple.getMax() || multTransfer.getSignatures().size()<multiple.getMin())
+                    if (multTransfer.getSignatures().size() > multiple.getMax() || multTransfer.getSignatures().size() < multiple.getMin())
                         return APIResult.newFailed("Wrong length of signatures");
                     //pubkeyHashList
-                    if (multTransfer.getPubkeyHashList().size()>multiple.getMax() || multTransfer.getPubkeyHashList().size()<multiple.getMin())
+                    if (multTransfer.getPubkeyHashList().size() > multiple.getMax() || multTransfer.getPubkeyHashList().size() < multiple.getMin())
                         return APIResult.newFailed("Wrong length of pubkeyHashList");
                     //payload from
                     List<byte[]> payload_from = new ArrayList<>();
@@ -886,12 +878,13 @@ public class TransactionCheck {
                         List<byte[]> pubkeylist = multiple.getPubList();
                         //去重 取交集
                         payload_from = multTransfer.getFrom();
-                        from = ByteUtil.intersect(pubkeylist,payload_from);
+                        from = ByteUtil.intersect(pubkeylist, payload_from);
                     }
-                    if (! ByteUtil.byteListContains(from,transaction.from)) return APIResult.newFailed("From must be in payload");
+                    if (!ByteUtil.byteListContains(from, transaction.from))
+                        return APIResult.newFailed("From must be in payload");
                     int signAdopt = 0;
                     //验证第一个元素
-                    if (!Arrays.equals(transaction.from,multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
+                    if (!Arrays.equals(transaction.from, multTransfer.getFrom().get(0)) || !from_ed25519PublicKey.verify(nosig, multTransfer.getSignatures().get(0)))
                         return APIResult.newFailed("The first from of fromPubkeyList or SignatureList is different from From");
 
                     for (int i = 0; i < from.size(); i++) {
@@ -965,9 +958,9 @@ public class TransactionCheck {
                 //代币类型
                 byte[] assetHash = hashtimeblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-                if (!accountStateFrom.isPresent()){
+                if (!accountStateFrom.isPresent()) {
                     return APIResult.newFailed("From do not exist");
-                }else {
+                } else {
                     if (accountStateFrom.get().getType() != 0)
                         return APIResult.newFailed("From must be Ordinary address");
                 }
@@ -999,7 +992,7 @@ public class TransactionCheck {
             if (hashheightblockTransfer.getHashresult().length != 32)
                 return APIResult.newFailed("Wrong length of hashresult");
             //height
-            if (hashheightblockTransfer.getHeight()<0)
+            if (hashheightblockTransfer.getHeight() < 0)
                 return APIResult.newFailed("Height format check error");
             //查询事务
             Hashheightblock hashheightblock = new Hashheightblock();
@@ -1014,9 +1007,9 @@ public class TransactionCheck {
                 //代币类型
                 byte[] assetHash = hashheightblock.getAssetHash();
                 Optional<AccountState> accountStateFrom = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-                if (!accountStateFrom.isPresent()){
+                if (!accountStateFrom.isPresent()) {
                     return APIResult.newFailed("From do not exist");
-                }else {
+                } else {
                     if (accountStateFrom.get().getType() != 0)
                         return APIResult.newFailed("From must be Ordinary address");
                 }
@@ -1048,7 +1041,7 @@ public class TransactionCheck {
             Transaction hashtimeblockTransaction = wisdomBlockChain.getTransaction(hashtimeblockGet.getTransferhash());
             if (hashtimeblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashtimeblockTransfer transaction");
-            if (!Arrays.equals(hashtimeblockTransaction.to,transaction.to))
+            if (!Arrays.equals(hashtimeblockTransaction.to, transaction.to))
                 return APIResult.newFailed("To is different from payload txhash");
             HashtimeblockTransfer hashtimeblockTransfer = new HashtimeblockTransfer();
             if (hashtimeblockTransaction.payload[0] != 4)
@@ -1057,8 +1050,8 @@ public class TransactionCheck {
             byte[] parenthash = wisdomRepository.getLatestConfirmed().getHash();
             if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashtimeblockGet.getTransferhash()))
                 return APIResult.newFailed("HashtimeblockGet had been exited");
-            if (hashtimeblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockTransaction.payload, 1, hashtimeblockTransaction.payload.length-1))) {
-                if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
+            if (hashtimeblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockTransaction.payload, 1, hashtimeblockTransaction.payload.length - 1))) {
+                if (hashtimeblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length > 512)
                     return APIResult.newFailed("Origintext Maximum exceeded");
                 //判断原文不为空字符串
                 if (hashtimeblockGet.getOrigintext().replaceAll(" ", "").equals(""))
@@ -1094,7 +1087,7 @@ public class TransactionCheck {
             Transaction hashheightblockTransaction = wisdomBlockChain.getTransaction(hashheightblockGet.getTransferhash());
             if (hashheightblockTransaction == null)
                 return APIResult.newFailed("Unable to get hashheightblockTransfer transaction");
-            if (!Arrays.equals(hashheightblockTransaction.to,transaction.to))
+            if (!Arrays.equals(hashheightblockTransaction.to, transaction.to))
                 return APIResult.newFailed("To is different from payload txhash");
             if (hashheightblockTransaction.payload[0] != 6)
                 return APIResult.newFailed("Must fill in the correct hashheightblockTransfer");
@@ -1103,13 +1096,13 @@ public class TransactionCheck {
             if (wisdomRepository.containsgetLockgetTransferAt(parenthash, hashheightblockGet.getTransferhash()))
                 return APIResult.newFailed("HashheightblockGet had been exited");
             //判断原文不为空字符串
-            if (hashheightblockGet.getOrigintext().replaceAll(" ", "").equals(""));
+            if (hashheightblockGet.getOrigintext().replaceAll(" ", "").equals("")) ;
             HashheightblockTransfer hashheightblockTransfer = new HashheightblockTransfer();
-            if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length-1))) {
+            if (hashheightblockTransfer.RLPdeserialization(ByteUtil.bytearraycopy(hashheightblockTransaction.payload, 1, hashheightblockTransaction.payload.length - 1))) {
                 //判断哈希与原文哈希是否一致
                 if (!Arrays.equals(SHA3Utility.sha3256(hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8)), hashheightblockTransfer.getHashresult()))
                     return APIResult.newFailed("Origintext is wrong");
-                if (hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length>512)
+                if (hashheightblockGet.getOrigintext().getBytes(StandardCharsets.UTF_8).length > 512)
                     return APIResult.newFailed("Origintext Maximum exceeded");
                 //当前高度
                 Long nowHeight = wisdomBlockChain.getTopHeight();
