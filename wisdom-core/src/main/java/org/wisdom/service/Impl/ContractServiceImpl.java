@@ -127,7 +127,6 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public Object getTokenListBalance(byte[] pubkeyHash, List<String> codeList) {
         JSONObject codeJson = new JSONObject();
-        byte[] wdcByte = new byte[20];
         for (String code : codeList) {
             Long balance = 0L;
             if (code.equals("WDC")) {
