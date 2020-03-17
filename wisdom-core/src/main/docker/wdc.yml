@@ -28,7 +28,7 @@ services:
       - /opt/wdc_leveldb:/leveldb
       - /opt/ipc:/root/ipc
       - ./env-config.yml:/env-config.yml
-    entrypoint: 'java -jar /app/app.jar --spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true --spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect'
+    entrypoint: 'java -jar /app/app.jar'
     ports:
       - 19585:19585
       - 9585:9585
