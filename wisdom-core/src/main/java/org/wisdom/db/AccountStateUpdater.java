@@ -329,7 +329,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
                     accountState.setType(1);
                     accountState.setContract(rlpbyte);
-                } else if (Arrays.equals(Address.publicKeyToHash(asset.getOwner()), account.getPubkeyHash())) {//owner
+                } else if (Arrays.equals(asset.getOwner(), account.getPubkeyHash())) {//owner
                     Map<byte[], Long> tokensmap = accountState.getTokensMap();
                     tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
                     accountState.setTokensMap(tokensmap);
