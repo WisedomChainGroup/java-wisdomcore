@@ -528,8 +528,7 @@ public class TransactionCheck {
             from_version[0] = (byte) transaction.version;
             byte[] from_type = new byte[1];
             from_type[0] = (byte) transaction.type;
-            byte[] from_nonce = new byte[1];
-            from_nonce = ByteUtil.longToBytes(0L);
+            byte[] from_nonce = ByteUtil.longToBytes(transaction.nonce);
             byte[] from_nullsig = new byte[64];
             byte[] from_gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
             byte[] from_amount = ByteUtil.longToBytes(0L);
@@ -799,7 +798,7 @@ public class TransactionCheck {
             version[0] = (byte) transaction.version;
             byte[] type = new byte[1];
             type[0] = (byte) transaction.type;
-            byte[] nonece = BigEndian.encodeUint64(0);
+            byte[] nonece = BigEndian.encodeUint64(transaction.nonce);
             byte[] nullsig = new byte[64];
             byte[] gasPrice = ByteUtil.longToBytes(transaction.gasPrice);
             byte[] amount = ByteUtil.longToBytes(0L);
