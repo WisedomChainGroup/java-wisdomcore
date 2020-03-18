@@ -153,7 +153,7 @@ public class ContractServiceImpl implements ContractService {
         Block latestConfirmed = wisdomRepository.getLatestConfirmed();
         Optional<AssetCodeInfo> info =
                 wisdomRepository.getAssetCodeAt(latestConfirmed.getHash(), assetCode.getBytes(StandardCharsets.UTF_8));
-        if (!info.isPresent())
+        if (!info.isPresent() && !assetCode.equals("WDC"))
             return APIResult.newFailed("asset not found");
         Optional<AccountState> asset =
                 wisdomRepository.getConfirmedAccountState(publicKeyHash);
