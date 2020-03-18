@@ -288,6 +288,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                 tokensMap.put(hashheightblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
             }
+            LockTransferSet.add(transaction.getHashHexString());
         }
         newMap.put(publicKeyHash, accountState);
         return null;
@@ -355,6 +356,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                 tokensMap.put(hashtimeblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
             }
+            LockTransferSet.add(transaction.getHashHexString());
         }
         newMap.put(publicKeyHash, accountState);
         return null;
