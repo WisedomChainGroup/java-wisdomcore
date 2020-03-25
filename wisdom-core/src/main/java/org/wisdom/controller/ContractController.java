@@ -69,4 +69,12 @@ public class ContractController {
         }
         return contractService.getTokenListBalance(KeystoreAction.addressToPubkeyHash(address),codeList);
     }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/ParseContractTxByPubkeyhash")
+    public Object ParseContractTxByPubkeyhash(@RequestParam(value = "pubkeyhash") String pubkeyhash) {
+        if (pubkeyhash.equals("") || pubkeyhash == "") {
+            return APIResult.newFailed("The pubkeyhash hash cannot be null");
+        }
+        return contractService.getParseContractTxByPubkeyhash(pubkeyhash.trim());
+    }
 }

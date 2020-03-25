@@ -31,25 +31,10 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public Object getParseContractTx(String txhash) {
         try {
-            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(RipemdUtility.ripemd160(Hex.decodeHex(txhash.toCharArray())));
-            if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
-                return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
-            }
-            AccountState accountState = accountStateOptional.get();
-            byte[] RLPByte = accountState.getContract();
-            if (accountState.getType() == 1) {//代币
-                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
-            } else if (accountState.getType() == 2) {//多签
-                return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
-            }else if (accountState.getType() == 3){//哈希时间锁定
-                return APIResult.newSuccess(Hashtimeblock.getHashtimeblock(RLPByte));
-            }else if (accountState.getType() == 4){//哈希高度锁定
-                return APIResult.newSuccess(Hashheightblock.getHashheightblock(RLPByte));
-            }
+            return getParseContractTxByPubkeyhash(Hex.encodeHexString(RipemdUtility.ripemd160(Hex.decodeHex(txhash.toCharArray()))));
         } catch (DecoderException e) {
             return APIResult.newFailed("Transaction hash resolution error");
         }
-        return APIResult.newFailed("Not asset definition and multi-contract type");
     }
 
     @Override
@@ -164,4 +149,30 @@ public class ContractServiceImpl implements ContractService {
         }
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
+
+    @Override
+    public Object getParseContractTxByPubkeyhash(String pubkeyhash) {
+        try {
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(Hex.decodeHex(pubkeyhash.toCharArray()));
+            if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
+                return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
+            }
+            AccountState accountState = accountStateOptional.get();
+            byte[] RLPByte = accountState.getContract();
+            if (accountState.getType() == 1) {//代币
+                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
+            } else if (accountState.getType() == 2) {//多签
+                return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
+            }else if (accountState.getType() == 3){//哈希时间锁定
+                return APIResult.newSuccess(Hashtimeblock.getHashtimeblock(RLPByte));
+            }else if (accountState.getType() == 4){//哈希高度锁定
+                return APIResult.newSuccess(Hashheightblock.getHashheightblock(RLPByte));
+            }
+        }catch (Exception e){
+            return APIResult.newFailed("Please check pubkeyhash");
+        }
+        return APIResult.newFailed("Not asset definition and multi-contract type");
+    }
+
+
 }
