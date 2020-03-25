@@ -25,6 +25,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.contract.AssetDefinition.Asset;
+import org.wisdom.contract.AssetDefinition.AssetChangeowner;
+import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -568,6 +570,68 @@ public class HatchServiceImpl implements HatchService {
                     map.put("coinHash160", Hex.encodeHexString(tohash));
                     map.remove("tradeHash");
                     map.remove("gasPrice");
+                    jsonArray.add(map);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getAssetOwnerList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getAssetOtherByHeightAndType(height, 8);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 0) {//更换拥有者
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    byte[] tohash = (byte[]) map.get("coinHash160");
+                    byte[] from = (byte[]) map.get("coinAddress");
+                    long gasPrice = (Long) map.get("gasPrice");
+                    long fee = gasPrice * Transaction.GAS_TABLE[8];
+                    AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(ByteUtil.bytearrayridfirst(payload));
+                    map.put("oldAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
+                    map.put("newAddress", KeystoreAction.pubkeyHashToAddress(assetChangeowner.getNewowner(), (byte) 0x00, ""));
+                    map.put("fee", fee);
+                    map.put("coinHash", Hex.encodeHexString(coinHash));
+                    map.put("coinHash160", Hex.encodeHexString(tohash));
+                    map.remove("tradeHash");
+                    map.remove("gasPrice");
+                    map.remove("coinAddress");
+                    jsonArray.add(map);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getAssetIncreasedList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getAssetOtherByHeightAndType(height, 8);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 2) {//增发
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    byte[] tohash = (byte[]) map.get("coinHash160");
+                    byte[] from = (byte[]) map.get("coinAddress");
+                    long gasPrice = (Long) map.get("gasPrice");
+                    long fee = gasPrice * Transaction.GAS_TABLE[8];
+                    AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(ByteUtil.bytearrayridfirst(payload));
+                    map.put("ownerAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
+                    map.put("fee", fee);
+                    map.put("coinHash", Hex.encodeHexString(coinHash));
+                    map.put("coinHash160", Hex.encodeHexString(tohash));
+                    map.put("amount", assetIncreased.getAmount());
+                    map.remove("tradeHash");
+                    map.remove("gasPrice");
+                    map.remove("coinAddress");
                     jsonArray.add(map);
                 }
             }

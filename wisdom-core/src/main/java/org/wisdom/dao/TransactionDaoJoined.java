@@ -229,4 +229,12 @@ public class TransactionDaoJoined {
         query.setParameter("type", type);
         return query.getResultList();
     }
+
+    public List<Map<String, Object>> getAssetOtherByHeightAndType(long height, int type) {
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+                QUERYONE_JOINS);
+        query.setParameter("height", height);
+        query.setParameter("type", type);
+        return query.getResultList();
+    }
 }

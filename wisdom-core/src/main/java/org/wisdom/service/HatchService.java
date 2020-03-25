@@ -54,4 +54,8 @@ public interface HatchService {
     Object getAssetList(long height);
 
     Object getAssetTransferList(long height);
+
+    Object getAssetOwnerList(long height);
+
+    Object getAssetIncreasedList(long height);
 }

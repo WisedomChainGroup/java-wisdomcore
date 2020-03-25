@@ -128,4 +128,14 @@ public class HatchController {
     public Object sendAssetTransfer(@RequestParam("height") long height) {
         return hatchService.getAssetTransferList(height);
     }
+
+    @GetMapping(value = "/WisdomCore/sendAssetOwner")
+    public Object sendAssetOwner(@RequestParam("height") long height){
+        return hatchService.getAssetOwnerList(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendAssetIncreased")
+    public Object sendAssetIncreased(@RequestParam("height") long height){
+        return hatchService.getAssetIncreasedList(height);
+    }
 }
