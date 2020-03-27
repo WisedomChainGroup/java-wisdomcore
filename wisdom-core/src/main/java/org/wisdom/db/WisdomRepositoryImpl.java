@@ -411,13 +411,15 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     // get the best chain of forkdb
     public List<Block> getBestChain(int limit) {
-        List<Block> blocks = chainCache
+        List<Block> blocks = chainCache.isEmpty()? Collections.emptyList() :  chainCache
                 .getAncestors(chainCache.last().getHash().getBytes())
                 .stream().map(BlockWrapper::get)
                 .collect(toList());
         if (blocks.size() >= limit) return blocks.subList(0, limit);
         long toFetch = limit - blocks.size();
-        List<Block> fetched = bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
+        List<Block> fetched = blocks.isEmpty() ?
+                bc.getBlocksBetween(latestConfirmed.nHeight - limit + 1 , latestConfirmed.nHeight) :
+                bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
         fetched.addAll(blocks);
         return fetched;
     }

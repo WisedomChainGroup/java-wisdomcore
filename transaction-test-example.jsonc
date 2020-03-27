@@ -1,9 +1,9 @@
 {
    // windows脚本 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
    // unix 脚本 ./gradlew runTransactionTestTool -PappArgs="-c ../java-wisdomcore/transaction-test-example.jsonc"
-  "host": "192.168.1.118", // 可以通过命令行 -h 参数 覆盖
+  "host": "192.168.1.239", // 可以通过命令行 -h 参数 覆盖
   "port": "19585", // 可以通过命令行 -p 参数 覆盖
-  "privateKey": "9972e47b6f733a834bc6485085e5d39685401a515fd37932d17a8c0bcfac3e41", // 通过命令行 -k 参数覆盖 传递私钥
+  "privateKey": "f4b6b5b72dfb8b44241e7ed61e2c61e56e48e8d035650f35b5ebc58981ce009e", // 通过命令行 -k 参数覆盖 传递私钥
   "nonce": 0, // 起始 nonce 可选，如果为 0 自动获取，通过命令行 -n 参数 传递
   "protocol": "http", // 从 http 发事务是批量 http 请求，从 grpc 发是单次 http2 请求速度更快
   "grpc.port": "9585", // 接收者节点的 grpc 监听端口, 如果节点的p2p地址是 wisdom://192.168.1.118:9585， 就填 9585
@@ -11,7 +11,7 @@
   "transactions": [
     {
       "amount": 100000, // 单位是 WDC，不可省略
-      "type": "MORTGAGE", // 可选， 默认是转账， 可以是以下值，不区分大小写
+      "type": "TRANSFER", // 可选， 默认是转账， 可以是以下值，不区分大小写
       /*
               TRANSFER, VOTE,
               DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
@@ -20,31 +20,17 @@
               EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
       */
       "payload": "", // 可选，
-      "to": "d0f1966cee219fcfdbcee698517fcf864f46817c30bc8218eb4889d02f312540", // 接收者的 公钥，公钥哈希或者地址
+      "to": "WX19pa5aiXSkHnfU7DrwFfwZvzWgE8NCeBiH", // 接收者的 公钥，公钥哈希或者地址
       "times": 1, // 发送次数
     },
-    {
-      "amount": 50, // 单位是 WDC，不可省略
-      "type": "vote", // 可选， 默认是转账， 可以是以下值，不区分大小写
-      /*
-              TRANSFER, VOTE,
-              DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
-              TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
-              INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-              EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
-      */
-      "payload": "", // 可选，
-      "to": "d0f1966cee219fcfdbcee698517fcf864f46817c30bc8218eb4889d02f312540", // 接收者的 公钥，公钥哈希或者地址
-      "times": 1, // 发送次数
-    },
-      {
+     /* {
         "amount":"300",
         "type": "INCUBATE",
         "payload": "7d4d105a3fc6db71d35ed654b1b7aab73d8fa50d", // 孵化分享者  公钥，公钥哈希或者地址
         "to": "1G4HkuzKq8FaJZpcW7PTmrQMEh4tgk9Mwj", // 孵化事务的 to 填自己
         "times": 1, // 发送次数,
         "hatchType": 120 // 孵化天数
-      }
+      }*/
   ]
 }
 
