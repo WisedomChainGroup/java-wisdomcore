@@ -401,7 +401,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
         int[] txCount = new int[1];
         long total = list.stream()
-                .flatMap(b -> b.body.stream())
+                .flatMap(b -> Objects.requireNonNull(b.body).stream())
                 .filter(tx -> tx.type != Transaction.Type.COINBASE.ordinal())
                 .peek(tx -> txCount[0]++)
                 .map(Transaction::getFee)
@@ -419,7 +419,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         long toFetch = limit - blocks.size();
         List<Block> fetched = blocks.isEmpty() ?
                 bc.getBlocksBetween(latestConfirmed.nHeight - limit + 1 , latestConfirmed.nHeight) :
-                bc.getHeadersSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
+                bc.getBlocksSince(blocks.get(0).nHeight - toFetch, (int) toFetch);
         fetched.addAll(blocks);
         return fetched;
     }
