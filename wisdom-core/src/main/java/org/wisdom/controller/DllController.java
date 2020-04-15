@@ -1,6 +1,7 @@
 package org.wisdom.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -10,6 +11,7 @@ import org.wisdom.command.Dllparameter;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.service.DllService;
 
+@ConditionalOnProperty(name = "wisdom.dll.rpc", havingValue = "true")
 @RestController
 public class DllController {
 
