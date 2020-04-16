@@ -45,7 +45,8 @@ public class EconomicModel {
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
-    public EconomicModel(int blockInterval, long blockIntervalSwitchEra, int blockIntervalSwitchTo, int blocksPerEra) {
+    public EconomicModel(@Value("${wisdom.consensus.block-interval}") int blockInterval,  @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra, @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,     @Value("${wisdom.consensus.blocks-per-era}")
+            int blocksPerEra) {
         this.blockInterval = blockInterval;
         this.blockIntervalSwitchEra = blockIntervalSwitchEra;
         this.blockIntervalSwitchTo = blockIntervalSwitchTo;
