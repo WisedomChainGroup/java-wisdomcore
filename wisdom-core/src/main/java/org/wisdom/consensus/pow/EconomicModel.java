@@ -86,7 +86,7 @@ public class EconomicModel {
     public long getTotalSupply() {
         long totalSupply = 0;
         for (long i = 0; ; i++) {
-            long reward = getConsensusRewardAtHeight(i);
+            long reward = getConsensusRewardAtHeight1(i);
             if (reward == 0) {
                 return totalSupply;
             }
@@ -102,5 +102,6 @@ public class EconomicModel {
                 System.out.println("==========================");
             }
         }
+        System.out.println(model.getTotalSupply());
     }
 }
