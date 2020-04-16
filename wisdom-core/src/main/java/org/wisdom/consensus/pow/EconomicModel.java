@@ -45,34 +45,62 @@ public class EconomicModel {
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
+    public EconomicModel(int blockInterval, long blockIntervalSwitchEra, int blockIntervalSwitchTo, int blocksPerEra) {
+        this.blockInterval = blockInterval;
+        this.blockIntervalSwitchEra = blockIntervalSwitchEra;
+        this.blockIntervalSwitchTo = blockIntervalSwitchTo;
+        this.blocksPerEra = blocksPerEra;
+    }
 
-    public long getConsensusRewardAtHeight(long height){
-        long era = height / HALF_PERIOD;
+    public long getConsensusRewardAtHeight(long height) {
         long reward = INITIAL_SUPPLY;
-        for(long i = 0; i < era; i++){
+        long era = height / HALF_PERIOD;
+        for (long i = 0; i < era; i++) {
             reward = reward * 52218182 / 100000000;
         }
-        if(blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(height, blocksPerEra) >= blockIntervalSwitchEra){
+        if (blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(height, blocksPerEra) >= blockIntervalSwitchEra) {
             return reward * blockIntervalSwitchTo / blockInterval;
         }
         return reward;
     }
 
-    public static void printRewardPerEra(){
-        for(long reward = INITIAL_SUPPLY; reward > 0; reward = reward * 52218182 / 100000000){
-            System.out.println(reward * 1.0 / WDC );
+    public long getConsensusRewardAtHeight1(long height) {
+        long era = (height > 5736000) ? ((height - 5736000) / 6307200 + 1) : (height / 6307200);
+        long reward = INITIAL_SUPPLY;
+        for (long i = 0; i < era; i++) {
+            reward = reward * 52218182 / 100000000;
+        }
+        if (blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(height, blocksPerEra) >= blockIntervalSwitchEra) {
+            return reward * blockIntervalSwitchTo / blockInterval;
+        }
+        return reward;
+    }
+
+    public static void printRewardPerEra() {
+        for (long reward = INITIAL_SUPPLY; reward > 0; reward = reward * 52218182 / 100000000) {
+            System.out.println(reward * 1.0 / WDC);
         }
     }
 
     // 9140868887284800
-    public long getTotalSupply(){
+    public long getTotalSupply() {
         long totalSupply = 0;
-        for(long i = 0; ; i++){
+        for (long i = 0; ; i++) {
             long reward = getConsensusRewardAtHeight(i);
-            if(reward == 0){
+            if (reward == 0) {
                 return totalSupply;
             }
             totalSupply += reward;
+        }
+    }
+
+
+    public static void main(String[] args) {
+        EconomicModel model = new EconomicModel(30, 2380, 10, 120);
+        for (long i = 0; i < 2000000; i++) {
+            if (model.getConsensusRewardAtHeight(i) != model.getConsensusRewardAtHeight1(i)) {
+                System.out.println("==========================");
+            }
         }
     }
 }
