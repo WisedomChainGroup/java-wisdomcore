@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.state.EraLinkedStateFactory;
 
-
+// comment
 @Component
 @Setter
 public class EconomicModel {
