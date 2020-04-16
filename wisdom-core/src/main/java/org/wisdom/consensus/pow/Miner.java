@@ -109,7 +109,7 @@ public class Miner implements ApplicationListener {
 
     private Transaction createCoinBase(long height) throws Exception {
         Transaction tx = Transaction.createEmpty();
-        tx.amount = economicModel.getConsensusRewardAtHeight(height);
+        tx.amount = economicModel.getConsensusRewardAtHeight1(height);
         tx.to = consensusConfig.getMinerPubKeyHash();
         return tx;
     }

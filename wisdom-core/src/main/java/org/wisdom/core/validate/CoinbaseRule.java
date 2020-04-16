@@ -74,7 +74,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
 
         // check amount = consensus amount + fees
-        if (coinbase.amount != economicModel.getConsensusRewardAtHeight(block.nHeight) + fees) {
+        if (coinbase.amount != economicModel.getConsensusRewardAtHeight1(block.nHeight) + fees) {
             return Result.Error("amount not equals to consensus reward plus fees");
         }
         return Result.SUCCESS;
