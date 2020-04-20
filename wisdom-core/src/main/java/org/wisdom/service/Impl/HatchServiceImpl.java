@@ -640,4 +640,28 @@ public class HatchServiceImpl implements HatchService {
             return APIResult.newFailResult(5000, "Exception error");
         }
     }
+
+    @Override
+    public Object getDepositList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getDepositHeightAndType(height, 3);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] from = (byte[]) map.get("coinAddress");
+                byte[] coinHash = (byte[]) map.get("coinHash");
+                byte[] tradeHash = (byte[]) map.get("tradeHash");
+                long gasPrice = (Long) map.get("gasPrice");
+                long fee = gasPrice * Transaction.GAS_TABLE[3];
+                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(from, (byte) 0x00, ""));
+                map.put("coinHash", Hex.encodeHexString(coinHash));
+                map.put("tradeHash", Hex.encodeHexString(tradeHash));
+                map.put("fee", fee);
+                map.remove("gasPrice");
+                jsonArray.add(map);
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
 }
