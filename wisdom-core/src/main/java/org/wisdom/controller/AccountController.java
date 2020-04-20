@@ -1,11 +1,9 @@
 package org.wisdom.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.tdf.common.trie.Trie;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
@@ -23,18 +21,19 @@ import java.util.stream.Collectors;
 
 
 @RestController
+@RequiredArgsConstructor
 public class AccountController {
 
-    @Autowired
-    private AccountStateTrie accountStateTrie;
+
+    private final AccountStateTrie accountStateTrie;
 
     private TreeMap<Long, List<AccountState>> cache = new TreeMap<>();
 
     private Lock cacheLock = new ReentrantLock();
 
-    private WisdomRepository wisdomRepository;
+    private final WisdomRepository wisdomRepository;
 
-    private WisdomBlockChain bc;
+    private final WisdomBlockChain bc;
 
     @RequestMapping(method = RequestMethod.GET, value = "/internal/accountState")
     public Object getAccount(@RequestParam("blockHash") String blockHash, @RequestParam("publicKeyHash") String publicKeyHash) {
@@ -52,7 +51,8 @@ public class AccountController {
             if(li == null){
                 Block h = bc.getHeaderByHeight(height);
                 Trie<byte[], AccountState> trie = accountStateTrie.getTrieByBlockHash(h.getHash());
-                li = trie.values().stream().sorted(Comparator.comparingLong(x -> x.getAccount().getBalance()))
+                li = trie.values().stream().sorted((x, y) ->
+                    -Long.compare(x.getAccount().getBalance(), y.getAccount().getBalance()))
                         .collect(Collectors.toList());
                 cache.put(height, li);
             }
