@@ -652,7 +652,7 @@ public class HatchServiceImpl implements HatchService {
                 byte[] tradeHash = (byte[]) map.get("tradeHash");
                 long gasPrice = (Long) map.get("gasPrice");
                 long fee = gasPrice * Transaction.GAS_TABLE[3];
-                map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(from, (byte) 0x00, ""));
+                map.put("coinAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
                 map.put("coinHash", Hex.encodeHexString(coinHash));
                 map.put("tradeHash", Hex.encodeHexString(tradeHash));
                 map.put("fee", fee);
