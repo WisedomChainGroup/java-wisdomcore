@@ -20,11 +20,34 @@ package org.wisdom.core.account;
 
 import lombok.Builder;
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.rlp.RLP;
+import org.checkerframework.checker.units.qual.A;
+import org.tdf.rlp.*;
 
 import java.util.Arrays;
 
+@RLPDecoding(value = Account.AccountDecoder.class)
 public class Account {
+    static class AccountDecoder implements RLPDecoder<Account>{
+
+        @Override
+        public Account decode(RLPElement rlpElement) {
+            RLPList li = rlpElement.asRLPList();
+            Account a = new Account();
+            int i = 0;
+            a.setBlockHeight(li.get(i++).asLong());
+            a.setPubkeyHash(li.get(i++).asBytes());
+            a.setNonce(li.get(i++).asLong());
+            a.setBalance(li.get(i++).asLong());
+            a.setIncubatecost(li.get(i++).asLong());
+            a.setMortgage(li.get(i++).asLong());
+            a.setVote(li.get(i++).asLong());
+            if(i >= li.size())
+                return a;
+            a.field = li.get(i++).asLong();
+            return a;
+        }
+    }
+
     @RLP(0)
     private long blockHeight;
     @RLP(1)
@@ -39,6 +62,9 @@ public class Account {
     private long mortgage;
     @RLP(6)
     private long vote;
+
+    @RLP(7)
+    private long field;
 
     public Account() {
     }
