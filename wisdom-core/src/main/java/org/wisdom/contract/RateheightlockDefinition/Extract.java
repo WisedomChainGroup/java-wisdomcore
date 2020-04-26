@@ -1,10 +1,11 @@
 package org.wisdom.contract.RateheightlockDefinition;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Extract {
     private long extractheight;
     private int surplus;
