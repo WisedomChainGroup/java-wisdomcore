@@ -31,7 +31,7 @@ public class Rateheightlock implements AnalysisContract {
     private byte[] dest;
     @RLP(5)
     @RLPDecoding(as = ByteArrayMap.class)
-    private ByteArrayMap<Extract> statelist;
+    private ByteArrayMap<Extract> stateMap;
 
     @Override
     public byte[] RLPserialization() {
@@ -41,7 +41,7 @@ public class Rateheightlock implements AnalysisContract {
                 .withdrawperiodheight(this.withdrawperiodheight)
                 .withdrawrate(this.withdrawrate)
                 .dest(this.dest)
-                .statelist(this.statelist).build());
+                .stateMap(this.stateMap).build());
     }
 
     @Override
@@ -55,7 +55,7 @@ public class Rateheightlock implements AnalysisContract {
         this.withdrawperiodheight = rateheightlock.getWithdrawperiodheight();
         this.withdrawrate = rateheightlock.getWithdrawrate();
         this.dest = rateheightlock.getDest();
-        this.statelist = rateheightlock.getStatelist();
+        this.stateMap = rateheightlock.getStateMap();
         return true;
     }
 }
