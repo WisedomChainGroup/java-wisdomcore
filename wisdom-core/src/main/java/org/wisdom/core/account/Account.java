@@ -27,7 +27,7 @@ import java.util.Arrays;
 
 @RLPDecoding(value = Account.AccountDecoder.class)
 public class Account {
-    static class AccountDecoder implements RLPDecoder<Account>{
+    static class AccountDecoder implements RLPDecoder<Account> {
 
         @Override
         public Account decode(RLPElement rlpElement) {
@@ -41,9 +41,9 @@ public class Account {
             a.setIncubatecost(li.get(i++).asLong());
             a.setMortgage(li.get(i++).asLong());
             a.setVote(li.get(i++).asLong());
-            if(i >= li.size())
+            if (i >= li.size())
                 return a;
-            a.field = li.get(i++).asLong();
+            a.quota = li.get(i++).asLong();
             return a;
         }
     }
@@ -64,7 +64,7 @@ public class Account {
     private long vote;
 
     @RLP(7)
-    private long field;
+    private long quota;
 
     public Account() {
     }
@@ -78,6 +78,17 @@ public class Account {
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
         this.vote = vote;
+    }
+
+    public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote, long quota) {
+        this.blockHeight = blockHeight;
+        this.pubkeyHash = pubkeyHash;
+        this.nonce = nonce;
+        this.balance = balance;
+        this.incubatecost = incubatecost;
+        this.mortgage = mortgage;
+        this.vote = vote;
+        this.quota = quota;
     }
 
     public long getBlockHeight() {
@@ -136,8 +147,16 @@ public class Account {
         this.vote = vote;
     }
 
+    public long getQuota() {
+        return quota;
+    }
+
+    public void setQuota(long quota) {
+        this.quota = quota;
+    }
+
     public Account copy() {
-        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote);
+        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote, quota);
     }
 
     @Override
@@ -154,7 +173,7 @@ public class Account {
                 Arrays.equals(pubkeyHash, account.pubkeyHash);
     }
 
-    public String getKey(){
+    public String getKey() {
         return Hex.encodeHexString(this.pubkeyHash);
     }
 

@@ -12,7 +12,6 @@ import org.tdf.rlp.RLPElement;
 import org.wisdom.contract.AnalysisContract;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -32,7 +31,7 @@ public class Rateheightlock implements AnalysisContract {
     private byte[] dest;
     @RLP(5)
     @RLPDecoding(as = ByteArrayMap.class)
-    private Map<byte[], Long> statelist;
+    private ByteArrayMap<Long> statelist;
 
     @Override
     public byte[] RLPserialization() {

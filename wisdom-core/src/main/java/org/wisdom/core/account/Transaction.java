@@ -423,7 +423,7 @@ public class Transaction {
     }
 
     @JsonIgnore
-    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希,3:锁定高度哈希
+    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希,3:锁定高度哈希,4:定额条件比例支付
 
     @JsonIgnore
     public int methodType;//调用合约方法类型
