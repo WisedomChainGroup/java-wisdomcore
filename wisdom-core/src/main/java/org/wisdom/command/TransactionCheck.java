@@ -38,6 +38,8 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -370,6 +372,10 @@ public class TransactionCheck {
                 return CheckHashheightblockTransfer(data, transaction);
             case 7://哈希高度锁定获取
                 return CheckHashheightblockGet(data, transaction);
+//            case 8://定额比例支付转入
+//                return CheckRateheightlockDeposit(data, transaction);
+//            case 9://定额比例支付转出
+//                return CheckRateheightlockWithdraw(data, transaction);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -387,6 +393,8 @@ public class TransactionCheck {
                 return CheckHashtimeblock(data, from);
             case 3://哈希高度锁定
                 return CheckHashheightblock(data, from);
+            case 4://定额条件比例支付
+                return CheckRateheightlock(data,from);
             default:
                 return APIResult.newFailed("Invalid rules");
         }
@@ -612,6 +620,43 @@ public class TransactionCheck {
             return APIResult.newSuccess("SUCCESS");
         }
         return APIResult.newFailed("Invalid Hashheightblock rules");
+    }
+
+    private APIResult CheckRateheightlock(byte[] data, byte[] frompubhash){
+        Rateheightlock rateheightlock = new Rateheightlock();
+        if (rateheightlock.RLPdeserialization(data)){
+            if (!Arrays.equals(rateheightlock.getAssetHash(), new byte[20])) {
+                    //校验如果不是WDC校验区块中是否存在
+                    Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(rateheightlock.getAssetHash());
+                    if (!accountState.isPresent()) return APIResult.newFailed("AssetHash do not exist");
+                    if (accountState.get().getType() != 1)
+                        return APIResult.newFailed("AssetHash is wrong");
+                return APIResult.newFailed("AssetHash is wrong");
+            }
+            if (rateheightlock.getOnetimedepositmultiple()<2 || rateheightlock.getOnetimedepositmultiple()>100000000)
+                return APIResult.newFailed("Onetimedepositmultiple must be in specified scope");
+            if (rateheightlock.getWithdrawperiodheight()<1)
+                return APIResult.newFailed("Withdrawperiodheight must be in specified scope");
+            if (rateheightlock.getWithdrawrate().compareTo(BigDecimal.valueOf(1)) == 1 || rateheightlock.getWithdrawrate().compareTo(BigDecimal.valueOf(0)) != 1){
+                return APIResult.newFailed("Withdrawrate must be in specified scope");
+            }
+            BigDecimal bigDecimal = null;
+            bigDecimal = rateheightlock.getWithdrawrate().multiply(BigDecimal.valueOf(rateheightlock.getOnetimedepositmultiple()));
+            if (BigDecimal.valueOf(bigDecimal.longValue()).compareTo(bigDecimal) != 0){
+               return APIResult.newFailed("The product of withdrawrate and onetimedepositmultiple must be");
+            }
+            if((rateheightlock.getOnetimedepositmultiple() % bigDecimal.longValue()) != 0){
+                return APIResult.newFailed("Can not fully extracted");
+            }
+            if (rateheightlock.getDest().length != 20){
+                return APIResult.newFailed("Dest format check error");
+            }
+            if(!rateheightlock.getStateMap().isEmpty()){
+                return APIResult.newFailed("StateMap must be empty");
+            }
+            return APIResult.newSuccess("SUCCESS");
+        }
+        return APIResult.newFailed("Invalid Rateheightlock rules");
     }
 
     private APIResult CheckChangeowner(byte[] data, Transaction transaction) {
@@ -1122,6 +1167,18 @@ public class TransactionCheck {
             return APIResult.newFailed("Invalid HashheightblockTransfer rules");
         }
         return APIResult.newFailed("Invalid HashheightblockTransfer rules");
+    }
+
+
+    //todo
+    private APIResult CheckRateheightlockDeposit(byte[] data, Transaction transaction){
+        RateheightlockDeposit rateheightlockDeposit = new RateheightlockDeposit();
+        if (rateheightlockDeposit.RLPdeserialization(data)){
+            Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(transaction.to);
+            //Rateheightloc
+            if (!accountState.isPresent()) return APIResult.newFailed("Rateheightlock do not exist");
+        }
+        return APIResult.newFailed("Invalid RateheightlockDeposit rules");
     }
 
     private APIResult CheckHatch(long amount, byte[] payload, byte[] topubkeyhash) {
