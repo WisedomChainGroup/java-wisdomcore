@@ -374,6 +374,22 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     throw new RuntimeException("Deploy lock transaction account do not match");
                 }
                 break;
+            case 4://定额条件比例支付
+                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                    long balance = account.getBalance();
+                    balance -= tx.getFee();
+                    account.setBalance(balance);
+                    account.setNonce(tx.nonce);
+                    account.setBlockHeight(height);
+                    accountState.setAccount(account);
+                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
+                    byte[] lockrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+                    accountState.setType(5);
+                    accountState.setContract(lockrlpbyte);
+                } else {
+                    throw new RuntimeException("Deploy rate lock transaction account do not match");
+                }
+                break;
         }
         return accountState;
     }

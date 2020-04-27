@@ -20,6 +20,7 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.core.Block;
 import org.wisdom.core.TransactionVerifyUpdate;
 import org.wisdom.core.WisdomBlockChain;
@@ -596,6 +597,12 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                     return null;
                 }
                 break;
+            case 4://定额条件比例支付
+                Rateheightlock rateheightlock = new Rateheightlock();
+                if (!rateheightlock.RLPdeserialization((ByteUtil.bytearrayridfirst(tx.payload)))) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
         }
         newMap.put(publicKeyHash, accountState);
         return null;
