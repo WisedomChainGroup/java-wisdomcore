@@ -20,6 +20,7 @@ package org.wisdom.command;
 import lombok.Setter;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1201,8 +1202,15 @@ public class TransactionCheck {
                 }
                 Optional<AccountState> accountState_from = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
                 //验证余额是否足够
-                if (accountState_from.get().getAccount().getQuotaMap().get(rateheightlock.getAssetHash())<rateheightlockDeposit.getValue())
-                    return APIResult.newFailed("Insufficient funds");
+                if (Arrays.equals(rateheightlock.getAssetHash(), new byte[20])) {//WDC
+                    if (accountState_from.get().getAccount().getBalance() < rateheightlockDeposit.getValue())
+                        return APIResult.newFailed("Insufficient funds");
+                } else {//其他代币
+                    if (accountState_from.get().getTokensMap().size() == 0)
+                        return APIResult.newFailed("Insufficient funds");
+                    if ((accountState_from.get().getTokensMap().get(rateheightlock.getAssetHash()) == null ? 0 : accountState_from.get().getTokensMap().get(rateheightlock.getAssetHash()).longValue()) < rateheightlockDeposit.getValue())
+                        return APIResult.newFailed("Insufficient funds");
+                }
                 return APIResult.newSuccess("SUCCESS");
             }
             return APIResult.newFailed("Invalid Rateheightlock rules");
@@ -1225,44 +1233,54 @@ public class TransactionCheck {
             if (!Arrays.equals(transaction.from,RateheightlockDepositTransaction.from)){
                 return APIResult.newFailed("From of rateheightlockWithdraw and rateheightlockDeposit must be the same");
             }
-            Rateheightlock rateheightlock = new Rateheightlock();
-            if (rateheightlock.RLPdeserialization(accountState_to.get().getContract())){
-                //两个to都有值必须保持一致
-                if (!Arrays.equals(rateheightlock.getDest(),new byte[20]) && !Arrays.equals(rateheightlockWithdraw.getTo(),new byte[20])){
-                    if (!Arrays.equals(rateheightlock.getDest(),rateheightlockWithdraw.getTo()))
-                        return APIResult.newFailed("Rateheightlock dest is different from rateheightlockWithdraw to");
-                }
-                //多签资产是否一致
-                if (!Arrays.equals(rateheightlockWithdraw.getTo(),new byte[20])){
-                    Optional<AccountState> accountState_heightlockWithdrawTo = wisdomRepository.getConfirmedAccountState(rateheightlockWithdraw.getTo());
-                    if (accountState_heightlockWithdrawTo.isPresent()){
-                        if (accountState_heightlockWithdrawTo.get().getType() != 0 && accountState_heightlockWithdrawTo.get().getType() != 2)
-                            return APIResult.newFailed("RateheightlockWithdraw to must be general address or multiple address");
-                        if (accountState_heightlockWithdrawTo.get().getType() == 2){
-                            Multiple multiple = new Multiple();
-                            if (multiple.RLPdeserialization(accountState_heightlockWithdrawTo.get().getContract())){
-                                if (!Arrays.equals(multiple.getAssetHash(),rateheightlock.getAssetHash())){
-                                    return APIResult.newFailed("The assetHash of Multiple address and rateheightlockWithdraw must be the same");
+            RateheightlockDeposit rateheightlockDeposit = new RateheightlockDeposit();
+            if (rateheightlockDeposit.RLPdeserialization(RateheightlockDepositTransaction.payload)){
+                Rateheightlock rateheightlock = new Rateheightlock();
+                if (rateheightlock.RLPdeserialization(accountState_to.get().getContract())){
+                    Optional<AccountState> accountState_from = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
+                    BigDecimal value = BigDecimal.valueOf(rateheightlockDeposit.getValue()).multiply(rateheightlock.getWithdrawrate());
+                    //余额是否足够
+                    if (accountState_from.get().getAccount().getQuotaMap().get(rateheightlock.getAssetHash())<value.longValue())
+                        return APIResult.newFailed("Insufficient funds");
+                    //两个to都有值必须保持一致
+                    if (!Arrays.equals(rateheightlock.getDest(),new byte[20]) && !Arrays.equals(rateheightlockWithdraw.getTo(),new byte[20])){
+                        if (!Arrays.equals(rateheightlock.getDest(),rateheightlockWithdraw.getTo()))
+                            if (!Arrays.equals(rateheightlockWithdraw.getTo(),KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from)))
+                                return APIResult.newFailed("Rateheightlock dest is different from rateheightlockWithdraw to");
+                    }
+                    //多签资产是否一致
+                    if (!Arrays.equals(rateheightlockWithdraw.getTo(),new byte[20])){
+                        Optional<AccountState> accountState_heightlockWithdrawTo = wisdomRepository.getConfirmedAccountState(rateheightlockWithdraw.getTo());
+                        if (accountState_heightlockWithdrawTo.isPresent()){
+                            if (accountState_heightlockWithdrawTo.get().getType() != 0 && accountState_heightlockWithdrawTo.get().getType() != 2)
+                                return APIResult.newFailed("RateheightlockWithdraw to must be general address or multiple address");
+                            if (accountState_heightlockWithdrawTo.get().getType() == 2){
+                                Multiple multiple = new Multiple();
+                                if (multiple.RLPdeserialization(accountState_heightlockWithdrawTo.get().getContract())){
+                                    if (!Arrays.equals(multiple.getAssetHash(),rateheightlock.getAssetHash())){
+                                        return APIResult.newFailed("The assetHash of Multiple address and rateheightlockWithdraw must be the same");
+                                    }
+                                }else {
+                                    return APIResult.newFailed("Invalid multiple rules");
                                 }
-                            }else {
-                                return APIResult.newFailed("Invalid multiple rules");
-                            }
 
+                            }
                         }
                     }
+                    //是否满足高度
+                    Extract extract = rateheightlock.getStateMap().get(rateheightlockWithdraw.getDeposithash());
+                    if (extract == null){
+                        return APIResult.newFailed("Already extraction completed");
+                    }
+                    long nowheight = wisdomRepository.getBestBlock().nHeight;
+                    if (nowheight < extract.getExtractheight()+rateheightlock.getWithdrawperiodheight()){
+                        return APIResult.newFailed("Extraction height not reached");
+                    }
+                    return APIResult.newSuccess("SUCCESS");
                 }
-                //是否满足高度
-                Extract extract = rateheightlock.getStateMap().get(rateheightlockWithdraw.getDeposithash());
-                if (extract == null){
-                    return APIResult.newFailed("Already extraction completed");
-                }
-                long nowheight = wisdomRepository.getBestBlock().nHeight;
-                if (nowheight < extract.getExtractheight()){
-                    return APIResult.newFailed("Extraction height not reached");
-                }
-                return APIResult.newSuccess("SUCCESS");
+                return APIResult.newFailed("Invalid Rateheightlock rules");
             }
-            return APIResult.newFailed("Invalid Rateheightlock rules");
+            return APIResult.newFailed("Invalid RateheightlockDeposit rules");
         }
         return APIResult.newFailed("Invalid RateheightlockWithdraw rules");
     }
