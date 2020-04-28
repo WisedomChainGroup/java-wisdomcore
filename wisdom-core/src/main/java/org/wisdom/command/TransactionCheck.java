@@ -1201,15 +1201,8 @@ public class TransactionCheck {
                 }
                 Optional<AccountState> accountState_from = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
                 //验证余额是否足够
-                if (Arrays.equals(rateheightlock.getAssetHash(), new byte[20])) {//WDC
-                    if (accountState_from.get().getAccount().getBalance() < rateheightlockDeposit.getValue())
-                        return APIResult.newFailed("Insufficient funds");
-                } else {//其他代币
-                    if (accountState_from.get().getTokensMap().size() == 0)
-                        return APIResult.newFailed("Insufficient funds");
-                    if ((accountState_from.get().getTokensMap().get(rateheightlock.getAssetHash()) == null ? 0 : accountState_from.get().getTokensMap().get(rateheightlock.getAssetHash()).longValue()) < rateheightlockDeposit.getValue())
-                        return APIResult.newFailed("Insufficient funds");
-                }
+                if (accountState_from.get().getAccount().getQuotaMap().get(rateheightlock.getAssetHash())<rateheightlockDeposit.getValue())
+                    return APIResult.newFailed("Insufficient funds");
                 return APIResult.newSuccess("SUCCESS");
             }
             return APIResult.newFailed("Invalid Rateheightlock rules");
