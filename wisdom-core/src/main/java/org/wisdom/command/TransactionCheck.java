@@ -653,6 +653,22 @@ public class TransactionCheck {
             if (rateheightlock.getDest().length != 20){
                 return APIResult.newFailed("Dest format check error");
             }
+            Optional<AccountState> accountState_dest = wisdomRepository.getConfirmedAccountState(rateheightlock.getDest());
+            if (accountState_dest.isPresent()){
+                if (accountState_dest.get().getType() != 0 && accountState_dest.get().getType() != 2)
+                    return APIResult.newFailed("Dest must be general address or multiple address");
+                    //多签资产是否一致
+                    if (accountState_dest.get().getType() == 2){
+                        Multiple multiple = new Multiple();
+                        if (multiple.RLPdeserialization(accountState_dest.get().getContract())){
+                            if (!Arrays.equals(multiple.getAssetHash(),rateheightlock.getAssetHash())){
+                                return APIResult.newFailed("The assetHash of Multiple address and rateheightlock must be the same");
+                            }
+                        }else {
+                            return APIResult.newFailed("Multiple must be empty");
+                        }
+                    }
+            }
             if(!rateheightlock.getStateMap().isEmpty()){
                 return APIResult.newFailed("StateMap must be empty");
             }
@@ -1222,6 +1238,25 @@ public class TransactionCheck {
                 if (!Arrays.equals(rateheightlock.getDest(),new byte[20]) && !Arrays.equals(rateheightlockWithdraw.getTo(),new byte[20])){
                     if (!Arrays.equals(rateheightlock.getDest(),rateheightlockWithdraw.getTo()))
                         return APIResult.newFailed("Rateheightlock dest is different from rateheightlockWithdraw to");
+                }
+                //多签资产是否一致
+                if (!Arrays.equals(rateheightlockWithdraw.getTo(),new byte[20])){
+                    Optional<AccountState> accountState_heightlockWithdrawTo = wisdomRepository.getConfirmedAccountState(rateheightlockWithdraw.getTo());
+                    if (accountState_heightlockWithdrawTo.isPresent()){
+                        if (accountState_heightlockWithdrawTo.get().getType() != 0 && accountState_heightlockWithdrawTo.get().getType() != 2)
+                            return APIResult.newFailed("RateheightlockWithdraw to must be general address or multiple address");
+                        if (accountState_heightlockWithdrawTo.get().getType() == 2){
+                            Multiple multiple = new Multiple();
+                            if (multiple.RLPdeserialization(accountState_heightlockWithdrawTo.get().getContract())){
+                                if (!Arrays.equals(multiple.getAssetHash(),rateheightlock.getAssetHash())){
+                                    return APIResult.newFailed("The assetHash of Multiple address and rateheightlockWithdraw must be the same");
+                                }
+                            }else {
+                                return APIResult.newFailed("Invalid multiple rules");
+                            }
+
+                        }
+                    }
                 }
                 //是否满足高度
                 Extract extract = rateheightlock.getStateMap().get(rateheightlockWithdraw.getDeposithash());
