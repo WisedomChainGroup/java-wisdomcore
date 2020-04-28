@@ -58,4 +58,8 @@ public class Rateheightlock implements AnalysisContract {
         this.stateMap = rateheightlock.getStateMap();
         return true;
     }
+
+    public static Rateheightlock getRateheightlock(byte[] Rlpbyte) {
+        return RLPElement.fromEncoded(Rlpbyte).as(Rateheightlock.class);
+    }
 }

@@ -32,4 +32,8 @@ public class RateheightlockDeposit implements AnalysisContract {
         this.value = rateheightlockDeposit.getValue();
         return true;
     }
+
+    public static RateheightlockDeposit getRateheightlockDeposit(byte[] Rlpbyte) {
+        return RLPElement.fromEncoded(Rlpbyte).as(RateheightlockDeposit.class);
+    }
 }

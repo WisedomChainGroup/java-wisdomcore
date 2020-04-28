@@ -35,7 +35,7 @@ public class AccountState {
     }
 
     public AccountState(byte[] pubkeyHash) {
-        this.account = new Account(0, pubkeyHash, 0, 0, 0, 0, 0,0);
+        this.account = new Account(0, pubkeyHash, 0, 0, 0, 0, 0);
         this.interestMap = new ByteArrayMap<>();
         this.ShareMap = new ByteArrayMap<>();
         this.type = 0;//默认普通地址

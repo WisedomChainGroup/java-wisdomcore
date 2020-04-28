@@ -205,8 +205,11 @@ public class Transaction {
         if (methodType >= 4 && methodType < 6) {
             return 2;
         }
-        if (methodType > 5) {
+        if (methodType > 5 && methodType < 8) {
             return 3;
+        }
+        if (methodType > 7) {
+            return 4;
         }
         throw new RuntimeException("Illegal invocation contract " + methodType + " type");
     }

@@ -20,10 +20,11 @@ package org.wisdom.core.account;
 
 import lombok.Builder;
 import org.apache.commons.codec.binary.Hex;
-import org.checkerframework.checker.units.qual.A;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.*;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @RLPDecoding(value = Account.AccountDecoder.class)
 public class Account {
@@ -43,7 +44,7 @@ public class Account {
             a.setVote(li.get(i++).asLong());
             if (i >= li.size())
                 return a;
-            a.quota = li.get(i++).asLong();
+            a.quotaMap = li.get(i++).as(ByteArrayMap.class);
             return a;
         }
     }
@@ -64,7 +65,7 @@ public class Account {
     private long vote;
 
     @RLP(7)
-    private long quota;
+    private Map<byte[], Long> quotaMap;
 
     public Account() {
     }
@@ -78,9 +79,10 @@ public class Account {
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
         this.vote = vote;
+        this.quotaMap = new ByteArrayMap<>();
     }
 
-    public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote, long quota) {
+    public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote, Map<byte[], Long> quotaMap) {
         this.blockHeight = blockHeight;
         this.pubkeyHash = pubkeyHash;
         this.nonce = nonce;
@@ -88,7 +90,11 @@ public class Account {
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
         this.vote = vote;
-        this.quota = quota;
+        if (quotaMap == null) {
+            this.quotaMap = new ByteArrayMap<>();
+        } else {
+            this.quotaMap = quotaMap;
+        }
     }
 
     public long getBlockHeight() {
@@ -147,16 +153,16 @@ public class Account {
         this.vote = vote;
     }
 
-    public long getQuota() {
-        return quota;
+    public Map<byte[], Long> getQuotaMap() {
+        return quotaMap;
     }
 
-    public void setQuota(long quota) {
-        this.quota = quota;
+    public void setQuotaMap(Map<byte[], Long> quotaMap) {
+        this.quotaMap = quotaMap;
     }
 
     public Account copy() {
-        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote, quota);
+        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote, quotaMap);
     }
 
     @Override
