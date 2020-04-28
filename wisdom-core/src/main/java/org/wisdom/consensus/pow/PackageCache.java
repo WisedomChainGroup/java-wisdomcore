@@ -21,6 +21,7 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.core.Block;
 import org.wisdom.core.TransactionVerifyUpdate;
 import org.wisdom.core.WisdomBlockChain;
@@ -39,15 +40,8 @@ import org.wisdom.util.ByteUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
-import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
-import static org.wisdom.contract.AnalysisContract.MethodRule.CHANGEOWNER;
-import static org.wisdom.contract.AnalysisContract.MethodRule.ASSETTRANSFER;
-import static org.wisdom.contract.AnalysisContract.MethodRule.MULTTRANSFER;
-import static org.wisdom.contract.AnalysisContract.MethodRule.HASHTIMERANSFER;
-import static org.wisdom.contract.AnalysisContract.MethodRule.GETHASHTIME;
-import static org.wisdom.contract.AnalysisContract.MethodRule.HASHHEIGHTRANSFER;
-import static org.wisdom.contract.AnalysisContract.MethodRule.GETHASHHEIGHT;
+import static org.wisdom.contract.AnalysisContract.MethodRule.*;
+import static org.wisdom.core.account.Transaction.Type.*;
 
 public class PackageCache implements TransactionVerifyUpdate<Object> {
 
@@ -224,6 +218,8 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             return CheckHashtimeMethod(contract, tx, accountState, publicKeyHash);
         } else if (tx.getContractType() == 3) {//锁定高度哈希
             return CheckHashheightMethod(contract, tx, accountState, publicKeyHash);
+        } else if (tx.getContractType() == 4) {//定额条件比例支付
+            return CheckRateheightMethod(contract, tx, accountState, publicKeyHash);
         }
         return null;
     }
@@ -290,6 +286,39 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                 accountState.setTokensMap(tokensMap);
             }
             LockTransferSet.add(transaction.getHashHexString());
+        }
+        newMap.put(publicKeyHash, accountState);
+        return null;
+    }
+
+    @Override
+    public Object CheckRateheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+        Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contract);
+        if (tx.getMethodType() == DEPOSITRATE.ordinal()) {//转入资产
+            RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance -= rateheightlockDeposit.getValue();
+                if (balance < 0) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(rateheightlock.getAssetHash());
+                balance -= rateheightlockDeposit.getValue();
+                if (balance < 0) {
+                    AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return null;
+                }
+                tokensMap.put(rateheightlock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
+
         }
         newMap.put(publicKeyHash, accountState);
         return null;

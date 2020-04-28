@@ -18,6 +18,8 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.core.Block;
 import org.wisdom.core.TransactionVerifyUpdate;
 import org.wisdom.core.WhitelistTransaction;
@@ -173,6 +175,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             return CheckHashtimeMethod(contract, tx, accountState, publicKeyHash);
         } else if (tx.getContractType() == 3) {//锁定高度哈希
             return CheckHashheightMethod(contract, tx, accountState, publicKeyHash);
+        } else if (tx.getContractType() == 4) {//定额条件比例支付
+            return CheckRateheightMethod(contract, tx, accountState, publicKeyHash);
         }
         return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Call contract exception error");
     }
@@ -233,6 +237,39 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 tokensMap.put(hashheightblock.getAssetHash(), balance);
                 accountState.setTokensMap(tokensMap);
             }
+        }
+        map.put(publicKeyHash, accountState);
+        return Result.SUCCESS;
+    }
+
+    @Override
+    public Result CheckRateheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+        Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contract);
+        if (tx.getMethodType() == DEPOSITRATE.ordinal()) {//转入资产
+            RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(tx.payload));
+            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                Account account = accountState.getAccount();
+                long balance = account.getBalance();
+                balance -= rateheightlockDeposit.getValue();
+                if (balance < 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+                }
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long balance = tokensMap.get(rateheightlock.getAssetHash());
+                balance -= rateheightlockDeposit.getValue();
+                if (balance < 0) {
+                    peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                    return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": Insufficient account balance");
+                }
+                tokensMap.put(rateheightlock.getAssetHash(), balance);
+                accountState.setTokensMap(tokensMap);
+            }
+        } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
+
         }
         map.put(publicKeyHash, accountState);
         return Result.SUCCESS;
