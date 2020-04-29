@@ -18,14 +18,21 @@
 
 package org.wisdom.consensus.pow;
 
+import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.state.EraLinkedStateFactory;
+import org.wisdom.genesis.Genesis;
+
+import javax.annotation.PostConstruct;
 
 
 @Component
 @Setter
+@Slf4j(topic = "economic")
 public class EconomicModel {
     public static final long WDC = 100000000;
 
@@ -45,34 +52,51 @@ public class EconomicModel {
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
+    @Autowired
+    private Genesis genesis;
 
-    public long getConsensusRewardAtHeight(long height){
+    @Getter
+    private long total;
+
+    public long getConsensusRewardAtHeight(long height) {
         long era = height / HALF_PERIOD;
         long reward = INITIAL_SUPPLY;
-        for(long i = 0; i < era; i++){
+        for (long i = 0; i < era; i++) {
             reward = reward * 52218182 / 100000000;
         }
-        if(blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(height, blocksPerEra) >= blockIntervalSwitchEra){
+        if (blockIntervalSwitchEra >= 0 && EraLinkedStateFactory.getEraAtBlockNumber(height, blocksPerEra) >= blockIntervalSwitchEra) {
             return reward * blockIntervalSwitchTo / blockInterval;
         }
         return reward;
     }
 
-    public static void printRewardPerEra(){
-        for(long reward = INITIAL_SUPPLY; reward > 0; reward = reward * 52218182 / 100000000){
-            System.out.println(reward * 1.0 / WDC );
+    public static void printRewardPerEra() {
+        for (long reward = INITIAL_SUPPLY; reward > 0; reward = reward * 52218182 / 100000000) {
+            System.out.println(reward * 1.0 / WDC);
         }
     }
 
     // 9140868887284800
-    public long getTotalSupply(){
+    public long getTotalSupply() {
+
+
         long totalSupply = 0;
-        for(long i = 0; ; i++){
+        for (long i = 0; ; i++) {
             long reward = getConsensusRewardAtHeight(i);
-            if(reward == 0){
+            if (reward == 0) {
                 return totalSupply;
             }
             totalSupply += reward;
         }
+    }
+
+    @PostConstruct
+    public void init() {
+        for (Genesis.InitAmount amount : genesis.alloc.initAmount) {
+            total += amount.balance.longValue() * WDC;
+        }
+        total += getTotalSupply();
+
+        log.info("total supply is {} WDC", total * 1.0 / WDC);
     }
 }

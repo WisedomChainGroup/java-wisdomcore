@@ -5,6 +5,7 @@ import lombok.Value;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.web.bind.annotation.*;
 import org.tdf.common.trie.Trie;
+import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.db.AccountState;
@@ -37,6 +38,7 @@ public class AccountController {
 
     private final WisdomBlockChain bc;
 
+    private final EconomicModel model;
     @Value
     public static class AccountInfo {
         private long balance;
@@ -65,8 +67,8 @@ public class AccountController {
                 List<AccountState> states = trie.values().stream().sorted((x, y) ->
                         -Long.compare(x.getAccount().getBalance(), y.getAccount().getBalance()))
                         .collect(Collectors.toList());
-                long all = states.stream().map(x -> x.getAccount().getBalance()).reduce(0L, Long::sum);
 
+                long all = model.getTotal();
                 for (int i = 0; i < states.size(); i++) {
                         AccountState s = states.get(i);
                         li.add(new AccountInfo(
