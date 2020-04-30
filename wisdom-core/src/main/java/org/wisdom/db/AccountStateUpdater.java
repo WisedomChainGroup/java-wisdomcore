@@ -528,7 +528,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
             ByteArrayMap<Extract> statMap = rateheightlock.getStateMap();
             Extract extract = statMap.get(deposithash);
-            long surplus = extract.getSurplus();
+            int surplus = extract.getSurplus();
             surplus--;
             if (surplus == 0) {//已全部领取完
                 statMap.remove(deposithash);
@@ -588,7 +588,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
             BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
             BigDecimal onceamount = bigDecimal.multiply(rateheightlock.getWithdrawrate());
-            long count = bigDecimal.divide(onceamount).longValue();
+            int count = bigDecimal.divide(onceamount).intValue();
             ByteArrayMap<Extract> stateMap = rateheightlock.getStateMap();
             stateMap.put(tx.getHash(), new Extract(height, count));
             rateheightlock.setStateMap(stateMap);

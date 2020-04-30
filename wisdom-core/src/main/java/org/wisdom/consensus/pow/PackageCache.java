@@ -328,7 +328,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             Extract extract = stateMap.get(deposithash);
             long extractheight = extract.getExtractheight();
             extractheight += rateheightlock.getWithdrawperiodheight();
-            long surplus = extract.getSurplus();
+            int surplus = extract.getSurplus();
             surplus--;
             //判断高度和次数
             if (height <= extractheight || surplus <= 0) {
@@ -344,7 +344,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             //from
             Transaction transaction = wisdomBlockChain.getTransaction(deposithash);
             RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(transaction.payload));
-            long onceamount = new BigDecimal(rateheightlockDeposit.getValue()).multiply(rateheightlock.getWithdrawrate()).longValue();
+            int onceamount = new BigDecimal(rateheightlockDeposit.getValue()).multiply(rateheightlock.getWithdrawrate()).intValue();
             Account account = accountState.getAccount();
             Map<byte[], Long> quotaMap = account.getQuotaMap();
             long lockbalance = quotaMap.get(rateheightlock.getAssetHash());
