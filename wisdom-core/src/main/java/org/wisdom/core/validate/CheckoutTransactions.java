@@ -272,7 +272,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 accountState.setTokensMap(tokensMap);
             }
         } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
-            ByteArrayMap<Extract> stateMap = rateheightlock.getStateMap();
+            Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
             //合约
             RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(contract);
             byte[] deposithash = rateheightlockWithdraw.getDeposithash();
@@ -295,7 +295,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             //from
             Transaction transaction = wisdomBlockChain.getTransaction(deposithash);
             RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(transaction.payload));
-            int onceamount = new BigDecimal(rateheightlockDeposit.getValue()).multiply(rateheightlock.getWithdrawrate()).intValue();
+            int onceamount = new BigDecimal(rateheightlockDeposit.getValue()).multiply(new BigDecimal(rateheightlock.getWithdrawrate())).intValue();
             Account account = accountState.getAccount();
             Map<byte[], Long> quotaMap = account.getQuotaMap();
             long lockbalance = quotaMap.get(rateheightlock.getAssetHash());

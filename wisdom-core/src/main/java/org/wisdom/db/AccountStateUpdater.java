@@ -451,7 +451,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         Transaction deposittran = wisdomBlockChain.getTransaction(deposithash);
         RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(deposittran.payload));
         BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
-        BigDecimal onceamount = bigDecimal.multiply(rateheightlock.getWithdrawrate());
+        BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
         long amount = bigDecimal.divide(onceamount).longValue();
         if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
             long balance = account.getBalance();
@@ -526,7 +526,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             }
         }
         if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
-            ByteArrayMap<Extract> statMap = rateheightlock.getStateMap();
+            Map<byte[], Extract> statMap = rateheightlock.getStateMap();
             Extract extract = statMap.get(deposithash);
             int surplus = extract.getSurplus();
             surplus--;
@@ -587,9 +587,9 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             accountState.setAccount(account);
         } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
             BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
-            BigDecimal onceamount = bigDecimal.multiply(rateheightlock.getWithdrawrate());
+            BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
             int count = bigDecimal.divide(onceamount).intValue();
-            ByteArrayMap<Extract> stateMap = rateheightlock.getStateMap();
+            Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
             stateMap.put(tx.getHash(), new Extract(height, count));
             rateheightlock.setStateMap(stateMap);
             accountState.setContract(rateheightlock.RLPserialization());

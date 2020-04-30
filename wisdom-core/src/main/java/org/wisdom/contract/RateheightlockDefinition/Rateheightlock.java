@@ -1,17 +1,10 @@
 package org.wisdom.contract.RateheightlockDefinition;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.tdf.common.util.ByteArrayMap;
-import org.tdf.rlp.RLP;
-import org.tdf.rlp.RLPCodec;
-import org.tdf.rlp.RLPDecoding;
-import org.tdf.rlp.RLPElement;
+import lombok.*;
+import org.tdf.rlp.*;
 import org.wisdom.contract.AnalysisContract;
 
-import java.math.BigDecimal;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -26,12 +19,11 @@ public class Rateheightlock implements AnalysisContract {
     @RLP(2)
     private int withdrawperiodheight;
     @RLP(3)
-    private BigDecimal withdrawrate;
+    private String withdrawrate;
     @RLP(4)
     private byte[] dest;
     @RLP(5)
-    @RLPDecoding(as = ByteArrayMap.class)
-    private ByteArrayMap<Extract> stateMap;
+    private Map<byte[],Extract> stateMap;
 
     @Override
     public byte[] RLPserialization() {
