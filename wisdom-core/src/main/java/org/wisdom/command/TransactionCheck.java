@@ -640,11 +640,11 @@ public class TransactionCheck {
                 return APIResult.newFailed("Onetimedepositmultiple must be in specified scope");
             if (rateheightlock.getWithdrawperiodheight()<1)
                 return APIResult.newFailed("Withdrawperiodheight must be in specified scope");
-            if (rateheightlock.getWithdrawrate().compareTo(BigDecimal.valueOf(1)) == 1 || rateheightlock.getWithdrawrate().compareTo(BigDecimal.valueOf(0)) != 1){
+            if (new BigDecimal(rateheightlock.getWithdrawrate()).compareTo(BigDecimal.valueOf(1)) == 1 || new BigDecimal(rateheightlock.getWithdrawrate()).compareTo(BigDecimal.valueOf(0)) != 1){
                 return APIResult.newFailed("Withdrawrate must be in specified scope");
             }
             BigDecimal bigDecimal = null;
-            bigDecimal = rateheightlock.getWithdrawrate().multiply(BigDecimal.valueOf(rateheightlock.getOnetimedepositmultiple()));
+            bigDecimal = new BigDecimal(rateheightlock.getWithdrawrate()).multiply(BigDecimal.valueOf(rateheightlock.getOnetimedepositmultiple()));
             if (BigDecimal.valueOf(bigDecimal.longValue()).compareTo(bigDecimal) != 0){
                return APIResult.newFailed("The product of withdrawrate and onetimedepositmultiple must be");
             }
@@ -1238,7 +1238,7 @@ public class TransactionCheck {
                 Rateheightlock rateheightlock = new Rateheightlock();
                 if (rateheightlock.RLPdeserialization(accountState_to.get().getContract())){
                     Optional<AccountState> accountState_from = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
-                    BigDecimal value = BigDecimal.valueOf(rateheightlockDeposit.getValue()).multiply(rateheightlock.getWithdrawrate());
+                    BigDecimal value = BigDecimal.valueOf(rateheightlockDeposit.getValue()).multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
                     //余额是否足够
                     if (accountState_from.get().getAccount().getQuotaMap().get(rateheightlock.getAssetHash())<value.longValue())
                         return APIResult.newFailed("Insufficient funds");
