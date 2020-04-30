@@ -19,6 +19,7 @@
 package org.wisdom.core.account;
 
 import lombok.Builder;
+import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.*;
@@ -31,6 +32,7 @@ public class Account {
     static class AccountDecoder implements RLPDecoder<Account> {
 
         @Override
+        @SneakyThrows
         public Account decode(RLPElement rlpElement) {
             RLPList li = rlpElement.asRLPList();
             Account a = new Account();
@@ -44,7 +46,8 @@ public class Account {
             a.setVote(li.get(i++).asLong());
             if (i >= li.size())
                 return a;
-            a.quotaMap = li.get(i++).as(ByteArrayMap.class);
+            Container c = Container.fromField(Account.class.getField("quotaMap"));
+            a.quotaMap = (Map<byte[], Long>) RLPCodec.decodeContainer(li.get(i++), c);
             return a;
         }
     }
