@@ -20,8 +20,10 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Extract;
 import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockWithdraw;
 import org.wisdom.core.Block;
 import org.wisdom.core.TransactionVerifyUpdate;
 import org.wisdom.core.WisdomBlockChain;
@@ -37,6 +39,7 @@ import org.wisdom.pool.WaitCount;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.ByteUtil;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -219,7 +222,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         } else if (tx.getContractType() == 3) {//锁定高度哈希
             return CheckHashheightMethod(contract, tx, accountState, publicKeyHash);
         } else if (tx.getContractType() == 4) {//定额条件比例支付
-            return CheckRateheightMethod(contract, tx, accountState, publicKeyHash);
+            return CheckRateheightMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
         }
         return null;
     }
@@ -292,7 +295,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
     }
 
     @Override
-    public Object CheckRateheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash) {
+    public Object CheckRateheightMethod(byte[] contract, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash) {
         Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contract);
         if (tx.getMethodType() == DEPOSITRATE.ordinal()) {//转入资产
             RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(tx.payload));
@@ -318,7 +321,82 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                 accountState.setTokensMap(tokensMap);
             }
         } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
+            ByteArrayMap<Extract> stateMap = rateheightlock.getStateMap();
+            //合约
+            RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(contract);
+            byte[] deposithash = rateheightlockWithdraw.getDeposithash();
+            Extract extract = stateMap.get(deposithash);
+            long extractheight = extract.getExtractheight();
+            extractheight += rateheightlock.getWithdrawperiodheight();
+            long surplus = extract.getSurplus();
+            surplus--;
+            //判断高度和次数
+            if (height <= extractheight || surplus <= 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            extract.setExtractheight(extractheight);
+            extract.setSurplus(surplus);
+            stateMap.put(deposithash, extract);
+            rateheightlock.setStateMap(stateMap);
+            contractaccountstate.setContract(rateheightlock.RLPserialization());
 
+            //from
+            Transaction transaction = wisdomBlockChain.getTransaction(deposithash);
+            RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(transaction.payload));
+            long onceamount = new BigDecimal(rateheightlockDeposit.getValue()).multiply(rateheightlock.getWithdrawrate()).longValue();
+            Account account = accountState.getAccount();
+            Map<byte[], Long> quotaMap = account.getQuotaMap();
+            long lockbalance = quotaMap.get(rateheightlock.getAssetHash());
+            lockbalance -= onceamount;
+            if (lockbalance < 0) {
+                AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
+                return null;
+            }
+            quotaMap.put(rateheightlock.getAssetHash(), lockbalance);
+            account.setQuotaMap(quotaMap);
+
+            newMap.put(contractaccountstate.getAccount().getPubkeyHash(), accountState);
+
+            //to
+            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                if (Arrays.equals(publicKeyHash, rateheightlockWithdraw.getTo())) {//from和to一致
+                    long balance = account.getBalance();
+                    balance += onceamount;
+                    account.setBalance(balance);
+                } else {
+                    AccountState toaccountstate = getKeyAccountState(rateheightlockWithdraw.getTo());
+                    Account toaccount = toaccountstate.getAccount();
+                    long balance = toaccount.getBalance();
+                    balance += onceamount;
+                    toaccount.setBalance(balance);
+                    toaccountstate.setAccount(toaccount);
+                    newMap.put(rateheightlockWithdraw.getTo(), toaccountstate);
+                }
+            } else {
+                if (Arrays.equals(publicKeyHash, rateheightlockWithdraw.getTo())) {//from和to一致
+                    Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                    long tokensbalance = 0;
+                    if (tokensMap.containsKey(rateheightlock.getAssetHash())) {
+                        tokensbalance = tokensMap.get(rateheightlock.getAssetHash());
+                    }
+                    tokensbalance += onceamount;
+                    tokensMap.put(rateheightlock.getAssetHash(), tokensbalance);
+                    accountState.setTokensMap(tokensMap);
+                } else {
+                    AccountState toaccountstate = getKeyAccountState(rateheightlockWithdraw.getTo());
+                    Map<byte[], Long> tokensMap = toaccountstate.getTokensMap();
+                    long tokensbalance = 0;
+                    if (tokensMap.containsKey(rateheightlock.getAssetHash())) {
+                        tokensbalance = tokensMap.get(rateheightlock.getAssetHash());
+                    }
+                    tokensbalance += onceamount;
+                    tokensMap.put(rateheightlock.getAssetHash(), tokensbalance);
+                    toaccountstate.setTokensMap(tokensMap);
+                    newMap.put(rateheightlockWithdraw.getTo(), toaccountstate);
+                }
+            }
+            accountState.setAccount(account);
         }
         newMap.put(publicKeyHash, accountState);
         return null;
@@ -632,6 +710,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                     AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                     return null;
                 }
+                break;
         }
         newMap.put(publicKeyHash, accountState);
         return null;

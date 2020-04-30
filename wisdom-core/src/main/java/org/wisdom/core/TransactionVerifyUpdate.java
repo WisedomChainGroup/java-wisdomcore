@@ -36,7 +36,7 @@ public interface TransactionVerifyUpdate<T> {
 
     T CheckHashheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash);
 
-    T CheckRateheightMethod(byte[] contract, Transaction tx, AccountState accountState, byte[] publicKeyHash);
+    T CheckRateheightMethod(byte[] contract, Transaction tx, AccountState contractaccountstate, AccountState accountState, byte[] publicKeyHash);
 
     AccountState getKeyAccountState(byte[] key);
 

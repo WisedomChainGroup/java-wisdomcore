@@ -36,4 +36,8 @@ public class RateheightlockWithdraw implements AnalysisContract {
         this.to = rateheightlockWithdraw.getTo();
         return true;
     }
+
+    public static RateheightlockWithdraw getRateheightlockWithdraw(byte[] Rlpbyte){
+        return RLPElement.fromEncoded(Rlpbyte).as(RateheightlockWithdraw.class);
+    }
 }
