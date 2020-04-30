@@ -8,5 +8,5 @@ import lombok.*;
 @Builder
 public class Extract {
     private long extractheight;
-    private long surplus;
+    private int surplus;
 }
