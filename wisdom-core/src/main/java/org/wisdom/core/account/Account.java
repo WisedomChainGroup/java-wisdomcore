@@ -46,7 +46,7 @@ public class Account {
             a.setVote(li.get(i++).asLong());
             if (i >= li.size())
                 return a;
-            Container c = Container.fromField(Account.class.getField("quotaMap"));
+            Container c = Container.fromField(Account.class.getDeclaredField("quotaMap"));
             a.quotaMap = new ByteArrayMap<>((Map<byte[], Long>) RLPCodec.decodeContainer(li.get(i++), c));
             return a;
         }
