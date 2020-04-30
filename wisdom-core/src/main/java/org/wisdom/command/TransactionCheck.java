@@ -1234,7 +1234,7 @@ public class TransactionCheck {
                 return APIResult.newFailed("From of rateheightlockWithdraw and rateheightlockDeposit must be the same");
             }
             RateheightlockDeposit rateheightlockDeposit = new RateheightlockDeposit();
-            if (rateheightlockDeposit.RLPdeserialization(RateheightlockDepositTransaction.payload)){
+            if (rateheightlockDeposit.RLPdeserialization(ByteUtil.bytearraycopy(RateheightlockDepositTransaction.payload, 1, RateheightlockDepositTransaction.payload.length - 1))){
                 Rateheightlock rateheightlock = new Rateheightlock();
                 if (rateheightlock.RLPdeserialization(accountState_to.get().getContract())){
                     Optional<AccountState> accountState_from = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));

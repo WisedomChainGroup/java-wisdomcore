@@ -1,6 +1,7 @@
 package org.wisdom.contract.RateheightlockDefinition;
 
 import lombok.*;
+import org.tdf.common.util.ByteArrayMap;
 import org.tdf.rlp.*;
 import org.wisdom.contract.AnalysisContract;
 
@@ -47,11 +48,13 @@ public class Rateheightlock implements AnalysisContract {
         this.withdrawperiodheight = rateheightlock.getWithdrawperiodheight();
         this.withdrawrate = rateheightlock.getWithdrawrate();
         this.dest = rateheightlock.getDest();
-        this.stateMap = rateheightlock.getStateMap();
+        this.stateMap = new ByteArrayMap<>(rateheightlock.getStateMap());
         return true;
     }
 
     public static Rateheightlock getRateheightlock(byte[] Rlpbyte) {
-        return RLPElement.fromEncoded(Rlpbyte).as(Rateheightlock.class);
+        Rateheightlock rateheightlock=new Rateheightlock();
+        rateheightlock.RLPdeserialization(Rlpbyte);
+        return rateheightlock;
     }
 }

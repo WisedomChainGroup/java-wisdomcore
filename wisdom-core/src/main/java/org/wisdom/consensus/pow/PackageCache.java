@@ -323,7 +323,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
         } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
             Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
             //合约
-            RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(contract);
+            RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(tx.payload));
             byte[] deposithash = rateheightlockWithdraw.getDeposithash();
             Extract extract = stateMap.get(deposithash);
             long extractheight = extract.getExtractheight();
