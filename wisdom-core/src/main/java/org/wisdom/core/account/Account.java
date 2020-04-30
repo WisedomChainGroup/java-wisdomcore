@@ -47,7 +47,7 @@ public class Account {
             if (i >= li.size())
                 return a;
             Container c = Container.fromField(Account.class.getField("quotaMap"));
-            a.quotaMap = (Map<byte[], Long>) RLPCodec.decodeContainer(li.get(i++), c);
+            a.quotaMap = new ByteArrayMap<>((Map<byte[], Long>) RLPCodec.decodeContainer(li.get(i++), c));
             return a;
         }
     }
