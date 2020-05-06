@@ -29,5 +29,5 @@ public interface ContractService {
 
     Object getParseContractTxByPubkeyhash(String pubkeyhash);
 
-    Object getRateheightlockDepositBalanceByTxhash(String txhash,String publicKeyHash);
+    Object getRateheightlockDepositBalanceByTxhash(String txhash,byte[] publicKeyHash);
 }

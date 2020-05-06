@@ -11,6 +11,7 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
 import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.core.Block;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
@@ -175,16 +176,20 @@ public class ContractServiceImpl implements ContractService {
     }
 
     @Override
-    public Object getRateheightlockDepositBalanceByTxhash(String txhash, String publicKeyHash) {
+    public Object getRateheightlockDepositBalanceByTxhash(String txhash, byte[] publicKeyHash) {
         try {
-            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(Hex.decodeHex(publicKeyHash.toCharArray()));
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(publicKeyHash);
             if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() != 5) {
                 return APIResult.newFailed("The thing hash does not exist or is not a rateheightlock contract transaction");
             }
-            if (accountStateOptional.get().getAccount().getQuotaMap().get(Hex.decodeHex(txhash.toCharArray())) == null){
-                return APIResult.newFailed("The rateheightlockDeposit does not exist or exhaust");
+            Rateheightlock rateheightlock = new Rateheightlock();
+            if (rateheightlock.RLPdeserialization(accountStateOptional.get().getContract())){
+                if (rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())) == null){
+                    return APIResult.newFailed("The rateheightlockDeposit does not exist or exhaust");
+                }
+                return APIResult.newSuccess(rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())).getSurplus());
             }
-            return APIResult.newSuccess(accountStateOptional.get().getAccount().getQuotaMap().get(Hex.decodeHex(txhash.toCharArray())));
+            return APIResult.newFailed("Invalid Rateheightlock rules");
         } catch (DecoderException e) {
             return APIResult.newFailed("Please check publicKeyHash");
         }

@@ -79,10 +79,10 @@ public class ContractController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/RateheightlockDepositBalanceByTxhash")
-    public Object RateheightlockDepositBalanceByTxhash(@RequestParam(value = "pubkeyhash") String pubkeyhash,@RequestParam(value = "txhash") String txhash) {
-        if (pubkeyhash.equals("") || pubkeyhash == "") {
-            return APIResult.newFailed("The pubkeyhash hash cannot be null");
+    public Object RateheightlockDepositBalanceByTxhash(@RequestParam(value = "address") String address,@RequestParam(value = "txhash") String txhash) {
+        if (KeystoreAction.verifyAddress(address) != 0) {
+            return APIResult.newFailed("Address format error");
         }
-        return contractService.getRateheightlockDepositBalanceByTxhash(txhash,pubkeyhash);
+        return contractService.getRateheightlockDepositBalanceByTxhash(txhash,KeystoreAction.addressToPubkeyHash(address));
     }
 }
