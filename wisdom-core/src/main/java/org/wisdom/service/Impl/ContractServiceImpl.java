@@ -12,13 +12,18 @@ import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
 import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.MultipleDefinition.Multiple;
 import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.service.ContractService;
+import org.wisdom.util.ByteUtil;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +33,9 @@ public class ContractServiceImpl implements ContractService {
 
     @Autowired
     WisdomRepository wisdomRepository;
+
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
 
     @Override
     public Object getParseContractTx(String txhash) {
@@ -187,7 +195,14 @@ public class ContractServiceImpl implements ContractService {
                 if (rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())) == null){
                     return APIResult.newFailed("The rateheightlockDeposit does not exist or exhaust");
                 }
-                return APIResult.newSuccess(rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())).getSurplus());
+                Transaction hashtimeblockDepositTransaction = wisdomBlockChain.getTransaction(Hex.decodeHex(txhash.toCharArray()));
+                RateheightlockDeposit rateheightlockDeposit = new RateheightlockDeposit();
+                if (rateheightlockDeposit.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockDepositTransaction.payload, 1, hashtimeblockDepositTransaction.payload.length - 1))){
+
+                    long price = BigDecimal.valueOf(rateheightlockDeposit.getValue()).multiply(new BigDecimal(rateheightlock.getWithdrawrate())).longValue();
+                    return APIResult.newSuccess(rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())).getSurplus()*price);
+                }
+                return APIResult.newFailed("Invalid RateheightlockDeposit rules");
             }
             return APIResult.newFailed("Invalid Rateheightlock rules");
         } catch (DecoderException e) {
