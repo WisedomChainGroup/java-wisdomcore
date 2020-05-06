@@ -28,4 +28,6 @@ public interface ContractService {
     Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash);
 
     Object getParseContractTxByPubkeyhash(String pubkeyhash);
+
+    Object getRateheightlockDepositBalanceByTxhash(String txhash,String publicKeyHash);
 }

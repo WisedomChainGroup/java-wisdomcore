@@ -174,5 +174,21 @@ public class ContractServiceImpl implements ContractService {
         return APIResult.newFailed("Not asset definition and multi-contract type");
     }
 
+    @Override
+    public Object getRateheightlockDepositBalanceByTxhash(String txhash, String publicKeyHash) {
+        try {
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(Hex.decodeHex(publicKeyHash.toCharArray()));
+            if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() != 5) {
+                return APIResult.newFailed("The thing hash does not exist or is not a rateheightlock contract transaction");
+            }
+            if (accountStateOptional.get().getAccount().getQuotaMap().get(Hex.decodeHex(txhash.toCharArray())) == null){
+                return APIResult.newFailed("The rateheightlockDeposit does not exist or exhaust");
+            }
+            return APIResult.newSuccess(accountStateOptional.get().getAccount().getQuotaMap().get(Hex.decodeHex(txhash.toCharArray())));
+        } catch (DecoderException e) {
+            return APIResult.newFailed("Please check publicKeyHash");
+        }
+    }
+
 
 }

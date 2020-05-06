@@ -77,4 +77,12 @@ public class ContractController {
         }
         return contractService.getParseContractTxByPubkeyhash(pubkeyhash.trim());
     }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/RateheightlockDepositBalanceByTxhash")
+    public Object RateheightlockDepositBalanceByTxhash(@RequestParam(value = "pubkeyhash") String pubkeyhash,@RequestParam(value = "txhash") String txhash) {
+        if (pubkeyhash.equals("") || pubkeyhash == "") {
+            return APIResult.newFailed("The pubkeyhash hash cannot be null");
+        }
+        return contractService.getRateheightlockDepositBalanceByTxhash(txhash,pubkeyhash);
+    }
 }
