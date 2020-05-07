@@ -452,7 +452,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(deposittran.payload));
         BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
         BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
-        long amount = bigDecimal.divide(onceamount).longValue();
+        long amount = onceamount.longValue();
         if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
             long balance = account.getBalance();
             balance -= tx.getFee();
