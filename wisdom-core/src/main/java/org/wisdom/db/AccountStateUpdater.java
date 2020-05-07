@@ -167,13 +167,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 }
             }
             bytes.add(tx.to);
-        } else if (tx.getContractType() == 9) {//定额条件比例获取
+        } else if (tx.getContractType() == 4) {//定额条件比例支付
             bytes.add(tx.to);
-            RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(tx.payload));
-            if (!Arrays.equals(fromhash, rateheightlockWithdraw.getTo())) {
-                bytes.add(rateheightlockWithdraw.getTo());
+            if (tx.getMethodType() == 9) {//定额条件比例获取
+                RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(tx.payload));
+                if (!Arrays.equals(fromhash, rateheightlockWithdraw.getTo())) {
+                    bytes.add(rateheightlockWithdraw.getTo());
+                }
             }
-        } else {//锁定合约、定额条件比例支付
+        } else {//锁定合约
             bytes.add(tx.to);
         }
         return bytes;
