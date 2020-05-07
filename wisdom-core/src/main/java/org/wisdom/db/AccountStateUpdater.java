@@ -498,6 +498,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
             accountState.setAccount(account);
+            return accountState;
         }
         if (Arrays.equals(account.getPubkeyHash(), rateheightlockWithdraw.getTo())) {//to
             long balance = account.getBalance();
