@@ -505,24 +505,15 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         if (Arrays.equals(account.getPubkeyHash(), rateheightlockWithdraw.getTo())) {//to
             long balance = account.getBalance();
             if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                Map<byte[], Long> quotaMap = account.getQuotaMap();
-                long quotabalance = quotaMap.get(twentyBytes);
-                quotabalance -= amount;
-                quotaMap.put(twentyBytes, quotabalance);
-                account.setQuotaMap(quotaMap);
-
                 balance += amount;
                 account.setBalance(balance);
                 accountState.setAccount(account);
             } else {
-                Map<byte[], Long> quotaMap = account.getQuotaMap();
-                long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
-                quotabalance -= amount;
-                quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
-                account.setQuotaMap(quotaMap);
-
                 Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
+                long tokenbalance = 0;
+                if (tokensMap.containsKey(rateheightlock.getAssetHash())) {
+                    tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
+                }
                 tokenbalance += amount;
                 tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
                 accountState.setTokensMap(tokensMap);
