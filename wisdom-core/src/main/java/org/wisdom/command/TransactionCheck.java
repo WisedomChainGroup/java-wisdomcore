@@ -422,7 +422,7 @@ public class TransactionCheck {
             if (asset.getCode().length() >= 3 && asset.getCode().length() <= 12 && matcher.matches() && !asset.getCode().equals("WDC")) {
                 byte[] blockhash = wisdomRepository.getLatestConfirmed().getHash();
                 if (wisdomRepository.containsAssetCodeAt(blockhash, asset.getCode().getBytes(StandardCharsets.UTF_8)))
-                    return APIResult.newFailed("asset code already exists");
+                    return APIResult.newFailed("Asset code already exists");
             } else {
                 return APIResult.newFailed("Assets code format check error");
             }
@@ -646,7 +646,7 @@ public class TransactionCheck {
             BigDecimal bigDecimal = null;
             bigDecimal = new BigDecimal(rateheightlock.getWithdrawrate()).multiply(BigDecimal.valueOf(rateheightlock.getOnetimedepositmultiple()));
             if (BigDecimal.valueOf(bigDecimal.longValue()).compareTo(bigDecimal) != 0){
-               return APIResult.newFailed("The product of withdrawrate and onetimedepositmultiple must be");
+               return APIResult.newFailed("The product of withdrawrate and onetimedepositmultiple must be positive integer");
             }
             if((rateheightlock.getOnetimedepositmultiple() % bigDecimal.longValue()) != 0){
                 return APIResult.newFailed("Can not fully extracted");
@@ -657,7 +657,7 @@ public class TransactionCheck {
             Optional<AccountState> accountState_dest = wisdomRepository.getConfirmedAccountState(rateheightlock.getDest());
             if (accountState_dest.isPresent()){
                 if (accountState_dest.get().getType() != 0 && accountState_dest.get().getType() != 2)
-                    return APIResult.newFailed("Dest must be general address or multiple address");
+                        return APIResult.newFailed("Dest must be general address or multiple address");
                     //多签资产是否一致
                     if (accountState_dest.get().getType() == 2){
                         Multiple multiple = new Multiple();
@@ -666,7 +666,7 @@ public class TransactionCheck {
                                 return APIResult.newFailed("The assetHash of Multiple address and rateheightlock must be the same");
                             }
                         }else {
-                            return APIResult.newFailed("Multiple must be empty");
+                            return APIResult.newFailed("Invalid Multiple rules");
                         }
                     }
             }
@@ -905,7 +905,7 @@ public class TransactionCheck {
                     //代币类型
                     byte[] assetHash = multiple.getAssetHash();
                     if (Arrays.equals(assetHash, WDCbyte)) {//WDC
-                        if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue())
+                        if (accountStateFrom.get().getAccount().getBalance() < multTransfer.getValue()+Transaction.minFee)
                             return APIResult.newFailed("Insufficient funds");
                     } else {//其他代币
                         if (accountStateFrom.get().getTokensMap().size() == 0)
@@ -977,7 +977,7 @@ public class TransactionCheck {
                     byte[] assetHash = multiple.getAssetHash();
                     //验证余额是否足够
                     if (Arrays.equals(assetHash, WDCbyte)) {//WDC
-                        if (accountStateTo.get().getAccount().getBalance() < multTransfer.getValue())
+                        if (accountStateTo.get().getAccount().getBalance() < multTransfer.getValue()+Transaction.minFee)
                             return APIResult.newFailed("Insufficient funds");
                     } else {//其他代币
                         if (accountStateTo.get().getTokensMap().size() == 0)
@@ -1030,7 +1030,7 @@ public class TransactionCheck {
 
                 //验证余额是否足够
                 if (Arrays.equals(assetHash, WDCbyte)) {//WDC
-                    if (accountStateFrom.get().getAccount().getBalance() < hashtimeblockTransfer.getValue())
+                    if (accountStateFrom.get().getAccount().getBalance() < hashtimeblockTransfer.getValue()+Transaction.minFee)
                         return APIResult.newFailed("Insufficient funds");
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
@@ -1078,7 +1078,7 @@ public class TransactionCheck {
                 }
                 //验证余额是否足够
                 if (Arrays.equals(assetHash, WDCbyte)) {//WDC
-                    if (accountStateFrom.get().getAccount().getBalance() < hashheightblockTransfer.getValue())
+                    if (accountStateFrom.get().getAccount().getBalance() < hashheightblockTransfer.getValue()+Transaction.minFee)
                         return APIResult.newFailed("Insufficient funds");
                 } else {//其他代币
                     if (accountStateFrom.get().getTokensMap().size() == 0)
@@ -1203,7 +1203,7 @@ public class TransactionCheck {
                 Optional<AccountState> accountState_from = wisdomRepository.getConfirmedAccountState(KeystoreAction.pubkeybyteToPubkeyhashbyte(transaction.from));
                 //验证余额是否足够
                 if (Arrays.equals(rateheightlock.getAssetHash(), new byte[20])) {//WDC
-                    if (accountState_from.get().getAccount().getBalance() < rateheightlockDeposit.getValue())
+                    if (accountState_from.get().getAccount().getBalance() < rateheightlockDeposit.getValue()+Transaction.minFee)
                         return APIResult.newFailed("Insufficient funds");
                 } else {//其他代币
                     if (accountState_from.get().getTokensMap().size() == 0)
