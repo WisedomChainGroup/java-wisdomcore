@@ -331,7 +331,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             int surplus = extract.getSurplus();
             surplus--;
             //判断高度和次数
-            if (height <= extractheight || surplus <= 0) {
+            if (height <= extractheight || surplus < 0) {
                 AddRemoveMap(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return null;
             }

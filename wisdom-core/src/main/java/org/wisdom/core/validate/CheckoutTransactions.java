@@ -282,7 +282,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             int surplus = extract.getSurplus();
             surplus--;
             //判断高度和次数
-            if (height <= extractheight || surplus <= 0) {
+            if (height <= extractheight || surplus < 0) {
                 peningTransPool.removeOne(Hex.encodeHexString(publicKeyHash), tx.nonce);
                 return Result.Error("Transaction validation failed ," + Hex.encodeHexString(tx.getHash()) + ": There is no drawable amount");
             }
