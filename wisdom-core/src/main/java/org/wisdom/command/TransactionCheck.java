@@ -1140,7 +1140,7 @@ public class TransactionCheck {
             }
             return APIResult.newFailed("Invalid HashtimeblockTransfer rules");
         }
-        return APIResult.newFailed("Invalid HashtimeblockTransfer rules");
+        return APIResult.newFailed("Invalid HashtimeblockGet rules");
     }
 
     private APIResult CheckHashheightblockGet(byte[] data, Transaction transaction) {
@@ -1185,7 +1185,7 @@ public class TransactionCheck {
             }
             return APIResult.newFailed("Invalid HashheightblockTransfer rules");
         }
-        return APIResult.newFailed("Invalid HashheightblockTransfer rules");
+        return APIResult.newFailed("Invalid HashheightblockGet rules");
     }
 
     private APIResult CheckRateheightlockDeposit(byte[] data, Transaction transaction){
@@ -1196,6 +1196,9 @@ public class TransactionCheck {
             if (!accountState.isPresent()) return APIResult.newFailed("Rateheightlock do not exist");
             Rateheightlock rateheightlock = new Rateheightlock();
             if (rateheightlock.RLPdeserialization(accountState.get().getContract())){
+                if (rateheightlockDeposit.getValue() == 0){
+                    return APIResult.newFailed("Value cannot be 0");
+                }
                 //判断能整除
                 if (rateheightlockDeposit.getValue() % rateheightlock.getOnetimedepositmultiple() != 0){
                     return APIResult.newFailed("Value is not a multiple of onetimedepositmultiple");
