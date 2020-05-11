@@ -307,7 +307,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             quotaMap.put(rateheightlock.getAssetHash(), lockbalance);
             account.setQuotaMap(quotaMap);
 
-            map.put(contractaccountstate.getAccount().getPubkeyHash(), accountState);
+            map.put(contractaccountstate.getAccount().getPubkeyHash(), contractaccountstate);
 
             //to
             if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC

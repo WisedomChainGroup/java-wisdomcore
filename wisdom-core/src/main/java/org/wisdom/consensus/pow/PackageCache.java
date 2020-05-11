@@ -356,7 +356,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             quotaMap.put(rateheightlock.getAssetHash(), lockbalance);
             account.setQuotaMap(quotaMap);
 
-            newMap.put(contractaccountstate.getAccount().getPubkeyHash(), accountState);
+            newMap.put(contractaccountstate.getAccount().getPubkeyHash(), contractaccountstate);
 
             //to
             if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
