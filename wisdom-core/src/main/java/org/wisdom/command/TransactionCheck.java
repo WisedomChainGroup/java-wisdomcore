@@ -640,7 +640,7 @@ public class TransactionCheck {
                 return APIResult.newFailed("Onetimedepositmultiple must be in specified scope");
             if (rateheightlock.getWithdrawperiodheight()<1)
                 return APIResult.newFailed("Withdrawperiodheight must be in specified scope");
-            if (new BigDecimal(rateheightlock.getWithdrawrate()).compareTo(BigDecimal.valueOf(1)) == 1 || new BigDecimal(rateheightlock.getWithdrawrate()).compareTo(BigDecimal.valueOf(0)) != 1){
+            if (new BigDecimal(rateheightlock.getWithdrawrate()).compareTo(BigDecimal.valueOf(1)) != -1 || new BigDecimal(rateheightlock.getWithdrawrate()).compareTo(BigDecimal.valueOf(0)) != 1){
                 return APIResult.newFailed("Withdrawrate must be in specified scope");
             }
             BigDecimal bigDecimal = null;

@@ -664,4 +664,28 @@ public class HatchServiceImpl implements HatchService {
             return APIResult.newFailResult(5000, "Exception error");
         }
     }
+
+    @Override
+    public Object getBalanceList(List<String> addresslist) {
+        try {
+            JSONObject jsonObject = new JSONObject();
+            for (String str : addresslist) {
+                if (KeystoreAction.verifyAddress(str) != 0){
+                    continue;
+                }
+                byte[] pubkeyhashbyte = new byte[0];
+                pubkeyhashbyte = Hex.decodeHex(Hex.encodeHexString(KeystoreAction.addressToPubkeyHash(str)).toCharArray());
+                Optional<AccountState> ao = repository.getConfirmedAccountState(pubkeyhashbyte);
+                long balance = 0;
+                if (ao.isPresent()) {
+                    balance = ao.get().getAccount().getBalance();
+                }
+                jsonObject.put(str,balance);
+            }
+            return APIResult.newSuccess(jsonObject);
+        } catch (DecoderException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
