@@ -629,12 +629,13 @@ public class TransactionCheck {
         Rateheightlock rateheightlock = new Rateheightlock();
         if (rateheightlock.RLPdeserialization(data)){
             if (!Arrays.equals(rateheightlock.getAssetHash(), new byte[20])) {
-                    //校验如果不是WDC校验区块中是否存在
-                    Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(rateheightlock.getAssetHash());
-                    if (!accountState.isPresent())
-                        return APIResult.newFailed("AssetHash do not exist");
-                    if (accountState.get().getType() != 1)
-                        return APIResult.newFailed("AssetHash is wrong");
+//                    //校验如果不是WDC校验区块中是否存在
+//                    Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(rateheightlock.getAssetHash());
+//                    if (!accountState.isPresent())
+//                        return APIResult.newFailed("AssetHash do not exist");
+//                    if (accountState.get().getType() != 1)
+//                        return APIResult.newFailed("AssetHash is wrong");
+                return APIResult.newFailed("Only supported WDC COIN");
             }
             if (rateheightlock.getOnetimedepositmultiple()<2 || rateheightlock.getOnetimedepositmultiple()>100000000)
                 return APIResult.newFailed("Onetimedepositmultiple must be in specified scope");
