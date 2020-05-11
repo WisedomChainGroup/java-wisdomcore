@@ -126,27 +126,31 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             }
             //更新状态
             Result result = Result.SUCCESS;
-            switch (tx.type) {
-                case 1://转账
-                case 2://投票
-                case 13://撤回投票
-                    result = CheckFirstKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
-                    break;
-                case 3://存证事务,只需要扣除手续费
-                case 9://孵化事务
-                case 10://提取利息
-                case 11://提取分享
-                case 12://本金
-                case 14://抵押
-                case 15://撤回抵押
-                    result = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
-                    break;
-                case 7://部署合约
-                    result = CheckDeployContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
-                    break;
-                case 8://调用合约
-                    result = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
-                    break;
+            try{
+                switch (tx.type) {
+                    case 1://转账
+                    case 2://投票
+                    case 13://撤回投票
+                        result = CheckFirstKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
+                        break;
+                    case 3://存证事务,只需要扣除手续费
+                    case 9://孵化事务
+                    case 10://提取利息
+                    case 11://提取分享
+                    case 12://本金
+                    case 14://抵押
+                    case 15://撤回抵押
+                        result = CheckOtherKind(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
+                        break;
+                    case 7://部署合约
+                        result = CheckDeployContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
+                        break;
+                    case 8://调用合约
+                        result = CheckCallContract(fromaccountstate, fromaccountstate.getAccount(), tx, pubkeyhash);
+                        break;
+                }
+            }catch (Exception e){
+                e.printStackTrace();
             }
             if (!result.isSuccess()) {
                 return result;
