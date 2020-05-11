@@ -551,7 +551,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             account.setNonce(tx.nonce);
             account.setBlockHeight(height);
 
-            Map<byte[], Long> quotaMap = accountState.getTokensMap();
+            Map<byte[], Long> quotaMap = account.getQuotaMap();
             long quotabalance = 0;
             if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
                 balance = account.getBalance();
