@@ -18,14 +18,21 @@
 
 package org.wisdom.consensus.pow;
 
+import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.state.EraLinkedStateFactory;
+import org.wisdom.genesis.Genesis;
+
+import javax.annotation.PostConstruct;
 
 // comment
 @Component
 @Setter
+@Slf4j(topic = "经济模型")
 public class EconomicModel {
     public static final long WDC = 100000000;
 
@@ -45,12 +52,28 @@ public class EconomicModel {
     @Value("${wisdom.consensus.blocks-per-era}")
     private int blocksPerEra;
 
+    @Autowired
+    private Genesis genesis;
+
+    @Getter
+    private long total;
+
     public EconomicModel(@Value("${wisdom.consensus.block-interval}") int blockInterval,  @Value("${wisdom.block-interval-switch-era}") long blockIntervalSwitchEra, @Value("${wisdom.block-interval-switch-to}") int blockIntervalSwitchTo,     @Value("${wisdom.consensus.blocks-per-era}")
             int blocksPerEra) {
         this.blockInterval = blockInterval;
         this.blockIntervalSwitchEra = blockIntervalSwitchEra;
         this.blockIntervalSwitchTo = blockIntervalSwitchTo;
         this.blocksPerEra = blocksPerEra;
+    }
+
+    @PostConstruct
+    public void init() {
+        for (Genesis.InitAmount amount : genesis.alloc.initAmount) {
+            total += amount.balance.longValue() * WDC;
+        }
+        total += getTotalSupply();
+
+        log.info("total supply is {} WDC", total * 1.0 / WDC);
     }
 
     public long getConsensusRewardAtHeight(long height) {
