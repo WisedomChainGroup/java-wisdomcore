@@ -18,6 +18,8 @@
 
 package org.wisdom.service;
 
+import java.util.List;
+
 public interface HatchService {
 
     Object getBalance(String pubkeyhash);
@@ -54,4 +56,12 @@ public interface HatchService {
     Object getAssetList(long height);
 
     Object getAssetTransferList(long height);
+
+    Object getAssetOwnerList(long height);
+
+    Object getAssetIncreasedList(long height);
+
+    Object getDepositList(long height);
+
+    Object getBalanceList(List<String> addresslist);
 }

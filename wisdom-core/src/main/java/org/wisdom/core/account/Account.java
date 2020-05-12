@@ -19,12 +19,39 @@
 package org.wisdom.core.account;
 
 import lombok.Builder;
+import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.rlp.RLP;
+import org.tdf.common.util.ByteArrayMap;
+import org.tdf.rlp.*;
 
 import java.util.Arrays;
+import java.util.Map;
 
+@RLPDecoding(value = Account.AccountDecoder.class)
 public class Account {
+    static class AccountDecoder implements RLPDecoder<Account> {
+
+        @Override
+        @SneakyThrows
+        public Account decode(RLPElement rlpElement) {
+            RLPList li = rlpElement.asRLPList();
+            Account a = new Account();
+            int i = 0;
+            a.setBlockHeight(li.get(i++).asLong());
+            a.setPubkeyHash(li.get(i++).asBytes());
+            a.setNonce(li.get(i++).asLong());
+            a.setBalance(li.get(i++).asLong());
+            a.setIncubatecost(li.get(i++).asLong());
+            a.setMortgage(li.get(i++).asLong());
+            a.setVote(li.get(i++).asLong());
+            if (i >= li.size())
+                return a;
+            Container c = Container.fromField(Account.class.getDeclaredField("quotaMap"));
+            a.quotaMap = new ByteArrayMap<>((Map<byte[], Long>) RLPCodec.decodeContainer(li.get(i++), c));
+            return a;
+        }
+    }
+
     @RLP(0)
     private long blockHeight;
     @RLP(1)
@@ -40,6 +67,9 @@ public class Account {
     @RLP(6)
     private long vote;
 
+    @RLP(7)
+    private Map<byte[], Long> quotaMap;
+
     public Account() {
     }
 
@@ -52,6 +82,22 @@ public class Account {
         this.incubatecost = incubatecost;
         this.mortgage = mortgage;
         this.vote = vote;
+        this.quotaMap = new ByteArrayMap<>();
+    }
+
+    public Account(long blockHeight, byte[] pubkeyHash, long nonce, long balance, long incubatecost, long mortgage, long vote, Map<byte[], Long> quotaMap) {
+        this.blockHeight = blockHeight;
+        this.pubkeyHash = pubkeyHash;
+        this.nonce = nonce;
+        this.balance = balance;
+        this.incubatecost = incubatecost;
+        this.mortgage = mortgage;
+        this.vote = vote;
+        if (quotaMap == null) {
+            this.quotaMap = new ByteArrayMap<>();
+        } else {
+            this.quotaMap = quotaMap;
+        }
     }
 
     public long getBlockHeight() {
@@ -110,8 +156,16 @@ public class Account {
         this.vote = vote;
     }
 
+    public Map<byte[], Long> getQuotaMap() {
+        return quotaMap;
+    }
+
+    public void setQuotaMap(Map<byte[], Long> quotaMap) {
+        this.quotaMap = quotaMap;
+    }
+
     public Account copy() {
-        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote);
+        return new Account(blockHeight, pubkeyHash, nonce, balance, incubatecost, mortgage, vote, quotaMap);
     }
 
     @Override
@@ -128,7 +182,7 @@ public class Account {
                 Arrays.equals(pubkeyHash, account.pubkeyHash);
     }
 
-    public String getKey(){
+    public String getKey() {
         return Hex.encodeHexString(this.pubkeyHash);
     }
 

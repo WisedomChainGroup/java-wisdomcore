@@ -69,4 +69,20 @@ public class ContractController {
         }
         return contractService.getTokenListBalance(KeystoreAction.addressToPubkeyHash(address),codeList);
     }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/ParseContractTxByPubkeyhash")
+    public Object ParseContractTxByPubkeyhash(@RequestParam(value = "pubkeyhash") String pubkeyhash) {
+        if (pubkeyhash.equals("") || pubkeyhash == "") {
+            return APIResult.newFailed("The pubkeyhash hash cannot be null");
+        }
+        return contractService.getParseContractTxByPubkeyhash(pubkeyhash.trim());
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/RateheightlockDepositBalanceByTxhash")
+    public Object RateheightlockDepositBalanceByTxhash(@RequestParam(value = "address") String address,@RequestParam(value = "txhash") String txhash) {
+        if (KeystoreAction.verifyAddress(address) != 0) {
+            return APIResult.newFailed("Address format error");
+        }
+        return contractService.getRateheightlockDepositBalanceByTxhash(txhash,KeystoreAction.addressToPubkeyHash(address));
+    }
 }

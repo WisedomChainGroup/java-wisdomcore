@@ -25,6 +25,9 @@ import org.wisdom.service.HatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
+
 @RestController
 public class HatchController {
 
@@ -119,6 +122,11 @@ public class HatchController {
         return hatchService.getCoinBaseList(height);
     }
 
+    @GetMapping(value = "/WisdomCore/sendDeposit")
+    public Object sendDeposit(@RequestParam("height") long height) {
+        return hatchService.getDepositList(height);
+    }
+
     @GetMapping(value = "/WisdomCore/sendAsset")
     public Object sendAsset(@RequestParam("height") long height) {
         return hatchService.getAssetList(height);
@@ -127,5 +135,24 @@ public class HatchController {
     @GetMapping(value = "/WisdomCore/sendAssetTransfer")
     public Object sendAssetTransfer(@RequestParam("height") long height) {
         return hatchService.getAssetTransferList(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendAssetOwner")
+    public Object sendAssetOwner(@RequestParam("height") long height) {
+        return hatchService.getAssetOwnerList(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendAssetIncreased")
+    public Object sendAssetIncreased(@RequestParam("height") long height) {
+        return hatchService.getAssetIncreasedList(height);
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/sendBalanceList")
+    public Object sendBalanceList(@RequestParam(value = "addressStrs") String addressStrs) {
+        if (addressStrs == null){
+            return APIResult.newFailed("addressStrs Cannot be empty");
+        }
+        List<String> addresslist = Arrays.asList(addressStrs.split(","));
+        return hatchService.getBalanceList(addresslist);
     }
 }

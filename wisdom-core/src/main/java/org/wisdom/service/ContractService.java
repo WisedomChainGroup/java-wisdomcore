@@ -26,4 +26,8 @@ public interface ContractService {
     Object getTokenListBalance(byte[] pubkeyHash, List<String> codeList);
 
     Object getAssetBalanceObject(String assetCode, byte[] publicKeyHash);
+
+    Object getParseContractTxByPubkeyhash(String pubkeyhash);
+
+    Object getRateheightlockDepositBalanceByTxhash(String txhash,byte[] publicKeyHash);
 }

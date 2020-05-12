@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.rlp.RLP;
 import org.wisdom.consensus.pow.EconomicModel;
@@ -204,8 +205,11 @@ public class Transaction {
         if (methodType >= 4 && methodType < 6) {
             return 2;
         }
-        if (methodType > 5) {
+        if (methodType > 5 && methodType < 8) {
             return 3;
+        }
+        if (methodType > 7) {
+            return 4;
         }
         throw new RuntimeException("Illegal invocation contract " + methodType + " type");
     }
@@ -422,7 +426,7 @@ public class Transaction {
     }
 
     @JsonIgnore
-    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希,3:锁定高度哈希
+    public int contractType;//合约 0:代币,1:多重签名,2:锁定时间哈希,3:锁定高度哈希,4:定额条件比例支付
 
     @JsonIgnore
     public int methodType;//调用合约方法类型
@@ -565,5 +569,23 @@ public class Transaction {
             tran.setPayload(ByteString.copyFrom(payload));
         }
         return tran.build();
+    }
+
+    public static void main(String[] args) throws DecoderException {
+        byte[] bytes = Arrays.concatenate(new byte[][]{
+                BigEndian.encodeUint32(0),
+                Hex.decodeHex("b84ff36aa463b288a94892c0b0843a8653377322c0cd16912c71e5614f0b9453".toCharArray()),//block.hashPrevBlock
+                Hex.decodeHex("421c0fd311c6a9200708a6747cc5aa853d3bfd87d049a1d2ac0a338c8e9de99b".toCharArray()),//block.hashMerkleRoot
+                Hex.decodeHex("d2e761071054c85ec7167cabdb98b434ca7c50c9390585e58e7f1e0c883f4eb6".toCharArray()),//block.hashMerkleState
+                Hex.decodeHex("0000000000000000000000000000000000000000000000000000000000000000".toCharArray()),//block.hashMerkleIncubate
+                BigEndian.encodeUint32(40344),
+                BigEndian.encodeUint32(1584931565),
+                Hex.decodeHex("00003478f408af606e34c86b6607775e3f6cabc689193d09e3742ec46299a892".toCharArray()),//block.nBits
+                Hex.decodeHex("4732f3a49345485c6783bebd89a4f24ed958da1877d34178061747e061153ac5".toCharArray())//nNonce
+        });
+
+
+        System.out.println(Hex.encodeHexString(HashUtil.keccak256(bytes)));
+
     }
 }

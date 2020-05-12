@@ -47,7 +47,7 @@ public class TransactionDaoJoined {
         return query.getResultList();
     }
 
-    public List<Transaction> getTransactionByQuery(@NonNull TransactionQuery txQuery){
+    public List<Transaction> getTransactionByQuery(@NonNull TransactionQuery txQuery) {
         return txQuery.getQuery(QUERY_JOINS, em).getResultList();
     }
 
@@ -224,6 +224,22 @@ public class TransactionDaoJoined {
 
     public List<Map<String, Object>> getAssetTransferByHeightAndType(long height, int type) {
         Query query = em.createQuery("select new map (t.to as coinHash160,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+                QUERYONE_JOINS);
+        query.setParameter("height", height);
+        query.setParameter("type", type);
+        return query.getResultList();
+    }
+
+    public List<Map<String, Object>> getAssetOtherByHeightAndType(long height, int type) {
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+                QUERYONE_JOINS);
+        query.setParameter("height", height);
+        query.setParameter("type", type);
+        return query.getResultList();
+    }
+
+    public List<Map<String, Object>> getDepositHeightAndType(long height, int type) {
+        Query query = em.createQuery("select new map (t.from as coinAddress,t.txHash as coinHash,h.height as coinHeight,t.gasPrice as gasPrice,t.payload as tradeHash)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);

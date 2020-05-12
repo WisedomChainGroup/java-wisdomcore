@@ -26,6 +26,10 @@ import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockGet;
 import org.wisdom.contract.HashtimeblockDefinition.HashtimeblockTransfer;
 import org.wisdom.contract.MultipleDefinition.MultTransfer;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Extract;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockWithdraw;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
@@ -163,6 +167,14 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 }
             }
             bytes.add(tx.to);
+        } else if (tx.getContractType() == 4) {//定额条件比例支付
+            bytes.add(tx.to);
+            if (tx.getMethodType() == 9) {//定额条件比例获取
+                RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(tx.payload));
+                if (!Arrays.equals(fromhash, rateheightlockWithdraw.getTo())) {
+                    bytes.add(rateheightlockWithdraw.getTo());
+                }
+            }
         } else {//锁定合约
             bytes.add(tx.to);
         }
@@ -374,6 +386,22 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                     throw new RuntimeException("Deploy lock transaction account do not match");
                 }
                 break;
+            case 4://定额条件比例支付
+                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
+                    long balance = account.getBalance();
+                    balance -= tx.getFee();
+                    account.setBalance(balance);
+                    account.setNonce(tx.nonce);
+                    account.setBlockHeight(height);
+                    accountState.setAccount(account);
+                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
+                    byte[] lockrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+                    accountState.setType(5);
+                    accountState.setContract(lockrlpbyte);
+                } else {
+                    throw new RuntimeException("Deploy rate lock transaction account do not match");
+                }
+                break;
         }
         return accountState;
     }
@@ -407,6 +435,162 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             case 7://锁定高度哈希获取资产
                 accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
                 break;
+            case 8://定额条件比例支付
+                accountState = updateRateheightDeposit(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
+            case 9://定额条件比例获取
+                accountState = updateRateheightWithdraw(fromhash, accountState, account, tx, height, rlpbyte, store);
+                break;
+        }
+        return accountState;
+    }
+
+    private AccountState updateRateheightWithdraw(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        AccountState contractaccountstate = store.get(tx.to);
+        Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contractaccountstate.getContract());
+        RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(rlpbyte);
+        byte[] deposithash = rateheightlockWithdraw.getDeposithash();
+        Transaction deposittran = wisdomBlockChain.getTransaction(deposithash);
+        RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(deposittran.payload));
+        BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
+        BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
+        long amount = onceamount.longValue();
+        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
+            long balance = account.getBalance();
+            balance -= tx.getFee();
+
+            if (Arrays.equals(fromhash, rateheightlockWithdraw.getTo())) {//from和to一致
+                if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                    Map<byte[], Long> quotaMap = account.getQuotaMap();
+                    long quotabalance = quotaMap.get(twentyBytes);
+                    quotabalance -= amount;
+                    quotaMap.put(twentyBytes, quotabalance);
+                    account.setQuotaMap(quotaMap);
+
+                    balance += amount;
+                } else {
+                    Map<byte[], Long> quotaMap = account.getQuotaMap();
+                    long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
+                    quotabalance -= amount;
+                    quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
+                    account.setQuotaMap(quotaMap);
+
+                    Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                    long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
+                    tokenbalance += amount;
+                    tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
+                    accountState.setTokensMap(tokensMap);
+                }
+            } else {
+                if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                    Map<byte[], Long> quotaMap = account.getQuotaMap();
+                    long quotabalance = quotaMap.get(twentyBytes);
+                    quotabalance -= amount;
+                    quotaMap.put(twentyBytes, quotabalance);
+                    account.setQuotaMap(quotaMap);
+                } else {
+                    Map<byte[], Long> quotaMap = account.getQuotaMap();
+                    long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
+                    quotabalance -= amount;
+                    quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
+                    account.setQuotaMap(quotaMap);
+                }
+            }
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(height);
+            accountState.setAccount(account);
+            return accountState;
+        }
+        if (Arrays.equals(account.getPubkeyHash(), rateheightlockWithdraw.getTo())) {//to
+            long balance = account.getBalance();
+            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                balance += amount;
+                account.setBalance(balance);
+                accountState.setAccount(account);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long tokenbalance = 0;
+                if (tokensMap.containsKey(rateheightlock.getAssetHash())) {
+                    tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
+                }
+                tokenbalance += amount;
+                tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
+                accountState.setTokensMap(tokensMap);
+            }
+        }
+        if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
+            rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
+            Map<byte[], Extract> statMap = rateheightlock.getStateMap();
+            Extract extract = statMap.get(deposithash);
+            int surplus = extract.getSurplus();
+            surplus--;
+            if (surplus == 0) {//已全部领取完
+                statMap.remove(deposithash);
+                rateheightlock.setStateMap(statMap);
+            } else {
+                long extractheight = extract.getExtractheight();
+                extractheight += rateheightlock.getWithdrawperiodheight();
+                extract.setSurplus(surplus);
+                extract.setExtractheight(extractheight);
+                statMap.put(deposithash, extract);
+                rateheightlock.setStateMap(statMap);
+            }
+            accountState.setContract(rateheightlock.RLPserialization());
+        }
+        return accountState;
+    }
+
+    private AccountState updateRateheightDeposit(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        AccountState contractaccountstate = store.get(tx.to);
+        Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contractaccountstate.getContract());
+        RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(rlpbyte);
+        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
+            long balance = account.getBalance();
+            balance -= tx.getFee();
+            account.setBalance(balance);
+            account.setNonce(tx.nonce);
+            account.setBlockHeight(height);
+
+            Map<byte[], Long> quotaMap = account.getQuotaMap();
+            long quotabalance = 0;
+            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+                balance = account.getBalance();
+                balance -= rateheightlockDeposit.getValue();
+                account.setBalance(balance);
+
+                if (quotaMap.containsKey(twentyBytes)) {
+                    quotabalance = quotaMap.get(twentyBytes);
+                }
+                quotabalance += rateheightlockDeposit.getValue();
+                quotaMap.put(twentyBytes, quotabalance);
+                account.setQuotaMap(quotaMap);
+            } else {
+                Map<byte[], Long> tokensMap = accountState.getTokensMap();
+                long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
+                tokenbalance -= rateheightlockDeposit.getValue();
+                tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
+                accountState.setTokensMap(tokensMap);
+
+                if (quotaMap.containsKey(rateheightlock.getAssetHash())) {
+                    quotabalance = quotaMap.get(rateheightlock.getAssetHash());
+                }
+                quotabalance += rateheightlockDeposit.getValue();
+                quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
+                account.setQuotaMap(quotaMap);
+            }
+            accountState.setAccount(account);
+        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
+            rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
+            BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
+            BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
+            int count = bigDecimal.divide(onceamount).intValue();
+            Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
+            stateMap.put(tx.getHash(), new Extract(height, count));
+            rateheightlock.setStateMap(stateMap);
+            accountState.setContract(rateheightlock.RLPserialization());
+        } else {
+            throw new RuntimeException("RateheightDeposit transaction account do not match");
         }
         return accountState;
     }

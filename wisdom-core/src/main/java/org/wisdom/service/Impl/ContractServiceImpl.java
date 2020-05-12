@@ -11,13 +11,19 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.HashheightblockDefinition.Hashheightblock;
 import org.wisdom.contract.HashtimeblockDefinition.Hashtimeblock;
 import org.wisdom.contract.MultipleDefinition.Multiple;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.core.Block;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.service.ContractService;
+import org.wisdom.util.ByteUtil;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -28,28 +34,16 @@ public class ContractServiceImpl implements ContractService {
     @Autowired
     WisdomRepository wisdomRepository;
 
+    @Autowired
+    WisdomBlockChain wisdomBlockChain;
+
     @Override
     public Object getParseContractTx(String txhash) {
         try {
-            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(RipemdUtility.ripemd160(Hex.decodeHex(txhash.toCharArray())));
-            if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
-                return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
-            }
-            AccountState accountState = accountStateOptional.get();
-            byte[] RLPByte = accountState.getContract();
-            if (accountState.getType() == 1) {//代币
-                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
-            } else if (accountState.getType() == 2) {//多签
-                return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
-            }else if (accountState.getType() == 3){//哈希时间锁定
-                return APIResult.newSuccess(Hashtimeblock.getHashtimeblock(RLPByte));
-            }else if (accountState.getType() == 4){//哈希高度锁定
-                return APIResult.newSuccess(Hashheightblock.getHashheightblock(RLPByte));
-            }
+            return getParseContractTxByPubkeyhash(Hex.encodeHexString(RipemdUtility.ripemd160(Hex.decodeHex(txhash.toCharArray()))));
         } catch (DecoderException e) {
             return APIResult.newFailed("Transaction hash resolution error");
         }
-        return APIResult.newFailed("Not asset definition and multi-contract type");
     }
 
     @Override
@@ -164,4 +158,57 @@ public class ContractServiceImpl implements ContractService {
         }
         return APIResult.newSuccess(asset.get().getTokensMap().getOrDefault(info.get().getAsset160hash(), 0L));
     }
+
+    @Override
+    public Object getParseContractTxByPubkeyhash(String pubkeyhash) {
+        try {
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(Hex.decodeHex(pubkeyhash.toCharArray()));
+            if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() == 0) {
+                return APIResult.newFailed("The thing hash does not exist or is not a contract transaction");
+            }
+            AccountState accountState = accountStateOptional.get();
+            byte[] RLPByte = accountState.getContract();
+            if (accountState.getType() == 1) {//代币
+                return APIResult.newSuccess(Asset.getConvertAsset(RLPByte));
+            } else if (accountState.getType() == 2) {//多签
+                return APIResult.newSuccess(Multiple.getConvertMultiple(RLPByte));
+            }else if (accountState.getType() == 3){//哈希时间锁定
+                return APIResult.newSuccess(Hashtimeblock.getHashtimeblock(RLPByte));
+            }else if (accountState.getType() == 4){//哈希高度锁定
+                return APIResult.newSuccess(Hashheightblock.getHashheightblock(RLPByte));
+            }
+        }catch (Exception e){
+            return APIResult.newFailed("Please check pubkeyhash");
+        }
+        return APIResult.newFailed("Not asset definition and multi-contract type");
+    }
+
+    @Override
+    public Object getRateheightlockDepositBalanceByTxhash(String txhash, byte[] publicKeyHash) {
+        try {
+            Optional<AccountState> accountStateOptional = wisdomRepository.getConfirmedAccountState(publicKeyHash);
+            if (!accountStateOptional.isPresent() || accountStateOptional.get().getType() != 5) {
+                return APIResult.newFailed("The thing hash does not exist or is not a rateheightlock contract transaction");
+            }
+            Rateheightlock rateheightlock = new Rateheightlock();
+            if (rateheightlock.RLPdeserialization(accountStateOptional.get().getContract())){
+                if (rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())) == null){
+                    return APIResult.newFailed("The rateheightlockDeposit does not exist or exhaust");
+                }
+                Transaction hashtimeblockDepositTransaction = wisdomBlockChain.getTransaction(Hex.decodeHex(txhash.toCharArray()));
+                RateheightlockDeposit rateheightlockDeposit = new RateheightlockDeposit();
+                if (rateheightlockDeposit.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockDepositTransaction.payload, 1, hashtimeblockDepositTransaction.payload.length - 1))){
+
+                    long price = BigDecimal.valueOf(rateheightlockDeposit.getValue()).multiply(new BigDecimal(rateheightlock.getWithdrawrate())).longValue();
+                    return APIResult.newSuccess(rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())).getSurplus()*price);
+                }
+                return APIResult.newFailed("Invalid RateheightlockDeposit rules");
+            }
+            return APIResult.newFailed("Invalid Rateheightlock rules");
+        } catch (DecoderException e) {
+            return APIResult.newFailed("Please check publicKeyHash");
+        }
+    }
+
+
 }
