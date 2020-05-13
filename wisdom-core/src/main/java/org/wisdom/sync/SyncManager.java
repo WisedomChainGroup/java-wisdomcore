@@ -2,20 +2,19 @@ package org.wisdom.sync;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.ByteString;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
 import org.wisdom.SyncConfig;
 import org.wisdom.core.Block;
-import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.CompositeBlockRule;
@@ -29,7 +28,6 @@ import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -76,7 +74,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
     private Lock blockQueueLock = new ReentrantLock();
 
-    private ScheduledExecutorService executorService;
+    private ScheduledExecutorService executorService0;
+
+    private ScheduledExecutorService executorService1;
+
+//    private ScheduledExecutorService executorService2;
 
     private SyncConfig syncConfig;
 
@@ -94,12 +96,15 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     @PostConstruct
     public void init() {
         int core = Runtime.getRuntime().availableProcessors();
-        executorService = Executors.newScheduledThreadPool(core > 1 ? core / 2 : core);
-        executorService.scheduleWithFixedDelay(
+        executorService0 = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("sync0").build());
+        executorService1 = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("sync1").build());
+//        executorService2 = Executors.newScheduledThreadPool(6, new ThreadFactoryBuilder().setNameFormat("sync-%d").build());
+
+        executorService0.scheduleWithFixedDelay(
                 this::tryWrite, 0,
                 syncConfig.getBlockWriteRate(), TimeUnit.SECONDS);
 
-        executorService.scheduleWithFixedDelay(
+        executorService1.scheduleWithFixedDelay(
                 this::getStatus, 0,
                 10, TimeUnit.SECONDS
         );
@@ -176,10 +181,10 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     .setStartHeight(startHeight)
                     .setStopHeight(b.nHeight).build();
             log.info("sync orphans: try to fetch block start from " + getBlocks.getStartHeight() + " stop at " + getBlocks.getStopHeight());
-            ps.forEach(p->server.dial(p, getBlocks));
+            ps.forEach(p -> server.dial(p, getBlocks));
         }
 
-        ps.forEach(p->{
+        ps.forEach(p -> {
             log.debug("try to fetch status from peer {}", p);
             server.dial(p, WisdomOuterClass.GetStatus.newBuilder().build());
         });
@@ -356,7 +361,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
     }
 
     @SneakyThrows
-    public List<Block> getOrphans(){
+    public List<Block> getOrphans() {
         blockQueueLock.lock();
         try {
             return getOrphansInternal();
