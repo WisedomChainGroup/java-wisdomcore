@@ -50,7 +50,7 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
                             block.getnHeight(),
                             block.getHashHexString(),
                             HexBytes.fromBytes(root),
-                            block.accountStateTrieRoot
+                            HexBytes.fromBytes(block.accountStateTrieRoot)
                     )
             );
         return root;
