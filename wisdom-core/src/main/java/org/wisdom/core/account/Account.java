@@ -69,6 +69,7 @@ public class Account {
             if(a.getQuotaMap() == null || a.getQuotaMap().isEmpty())
                 return ret;
             ret.add(RLPElement.readRLPTree(a.getQuotaMap()));
+            return ret;
         }
     }
 
