@@ -356,6 +356,8 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                 accountStateTrie.commit(b);
                 repository.writeBlock(b);
             }
+        } catch (Exception e){
+            e.printStackTrace();
         } finally {
             long end = System.currentTimeMillis();
             log.debug("traverse through {} blocks success consuming {} ms", count, end - start);
