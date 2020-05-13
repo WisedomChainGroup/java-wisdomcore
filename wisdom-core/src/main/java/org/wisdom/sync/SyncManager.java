@@ -100,11 +100,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         executorService1 = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("sync1").build());
 //        executorService2 = Executors.newScheduledThreadPool(6, new ThreadFactoryBuilder().setNameFormat("sync-%d").build());
 
-        executorService0.scheduleWithFixedDelay(
+        executorService0.scheduleAtFixedRate(
                 this::tryWrite, 0,
                 syncConfig.getBlockWriteRate(), TimeUnit.SECONDS);
 
-        executorService1.scheduleWithFixedDelay(
+        executorService1.scheduleAtFixedRate(
                 this::getStatus, 0,
                 10, TimeUnit.SECONDS
         );
@@ -146,6 +146,7 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         log.debug("peer server stated... ");
     }
 
+    @SneakyThrows
     public void getStatus() {
         if (server == null) {
             return;
@@ -163,7 +164,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
 
         List<Block> orphans;
         // try to sync orphans
-        blockQueueLock.lock();
+        if(!blockQueueLock.tryLock(syncConfig.getLockTimeOut(), TimeUnit.SECONDS)){
+            return;
+        }
 
         try {
             orphans = getOrphansInternal();
@@ -306,7 +309,9 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
         Block best = repository.getBestBlock();
         long start = System.currentTimeMillis();
         int count = 0;
-        blockQueueLock.lock();
+        if(!blockQueueLock.tryLock(10, TimeUnit.SECONDS)){
+            return;
+        }
         try {
             count = queue.size();
             Iterator<Block> iterator = queue.iterator();
