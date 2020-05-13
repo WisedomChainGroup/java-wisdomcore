@@ -1,8 +1,10 @@
 package org.wisdom.db;
 
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
 import org.tdf.common.util.FastByteComparisons;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 
@@ -42,7 +44,15 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
         if(block.accountStateTrieRoot == null || block.accountStateTrieRoot.length == 0)
             return root;
         if(!FastByteComparisons.equal(root, block.accountStateTrieRoot))
-            throw new RuntimeException("state root not match");
+            throw new RuntimeException(
+                    String.format(
+                            "state root not match at height %d hash %s state root local = %s state root remote = %s",
+                            block.getnHeight(),
+                            block.getHashHexString(),
+                            HexBytes.fromBytes(root),
+                            block.accountStateTrieRoot
+                    )
+            );
         return root;
     }
 }
