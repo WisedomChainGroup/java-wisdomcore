@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 @RLPDecoding(value = Account.AccountDecoder.class)
+@RLPEncoding(value = Account.AccountEncoder.class)
 public class Account {
     static class AccountDecoder implements RLPDecoder<Account> {
 
@@ -49,6 +50,25 @@ public class Account {
             Container c = Container.fromField(Account.class.getDeclaredField("quotaMap"));
             a.quotaMap = new ByteArrayMap<>((Map<byte[], Long>) RLPCodec.decodeContainer(li.get(i++), c));
             return a;
+        }
+    }
+
+    static class AccountEncoder implements RLPEncoder<Account> {
+
+        @Override
+        @SneakyThrows
+        public RLPElement encode(Account a) {
+            RLPList ret = RLPList.createEmpty(7);
+            ret.add(RLPElement.readRLPTree(a.getBlockHeight()));
+            ret.add(RLPElement.readRLPTree(a.getPubkeyHash()));
+            ret.add(RLPElement.readRLPTree(a.getNonce()));
+            ret.add(RLPElement.readRLPTree(a.getBalance()));
+            ret.add(RLPElement.readRLPTree(a.getIncubatecost()));
+            ret.add(RLPElement.readRLPTree(a.getMortgage()));
+            ret.add(RLPElement.readRLPTree(a.getVote()));
+            if(a.getQuotaMap() == null || a.getQuotaMap().isEmpty())
+                return ret;
+            ret.add(RLPElement.readRLPTree(a.getQuotaMap()));
         }
     }
 
