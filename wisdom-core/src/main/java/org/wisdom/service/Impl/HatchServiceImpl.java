@@ -684,8 +684,7 @@ public class HatchServiceImpl implements HatchService {
             }
             return APIResult.newSuccess(jsonObject);
         } catch (DecoderException e) {
-            e.printStackTrace();
+            return APIResult.newFailResult(5000, "Exception error");
         }
-        return null;
     }
 }
