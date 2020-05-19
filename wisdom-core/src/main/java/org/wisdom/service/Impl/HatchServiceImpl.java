@@ -28,6 +28,9 @@ import org.wisdom.contract.AssetDefinition.Asset;
 import org.wisdom.contract.AssetDefinition.AssetChangeowner;
 import org.wisdom.contract.AssetDefinition.AssetIncreased;
 import org.wisdom.contract.AssetDefinition.AssetTransfer;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
+import org.wisdom.contract.RateheightlockDefinition.RateheightlockWithdraw;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.incubator.Incubator;
@@ -670,7 +673,7 @@ public class HatchServiceImpl implements HatchService {
         try {
             JSONObject jsonObject = new JSONObject();
             for (String str : addresslist) {
-                if (KeystoreAction.verifyAddress(str) != 0){
+                if (KeystoreAction.verifyAddress(str) != 0) {
                     continue;
                 }
                 byte[] pubkeyhashbyte = new byte[0];
@@ -680,12 +683,96 @@ public class HatchServiceImpl implements HatchService {
                 if (ao.isPresent()) {
                     balance = ao.get().getAccount().getBalance();
                 }
-                jsonObject.put(str,balance);
+                jsonObject.put(str, balance);
             }
             return APIResult.newSuccess(jsonObject);
         } catch (DecoderException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    @Override
+    public Object getRateheightLockList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getRatelockByHeightAndType(height, 7);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] from = (byte[]) map.get("fromAddress");
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 4) {//定额条件比例支付
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    JSONObject jsonObject = new JSONObject();
+                    Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(ByteUtil.bytearrayridfirst(payload));
+                    jsonObject.put("assetHash160", Hex.encodeHexString(rateheightlock.getAssetHash()));
+                    jsonObject.put("multiple", rateheightlock.getOnetimedepositmultiple());
+                    jsonObject.put("periodHeight", rateheightlock.getWithdrawperiodheight());
+                    jsonObject.put("drawRate", rateheightlock.getWithdrawrate());
+                    jsonObject.put("dest", Hex.encodeHexString(rateheightlock.getDest()));
+                    jsonObject.put("fromAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
+                    jsonObject.put("coinHash", Hex.encodeHexString(coinHash));
+                    jsonObject.put("coinHash160", Hex.encodeHexString(RipemdUtility.ripemd160(coinHash)));
+                    jsonObject.remove("tradeHash");
+                    jsonArray.add(jsonObject);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getRateheightLockDepositList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getRatelockInvokeByHeightAndType(height, 8);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 8) {//定额条件比例支付
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    byte[] tohash = (byte[]) map.get("coinHash160");
+                    byte[] from = (byte[]) map.get("coinAddress");
+                    RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(ByteUtil.bytearrayridfirst(payload));
+                    map.put("fromAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
+                    map.put("coinHash", Hex.encodeHexString(coinHash));
+                    map.put("coinHash160", Hex.encodeHexString(tohash));
+                    map.put("amount", rateheightlockDeposit.getValue());
+                    map.remove("tradeHash");
+                    map.remove("coinAddress");
+                    jsonArray.add(map);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
+    }
+
+    @Override
+    public Object getRateheightLockWithdrawList(long height) {
+        try {
+            List<Map<String, Object>> list = transDaoJoined.getRatelockInvokeByHeightAndType(height, 8);
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> map : list) {
+                byte[] payload = (byte[]) map.get("tradeHash");
+                if (payload[0] == 9) {//定额条件比例获取
+                    byte[] coinHash = (byte[]) map.get("coinHash");
+                    byte[] tohash = (byte[]) map.get("coinHash160");
+                    byte[] from = (byte[]) map.get("coinAddress");
+                    RateheightlockWithdraw rateheightLockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(payload));
+                    map.put("deposithash", rateheightLockWithdraw.getDeposithash());
+                    map.put("fromAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
+                    map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(rateheightLockWithdraw.getTo(), (byte) 0x00, ""));
+                    map.put("coinHash", Hex.encodeHexString(coinHash));
+                    map.put("coinHash160", Hex.encodeHexString(tohash));
+                    map.remove("tradeHash");
+                    jsonArray.add(map);
+                }
+            }
+            return APIResult.newFailResult(2000, "SUCCESS", jsonArray);
+        } catch (Exception e) {
+            return APIResult.newFailResult(5000, "Exception error");
+        }
     }
 }

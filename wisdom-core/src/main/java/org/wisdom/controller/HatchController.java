@@ -147,9 +147,24 @@ public class HatchController {
         return hatchService.getAssetIncreasedList(height);
     }
 
+    @GetMapping(value = "/WisdomCore/sendRateheightLock")
+    public Object sendRateheightLock(@RequestParam("height") long height) {
+        return hatchService.getRateheightLockList(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendRateheightLockDeposit")
+    public Object sendRateheightLockDeposit(@RequestParam("height") long height) {
+        return hatchService.getRateheightLockDepositList(height);
+    }
+
+    @GetMapping(value = "/WisdomCore/sendRateheightLockWithdraw")
+    public Object sendRateheightLockWithdraw(@RequestParam("height") long height) {
+        return hatchService.getRateheightLockWithdrawList(height);
+    }
+
     @RequestMapping(method = RequestMethod.POST, value = "/sendBalanceList")
     public Object sendBalanceList(@RequestParam(value = "addressStrs") String addressStrs) {
-        if (addressStrs == null){
+        if (addressStrs == null) {
             return APIResult.newFailed("addressStrs Cannot be empty");
         }
         List<String> addresslist = Arrays.asList(addressStrs.split(","));

@@ -64,4 +64,10 @@ public interface HatchService {
     Object getDepositList(long height);
 
     Object getBalanceList(List<String> addresslist);
+
+    Object getRateheightLockList(long height);
+
+    Object getRateheightLockDepositList(long height);
+
+    Object getRateheightLockWithdrawList(long height);
 }

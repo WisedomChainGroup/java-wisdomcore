@@ -3,15 +3,9 @@ package org.wisdom.dao;
 import lombok.NonNull;
 import org.springframework.stereotype.Repository;
 import org.wisdom.core.account.Transaction;
-import org.wisdom.entity.HeaderEntity;
-import org.wisdom.entity.TransactionEntity;
-import org.wisdom.entity.TransactionIndexEntity;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
@@ -240,6 +234,22 @@ public class TransactionDaoJoined {
 
     public List<Map<String, Object>> getDepositHeightAndType(long height, int type) {
         Query query = em.createQuery("select new map (t.from as coinAddress,t.txHash as coinHash,h.height as coinHeight,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+                QUERYONE_JOINS);
+        query.setParameter("height", height);
+        query.setParameter("type", type);
+        return query.getResultList();
+    }
+
+    public List<Map<String, Object>> getRatelockByHeightAndType(long height, int type) {
+        Query query = em.createQuery("select new map (t.txHash as coinHash,t.payload as tradeHash,t.from as fromAddress)" +
+                QUERYONE_JOINS);
+        query.setParameter("height", height);
+        query.setParameter("type", type);
+        return query.getResultList();
+    }
+
+    public List<Map<String, Object>> getRatelockInvokeByHeightAndType(long height, int type) {
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,t.payload as tradeHash)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
