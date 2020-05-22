@@ -698,12 +698,18 @@ public class HatchServiceImpl implements HatchService {
             List<Map<String, Object>> list = transDaoJoined.getRatelockByHeightAndType(height, 7);
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> map : list) {
-                byte[] from = (byte[]) map.get("fromAddress");
                 byte[] payload = (byte[]) map.get("tradeHash");
                 if (payload[0] == 4) {//定额条件比例支付
+                    byte[] from = (byte[]) map.get("fromAddress");
                     byte[] coinHash = (byte[]) map.get("coinHash");
                     JSONObject jsonObject = new JSONObject();
                     Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(ByteUtil.bytearrayridfirst(payload));
+                    if (!Arrays.equals(rateheightlock.getDest(), new byte[20])) {
+                        Optional<AccountState> accountStateOptional = repository.getConfirmedAccountState(rateheightlock.getDest());
+                        jsonObject.put("type", accountStateOptional.get().getType());
+                    } else {
+                        jsonObject.put("type", 1);
+                    }
                     jsonObject.put("assetHash160", Hex.encodeHexString(rateheightlock.getAssetHash()));
                     jsonObject.put("multiple", rateheightlock.getOnetimedepositmultiple());
                     jsonObject.put("periodHeight", rateheightlock.getWithdrawperiodheight());
@@ -761,6 +767,8 @@ public class HatchServiceImpl implements HatchService {
                     byte[] tohash = (byte[]) map.get("coinHash160");
                     byte[] from = (byte[]) map.get("coinAddress");
                     RateheightlockWithdraw rateheightLockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(payload));
+                    Optional<AccountState> accountStateOptional = repository.getConfirmedAccountState(rateheightLockWithdraw.getTo());
+                    map.put("type", accountStateOptional.get().getType());
                     map.put("deposithash", rateheightLockWithdraw.getDeposithash());
                     map.put("fromAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
                     map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(rateheightLockWithdraw.getTo(), (byte) 0x00, ""));
