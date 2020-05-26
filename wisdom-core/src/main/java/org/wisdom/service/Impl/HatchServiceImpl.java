@@ -706,7 +706,11 @@ public class HatchServiceImpl implements HatchService {
                     Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(ByteUtil.bytearrayridfirst(payload));
                     if (!Arrays.equals(rateheightlock.getDest(), new byte[20])) {
                         Optional<AccountState> accountStateOptional = repository.getConfirmedAccountState(rateheightlock.getDest());
-                        jsonObject.put("type", accountStateOptional.get().getType());
+                        if (!accountStateOptional.isPresent()) {
+                            jsonObject.put("type", 0);
+                        } else {
+                            jsonObject.put("type", accountStateOptional.get().getType());
+                        }
                     } else {
                         jsonObject.put("type", 1);
                     }
@@ -768,7 +772,11 @@ public class HatchServiceImpl implements HatchService {
                     byte[] from = (byte[]) map.get("coinAddress");
                     RateheightlockWithdraw rateheightLockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(payload));
                     Optional<AccountState> accountStateOptional = repository.getConfirmedAccountState(rateheightLockWithdraw.getTo());
-                    map.put("type", accountStateOptional.get().getType());
+                    if (!accountStateOptional.isPresent()) {
+                        map.put("type", 0);
+                    } else {
+                        map.put("type", accountStateOptional.get().getType());
+                    }
                     map.put("deposithash", rateheightLockWithdraw.getDeposithash());
                     map.put("fromAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
                     map.put("coinAddress", KeystoreAction.pubkeyHashToAddress(rateheightLockWithdraw.getTo(), (byte) 0x00, ""));
