@@ -387,6 +387,10 @@ public class TransactionCheck {
     private APIResult CheckDeployContract(byte[] payload, byte[] from, Long amount, byte[] topubkeyhash, Transaction transaction) {
         byte type = payload[0];
         byte[] data = ByteUtil.bytearraycopy(payload, 1, payload.length - 1);
+        //部署生成的account不能为已存在的
+        Optional<AccountState> accountState = wisdomRepository.getConfirmedAccountState(RipemdUtility.ripemd160(transaction.getHash()));
+        if (accountState.isPresent())
+            return APIResult.newFailed("Account already exists");
         switch (type) {
             case 0://代币
                 return CheckAsset(data, from, amount, topubkeyhash);
