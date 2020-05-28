@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
@@ -521,19 +522,19 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         }
         if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
             rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
-            Map<byte[], Extract> statMap = rateheightlock.getStateMap();
-            Extract extract = statMap.get(deposithash);
+            Map<HexBytes, Extract> statMap = rateheightlock.getStateMap();
+            Extract extract = statMap.get(HexBytes.fromBytes(deposithash));
             int surplus = extract.getSurplus();
             surplus--;
             if (surplus == 0) {//已全部领取完
-                statMap.remove(deposithash);
+                statMap.remove(HexBytes.fromBytes(deposithash));
                 rateheightlock.setStateMap(statMap);
             } else {
                 long extractheight = extract.getExtractheight();
                 extractheight += rateheightlock.getWithdrawperiodheight();
                 extract.setSurplus(surplus);
                 extract.setExtractheight(extractheight);
-                statMap.put(deposithash, extract);
+                statMap.put(HexBytes.fromBytes(deposithash), extract);
                 rateheightlock.setStateMap(statMap);
             }
             accountState.setContract(rateheightlock.RLPserialization());
@@ -585,8 +586,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
             BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
             int count = bigDecimal.divide(onceamount).intValue();
-            Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
-            stateMap.put(tx.getHash(), new Extract(height, count));
+            Map<HexBytes, Extract> stateMap = rateheightlock.getStateMap();
+            stateMap.put(HexBytes.fromBytes(tx.getHash()), new Extract(height, count));
             rateheightlock.setStateMap(stateMap);
             accountState.setContract(rateheightlock.RLPserialization());
         } else {

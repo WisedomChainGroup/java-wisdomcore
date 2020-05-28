@@ -18,13 +18,12 @@
 package org.wisdom.command;
 
 import lombok.Setter;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.contract.AssetDefinition.Asset;
@@ -1276,7 +1275,7 @@ public class TransactionCheck {
                         }
                     }
                     //是否满足高度
-                    Extract extract = rateheightlock.getStateMap().get(rateheightlockWithdraw.getDeposithash());
+                    Extract extract = rateheightlock.getStateMap().get(HexBytes.fromBytes(rateheightlockWithdraw.getDeposithash()));
                     if (extract == null){
                         return APIResult.newFailed("Already extraction completed");
                     }
