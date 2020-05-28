@@ -151,7 +151,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
     // height = 0, 120, 240 ...
     List<byte[]> getProposersByEraLst(byte[] hash, long height) {
-        if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
+        if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException(String.format("height %d mod %d != 0", height, eraLinker.getBlocksPerEra()));
         if(!bestCandidatesCache.containsKey(HexBytes.fromBytes(hash))){
             // updates
             // retry
