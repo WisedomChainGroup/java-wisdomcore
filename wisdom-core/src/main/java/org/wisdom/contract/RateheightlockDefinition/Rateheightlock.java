@@ -27,7 +27,15 @@ public class Rateheightlock implements AnalysisContract {
     private byte[] dest;
     @RLP(5)
     @RLPDecoding(as = HexBytesTreeMap.class)
+    @RLPEncoding(keyOrdering = ComparatorHexBytes.class)
     private Map<HexBytes, Extract> stateMap;
+
+    public static class ComparatorHexBytes implements Comparator<HexBytes> {
+        @Override
+        public int compare(HexBytes o1, HexBytes o2) {
+            return o2.compareTo(o1);
+        }
+    };
 
     public static class HexBytesTreeMap extends TreeMap<HexBytes, Extract> {
         public HexBytesTreeMap() {
