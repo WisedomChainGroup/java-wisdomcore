@@ -5,9 +5,7 @@ import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.*;
 import org.wisdom.contract.AnalysisContract;
 
-import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 @Data
 @NoArgsConstructor
@@ -50,13 +48,23 @@ public class Rateheightlock implements AnalysisContract {
 
     @Override
     public byte[] RLPserialization() {
-        return RLPCodec.encode(Rateheightlock.builder()
-                .assetHash(this.assetHash)
-                .onetimedepositmultiple(this.onetimedepositmultiple)
-                .withdrawperiodheight(this.withdrawperiodheight)
-                .withdrawrate(this.withdrawrate)
-                .dest(this.dest)
-                .stateMap(this.stateMap).build());
+        List<Object> li = null;
+
+        if(stateMap != null){
+            li = new ArrayList<>();
+            for (Map.Entry<HexBytes, Extract> entry : stateMap.entrySet()) {
+                li.add(entry.getKey());
+                li.add(entry.getValue());
+            }
+        }
+        return RLPCodec.encode(new Object[]{
+                assetHash,
+                onetimedepositmultiple,
+                withdrawperiodheight,
+                withdrawrate,
+                dest,
+                li
+        });
     }
 
     @Override
