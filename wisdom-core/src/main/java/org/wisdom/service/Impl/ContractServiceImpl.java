@@ -5,6 +5,7 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.contract.AssetCodeInfo;
 import org.wisdom.contract.AssetDefinition.Asset;
@@ -192,7 +193,7 @@ public class ContractServiceImpl implements ContractService {
             }
             Rateheightlock rateheightlock = new Rateheightlock();
             if (rateheightlock.RLPdeserialization(accountStateOptional.get().getContract())){
-                if (rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())) == null){
+                if (rateheightlock.getStateMap().get(HexBytes.fromHex(txhash)) == null){
                     return APIResult.newFailed("The rateheightlockDeposit does not exist or exhaust");
                 }
                 Transaction hashtimeblockDepositTransaction = wisdomBlockChain.getTransaction(Hex.decodeHex(txhash.toCharArray()));
