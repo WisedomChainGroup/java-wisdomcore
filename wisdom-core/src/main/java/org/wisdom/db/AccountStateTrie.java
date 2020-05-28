@@ -5,6 +5,8 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.store.Store;
 import org.tdf.common.util.FastByteComparisons;
 import org.tdf.common.util.HexBytes;
+import org.tdf.rlp.RLPCodec;
+import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 
@@ -45,6 +47,11 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
             return root;
 
         if(block.getHashHexString().equals("c8f78f90656d1d640b02f08fd178efea289e1b10cdd3dbd2ffcdd44881866ff7")){
+            AccountState a =
+                    getTrie().revert(root).get(HexBytes.decode("4a60fd124e2674b7118b65425d25a25d8f3d5f66")).get();
+
+            Rateheightlock lock = Rateheightlock.getRateheightlock(a.getContract());
+            lock.getStateMap().keySet().forEach(System.out::println);
             return root;
         }
 
