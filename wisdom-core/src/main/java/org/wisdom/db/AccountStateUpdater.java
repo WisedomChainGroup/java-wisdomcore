@@ -79,13 +79,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         long height = info.getHeight();
         transaction.height = height;
         try {
-            if(Arrays.equals(transaction.to,Hex.decodeHex("4a60fd124e2674b7118b65425d25a25d8f3d5f66".toCharArray()))){
-                System.out.println(transaction.height+"-------------------------->"+transaction.toString());
-            }
-        } catch (DecoderException e) {
-            e.printStackTrace();
-        }
-        try {
             switch (transaction.type) {
                 case 0x00://coinbase
                     return updateCoinBase(transaction, accountState, height);
@@ -454,13 +447,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateRateheightWithdraw(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
-        try {
-            if(Arrays.equals(tx.getHash(),Hex.decodeHex("2485a93e55b98199a206b0b6cf98733ac3f6f8b83af1de5771ba7501acacdf29".toCharArray()))){
-                System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            }
-        } catch (DecoderException e) {
-            e.printStackTrace();
-        }
         AccountState contractaccountstate = store.get(tx.to);
         Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contractaccountstate.getContract());
         RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(rlpbyte);
@@ -535,7 +521,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             }
         }
         if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
-            System.out.println("befor!!!!!!!!!!!!!!:"+Hex.encodeHexString(accountState.getContract()));
             rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
             Map<HexBytes, Extract> statMap = rateheightlock.getStateMap();
             Extract extract = statMap.get(HexBytes.fromBytes(deposithash));
@@ -553,7 +538,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 rateheightlock.setStateMap(statMap);
             }
             accountState.setContract(rateheightlock.RLPserialization());
-            System.out.println("after!!!!!!!!!!!!!!:"+Hex.encodeHexString(rateheightlock.RLPserialization()));
         }
         return accountState;
     }
