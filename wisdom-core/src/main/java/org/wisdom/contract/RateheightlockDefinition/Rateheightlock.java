@@ -5,6 +5,7 @@ import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.*;
 import org.wisdom.contract.AnalysisContract;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -25,8 +26,19 @@ public class Rateheightlock implements AnalysisContract {
     @RLP(4)
     private byte[] dest;
     @RLP(5)
-    @RLPDecoding(as = TreeMap.class)
+    @RLPDecoding(as = HexBytesTreeMap.class)
     private Map<HexBytes, Extract> stateMap;
+
+    public static class HexBytesTreeMap extends TreeMap<HexBytes, Extract> {
+        public HexBytesTreeMap() {
+            super(new Comparator<HexBytes>() {
+                @Override
+                public int compare(HexBytes o1, HexBytes o2) {
+                    return o2.compareTo(o1);
+                }
+            });
+        }
+    }
 
     @Override
     public byte[] RLPserialization() {
