@@ -233,9 +233,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     public void generateCache(Block eraLast, Map<byte[], Candidate> candidates) {
-        if(eraLast.getHashHexString().toLowerCase().equals("2f30607088c04eef1f5444a39ed49d778d5b86956f382b358a01fbedd692f923")){
-            System.out.println("generate cache for era last " + eraLast.getHashHexString());
-        }
+        System.out.println("generate cache for era last hash " + eraLast.getHashHexString() + " height = " + eraLast.getnHeight());
         boolean dropZeroVotes = (eraLast.nHeight - blocksPerEra + 1) > candidateUpdater.getWIP_12_17_HEIGHT();
         // 重新生成 proposers
         List<Candidate> blocked = new ArrayList<>();
