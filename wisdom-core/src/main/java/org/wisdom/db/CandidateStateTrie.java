@@ -155,6 +155,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
         if(!bestCandidatesCache.containsKey(HexBytes.fromBytes(hash))){
             // updates
+            // retry
             bestCandidatesCache.entrySet().forEach(e -> {
                 System.out.println(e.getKey() + " " + new ObjectMapper().writeValueAsString(e.getValue()));
             });
