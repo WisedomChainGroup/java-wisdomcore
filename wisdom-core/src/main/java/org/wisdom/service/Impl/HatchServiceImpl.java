@@ -541,6 +541,8 @@ public class HatchServiceImpl implements HatchService {
                     JSONObject jsonObject = new JSONObject();
                     Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(payload));
                     jsonObject.put("code", asset.getCode());
+                    jsonObject.put("owner", KeystoreAction.pubkeyHashToAddress(asset.getCreateuser(), (byte) 0x00, ""));
+                    jsonObject.put("allowincrease", asset.getAllowincrease());
                     jsonObject.put("coinHash", Hex.encodeHexString(coinHash));
                     jsonObject.put("coinHash160", Hex.encodeHexString(RipemdUtility.ripemd160(coinHash)));
                     jsonArray.add(jsonObject);
