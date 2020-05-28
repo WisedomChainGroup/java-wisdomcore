@@ -1,11 +1,12 @@
 package org.wisdom.contract.RateheightlockDefinition;
 
 import lombok.*;
-import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.*;
 import org.wisdom.contract.AnalysisContract;
 
 import java.util.Map;
+import java.util.TreeMap;
 
 @Data
 @NoArgsConstructor
@@ -24,7 +25,8 @@ public class Rateheightlock implements AnalysisContract {
     @RLP(4)
     private byte[] dest;
     @RLP(5)
-    private Map<byte[],Extract> stateMap;
+    @RLPDecoding(as = TreeMap.class)
+    private Map<HexBytes, Extract> stateMap;
 
     @Override
     public byte[] RLPserialization() {
@@ -48,12 +50,12 @@ public class Rateheightlock implements AnalysisContract {
         this.withdrawperiodheight = rateheightlock.getWithdrawperiodheight();
         this.withdrawrate = rateheightlock.getWithdrawrate();
         this.dest = rateheightlock.getDest();
-        this.stateMap = new ByteArrayMap<>(rateheightlock.getStateMap());
+        this.stateMap = rateheightlock.getStateMap();
         return true;
     }
 
     public static Rateheightlock getRateheightlock(byte[] Rlpbyte) {
-        Rateheightlock rateheightlock=new Rateheightlock();
+        Rateheightlock rateheightlock = new Rateheightlock();
         rateheightlock.RLPdeserialization(Rlpbyte);
         return rateheightlock;
     }
