@@ -24,6 +24,7 @@ public class Rateheightlock implements AnalysisContract {
     @RLP(4)
     private byte[] dest;
     @RLP(5)
+    @RLPDecoding(as = ByteArrayMap.class)
     private Map<byte[],Extract> stateMap;
 
     @Override
