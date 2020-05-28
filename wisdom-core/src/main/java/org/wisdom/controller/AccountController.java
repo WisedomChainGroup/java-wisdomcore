@@ -5,9 +5,12 @@ import lombok.Value;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.web.bind.annotation.*;
 import org.tdf.common.trie.Trie;
+import org.tdf.common.util.HexBytes;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.WisdomRepository;
@@ -15,9 +18,7 @@ import org.wisdom.type.PageSize;
 import org.wisdom.type.PagedView;
 import org.wisdom.util.Address;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -39,6 +40,7 @@ public class AccountController {
     private final WisdomBlockChain bc;
 
     private final EconomicModel model;
+
     @Value
     public static class AccountInfo {
         private long balance;
@@ -49,7 +51,13 @@ public class AccountController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/internal/accountState")
     public Object getAccount(@RequestParam("blockHash") String blockHash, @RequestParam("publicKeyHash") String publicKeyHash) {
-        return accountStateTrie.get(Hex.decode(blockHash), Hex.decode(publicKeyHash)).get();
+        Map<String, Object> ret = new HashMap<>();
+        AccountState a = accountStateTrie.get(Hex.decode(blockHash), Hex.decode(publicKeyHash)).get();
+        ret.put("data", a);
+        HexBytes hash = HexBytes.fromBytes(HashUtil.keccak256(RLPCodec.encode(a)));
+        ret.put("hash", hash);
+        // update
+        return ret;
     }
 
 
@@ -70,13 +78,13 @@ public class AccountController {
 
                 long all = model.getTotal();
                 for (int i = 0; i < states.size(); i++) {
-                        AccountState s = states.get(i);
-                        li.add(new AccountInfo(
-                                s.getAccount().getBalance(),
-                                Address.publicKeyHashToAddressByType(s.getAccount().getPubkeyHash(),s.getType()),
-                                i,
-                                s.getAccount().getBalance() * 1.0 / all
-                                )
+                    AccountState s = states.get(i);
+                    li.add(new AccountInfo(
+                                    s.getAccount().getBalance(),
+                                    Address.publicKeyHashToAddressByType(s.getAccount().getPubkeyHash(), s.getType()),
+                                    i,
+                                    s.getAccount().getBalance() * 1.0 / all
+                            )
                     );
                 }
 
