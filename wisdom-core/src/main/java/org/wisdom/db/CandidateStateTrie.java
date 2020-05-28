@@ -149,6 +149,15 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
                 trie.asMap());
     }
 
+    public static class CacheNotFoundException extends RuntimeException{
+        public CacheNotFoundException() {
+        }
+
+        public CacheNotFoundException(String message) {
+            super(message);
+        }
+    }
+
     // height = 0, 120, 240 ...
     List<byte[]> getProposersByEraLst(byte[] hash, long height) {
         if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException(String.format("height %d mod %d != 0", height, eraLinker.getBlocksPerEra()));
@@ -162,7 +171,7 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
 
                 }
             });
-            throw new RuntimeException("candidate cache non contains key hash = " + HexBytes.fromBytes(hash) + " height = " + height);
+            throw new CacheNotFoundException("candidate cache non contains key hash = " + HexBytes.fromBytes(hash) + " height = " + height);
         }
         return bestCandidatesCache
                 .get(HexBytes.fromBytes(hash))
@@ -187,10 +196,22 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
         List<byte[]> ret;
 
         if (parentBlock.nHeight % eraLinker.getBlocksPerEra() == 0) {
-            ret = getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
+            try{
+                ret = getProposersByEraLst(parentBlock.getHash(), parentBlock.nHeight);
+            }catch (CacheNotFoundException e){
+                e.printStackTrace();
+                System.out.println("cache not found for parentBlock hash = " + parentBlock.getHashHexString() + " height = " + parentBlock.getnHeight());
+                throw e;
+            }
         } else {
             Block preEraLast = eraLinker.getPrevEraLast(parentBlock);
-            ret = getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
+            try{
+                ret = getProposersByEraLst(preEraLast.getHash(), preEraLast.nHeight);
+            }catch (CacheNotFoundException e){
+                e.printStackTrace();
+                System.out.println("cache not found for parentBlock hash = " + parentBlock.getHashHexString() + " height = " + parentBlock.getnHeight());
+                throw e;
+            }
         }
 
         if (parentBlock.nHeight + 1 < ProposersState.COMMUNITY_MINER_JOINS_HEIGHT) {
