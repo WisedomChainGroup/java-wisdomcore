@@ -1,6 +1,8 @@
 package org.wisdom.db;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -148,11 +150,15 @@ public class CandidateStateTrie extends EraLinkedStateTrie<Candidate> {
     }
 
     // height = 0, 120, 240 ...
+    @SneakyThrows
     List<byte[]> getProposersByEraLst(byte[] hash, long height) {
         if (height % eraLinker.getBlocksPerEra() != 0) throw new RuntimeException("unreachable");
         if(!bestCandidatesCache.containsKey(HexBytes.fromBytes(hash))){
-            throw new RuntimeException("candidate cache non contains key hash = " + HexBytes.fromBytes(hash) + " height = " + height);
             // updates
+            bestCandidatesCache.entrySet().forEach(e -> {
+                System.out.println(e.getKey() + " " + new ObjectMapper().writeValueAsString(e.getValue()));
+            });
+            throw new RuntimeException("candidate cache non contains key hash = " + HexBytes.fromBytes(hash) + " height = " + height);
         }
         return bestCandidatesCache
                 .get(HexBytes.fromBytes(hash))
