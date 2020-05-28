@@ -447,6 +447,13 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateRateheightWithdraw(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        try {
+            if(Arrays.equals(tx.getHash(),Hex.decodeHex("2485a93e55b98199a206b0b6cf98733ac3f6f8b83af1de5771ba7501acacdf29".toCharArray()))){
+                System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            }
+        } catch (DecoderException e) {
+            e.printStackTrace();
+        }
         AccountState contractaccountstate = store.get(tx.to);
         Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contractaccountstate.getContract());
         RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(rlpbyte);
