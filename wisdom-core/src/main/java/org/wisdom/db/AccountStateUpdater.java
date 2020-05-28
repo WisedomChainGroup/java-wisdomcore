@@ -79,6 +79,13 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         long height = info.getHeight();
         transaction.height = height;
         try {
+            if(Arrays.equals(transaction.to,Hex.decodeHex("4a60fd124e2674b7118b65425d25a25d8f3d5f66".toCharArray()))){
+                System.out.println(transaction.height+"-------------------------->"+transaction.toString());
+            }
+        } catch (DecoderException e) {
+            e.printStackTrace();
+        }
+        try {
             switch (transaction.type) {
                 case 0x00://coinbase
                     return updateCoinBase(transaction, accountState, height);
