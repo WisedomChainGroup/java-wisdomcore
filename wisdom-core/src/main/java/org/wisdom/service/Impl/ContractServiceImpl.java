@@ -201,7 +201,7 @@ public class ContractServiceImpl implements ContractService {
                 if (rateheightlockDeposit.RLPdeserialization(ByteUtil.bytearraycopy(hashtimeblockDepositTransaction.payload, 1, hashtimeblockDepositTransaction.payload.length - 1))){
 
                     long price = BigDecimal.valueOf(rateheightlockDeposit.getValue()).multiply(new BigDecimal(rateheightlock.getWithdrawrate())).longValue();
-                    return APIResult.newSuccess(rateheightlock.getStateMap().get(Hex.decodeHex(txhash.toCharArray())).getSurplus()*price);
+                    return APIResult.newSuccess(rateheightlock.getStateMap().get(HexBytes.fromHex(txhash)).getSurplus()*price);
                 }
                 return APIResult.newFailed("Invalid RateheightlockDeposit rules");
             }
