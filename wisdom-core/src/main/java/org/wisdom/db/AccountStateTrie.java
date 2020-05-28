@@ -79,6 +79,6 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
         lock.getStateMap().keySet().forEach(System.out::println);
         a.setContract(lock.RLPserialization());
         System.out.println("hash = " + HexBytes.fromBytes(HashUtil.keccak256(RLPCodec.encode(a))));
-
+        System.out.println(HexBytes.fromBytes(a.getContract()));
     }
 }
