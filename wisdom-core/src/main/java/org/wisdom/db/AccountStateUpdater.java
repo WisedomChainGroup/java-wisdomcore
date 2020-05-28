@@ -521,6 +521,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
             }
         }
         if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
+            System.out.println("befor!!!!!!!!!!!!!!:"+Hex.encodeHexString(accountState.getContract()));
             rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
             Map<HexBytes, Extract> statMap = rateheightlock.getStateMap();
             Extract extract = statMap.get(HexBytes.fromBytes(deposithash));
@@ -538,6 +539,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
                 rateheightlock.setStateMap(statMap);
             }
             accountState.setContract(rateheightlock.RLPserialization());
+            System.out.println("after!!!!!!!!!!!!!!:"+Hex.encodeHexString(rateheightlock.RLPserialization()));
         }
         return accountState;
     }
