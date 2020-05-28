@@ -53,6 +53,7 @@ public class AccountStateTrie extends AbstractStateTrie<AccountState> {
             Rateheightlock lock = Rateheightlock.getRateheightlock(a.getContract());
             lock.getStateMap().keySet().forEach(System.out::println);
             System.out.println("===============");
+            System.out.println("state trie root = " + HexBytes.fromBytes(root));
             return root;
         }
 
