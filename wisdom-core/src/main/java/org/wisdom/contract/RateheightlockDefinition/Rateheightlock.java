@@ -31,7 +31,7 @@ public class Rateheightlock implements AnalysisContract {
     public static class ComparatorHexBytes implements Comparator<HexBytes> {
         @Override
         public int compare(HexBytes o1, HexBytes o2) {
-            return o2.compareTo(o1);
+            return o1.compareTo(o2);
         }
     };
 
@@ -40,7 +40,7 @@ public class Rateheightlock implements AnalysisContract {
             super(new Comparator<HexBytes>() {
                 @Override
                 public int compare(HexBytes o1, HexBytes o2) {
-                    return o2.compareTo(o1);
+                    return o1.compareTo(o2);
                 }
             });
         }
