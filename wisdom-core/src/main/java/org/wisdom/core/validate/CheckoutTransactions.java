@@ -1,5 +1,6 @@
 package org.wisdom.core.validate;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.HexBytes;
@@ -44,8 +45,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.wisdom.contract.AnalysisContract.MethodRule.*;
-import static org.wisdom.core.account.Transaction.Type.*;
+import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
+import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 
+@Slf4j("checkout-tx")
 public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     private List<Transaction> transactionList;
@@ -772,7 +775,14 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         switch (Transaction.Type.values()[tx.type]) {
             case EXIT_VOTE: {
                 // 投票没有撤回过
-                if (wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)) {
+                boolean b;
+                try {
+                    b = wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)
+                } catch (Exception e) {
+                    log.error("check exit transaction failed for parent hash " + HexBytes.fromBytes(publichash) + " tx hash = " + tx.getHashHexString() + " public hash = " + HexBytes.fromBytes(publichash));
+                    throw e;
+                }
+                if (b) {
                     peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
