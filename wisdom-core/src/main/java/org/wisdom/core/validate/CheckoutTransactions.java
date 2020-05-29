@@ -777,7 +777,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 // 投票没有撤回过
                 boolean b;
                 try {
-                    b = wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)
+                    b = wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload);
                 } catch (Exception e) {
                     log.error("check exit transaction failed for parent hash " + HexBytes.fromBytes(publichash) + " tx hash = " + tx.getHashHexString() + " public hash = " + HexBytes.fromBytes(publichash));
                     throw e;
