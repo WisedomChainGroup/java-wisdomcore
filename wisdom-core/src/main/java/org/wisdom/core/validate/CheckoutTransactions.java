@@ -48,7 +48,7 @@ import static org.wisdom.contract.AnalysisContract.MethodRule.*;
 import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
 import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 
-@Slf4j("checkout-tx")
+@Slf4j(topic = "checkout-tx")
 public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     private List<Transaction> transactionList;
