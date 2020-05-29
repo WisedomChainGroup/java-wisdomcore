@@ -297,7 +297,7 @@ public class WisdomRepositoryImpl implements WisdomRepository {
         }
         Block b = chainCache
                 .get(blockHash).map(BlockWrapper::get)
-                .orElseThrow(() -> new RuntimeException("unreachable"));
+                .orElseThrow(() -> new RuntimeException("block " + HexBytes.fromBytes(blockHash) + " not found in fork db"));
         if (payloadsIndex.get(b.getHash())
                 .getOrDefault(type, Collections.emptySet())
                 .contains(payload)) {
