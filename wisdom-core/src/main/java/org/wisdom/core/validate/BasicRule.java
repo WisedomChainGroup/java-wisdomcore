@@ -53,12 +53,8 @@ public class BasicRule implements BlockRule, TransactionRule {
     @Override
     public Result validateBlock(Block block) {
         Block best = wisdomRepository.getBestBlock();
-        Block latestConfirmed = wisdomRepository.getLatestConfirmed();
         if (block == null) {
             return Result.Error("null block");
-        }
-        if(block.getnHeight() <= latestConfirmed.getnHeight()){
-            return Result.Error(String.format("the block height %d of %s less than latest confirmed height %d hash %s", block.getnHeight(), block.getHashHexString(), latestConfirmed.getnHeight(), latestConfirmed.getHashHexString()));
         }
         if (Math.abs(best.nHeight - block.nHeight) > orphanHeightsRange) {
             return Result.Error("the block height " + block.nHeight + " is too small or too large, current height is " + best.nHeight);

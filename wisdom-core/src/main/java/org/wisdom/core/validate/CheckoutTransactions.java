@@ -775,13 +775,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         switch (Transaction.Type.values()[tx.type]) {
             case EXIT_VOTE: {
                 // 投票没有撤回过
-                boolean b;
-                try {
-                    b = wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload);
-                } catch (Exception e) {
-                    log.error("check exit transaction failed for parent hash " + HexBytes.fromBytes(parenthash) + " tx hash = " + tx.getHashHexString() + " public hash = " + HexBytes.fromBytes(publichash));
-                    throw e;
-                }
+                boolean b = wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload);
                 if (b) {
                     peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");

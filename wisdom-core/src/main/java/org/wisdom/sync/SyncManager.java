@@ -340,6 +340,11 @@ public class SyncManager implements Plugin, ApplicationListener<NewBlockMinedEve
                     orphans.add(HexBytes.fromBytes(b.getHash()));
                     continue;
                 }
+                Block latestConfirmed = repository.getLatestConfirmed();
+                if(b.nHeight <= latestConfirmed.nHeight){
+                    iterator.remove();
+                    continue;
+                }
                 Result res = rule.validateBlock(b);
                 if (!res.isSuccess()) {
                     iterator.remove();
