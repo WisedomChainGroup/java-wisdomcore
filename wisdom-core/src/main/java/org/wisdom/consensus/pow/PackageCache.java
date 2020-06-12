@@ -6,6 +6,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.contract.AssetDefinition.Asset;
@@ -321,11 +322,11 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
                 accountState.setTokensMap(tokensMap);
             }
         } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
-            Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
+            Map<HexBytes, Extract> stateMap = rateheightlock.getStateMap();
             //合约
             RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(tx.payload));
             byte[] deposithash = rateheightlockWithdraw.getDeposithash();
-            Extract extract = stateMap.get(deposithash);
+            Extract extract = stateMap.get(HexBytes.fromBytes(deposithash));
             long extractheight = extract.getExtractheight();
             extractheight += rateheightlock.getWithdrawperiodheight();
             int surplus = extract.getSurplus();
@@ -337,7 +338,7 @@ public class PackageCache implements TransactionVerifyUpdate<Object> {
             }
             extract.setExtractheight(extractheight);
             extract.setSurplus(surplus);
-            stateMap.put(deposithash, extract);
+            stateMap.put(HexBytes.fromBytes(deposithash), extract);
             rateheightlock.setStateMap(stateMap);
             contractaccountstate.setContract(rateheightlock.RLPserialization());
 

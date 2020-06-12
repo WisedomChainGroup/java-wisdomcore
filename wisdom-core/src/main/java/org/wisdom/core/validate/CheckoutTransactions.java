@@ -1,7 +1,9 @@
 package org.wisdom.core.validate;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.ApiResult.APIResult;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
@@ -43,8 +45,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.wisdom.contract.AnalysisContract.MethodRule.*;
-import static org.wisdom.core.account.Transaction.Type.*;
+import static org.wisdom.core.account.Transaction.Type.EXIT_MORTGAGE;
+import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 
+@Slf4j(topic = "checkout-tx")
 public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     private List<Transaction> transactionList;
@@ -272,11 +276,11 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
                 accountState.setTokensMap(tokensMap);
             }
         } else if (tx.getMethodType() == WITHDRAWRATE.ordinal()) {//获取比例资产
-            Map<byte[], Extract> stateMap = rateheightlock.getStateMap();
+            Map<HexBytes, Extract> stateMap = rateheightlock.getStateMap();
             //合约
             RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(ByteUtil.bytearrayridfirst(tx.payload));
             byte[] deposithash = rateheightlockWithdraw.getDeposithash();
-            Extract extract = stateMap.get(deposithash);
+            Extract extract = stateMap.get(HexBytes.fromBytes(deposithash));
             long extractheight = extract.getExtractheight();
             extractheight += rateheightlock.getWithdrawperiodheight();
             int surplus = extract.getSurplus();
@@ -288,7 +292,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
             }
             extract.setExtractheight(extractheight);
             extract.setSurplus(surplus);
-            stateMap.put(deposithash, extract);
+            stateMap.put(HexBytes.fromBytes(deposithash), extract);
             rateheightlock.setStateMap(stateMap);
             contractaccountstate.setContract(rateheightlock.RLPserialization());
 
@@ -771,7 +775,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         switch (Transaction.Type.values()[tx.type]) {
             case EXIT_VOTE: {
                 // 投票没有撤回过
-                if (wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload)) {
+                boolean b = wisdomRepository.containsPayloadAt(parenthash, EXIT_VOTE.ordinal(), tx.payload);
+                if (b) {
                     peningTransPool.removeOne(Hex.encodeHexString(publichash), tx.nonce);
                     return Result.Error("the vote transaction " + Hex.encodeHexString(tx.payload) + " had been exited");
                 }
