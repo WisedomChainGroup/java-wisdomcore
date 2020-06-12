@@ -56,6 +56,7 @@ public class AccountController {
         ret.put("data", a);
         HexBytes hash = HexBytes.fromBytes(HashUtil.keccak256(RLPCodec.encode(a)));
         ret.put("hash", hash);
+        ret.put("rlp", HexBytes.fromBytes(RLPCodec.encode(a)));
         // update
         return ret;
     }
