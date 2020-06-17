@@ -1,6 +1,7 @@
 package org.wisdom.controller;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
  * /internal/confirmed/account/{} 确认过的 account
  */
 @RestController
+@Slf4j
 public class InternalController {
     @Autowired
     private WisdomRepository wisdomRepository;
@@ -203,13 +205,15 @@ public class InternalController {
             HttpServletResponse response
     ) throws Exception {
         response.setHeader("Content-Disposition", "attachment; filename=" + "accounts.rlp");
+
         byte[] root = accountStateTrie
                 .getRootStore()
                 .get(wisdomRepository.getBestBlock().getHash()).get();
-
+        log.info("root = " + HexBytes.fromBytes(root));
         List<AccountState> states = new ArrayList<>(accountStateTrie.getTrie().revert(root)
                 .values());
         byte[] bytes = RLPCodec.encode(states);
+        log.info("start transfer size = {} ", bytes.length);
         IOUtils.copy(new ByteArrayInputStream(bytes), response.getOutputStream());
         response.getOutputStream().close();
     }
