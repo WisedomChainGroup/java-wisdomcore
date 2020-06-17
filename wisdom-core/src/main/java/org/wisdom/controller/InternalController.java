@@ -2,6 +2,7 @@ package org.wisdom.controller;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,19 +10,20 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.tdf.common.util.HexBytes;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.dao.TransactionQuery;
-import org.wisdom.db.AccountStateTrie;
-import org.wisdom.db.BlocksDump;
-import org.wisdom.db.CandidateStateTrie;
-import org.wisdom.db.WisdomRepository;
+import org.wisdom.db.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.sync.SyncManager;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * /internal/transaction/{} 包含未确认的事务
@@ -57,7 +59,7 @@ public class InternalController {
     // 根据区块哈希获取状态树根
     // 获取 forkdb 里面的事务
     @GetMapping(value = "/internal/trie-root/{hash}", produces = "application/json")
-    public Object getTrieRoot(@PathVariable("hash") String hash) throws Exception{
+    public Object getTrieRoot(@PathVariable("hash") String hash) throws Exception {
         return HexBytes.fromBytes(accountStateTrie.getTrieByBlockHash(Hex.decodeHex(hash)).getRootHash());
     }
 
@@ -191,8 +193,25 @@ public class InternalController {
             "/internal/transaction"
     }, produces = "application/json")
     public List<Transaction> getTransactionsByTo(
-            @ModelAttribute  @Validated TransactionQuery query
+            @ModelAttribute @Validated TransactionQuery query
     ) {
         return wisdomRepository.getTransactionByQuery(query);
+    }
+
+    @GetMapping("/internal/dump-accounts")
+    public void dumpAccounts(
+            HttpServletResponse response
+    ) throws Exception {
+        response.setHeader("Content-Disposition", "attachment; filename=" + "accounts.rlp");
+        byte[] root = accountStateTrie
+                .getRootStore()
+                .get(wisdomRepository.getBestBlock().getHash()).get();
+
+        List<AccountState> states = accountStateTrie.getTrie().revert(root)
+                .values()
+                .stream()
+                .collect(Collectors.toList());
+        byte[] bytes = RLPCodec.encode(states);
+        IOUtils.copy(new ByteArrayInputStream(bytes), response.getOutputStream());
     }
 }
