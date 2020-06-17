@@ -207,11 +207,10 @@ public class InternalController {
                 .getRootStore()
                 .get(wisdomRepository.getBestBlock().getHash()).get();
 
-        List<AccountState> states = accountStateTrie.getTrie().revert(root)
-                .values()
-                .stream()
-                .collect(Collectors.toList());
+        List<AccountState> states = new ArrayList<>(accountStateTrie.getTrie().revert(root)
+                .values());
         byte[] bytes = RLPCodec.encode(states);
         IOUtils.copy(new ByteArrayInputStream(bytes), response.getOutputStream());
+        response.getOutputStream().close();
     }
 }
