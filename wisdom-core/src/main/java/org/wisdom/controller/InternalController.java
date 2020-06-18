@@ -233,6 +233,7 @@ public class InternalController {
         byte[] data = new byte[in.available()];
         IOUtils.readFully(in, data);
         String[] hashes = RLPCodec.decode(data, String[].class);
+        log.info("==========");
         List<RLPElement> list = new ArrayList<>();
         for (String hash : hashes) {
             byte[] txHash = HexBytes.decode(hash);
