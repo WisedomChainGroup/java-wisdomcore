@@ -225,7 +225,7 @@ public class InternalController {
     }
 
     @GetMapping("/internal/dump-transactions")
-    public void dumpAccounts(
+    public void dumpTransactions(
             HttpServletResponse response,
             @RequestParam("file") String file
     ) throws Exception {
