@@ -5,16 +5,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.UrlResource;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
+import org.tdf.rlp.RLPElement;
+import org.tdf.rlp.RLPItem;
+import org.tdf.rlp.RLPList;
 import org.wisdom.core.Block;
 import org.wisdom.core.MemoryCachedWisdomBlockChain;
 import org.wisdom.core.account.Transaction;
+import org.wisdom.dao.TransactionDaoJoined;
 import org.wisdom.dao.TransactionQuery;
 import org.wisdom.db.*;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -22,9 +24,9 @@ import org.wisdom.sync.SyncManager;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * /internal/transaction/{} 包含未确认的事务
@@ -57,6 +59,10 @@ public class InternalController {
 
     @Autowired
     private BlocksDump blocksDump;
+
+
+    @Autowired
+    private TransactionDaoJoined transactionDaoJoined;
 
     // 根据区块哈希获取状态树根
     // 获取 forkdb 里面的事务
@@ -213,6 +219,33 @@ public class InternalController {
         List<AccountState> states = new ArrayList<>(accountStateTrie.getTrie().revert(root)
                 .values());
         byte[] bytes = RLPCodec.encode(states);
+        log.info("start transfer size = {} ", bytes.length);
+        IOUtils.copy(new ByteArrayInputStream(bytes), response.getOutputStream());
+        response.getOutputStream().close();
+    }
+
+    @GetMapping("/internal/dump-transactions")
+    public void dumpAccounts(
+            HttpServletResponse response,
+            @RequestParam("file") String file
+    ) throws Exception {
+        InputStream in = new UrlResource(file).getInputStream();
+        byte[] data = new byte[in.available()];
+        IOUtils.readFully(in, data);
+        String[] hashes = RLPCodec.decode(data, String[].class);
+        List<RLPElement> list = new ArrayList<>();
+        for (String hash : hashes) {
+            byte[] txHash = HexBytes.decode(hash);
+            Transaction tx = transactionDaoJoined.getTransactionByHash(txHash).get();
+            RLPList li = RLPElement.readRLPTree(tx).asRLPList();
+            Block b = wisdomRepository.getBlockByHash(tx.blockHash);
+            li.add(RLPItem.fromLong(b.nHeight));
+            li.add(RLPItem.fromBytes(b.getHash()));
+            li.add(RLPItem.fromLong(b.nTime));
+            list.add(li);
+        }
+        response.setHeader("Content-Disposition", "attachment; filename=" + "txs.rlp");
+        byte[] bytes = RLPCodec.encode(list);
         log.info("start transfer size = {} ", bytes.length);
         IOUtils.copy(new ByteArrayInputStream(bytes), response.getOutputStream());
         response.getOutputStream().close();

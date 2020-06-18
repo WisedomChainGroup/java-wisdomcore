@@ -2,6 +2,9 @@ package org.wisdom;
 
 import io.netty.util.internal.logging.InternalLogLevel;
 import io.netty.util.internal.logging.InternalLogger;
+import org.tdf.common.util.HexBytes;
+import org.wisdom.crypto.ed25519.Ed25519;
+import org.wisdom.crypto.ed25519.Ed25519PrivateKey;
 
 class NopLogger implements InternalLogger {
     @Override
@@ -217,5 +220,11 @@ class NopLogger implements InternalLogger {
     @Override
     public void log(InternalLogLevel level, Throwable t) {
 
+    }
+
+    public static void main(String[] args) {
+        byte[] sk = HexBytes.decode("0eb1611befd95a27585c683c0ae0c69a38ea75c3229589b6d222071a15b22d45");
+        Ed25519PrivateKey privateKey = new Ed25519PrivateKey(sk);
+        System.out.print(HexBytes.fromBytes(privateKey.sign("123".getBytes())));
     }
 }
