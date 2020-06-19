@@ -793,4 +793,88 @@ public class HatchServiceImpl implements HatchService {
             return APIResult.newFailResult(5000, "Exception error");
         }
     }
+
+    @Override
+    public APIResult getInviteTradeList(String address) {
+        JSONArray jsonArray = new JSONArray();
+        Optional<AccountState> a = repository.getConfirmedAccountState(KeystoreAction.addressToPubkeyHash(address));
+        if (!a.isPresent()) {
+            return APIResult.newSuccess(jsonArray);
+        }
+        AccountState accountState = a.get();
+        Map<byte[], Incubator> shareMap = accountState.getShareMap();
+        if (shareMap.size() == 0 || shareMap.isEmpty()) {
+            return APIResult.newSuccess(jsonArray);
+        }
+        for (Map.Entry<byte[], Incubator> entry : shareMap.entrySet()) {
+            Incubator incubator = entry.getValue();
+            if (incubator.getShare_amount() > 0) {
+                APIResult apiResult = (APIResult) getNowShare(incubator.getTxhash());
+                if (apiResult.getCode() == 5000 || apiResult.getCode() == 3000) {
+                    continue;
+                }
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("coinHash", incubator.getTxhash());
+                jsonObject.put("shareAmount", incubator.getShare_amount());
+                jsonObject.put("extractShare", getAmount((JSONObject) apiResult.getData()));
+                jsonArray.add(jsonObject);
+            }
+        }
+        return APIResult.newSuccess(jsonArray);
+    }
+
+    @Override
+    public APIResult getTradeList(String address) {
+        JSONArray jsonArray = new JSONArray();
+        Optional<AccountState> a = repository.getConfirmedAccountState(KeystoreAction.addressToPubkeyHash(address));
+        if (!a.isPresent()) {
+            return APIResult.newSuccess(jsonArray);
+        }
+        AccountState accountState = a.get();
+        Map<byte[], Incubator> incubatorMap = accountState.getInterestMap();
+        if (incubatorMap.size() == 0 || incubatorMap.isEmpty()) {
+            return APIResult.newSuccess(jsonArray);
+        }
+        for (Map.Entry<byte[], Incubator> entry : incubatorMap.entrySet()) {
+            Incubator incubator = entry.getValue();
+            if (incubator.getCost() > 0) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("coinHash", Hex.encodeHexString(incubator.getTxid_issue()));
+                jsonObject.put("cost", incubator.getCost());
+                Transaction transaction = wisdomBlockChain.getTransaction(incubator.getTxid_issue());
+                if (transaction == null) {
+                    continue;
+                }
+                APIResult apiResult = (APIResult) getNowInterest(transaction.getHashHexString());
+                if (apiResult.getCode() == 5000) {
+                    continue;
+                }
+                jsonObject.put("type", transaction.getdays());
+                jsonObject.put("rate", rateTable.selectrate(transaction.height, transaction.getdays()));
+                if (apiResult.getCode() == 3000) {
+                    jsonObject.put("extractableAmount", 0);
+                } else {
+                    jsonObject.put("extractableAmount", getAmount((JSONObject) apiResult.getData()));
+                }
+                if (incubator.getInterest_amount() == 0) {
+                    jsonObject.put("status", 1);//可领取本金
+                } else {
+                    jsonObject.put("status", 0);//孵化中
+                }
+                Block block = wisdomBlockChain.getBlockByHash(transaction.blockHash);
+                jsonObject.put("createdAt ", block.nTime * 1000);
+                jsonArray.add(jsonObject);
+            }
+        }
+        return APIResult.newSuccess(jsonArray);
+    }
+
+    public long getAmount(JSONObject jsonObject) {
+        long dueinAmount = jsonObject.getLong("dueinAmount");
+        long capitalAmount = jsonObject.getLong("capitalAmount");
+        if (dueinAmount > capitalAmount) {
+            return capitalAmount;
+        }
+        return dueinAmount;
+    }
 }
