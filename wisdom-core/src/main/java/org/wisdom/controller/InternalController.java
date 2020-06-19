@@ -231,7 +231,7 @@ public class InternalController {
     ) throws Exception {
         InputStream in = new UrlResource(file).getInputStream();
         byte[] data = new byte[in.available()];
-        IOUtils.readFully(in, data);
+        in.read(data);
         String[] hashes = RLPCodec.decode(data, String[].class);
         log.info("==========");
         List<RLPElement> list = new ArrayList<>();
