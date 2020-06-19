@@ -24,6 +24,7 @@ import org.wisdom.sync.SyncManager;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -229,7 +230,7 @@ public class InternalController {
             HttpServletResponse response,
             @RequestParam("file") String file
     ) throws Exception {
-        InputStream in = new UrlResource(file).getInputStream();
+        InputStream in = new FileInputStream(file);
         byte[] data = new byte[in.available()];
         in.read(data);
         String[] hashes = RLPCodec.decode(data, String[].class);
