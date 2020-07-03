@@ -809,14 +809,17 @@ public class HatchServiceImpl implements HatchService {
         for (Map.Entry<byte[], Incubator> entry : shareMap.entrySet()) {
             Incubator incubator = entry.getValue();
             if (incubator.getShare_amount() > 0) {
-                APIResult apiResult = (APIResult) getNowShare(incubator.getTxhash());
-                if (apiResult.getCode() == 5000 || apiResult.getCode() == 3000) {
-                    continue;
-                }
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("coinHash", incubator.getTxhash());
                 jsonObject.put("shareAmount", incubator.getShare_amount());
-                jsonObject.put("extractShare", getAmount((JSONObject) apiResult.getData()));
+                APIResult apiResult = (APIResult) getNowShare(incubator.getTxhash());
+                if (apiResult.getCode() == 5000) {
+                    jsonObject.put("extractShare", 0);
+                    jsonObject.put("status", 0);//没满足提取要求
+                } else {
+                    jsonObject.put("extractShare", getAmount((JSONObject) apiResult.getData()));
+                    jsonObject.put("status", 1);//可提取
+                }
                 jsonArray.add(jsonObject);
             }
         }
@@ -847,20 +850,19 @@ public class HatchServiceImpl implements HatchService {
                 }
                 APIResult apiResult = (APIResult) getNowInterest(transaction.getHashHexString());
                 if (apiResult.getCode() == 5000) {
-                    continue;
+                    jsonObject.put("extractableAmount", 0);
+                    jsonObject.put("status", 2);//未满足要求
+                } else {
+                    if (apiResult.getCode() == 3000) {
+                        jsonObject.put("extractableAmount", 0);
+                        jsonObject.put("status", 1);//可领取本金
+                    } else {
+                        jsonObject.put("extractableAmount", getAmount((JSONObject) apiResult.getData()));
+                        jsonObject.put("status", 0);//孵化中
+                    }
                 }
                 jsonObject.put("type", transaction.getdays());
                 jsonObject.put("rate", rateTable.selectrate(transaction.height, transaction.getdays()));
-                if (apiResult.getCode() == 3000) {
-                    jsonObject.put("extractableAmount", 0);
-                } else {
-                    jsonObject.put("extractableAmount", getAmount((JSONObject) apiResult.getData()));
-                }
-                if (incubator.getInterest_amount() == 0) {
-                    jsonObject.put("status", 1);//可领取本金
-                } else {
-                    jsonObject.put("status", 0);//孵化中
-                }
                 Block block = wisdomBlockChain.getBlockByHash(transaction.blockHash);
                 jsonObject.put("createdAt ", block.nTime * 1000);
                 jsonArray.add(jsonObject);
