@@ -864,7 +864,7 @@ public class HatchServiceImpl implements HatchService {
                 jsonObject.put("type", transaction.getdays());
                 jsonObject.put("rate", rateTable.selectrate(transaction.height, transaction.getdays()));
                 Block block = wisdomBlockChain.getBlockByHash(transaction.blockHash);
-                jsonObject.put("createdAt ", block.nTime * 1000);
+                jsonObject.put("createdAt", block.nTime * 1000);
                 jsonArray.add(jsonObject);
             }
         }
