@@ -18,6 +18,8 @@
 
 package org.wisdom.service;
 
+import org.wisdom.ApiResult.APIResult;
+
 import java.util.List;
 
 public interface HatchService {
@@ -70,4 +72,8 @@ public interface HatchService {
     Object getRateheightLockDepositList(long height);
 
     Object getRateheightLockWithdrawList(long height);
+
+    APIResult getInviteTradeList(String address);
+
+    APIResult getTradeList(String address);
 }

@@ -141,6 +141,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private Set<byte[]> getTransactionPayload(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
+        tx.setMethodType(tx.payload[0]);
         byte[] fromhash = Address.publicKeyToHash(tx.from);
         bytes.add(fromhash);
         if (tx.getContractType() == 0) {//代币
@@ -320,6 +321,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private AccountState updateDeployContract(Transaction tx, AccountState accountState, long height) {
         Account account = accountState.getAccount();
+        tx.setContractType(tx.payload[0]);
         switch (tx.getContractType()) {
             case 0:
                 byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
@@ -408,6 +410,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
     private AccountState updateCallContract(Transaction tx, AccountState accountState, long height, Map<byte[], AccountState> store) {
+        tx.setMethodType(tx.payload[0]);
         Account account = accountState.getAccount();
         byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
         byte[] fromhash = Address.publicKeyToHash(tx.from);
