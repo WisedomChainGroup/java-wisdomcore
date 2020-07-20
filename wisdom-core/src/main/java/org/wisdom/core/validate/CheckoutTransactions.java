@@ -174,6 +174,8 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
         accountState.setAccount(fromaccount);
         AccountState contractaccountstate = getMapAccountState(tx);
         byte[] contract = contractaccountstate.getContract();
+        tx.setMethodType(tx.payload[0]);
+        tx.setContractType(tx.getContract(tx.getMethodType()));
         if (tx.getContractType() == 0) {//代币
             return ChechAssetMethod(contract, tx, contractaccountstate, accountState, publicKeyHash);
         } else if (tx.getContractType() == 1) {//多签
@@ -598,6 +600,7 @@ public class CheckoutTransactions implements TransactionVerifyUpdate<Result> {
 
     @Override
     public Result CheckDeployContract(AccountState accountState, Account fromaccount, Transaction tx, byte[] publicKeyHash) {
+        tx.setContractType(tx.payload[0]);
         if (tx.getContractType() == 0) {//代币
             Asset asset = Asset.getAsset(ByteUtil.bytearrayridfirst(tx.payload));
             //判断forkdb+db中是否有重复的代币合约code存在
