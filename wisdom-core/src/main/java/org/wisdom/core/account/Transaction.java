@@ -24,7 +24,9 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLP;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
@@ -32,10 +34,12 @@ import org.wisdom.genesis.Genesis;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.ProtocolModel;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.util.BytesReader;
+import org.wisdom.vm.Constants;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -115,7 +119,7 @@ public class Transaction {
         return new Transaction(version, type, nonce, from, gasPrice, amount, payload, to, signature);
     }
 
-    public static final int TYPE_MAX = 16;
+    public static final int TYPE_MAX = 17;
 
     public static final int minFee = 200000;
 
@@ -124,7 +128,8 @@ public class Transaction {
         DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
         TRANSFER_NORMAL_MULTISIG, DEPLOY_CONTRACT, CALL_CONTRACT,
         INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-        EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
+        EXTRACT_COST, EXIT_VOTE, MORTGAGE,
+        EXIT_MORTGAGE, WASM_DEPLOY, WASM_CALL
     }
 
     public static final Type[] TYPES_TABLE = new Type[]{
@@ -132,7 +137,8 @@ public class Transaction {
             Type.DEPOSIT, Type.TRANSFER_MULTISIG_MULTISIG, Type.TRANSFER_MULTISIG_NORMAL,
             Type.TRANSFER_NORMAL_MULTISIG, Type.DEPLOY_CONTRACT, Type.CALL_CONTRACT,
             Type.INCUBATE, Type.EXTRACT_INTEREST, Type.EXTRACT_SHARING_PROFIT,
-            Type.EXTRACT_COST, Type.EXIT_VOTE, Type.MORTGAGE, Type.EXIT_MORTGAGE
+            Type.EXTRACT_COST, Type.EXIT_VOTE, Type.MORTGAGE, Type.EXIT_MORTGAGE,
+            Type.WASM_DEPLOY, Type.WASM_CALL
     };
 
     public static Transaction createEmpty() {
@@ -320,6 +326,28 @@ public class Transaction {
                 payload,
         });
     }
+
+    @JsonIgnore
+    public byte[] getFromPKHash(){
+        return Address.publicKeyToHash(from);
+    }
+
+    public byte[] createContractPKHash() {
+        return createContractPKHash(getFromPKHash(), nonce);
+    }
+
+
+    /**
+     * get contract address, contract address = hash(rlp(from, nonce))
+     *
+     * @return contact address
+     */
+    public static byte[] createContractPKHash(byte[] pkHash, long nonce) {
+        byte[] bytes = HashUtil.keccak256(RLPCodec.encode(new Object[]{pkHash, nonce}));
+        HexBytes ret = HexBytes.fromBytes(bytes);
+        return ret.slice(ret.size() - Constants.PK_HASH_SIZE, ret.size()).getBytes();
+    }
+
 
     @JsonIgnore
     // 计算哈希时包含了签名

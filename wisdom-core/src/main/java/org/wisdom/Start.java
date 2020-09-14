@@ -28,33 +28,31 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.UrlResource;
-import org.wisdom.consensus.pow.ProposersState;
-import org.wisdom.db.Candidate;
-import org.wisdom.encoding.JSONEncodeDecoder;
-import org.wisdom.genesis.Genesis;
-import org.wisdom.core.utxo.UTXOSets;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.wisdom.keystore.util.StringUtil;
+import org.springframework.web.socket.server.standard.ServerEndpointExporter;
+import org.tdf.common.serialize.Codec;
+import org.tdf.common.store.DatabaseStore;
+import org.tdf.common.store.NoDeleteBatchStore;
+import org.tdf.common.trie.Trie;
+import org.wisdom.consensus.pow.ProposersState;
+import org.wisdom.core.utxo.UTXOSets;
+import org.wisdom.crypto.HashUtil;
+import org.wisdom.db.Candidate;
+import org.wisdom.db.DatabaseStoreFactory;
+import org.wisdom.encoding.JSONEncodeDecoder;
+import org.wisdom.genesis.Genesis;
 import org.wisdom.p2p.Peer;
-import org.yaml.snakeyaml.Yaml;
 import org.wisdom.util.FileUtil;
+
 import java.io.IOException;
-import java.util.Map;
 
 // test cache
 @SpringBootApplication
@@ -79,15 +77,15 @@ public class Start {
         app.addInitializers(applicationContext -> {
             Environment env = applicationContext.getEnvironment();
             String constant = env.getProperty("wisdom.consensus.max-proposers");
-            if(constant != null && !constant.isEmpty()){
+            if (constant != null && !constant.isEmpty()) {
                 ProposersState.MAXIMUM_PROPOSERS = Integer.parseInt(constant);
             }
             constant = env.getProperty("wisdom.consensus.community-miner-joins-height");
-            if(constant != null && !constant.isEmpty()){
+            if (constant != null && !constant.isEmpty()) {
                 ProposersState.COMMUNITY_MINER_JOINS_HEIGHT = Integer.parseInt(constant);
             }
             constant = env.getProperty("wisdom.consensus.attenuation-eras");
-            if(constant != null && !constant.isEmpty()){
+            if (constant != null && !constant.isEmpty()) {
                 Candidate.ATTENUATION_ERAS = Integer.parseInt(constant);
             }
         });
@@ -137,7 +135,7 @@ public class Start {
 
 
     @Bean
-    public ObjectMapper objectMapper(){
+    public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         SimpleModule module = new SimpleModule();
         module.addSerializer(byte[].class, new JSONEncodeDecoder.BytesSerializer());
@@ -150,5 +148,26 @@ public class Start {
         });
         mapper.registerModule(module);
         return mapper;
+    }
+
+    @Bean
+    public DatabaseStore contractCodeStore(DatabaseStoreFactory factory) {
+        return factory.create("contract-code", false);
+    }
+
+    @Bean
+    public Trie<byte[], byte[]> storageTrie(DatabaseStoreFactory factory) {
+        DatabaseStore store = factory.create("contract-storage", false);
+        return Trie.<byte[], byte[]>builder()
+                .hashFunction(HashUtil::keccak256)
+                .keyCodec(Codec.identity())
+                .valueCodec(Codec.identity())
+                .store(new NoDeleteBatchStore<>(store))
+                .build();
+    }
+
+    @Bean
+    public ServerEndpointExporter serverEndpointExporter() {
+        return new ServerEndpointExporter();
     }
 }

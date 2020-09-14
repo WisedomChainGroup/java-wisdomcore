@@ -51,7 +51,7 @@ import java.util.*;
 @Component
 @Setter
 // TODO: make omit branch unreachable
-public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
+public class AccountStateUpdater {
 
     @Autowired
     private RateTable rateTable;
@@ -69,25 +69,28 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private static final byte[] twentyBytes = new byte[20];
 
-    @Override
-    public AccountState update(Map<byte[], AccountState> related, byte[] id, AccountState state, TransactionInfo info) {
-        return updateOne(info, state.copy(), related);
+    public void update(Map<byte[], AccountState> accounts, Block header, TransactionInfo info) {
+        return updateOne(info, null, accounts);
     }
 
-    public AccountState updateOne(TransactionInfo info, AccountState accountState, Map<byte[], AccountState> store) {
+    public void updateOne(TransactionInfo info, Map<byte[], AccountState> store) {
         Transaction transaction = info.getTransaction();
         long height = info.getHeight();
         transaction.height = height;
         try {
             switch (transaction.type) {
                 case 0x00://coinbase
-                    return updateCoinBase(transaction, accountState, height);
+                    updateCoinBase(transaction, store, info.getHeight());
+                    return;
                 case 0x01://TRANSFER
-                    return updateTransfer(transaction, accountState, height);
+                    updateTransfer(transaction, store, height);
+                    return;
                 case 0x02://VOTE
-                    return updateVote(transaction, accountState, height);
+                    updateVote(transaction, store, height);
+                    return;
                 case 0x03://DEPOSIT
-                    return updateDeposit(transaction, accountState, height);
+                    updateDeposit(transaction, store, height);
+                    return;
                 case 0x07://DEPLOY_CONTRACT
                     return updateDeployContract(transaction, accountState, height);
                 case 0x08://CALL_CONTRACT
@@ -114,7 +117,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         }
     }
 
-    @Override
     public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AccountState> store) {
         switch (transaction.type) {
             case 0x00://coinbase
@@ -201,6 +203,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private Set<byte[]> getTransactionTo(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
         bytes.add(tx.to);
+        // INCUBATE
         if (tx.type == 0x09) {
             bytes.add(IncubatorAddress.resultpubhash());
             try {
@@ -235,91 +238,46 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
 
-    private AccountState updateCoinBase(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
-            throw new RuntimeException("CoinBase transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance += tx.amount;
-        if (balance < 0) {
-            throw new RuntimeException("math overflow");
-        }
-        account.setBalance(balance);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateCoinBase(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState toAccount = states.getOrDefault(tx.to, new AccountState(tx.to));
+        toAccount.addBalance(tx.amount);
+        states.put(toAccount.getPubkeyHash(), toAccount);
     }
 
-    private AccountState updateTransfer(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        long balance;
-        boolean state = true;
-        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance -= tx.amount;
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance += tx.amount;
-            account.setBalance(balance);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("Transfer transaction account do not match");
-        }
-        accountState.setAccount(account);
-        return accountState;
+    private void updateTransfer(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
+        from.subBalance(tx.amount);
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        to.addBalance(tx.amount);
+        to.setBlockHeight(height);
+        states.put(from.getPubkeyHash(), from);
+        states.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateVote(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        long balance;
-        boolean state = true;
-        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance -= tx.amount;
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            long vote = account.getVote();
-            vote += tx.amount;
-            account.setVote(vote);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("Vote transaction account do not match");
-        }
-        accountState.setAccount(account);
-        return accountState;
+    private void updateVote(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
+        from.subBalance(tx.amount);
+        from.subBalance(tx.getFee());
+        from.setBlockHeight(height);
+        from.setNonce(tx.nonce);
+        to.addVote(tx.amount);
+        to.setBlockHeight(height);
+        states.put(from.getPubkeyHash(), from);
+        states.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateDeposit(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            throw new RuntimeException("Deposit transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance -= tx.getFee();
-        account.setBalance(balance);
-        account.setNonce(tx.nonce);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateDeposit(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        states.put(from.getPubkeyHash(), from);
     }
 
-    private AccountState updateDeployContract(Transaction tx, AccountState accountState, long height) {
+    private AccountState updateDeployContract(Transaction tx, Map<byte[], AccountState> states, long height) {
         Account account = accountState.getAccount();
         tx.setContractType(tx.payload[0]);
         switch (tx.getContractType()) {
@@ -990,7 +948,6 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    @Override
     public Map<byte[], AccountState> getGenesisStates() {
         List<Genesis.IncubateAmount> incubateAmountList = genesisJSON.alloc.incubateAmount;
         Genesis.IncubateAmount incubateAmount = incubateAmountList.get(0);
@@ -1137,7 +1094,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return incubator;
     }
 
-    private AccountState updateExtractInterest(Transaction tx, AccountState accountState, long height) {
+    private AccountState updateExtractInterest(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState accountState = states.get(tx.to);
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -1162,7 +1120,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return accountState;
     }
 
-    private AccountState updateExtractShare(Transaction tx, AccountState accountState, long height) {
+    private AccountState updateExtractShare(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState accountState = states.get(tx.to);
         Map<byte[], Incubator> map = accountState.getShareMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -1183,10 +1142,11 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
         accountState.setAccount(account);
-        return accountState;
+        states.put(accountState.getPubkeyHash(), accountState);
     }
 
-    private AccountState updateExtranctCost(Transaction tx, AccountState accountState, long height) {
+    private void updateExtranctCost(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState accountState = states.get(tx.to);
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -1211,70 +1171,41 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
         accountState.setAccount(account);
-        return accountState;
+        states.put(accountState.getPubkeyHash(), accountState);
     }
 
-    private AccountState updateCancelVote(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        long balance;
-        boolean state = true;
-        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance += tx.amount;
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            long vote = account.getVote();
-            vote -= tx.amount;
-            account.setVote(vote);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("CancelVote transaction account do not match");
-        }
-        accountState.setAccount(account);
-        return accountState;
+    private void updateCancelVote(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        AccountState to = states.get(tx.to);
+
+        from.addBalance(tx.amount);
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        to.addVote(tx.amount);
+        to.setBlockHeight(height);
+        states.put(from.getPubkeyHash(), from);
+        states.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateMortgage(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
-            throw new RuntimeException("Mortgage transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance -= tx.getFee();
-        balance -= tx.amount;
-        long mortgage = account.getMortgage();
-        mortgage += tx.amount;
-        account.setBalance(balance);
-        account.setMortgage(mortgage);
-        account.setNonce(tx.nonce);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateMortgage(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState to = states.get(tx.to);
+        to.subBalance(tx.getFee());
+        to.subBalance(tx.amount);
+        to.addMortgage(tx.amount);
+        to.setNonce(tx.nonce);
+        to.setBlockHeight(height);
+        states.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateCancelMortgage(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
-            throw new RuntimeException("CancelMortgage transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance -= tx.getFee();
-        balance += tx.amount;
-        long mortgage = account.getMortgage();
-        mortgage -= tx.amount;
-        account.setBalance(balance);
-        account.setMortgage(mortgage);
-        account.setNonce(tx.nonce);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateCancelMortgage(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState to = states.get(tx.to);
+        to.subBalance(tx.getFee());
+        to.addBalance(tx.amount);
+        to.subMortgage(tx.amount);
+        to.setNonce(tx.nonce);
+        to.setBlockHeight(height);
+        states.put(to.getPubkeyHash(), to);
     }
 
     // 构造一个数据全为空的账户
