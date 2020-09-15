@@ -177,8 +177,16 @@ public class AccountState {
         this.Contract = RLPCodec.encode(c);
     }
 
-    public byte[] getStorageRoot(){
+    public byte[] getStorageRoot() {
         return getWASMContract().getStorageRoot();
+    }
+
+    public Map<byte[], Long> getQuotaMap() {
+        return this.account.getQuotaMap();
+    }
+
+    public void setQuotaMap(Map<byte[], Long> map) {
+        this.account.setQuotaMap(map);
     }
 
     public long getBalance() {
@@ -201,12 +209,16 @@ public class AccountState {
         return getWASMContract().getContractHash();
     }
 
-    public void addBalance(long amount){
+    public void addBalance(long amount) {
         setBalance(SafeMath.add(getBalance(), amount));
     }
 
-    public void subBalance(long amount){
+    public void subBalance(long amount) {
         setBalance(SafeMath.sub(getBalance(), amount));
+    }
+
+    public void addIncubatecost(long amount) {
+        this.account.setIncubatecost(SafeMath.add(this.account.getIncubatecost(), amount));
     }
 
     public long getBlockHeight() {
@@ -225,11 +237,11 @@ public class AccountState {
         account.setVote(vote);
     }
 
-    public void addVote(long vote){
+    public void addVote(long vote) {
         setVote(SafeMath.add(getVote(), vote));
     }
 
-    public void subVote(long vote){
+    public void subVote(long vote) {
         setVote(SafeMath.sub(getVote(), vote));
     }
 
@@ -241,11 +253,11 @@ public class AccountState {
         account.setMortgage(mortgage);
     }
 
-    public void addMortgage(long amount){
+    public void addMortgage(long amount) {
         setMortgage(SafeMath.add(getMortgage(), amount));
     }
 
-    public void subMortgage(long amount){
+    public void subMortgage(long amount) {
         setMortgage(SafeMath.sub(getMortgage(), amount));
     }
 }
