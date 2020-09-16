@@ -122,7 +122,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getTransferByHeightAndTypeAndGas(long height, int type, long gas) {
-        Query query = em.createQuery("select new map(t.txHash as tranHash, t.from as fromAddress, t.to as coinAddress, t.amount as amount, h.height as coinHeigth, t.gasPrice*:gas as fee)" +
+        Query query = em.createQuery("select new map(t.txHash as tranHash, t.from as fromAddress, t.to as coinAddress, t.amount as amount, h.height as coinHeigth, t.gasPrice*:gas as fee, h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("gas", gas);
         query.setParameter("height", height);
@@ -131,7 +131,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getHatchByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map(t.txHash as coinHash, t.to as coinAddress, t.amount as amount, h.height as blockHeight, t.payload as payload)" +
+        Query query = em.createQuery("select new map(t.txHash as coinHash, t.to as coinAddress, t.amount as amount, h.height as blockHeight, t.payload as payload, h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -139,7 +139,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getInterestByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map(t.txHash as tranHash,t.to as coinAddress,t.amount as amount,h.height as coinHeigth,t.payload as coinHash)" +
+        Query query = em.createQuery("select new map(t.txHash as tranHash,t.to as coinAddress,t.amount as amount,h.height as coinHeigth,t.payload as coinHash, h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -147,7 +147,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getShareByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.txHash as coinHash,t.to as coinAddress,t.amount as amount,h.height as coinHeigth,r.txHash as tranHash,r.to as inviteAddress)" +
+        Query query = em.createQuery("select new map (t.txHash as coinHash,t.to as coinAddress,t.amount as amount,h.height as coinHeigth,r.txHash as tranHash,r.to as inviteAddress, h.createdAt as createdAt)" +
                 "from TransactionEntity t " +
                 "left join TransactionIndexEntity i on t.txHash=i.txHash " +
                 "left join HeaderEntity h on h.blockHash=i.blockHash " +
@@ -159,7 +159,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getCostByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as tranHash,h.height as coinHeigth,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as tranHash,h.height as coinHeigth,t.payload as tradeHash, h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -167,7 +167,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getVoteByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as toAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.from as coinAddress)" +
+        Query query = em.createQuery("select new map (t.to as toAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.from as coinAddress, h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -175,7 +175,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getCancelVoteByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as toAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.from as coinAddress,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as toAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.from as coinAddress,t.payload as tradeHash, h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -183,7 +183,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getMortgageByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth)" +
+        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -191,7 +191,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getCancelMortgageByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.payload as tradeHash,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -199,7 +199,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getCoinBaseByHeightAndType(long height) {
-        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.type as type )" +
+        Query query = em.createQuery("select new map (t.to as coinAddress,t.amount as amount,t.txHash as coinHash,h.height as coinHeigth,t.type as type,h.createdAt as createdAt)" +
                 "from TransactionEntity t " +
                 "left join TransactionIndexEntity i on t.txHash=i.txHash " +
                 "left join HeaderEntity h on h.blockHash=i.blockHash " +
@@ -209,7 +209,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getAssetByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.txHash as coinHash,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.txHash as coinHash,t.payload as tradeHash,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -217,7 +217,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getAssetTransferByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as coinHash160,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -225,7 +225,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getAssetOtherByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,h.height as coinHeigth,t.gasPrice as gasPrice,t.payload as tradeHash,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -233,7 +233,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getDepositHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.from as coinAddress,t.txHash as coinHash,h.height as coinHeight,t.gasPrice as gasPrice,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.from as coinAddress,t.txHash as coinHash,h.height as coinHeight,t.gasPrice as gasPrice,t.payload as tradeHash,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -241,7 +241,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getRatelockByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.txHash as coinHash,t.payload as tradeHash,t.from as fromAddress)" +
+        Query query = em.createQuery("select new map (t.txHash as coinHash,t.payload as tradeHash,t.from as fromAddress,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);
@@ -249,7 +249,7 @@ public class TransactionDaoJoined {
     }
 
     public List<Map<String, Object>> getRatelockInvokeByHeightAndType(long height, int type) {
-        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,t.payload as tradeHash)" +
+        Query query = em.createQuery("select new map (t.to as coinHash160,t.from as coinAddress,t.txHash as coinHash,t.payload as tradeHash,h.createdAt as createdAt)" +
                 QUERYONE_JOINS);
         query.setParameter("height", height);
         query.setParameter("type", type);

@@ -76,4 +76,6 @@ public interface HatchService {
     APIResult getInviteTradeList(String address);
 
     APIResult getTradeList(String address);
+
+    APIResult getCreatedAT(long height);
 }
