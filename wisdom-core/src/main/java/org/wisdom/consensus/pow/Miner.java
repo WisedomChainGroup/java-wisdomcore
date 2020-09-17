@@ -20,6 +20,7 @@ package org.wisdom.consensus.pow;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
+import org.springframework.beans.factory.annotation.Value;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
@@ -107,7 +108,10 @@ public class Miner implements ApplicationListener {
     @Autowired
     private WASMTXPool wasmtxPool;
 
-    public Miner() {
+    private boolean allowEmptyBlock;
+
+    public Miner(@Value("miner.allow-empty-block") String aeb) {
+        allowEmptyBlock = aeb == null || aeb.isEmpty() || "false".equals(aeb.toLowerCase().trim());
     }
 
     private Transaction createCoinBase(long height) throws Exception {
@@ -150,7 +154,7 @@ public class Miner implements ApplicationListener {
         }else{
             newTranList.addAll(wasmList);
         }
-        if(newTranList.isEmpty())
+        if(newTranList.isEmpty() && !allowEmptyBlock)
             return null;
         Set<String> payloads = new HashSet<>();
 
