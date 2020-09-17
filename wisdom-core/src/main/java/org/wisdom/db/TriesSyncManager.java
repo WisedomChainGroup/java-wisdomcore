@@ -198,7 +198,8 @@ public class TriesSyncManager {
 
     void sync() throws Exception {
         // query for states had been written
-
+        if(fastSyncDirectory == null || fastSyncDirectory.isEmpty())
+            return;
 
         Optional<PreBuiltGenesis> o = readPreBuiltGenesis();
 

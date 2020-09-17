@@ -24,10 +24,10 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLP;
 import org.tdf.rlp.RLPCodec;
 import org.wisdom.consensus.pow.EconomicModel;
+import org.wisdom.core.incubator.RateTable;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.genesis.Genesis;
@@ -37,9 +37,7 @@ import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.Arrays;
 import org.wisdom.util.ByteUtil;
-import org.wisdom.core.incubator.RateTable;
 import org.wisdom.util.BytesReader;
-import org.wisdom.vm.Constants;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -48,6 +46,12 @@ import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public class Transaction {
+    public enum Status {
+        PENDING,
+        INCLUDED,
+        CONFIRMED,
+        DROPPED
+    }
 
     public static Integer getTypeFromInput(String s) {
         // 默认是转账
@@ -84,14 +88,16 @@ public class Transaction {
             100000, 50000, 50000,
             100000, 100000, 100000,
             100000, 100000, 100000,
-            100000, 20000, 20000, 20000
+            100000, 20000, 20000, 20000,
+            /* wasm call 和 wasm deploy 的 gas 需要事务执行后得到 */
+            0, 0
     };
 
     public Transaction() {
     }
 
-    public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature, byte[] blockHash, long height) {
-        this(version, type, nonce, from, gasPrice, amount, payload, to, signature);
+    public Transaction(int version, @Min(0) @Max(TYPE_MAX) int type, @Min(0) long nonce, @NotNull @Size(min = PUBLIC_KEY_SIZE, max = PUBLIC_KEY_SIZE) byte[] from, @Min(0) long gasPrice, @Min(0) long amount, byte[] payload, @NotNull @Size(min = PUBLIC_KEY_HASH_SIZE, max = PUBLIC_KEY_HASH_SIZE) byte[] to, @NotNull @Size(max = SIGNATURE_SIZE, min = SIGNATURE_SIZE) byte[] signature, byte[] blockHash, long height, byte[] wasmPayload) {
+        this(version, type, nonce, from, gasPrice, amount, (wasmPayload == null || wasmPayload.length == 0) ? payload : wasmPayload, to, signature);
         this.blockHash = blockHash;
         this.height = height;
     }
@@ -328,12 +334,13 @@ public class Transaction {
     }
 
     @JsonIgnore
-    public byte[] getFromPKHash(){
+    public byte[] getFromPKHash() {
         return Address.publicKeyToHash(from);
     }
 
-    public byte[] createContractPKHash() {
-        return createContractPKHash(getFromPKHash(), nonce);
+    // WASM 合约的地址 = ripemd160(RLP([ 事务哈希, 当前调用链部署合约的数量]))
+    public byte[] createContractPKHash(long contractNonce) {
+        return createContractPKHash(getHash(), contractNonce);
     }
 
 
@@ -342,10 +349,8 @@ public class Transaction {
      *
      * @return contact address
      */
-    public static byte[] createContractPKHash(byte[] pkHash, long nonce) {
-        byte[] bytes = HashUtil.keccak256(RLPCodec.encode(new Object[]{pkHash, nonce}));
-        HexBytes ret = HexBytes.fromBytes(bytes);
-        return ret.slice(ret.size() - Constants.PK_HASH_SIZE, ret.size()).getBytes();
+    public static byte[] createContractPKHash(byte[] hash, long nonce) {
+        return HashUtil.ripemd160(RLPCodec.encode(new Object[]{hash, nonce}));
     }
 
 

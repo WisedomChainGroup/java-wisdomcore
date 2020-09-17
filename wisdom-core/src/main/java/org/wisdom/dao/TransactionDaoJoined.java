@@ -13,7 +13,7 @@ import java.util.Map;
 @Repository
 public class TransactionDaoJoined {
     private static final String QUERY_JOINS =
-            "select new org.wisdom.core.account.Transaction(t.version, t.type, t.nonce, t.from, t.gasPrice, t.amount, t.payload, t.to, t.signature, ti.blockHash, h.height) " +
+            "select new org.wisdom.core.account.Transaction(t.version, t.type, t.nonce, t.from, t.gasPrice, t.amount, t.payload, t.to, t.signature, ti.blockHash, h.height, t.wasmPayload) " +
                     "from HeaderEntity h inner join TransactionIndexEntity ti on h.blockHash = ti.blockHash " +
                     "inner join TransactionEntity t on ti.txHash = t.txHash ";
 

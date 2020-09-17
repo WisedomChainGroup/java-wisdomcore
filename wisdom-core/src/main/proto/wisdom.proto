@@ -108,6 +108,8 @@ enum TransactionType {
     EXIT_VOTE = 13;
     PLEDGE = 14;
     EXIT_PLEDGE = 15;
+    WASM_DEPLOY = 16;
+    WASM_CALL = 17;
 }
 
 message Transactions {

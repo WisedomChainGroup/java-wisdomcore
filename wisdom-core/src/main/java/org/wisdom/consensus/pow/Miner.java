@@ -20,10 +20,10 @@ package org.wisdom.consensus.pow;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
-import org.tdf.common.store.CachedStore;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
+import org.wisdom.controller.WebSocket;
 import org.wisdom.core.event.NewBestBlockEvent;
 import org.wisdom.core.validate.CheckPointRule;
 import org.wisdom.core.validate.Result;
@@ -33,8 +33,6 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.event.NewBlockMinedEvent;
 import org.wisdom.core.validate.MerkleRule;
 import org.wisdom.core.validate.OfficialIncubateBalanceRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -46,9 +44,11 @@ import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.pool.PeningTransPool;
 import org.wisdom.util.Address;
+import org.wisdom.vm.abi.PrevNonceWrapper;
+import org.wisdom.vm.abi.WASMResult;
+import org.wisdom.vm.abi.WASMTXPool;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 @Slf4j(topic = "miner")
@@ -104,6 +104,9 @@ public class Miner implements ApplicationListener {
     @Autowired
     AccountStateTrie accountStateTrie;
 
+    @Autowired
+    private WASMTXPool wasmtxPool;
+
     public Miner() {
     }
 
@@ -136,7 +139,24 @@ public class Miner implements ApplicationListener {
 
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern, parent.getHash());
+
+        Trie<byte[], AccountState> tmp = accountStateTrie
+                .getTrie()
+                .revert(accountStateTrie.getRootStore().get(parent.getHash()).get());
+
+        List<Transaction> wasmList = wasmtxPool.popPackable(new PrevNonceWrapper(newTranList, tmp.asMap()), -1);
+        if(newTranList == null){
+            newTranList = wasmList;
+        }else{
+            newTranList.addAll(wasmList);
+        }
+        if(newTranList.isEmpty())
+            return null;
         Set<String> payloads = new HashSet<>();
+
+        // 更新 coinbase
+        Map<byte[], WASMResult> results = new ByteArrayMap<>();
+        Map<byte[], Transaction> included = new ByteArrayMap<>();
         for (Transaction tx : newTranList) {
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
             if (isExit && tx.payload != null && payloads.contains(Hex.encodeHexString(tx.payload))) {
@@ -148,31 +168,40 @@ public class Miner implements ApplicationListener {
             if (isExit && tx.payload != null) {
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
-            block.body.get(0).amount += tx.getFee();
-            block.body.add(tx);
+            // 校验事务
+            try{
+                WASMResult res = accountStateTrie.update(tmp, block, tx);
+                block.body.get(0).amount += res.getGasUsed() * tx.gasPrice;
+                results.put(tx.getHash(), res);
+                included.put(tx.getHash(), tx);
+                block.body.add(tx);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
         }
+
+        // 更新 coinbase
+        accountStateTrie.update(tmp, block, block.body.get(0));
+        block.accountStateTrieRoot = tmp.commit();
+        tmp.flush();
+        accountStateTrie.getRootStore().put(block.getHash(), block.accountStateTrieRoot);
+
         block.body.get(0).setHashCache(
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
 
-        Trie<byte[], AccountState> parentTrie = accountStateTrie
-                .getTrie()
-                .revert(
-                        accountStateTrie.getRootStore().get(parent.getHash()).get(),
-                        new CachedStore<>(accountStateTrie.getTrieStore(), ByteArrayMap::new)
-                );
-
-        Map<byte[], AccountState> accountStateMap = accountStateUpdater.
-                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block, parentTrie.asMap())),
-                        block.body.stream().map(tx -> {
-                            return new TransactionInfo(tx, block.nHeight);
-                        }).collect(Collectors.toList()));
-        List<AccountState> accountList = new ArrayList<>(accountStateMap.values());
         // hash merkle root
         block.hashMerkleRoot = Block.calculateMerkleRoot(block.body);
-        block.hashMerkleState = Block.calculateMerkleState(accountList);
+        block.hashMerkleState = Block.calculateMerkleState(Collections.emptyList());
         block.hashMerkleIncubate = Block.calculateMerkleIncubate(new ArrayList<>());
+
         peningTransPool.updatePool(newTranList, 1, block.nHeight);
+        for (Map.Entry<byte[], WASMResult> entry : results.entrySet()) {
+            Transaction tx = included.get(entry.getKey());
+            WASMResult re = entry.getValue();
+            WebSocket.broadcastIncluded(tx, block.nHeight, block.getHash(), re.getGasUsed(), re.getReturns(), re.getWASMEvents());
+        }
         return block;
     }
 
@@ -206,6 +235,8 @@ public class Miner implements ApplicationListener {
             }
             try {
                 Block b = createBlock();
+                if(b == null)
+                    return;
                 thread = ctx.getBean(MineThread.class);
                 thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
             } catch (Exception e) {

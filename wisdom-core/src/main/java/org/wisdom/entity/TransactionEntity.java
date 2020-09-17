@@ -32,6 +32,8 @@ public class TransactionEntity {
     static final String COLUMN_TX_TO = "[to]";
     static final String COLUMN_TX_SIGNATURE = "signature";
     static final String TABLE_TRANSACTION= "transaction";
+    public static final String COLUMN_WASM_PAYLOAD = "wasm_payload";
+
 
     @Column(name = COLUMN_TX_HASH, nullable = false)
     @Id
@@ -64,4 +66,6 @@ public class TransactionEntity {
     @Column(name = COLUMN_TX_SIGNATURE, nullable = false)
     public byte[] signature;
 
+    @Column(name = COLUMN_WASM_PAYLOAD)
+    public byte[] wasmPayload;
 }

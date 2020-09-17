@@ -1,7 +1,6 @@
 package org.wisdom.vm.abi;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.HexBytes;
@@ -12,28 +11,27 @@ import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPItem;
 import org.tdf.rlp.RLPList;
-import org.wisdom.core.Block;
+import org.wisdom.core.Header;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.AccountState;
-import org.wisdom.db.WASMResult;
 import org.wisdom.vm.hosts.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import static org.wisdom.vm.Constants.PK_HASH_SIZE;
 import static org.wisdom.vm.Constants.MAX_CONTRACT_CALL_DEPTH;
+import static org.wisdom.vm.Constants.PK_HASH_SIZE;
 
-@RequiredArgsConstructor
 @Getter
 public class ContractCall {
 
     private final Map<byte[], AccountState> states;
-    private final Block header;
+    private final Header header;
     private final Transaction transaction;
 
     private final Function<byte[], Trie<byte[], byte[]>> storageTrieSupplier;
@@ -54,6 +52,22 @@ public class ContractCall {
 
     // contract called currently
     private byte[] recipient;
+
+    private AtomicInteger atomicInteger;
+
+    public ContractCall(Map<byte[], AccountState> states, Header header, Transaction transaction, Function<byte[], Trie<byte[], byte[]>> storageTrieSupplier, Store<byte[], byte[]> contractStore, Limit limit, int depth, byte[] sender, boolean readonly, AtomicInteger atomicInteger) {
+        this.states = states;
+        this.header = header;
+        this.transaction = transaction;
+        this.storageTrieSupplier = storageTrieSupplier;
+        this.contractStore = contractStore;
+        this.limit = limit;
+        this.depth = depth;
+        this.sender = sender;
+        this.readonly = readonly;
+        this.atomicInteger = atomicInteger;
+    }
+
 
     public static void assertContractAddress(byte[] pkHash) {
         if (pkHash.length != PK_HASH_SIZE)
@@ -79,7 +93,8 @@ public class ContractCall {
                 this.limit.fork(),
                 this.depth + 1,
                 this.recipient,
-                this.readonly
+                this.readonly,
+                this.atomicInteger
         );
     }
 
@@ -192,9 +207,9 @@ public class ContractCall {
                 throw new RuntimeException("cannot deploy contract here");
             m = new Module(binaryOrAddress);
             byte[] hash = HashUtil.keccak256(binaryOrAddress);
-            originAccount.setNonce(SafeMath.add(originAccount.getNonce(), 1));
             contractStore.put(hash, binaryOrAddress);
-            contractPKHash = Transaction.createContractPKHash(transaction.getFromPKHash(), originAccount.getNonce());
+            contractPKHash = Transaction.createContractPKHash(transaction.getHash(), atomicInteger.get());
+            this.atomicInteger.incrementAndGet();
 
             contractAccount = AccountState.emptyWASMAccount(contractPKHash, hash);
         } else {
@@ -217,9 +232,7 @@ public class ContractCall {
 
         // build Parameters here
         Context ctx = new Context(
-                header.hashPrevBlock,
-                header.nHeight,
-                header.nTime,
+                header,
                 transaction,
                 contractAccount,
                 sender,

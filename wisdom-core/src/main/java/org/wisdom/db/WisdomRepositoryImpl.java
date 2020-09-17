@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationContext;
 import org.tdf.common.util.*;
 import org.wisdom.consensus.pow.Proposer;
 import org.wisdom.contract.AssetCodeInfo;
+import org.wisdom.controller.WebSocket;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Transaction;
@@ -713,6 +714,10 @@ public class WisdomRepositoryImpl implements WisdomRepository {
             deleteCache(b);
             i++;
             this.latestConfirmed = b;
+            // 广播事务确认
+            for (Transaction tx : b.body) {
+                WebSocket.broadcastPendingOrConfirm(tx, Transaction.Status.CONFIRMED);
+            }
         }
     }
 }

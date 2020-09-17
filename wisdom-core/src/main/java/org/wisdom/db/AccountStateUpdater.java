@@ -1,10 +1,7 @@
 package org.wisdom.db;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
@@ -32,6 +30,8 @@ import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockWithdraw;
 import org.wisdom.core.Block;
+import org.wisdom.core.DB;
+import org.wisdom.core.Header;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
@@ -44,9 +44,12 @@ import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
+import org.wisdom.vm.abi.*;
+import org.wisdom.vm.hosts.Limit;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 @Setter
@@ -69,63 +72,155 @@ public class AccountStateUpdater {
 
     private static final byte[] twentyBytes = new byte[20];
 
-    public void update(Map<byte[], AccountState> accounts, Block header, TransactionInfo info) {
-        updateOne(info, accounts);
+    public WASMResult update(DB db, Header header, Transaction tx) {
+        return updateOne(db, header, tx);
     }
 
-    public void updateOne(TransactionInfo info, Map<byte[], AccountState> store) {
-        Transaction transaction = info.getTransaction();
-        long height = info.getHeight();
+    public WASMResult updateOne(
+            DB db, Header header, Transaction transaction) {
+        Map<byte[], AccountState> store = db.getAccountStore();
+        long height = header.getnHeight();
         transaction.height = height;
-        try {
-            switch (transaction.type) {
-                case 0x00://coinbase
-                    updateCoinBase(transaction, store, height);
-                    return;
-                case 0x01://TRANSFER
-                    updateTransfer(transaction, store, height);
-                    return;
-                case 0x02://VOTE
-                    updateVote(transaction, store, height);
-                    return;
-                case 0x03://DEPOSIT
-                    updateDeposit(transaction, store, height);
-                    return;
-                case 0x07://DEPLOY_CONTRACT
-                    updateDeployContract(transaction, store, height);
-                    return;
-                case 0x08://CALL_CONTRACT
-                    updateCallContract(transaction, store, height);
-                    return;
-                case 0x09://INCUBATE
-                    updateIncubate(transaction, store, height);
-                    return;
-                case 0x0a://EXTRACT_INTEREST
-                    updateExtractInterest(transaction, store, height);
-                    return;
-                case 0x0b://EXTRACT_SHARING_PROFIT
-                    updateExtractShare(transaction, store, height);
-                    return;
-                case 0x0c://EXTRACT_COST
-                    updateExtranctCost(transaction, store, height);
-                    return;
-                case 0x0d://EXIT_VOTE
-                    updateCancelVote(transaction, store, height);
-                    return;
-                case 0x0e://MORTGAGE
-                    updateMortgage(transaction, store, height);
-                    return;
-                case 0x0f://EXTRACT_MORTGAGE
-                    updateCancelMortgage(transaction, store, height);
-                    return;
-                default:
-                    throw new Exception("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
+        Transaction.Type t = Transaction.Type.values()[transaction.type];
+        switch (t) {
+            case WASM_DEPLOY: {
+                AccountState createdBy = store.get(transaction.getFromPKHash());
+
+                // 校验 nonce
+                if(createdBy.getNonce() + 1  != transaction.nonce)
+                    throw new RuntimeException("nonce is too small");
+
+                createdBy.setNonce(transaction.nonce);
+                store.put(createdBy.getPubkeyHash(), createdBy);
+
+
+                ContractDeployPayload contractDeployPayload =
+                        RLPCodec.decode(transaction.payload, ContractDeployPayload.class);
+
+                Limit limit = new Limit(0, 0, contractDeployPayload.getGasLimit(), transaction.payload.length / 1024);
+
+                // execute constructor of contract
+                ContractCall contractCall = new ContractCall(
+                        store, header,
+                        transaction, root -> db.getStorageTrie().revert(root), db.getContractCodeStore(),
+                        limit, 0, transaction.getFromPKHash(),
+                        false, new AtomicInteger()
+                );
+
+                WASMResult ret = contractCall.call(
+                        contractDeployPayload.getBinary(),
+                        "init",
+                        contractDeployPayload.getParameters(),
+                        Uint256.of(transaction.amount),
+                        false,
+                        contractDeployPayload.getContractABIs()
+                );
+
+
+                // restore from map
+                createdBy = store.get(transaction.getFromPKHash());
+
+                // estimate gas
+                Uint256 fee = Uint256.of(limit.getGas()).safeMul(Uint256.of(transaction.gasPrice));
+                createdBy.subBalance(fee.longValue());
+                store.put(createdBy.getPubkeyHash(), createdBy);
+                return ret;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            case WASM_CALL: {
+                AccountState originAccount = store.get(transaction.getFromPKHash());
+
+                // 校验 nonce
+                if(originAccount.getNonce() + 1  != transaction.nonce)
+                    throw new RuntimeException("nonce is too small");
+
+                originAccount.setNonce(transaction.nonce);
+                store.put(originAccount.getPubkeyHash(), originAccount);
+
+                AccountState contractAccount = store.get(transaction.to);
+                if (contractAccount == null) {
+                    throw new RuntimeException("contract " + HexBytes.fromBytes(transaction.to) + " not found");
+                }
+
+                ContractCallPayload callPayload = RLPCodec.decode(transaction.payload, ContractCallPayload.class);
+
+                // execute method
+                Limit limit = new Limit(0, 0, callPayload.getGasLimit(), transaction.payload.length / 1024);
+                ContractCall contractCall = new ContractCall(
+                        store, header,
+                        transaction, root -> db.getStorageTrie().revert(root),
+                        db.getContractCodeStore(),
+                        limit, 0, transaction.getFromPKHash(),
+                        false, new AtomicInteger()
+                );
+
+                WASMResult result = contractCall.call(
+                        contractAccount.getPubkeyHash(),
+                        callPayload.getMethod(),
+                        callPayload.getParameters(),
+                        Uint256.of(transaction.amount),
+                        false,
+                        null
+                );
+
+                contractAccount = store.get(transaction.to);
+                AccountState caller = store.get(transaction.getFromPKHash());
+
+                Uint256 fee = Uint256.of(limit.getGas()).safeMul(Uint256.of(transaction.gasPrice));
+                caller.subBalance(fee.longValue());
+                store.put(contractAccount.getPubkeyHash(), contractAccount);
+                store.put(caller.getPubkeyHash(), caller);
+                return result;
+            }
+        }
+        long gas = Transaction.GAS_TABLE[transaction.type];
+        WASMResult empty = WASMResult.empty(gas);
+
+        switch (transaction.type) {
+            case 0x00://coinbase
+                updateCoinBase(transaction, store, height);
+                return empty;
+            case 0x01://TRANSFER
+                updateTransfer(transaction, store, height);
+                return empty;
+            case 0x02://VOTE
+                updateVote(transaction, store, height);
+                return empty;
+            case 0x03://DEPOSIT
+                updateDeposit(transaction, store, height);
+                return empty;
+            case 0x07://DEPLOY_CONTRACT
+                updateDeployContract(transaction, store, height);
+                return empty;
+            case 0x08://CALL_CONTRACT
+                updateCallContract(transaction, store, height);
+                return empty;
+            case 0x09://INCUBATE
+                updateIncubate(transaction, store, height);
+                return empty;
+            case 0x0a://EXTRACT_INTEREST
+                updateExtractInterest(transaction, store, height);
+                return empty;
+            case 0x0b://EXTRACT_SHARING_PROFIT
+                updateExtractShare(transaction, store, height);
+                return empty;
+            case 0x0c://EXTRACT_COST
+                updateExtranctCost(transaction, store, height);
+                return empty;
+            case 0x0d://EXIT_VOTE
+                updateCancelVote(transaction, store, height);
+                return empty;
+            case 0x0e://MORTGAGE
+                updateMortgage(transaction, store, height);
+                return empty;
+            case 0x0f://EXTRACT_MORTGAGE
+                updateCancelMortgage(transaction, store, height);
+                return empty;
+            default:
+                throw new RuntimeException("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
         }
     }
 
+    @Deprecated
     public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AccountState> store) {
         switch (transaction.type) {
             case 0x00://coinbase
@@ -797,7 +892,8 @@ public class AccountStateUpdater {
         store.put(tx.to, contract);
     }
 
-    private void updateIncubate(Transaction tx, Map<byte[], AccountState> store, long height) throws InvalidProtocolBufferException, DecoderException {
+    @SneakyThrows
+    private void updateIncubate(Transaction tx, Map<byte[], AccountState> store, long height){
         HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tx.payload);
         int days = payloadproto.getType();
         String sharpub = payloadproto.getSharePubkeyHash();

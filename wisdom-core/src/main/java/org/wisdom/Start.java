@@ -29,9 +29,11 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
@@ -41,10 +43,15 @@ import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.DatabaseStore;
 import org.tdf.common.store.NoDeleteBatchStore;
+import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.wisdom.consensus.pow.ProposersState;
+import org.wisdom.controller.WebSocket;
+import org.wisdom.core.DB;
 import org.wisdom.core.utxo.UTXOSets;
 import org.wisdom.crypto.HashUtil;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.Candidate;
 import org.wisdom.db.DatabaseStoreFactory;
 import org.wisdom.encoding.JSONEncodeDecoder;
@@ -167,7 +174,9 @@ public class Start {
     }
 
     @Bean
-    public ServerEndpointExporter serverEndpointExporter() {
+    public ServerEndpointExporter serverEndpointExporter(ApplicationContext context) {
+        WebSocket.ctx = context;
         return new ServerEndpointExporter();
     }
+
 }

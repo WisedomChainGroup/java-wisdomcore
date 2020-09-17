@@ -108,14 +108,16 @@ public class EconomicModel {
 
     // 9140868887284800
     public long getTotalSupply() {
-        long totalSupply = 0;
-        for (long i = 0; ; i++) {
-            long reward = getConsensusRewardAtHeight1(i);
-            if (reward == 0) {
-                return totalSupply;
-            }
-            totalSupply += reward;
-        }
+        return 49943999635560720L;
+//        long totalSupply = 0;
+//        for (long i = 0; ; i++) {
+//            long reward = getConsensusRewardAtHeight1(i);
+//            if (reward == 0) {
+//                System.out.println(totalSupply);
+//                return totalSupply;
+//            }
+//            totalSupply += reward;
+//        }
     }
 
 

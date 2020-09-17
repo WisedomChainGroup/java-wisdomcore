@@ -31,7 +31,7 @@ public class ContextHost extends HostFunction {
         TX_TO,
         TX_SIGNATURE,
         TX_HASH,
-        CONTRACT_PK_HASH,
+        CONTRACT_ADDRESS,
         CONTRACT_NONCE,
         ACCOUNT_NONCE,
         ACCOUNT_BALANCE,
@@ -73,7 +73,7 @@ public class ContextHost extends HostFunction {
         boolean isPut = parameters[2] != 0;
         byte[] data = null;
         long offset = parameters[1];
-        if ((type != Type.CONTRACT_PK_HASH
+        if ((type != Type.CONTRACT_ADDRESS
                 && type != Type.CONTRACT_NONCE
                 && type != Type.ACCOUNT_NONCE
                 && type != Type.ACCOUNT_BALANCE
@@ -84,18 +84,18 @@ public class ContextHost extends HostFunction {
         }
         switch (type) {
             case HEADER_PARENT_HASH: {
-                data = context.getParentHash();
+                data = context.getHeader().getHashPrevBlock();
                 ret = data.length;
                 break;
             }
             case HEADER_CREATED_AT: {
                 isPut = false;
-                ret = context.getTimestamp();
+                ret = context.getHeader().getNTime();
                 break;
             }
             case HEADER_HEIGHT: {
                 isPut = false;
-                ret = context.getHeight();
+                ret = context.getHeader().getnHeight();
                 break;
             }
             case TX_TYPE: {
@@ -143,7 +143,7 @@ public class ContextHost extends HostFunction {
                 ret = data.length;
                 break;
             }
-            case CONTRACT_PK_HASH: {
+            case CONTRACT_ADDRESS: {
                 data = context.getContractAccount().getAccount().getPubkeyHash();
                 ret = data.length;
                 break;

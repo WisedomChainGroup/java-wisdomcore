@@ -2,6 +2,7 @@ package org.wisdom.vm.abi;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.wisdom.core.Header;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 
@@ -9,9 +10,7 @@ import org.wisdom.db.AccountState;
 @Getter
 @AllArgsConstructor
 public class Context {
-    private byte[] parentHash;
-    private long height;
-    private long timestamp;
+    private Header header;
 
     private Transaction transaction;
     private AccountState contractAccount;

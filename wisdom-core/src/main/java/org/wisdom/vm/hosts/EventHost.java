@@ -6,9 +6,8 @@ import org.tdf.lotusvm.types.FunctionType;
 import org.tdf.lotusvm.types.ValueType;
 import org.tdf.rlp.RLPElement;
 import org.tdf.rlp.RLPList;
+import org.wisdom.controller.WebSocket;
 import org.wisdom.vm.abi.WASMEvent;
-import org.wisdom.ws.WebSocket;
-
 
 import java.util.*;
 

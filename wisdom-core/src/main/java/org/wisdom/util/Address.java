@@ -1,6 +1,7 @@
 package org.wisdom.util;
 
 import org.apache.commons.codec.binary.Hex;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
@@ -63,5 +64,9 @@ public class Address {
             publicKeyHash = Address.addressToPublicKeyHash(input);
         }
         return publicKeyHash;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(publicKeyHashToAddress(HexBytes.decode("ef6cbf99f5e06615400fbd005a5851b09bc7f46b")));
     }
 }

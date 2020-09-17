@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
+import org.tdf.common.store.ByteArrayMapStore;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.HexBytes;
@@ -157,6 +158,7 @@ public class AccountState {
     public static AccountState emptyWASMAccount(byte[] pkHash, byte[] codeHash) {
         byte[] emptyTrieRoot = Trie.<byte[], byte[]>builder()
                 .hashFunction(HashUtil::keccak256)
+                .store(new ByteArrayMapStore<>())
                 .keyCodec(Codec.identity())
                 .valueCodec(Codec.identity())
                 .build().getNullHash();

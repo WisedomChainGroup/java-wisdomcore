@@ -16,4 +16,9 @@ public class WASMResult {
     RLPList returns;
     List<WASMEvent> WASMEvents;
     public static final WASMResult EMPTY = new WASMResult(0, RLPList.createEmpty(), Collections.emptyList());
+
+    public static WASMResult empty(long gas){
+        return new WASMResult(gas, RLPList.createEmpty(), Collections.emptyList());
+    }
+
 }

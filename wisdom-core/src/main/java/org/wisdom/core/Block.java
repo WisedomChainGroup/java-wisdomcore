@@ -21,6 +21,7 @@ package org.wisdom.core;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -55,7 +56,7 @@ import static java.util.stream.Collectors.toList;
 
 @Component
 @Slf4j(topic = "block")
-public class Block {
+public class Block implements Header{
     public static final int MAX_NOTICE_LENGTH = 32;
     public static final int HASH_SIZE = 32;
     public static final int MAX_BLOCK_SIZE = 4 * (1 << 20);
@@ -230,6 +231,7 @@ public class Block {
     // parent block hash
     @NotNull
     @Size(max = HASH_SIZE, min = HASH_SIZE)
+    @Getter
     public byte[] hashPrevBlock;
 
     // merkle root of transactions
@@ -254,10 +256,13 @@ public class Block {
     @Max(BigEndian.MAX_UINT_32)
     public long nHeight;
 
+
+
     // 32bit unsigned unix epoch
     @RLP(6)
     @Min(0)
     @Max(BigEndian.MAX_UINT_32)
+    @Getter
     public long nTime;
 
     @RLP(7)
@@ -431,5 +436,4 @@ public class Block {
         }
         return HexBytes.fromBytes(a.getHash()).compareTo(HexBytes.fromBytes(b.getHash()));
     };
-
 }
