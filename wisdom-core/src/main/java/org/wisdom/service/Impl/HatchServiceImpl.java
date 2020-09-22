@@ -545,6 +545,7 @@ public class HatchServiceImpl implements HatchService {
                     jsonObject.put("allowincrease", asset.getAllowincrease());
                     jsonObject.put("coinHash", Hex.encodeHexString(coinHash));
                     jsonObject.put("coinHash160", Hex.encodeHexString(RipemdUtility.ripemd160(coinHash)));
+                    jsonObject.put("createdAt", map.get("createdAt"));
                     jsonArray.add(jsonObject);
                 }
             }
@@ -724,6 +725,7 @@ public class HatchServiceImpl implements HatchService {
                     jsonObject.put("fromAddress", KeystoreAction.pubkeyToAddress(from, (byte) 0x00, ""));
                     jsonObject.put("coinHash", Hex.encodeHexString(coinHash));
                     jsonObject.put("coinHash160", Hex.encodeHexString(RipemdUtility.ripemd160(coinHash)));
+                    jsonObject.put("createdAt", map.get("createdAt"));
                     jsonObject.remove("tradeHash");
                     jsonArray.add(jsonObject);
                 }
@@ -869,6 +871,15 @@ public class HatchServiceImpl implements HatchService {
             }
         }
         return APIResult.newSuccess(jsonArray);
+    }
+
+    @Override
+    public APIResult getCreatedAT(long height) {
+        Block block = wisdomBlockChain.getHeaderByHeight(height);
+        if (block == null) {
+            return APIResult.newFailed("Unknown block height");
+        }
+        return APIResult.newSuccess(block.nTime);
     }
 
     public long getAmount(JSONObject jsonObject) {
