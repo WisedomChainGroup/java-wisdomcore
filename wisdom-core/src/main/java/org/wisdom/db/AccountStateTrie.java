@@ -105,10 +105,11 @@ public class AccountStateTrie extends StateTrieAdapter<AccountState> {
 
         if (block.accountStateTrieRoot == null || block.accountStateTrieRoot.length == 0 || (FastByteComparisons.equal(newRoot, block.accountStateTrieRoot))) {
             tmp.flush();
-            for (Transaction tx : block.body) {
+            for (Transaction tx : block.body.subList(1, block.body.size())) {
                 WASMResult re = results.get(tx.getHash());
                 WebSocket.broadcastIncluded(tx, block.nHeight, block.getHash(), re.getGasUsed(), re.getReturns(), re.getWASMEvents());
             }
+            getRootStore().put(block.getHash(), newRoot);
             return newRoot;
         }
 
