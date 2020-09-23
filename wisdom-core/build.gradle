@@ -16,7 +16,7 @@ buildscript {
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
             }
         }
-        maven { url "http://repo.springsource.org/plugins-release" }
+        maven { url "https://repo.springsource.org/plugins-release" }
         jcenter()
         mavenCentral()
     }

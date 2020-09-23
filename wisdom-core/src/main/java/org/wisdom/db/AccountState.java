@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.codec.binary.Hex;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.ByteArrayMapStore;
@@ -33,6 +34,7 @@ public class AccountState {
     @RLP(3)
     private int type;//0是普通地址,1是合约代币，2是多重签名,3是锁定时间哈希,4是锁定高度哈希,5是定额条件比例支付,6是 wasm 合约
     @RLP(4)
+    @JsonIgnore
     private byte[] Contract;//合约RLP //
     @RLP(5)
     @RLPDecoding(as = ByteArrayMap.class)
@@ -91,6 +93,7 @@ public class AccountState {
         this.type = type;
     }
 
+    @JsonIgnore
     public byte[] getContract() {
         return Contract;
     }
@@ -132,6 +135,7 @@ public class AccountState {
         return accountState;
     }
 
+    @JsonIgnore
     public WASMContract getWASMContract() {
         return RLPCodec.decode(this.Contract, WASMContract.class);
     }
