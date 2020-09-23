@@ -376,6 +376,7 @@ public class TransactionTestTool {
         public int code;
         public String message;
         public Object data;
+        public Object success;
     }
 
     private static class GetNonceResponse {

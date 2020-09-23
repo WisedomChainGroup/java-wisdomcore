@@ -110,8 +110,8 @@ public class Miner implements ApplicationListener {
 
     private boolean allowEmptyBlock;
 
-    public Miner(@Value("miner.allow-empty-block") String aeb) {
-        allowEmptyBlock = aeb == null || aeb.isEmpty() || "false".equals(aeb.toLowerCase().trim());
+    public Miner(@Value("${miner.allow-empty-block}") String aeb) {
+        allowEmptyBlock = aeb == null || aeb.isEmpty() || !"false".equals(aeb.toLowerCase().trim());
     }
 
     private Transaction createCoinBase(long height) throws Exception {
