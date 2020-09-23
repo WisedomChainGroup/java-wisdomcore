@@ -198,10 +198,7 @@ public class Block implements Header{
 
     @JsonProperty("blockHash")
     public byte[] getHash() {
-        if (hashCache == null) {
-            hashCache = HashUtil.keccak256(getHeaderRaw());
-        }
-        return hashCache;
+        return reHash();
     }
 
     public byte[] reHash() {
