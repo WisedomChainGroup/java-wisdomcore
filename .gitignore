@@ -68,3 +68,5 @@ local-*
 # storage for state trie
 state-db
 fast_sync
+
+.vscode
