@@ -87,7 +87,7 @@ public class AccountStateUpdater {
                 AccountState createdBy = store.get(transaction.getFromPKHash());
 
                 // 校验 nonce
-                if(createdBy.getNonce() + 1  != transaction.nonce)
+                if (createdBy.getNonce() + 1 != transaction.nonce)
                     throw new RuntimeException("nonce is too small");
 
                 createdBy.setNonce(transaction.nonce);
@@ -130,7 +130,7 @@ public class AccountStateUpdater {
                 AccountState originAccount = store.get(transaction.getFromPKHash());
 
                 // 校验 nonce
-                if(originAccount.getNonce() + 1  != transaction.nonce)
+                if (originAccount.getNonce() + 1 != transaction.nonce)
                     throw new RuntimeException("nonce is too small");
 
                 originAccount.setNonce(transaction.nonce);
@@ -534,6 +534,9 @@ public class AccountStateUpdater {
         from.setNonce(tx.nonce);
         from.setBlockHeight(height);
         Map<byte[], Long> quotaMap = from.getQuotaMap();
+        if (quotaMap == null) {
+            quotaMap = new ByteArrayMap<>();
+        }
         if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
             from.subBalance(rateheightlockDeposit.getValue());
         } else {
@@ -893,7 +896,7 @@ public class AccountStateUpdater {
     }
 
     @SneakyThrows
-    private void updateIncubate(Transaction tx, Map<byte[], AccountState> store, long height){
+    private void updateIncubate(Transaction tx, Map<byte[], AccountState> store, long height) {
         HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tx.payload);
         int days = payloadproto.getType();
         String sharpub = payloadproto.getSharePubkeyHash();
