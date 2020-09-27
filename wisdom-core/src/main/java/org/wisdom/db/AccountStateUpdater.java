@@ -470,26 +470,16 @@ public class AccountStateUpdater {
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
         from.setBlockHeight(height);
-        if (Arrays.equals(tx.getFromPKHash(), rateheightlockWithdraw.getTo())) {//from和to一致
-            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                from.addBalance(amount);
-            } else {
-                Map<byte[], Long> tokensMap = from.getTokensMap();
-                long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
-                tokenbalance += amount;
-                tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
-                from.setTokensMap(tokensMap);
-            }
-        }
         Map<byte[], Long> quotaMap = from.getQuotaMap();
         long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
         quotabalance -= amount;
         quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
         from.setQuotaMap(quotaMap);
+        store.put(tx.getFromPKHash(), from);
         //to
         AccountState to = store.getOrDefault(rateheightlockWithdraw.getTo(), new AccountState(rateheightlockWithdraw.getTo()));
         if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-            to.subBalance(amount);
+            to.addBalance(amount);
         } else {
             Map<byte[], Long> tokensMap = to.getTokensMap();
             long tokenbalance = 0;
@@ -519,7 +509,6 @@ public class AccountStateUpdater {
             rateheightlock.setStateMap(statMap);
         }
         contract.setContract(rateheightlock.RLPserialization());
-        store.put(tx.getFromPKHash(), from);
         store.put(rateheightlockWithdraw.getTo(), to);
         store.put(tx.to, contract);
     }
