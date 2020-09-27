@@ -350,13 +350,13 @@ public class AccountStateUpdater {
 
     private void updateTransfer(Transaction tx, Map<byte[], AccountState> states, long height) {
         AccountState from = states.get(tx.getFromPKHash());
-        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         from.subBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
+        states.put(from.getPubkeyHash(), from);
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         to.addBalance(tx.amount);
         to.setBlockHeight(height);
-        states.put(from.getPubkeyHash(), from);
         states.put(to.getPubkeyHash(), to);
     }
 
@@ -1150,15 +1150,14 @@ public class AccountStateUpdater {
 
     private void updateCancelVote(Transaction tx, Map<byte[], AccountState> store, long height) {
         AccountState from = store.get(tx.getFromPKHash());
-        AccountState to = store.get(tx.to);
-
         from.addBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
         from.setBlockHeight(height);
+        store.put(from.getPubkeyHash(), from);
+        AccountState to = store.get(tx.to);
         to.subVote(tx.amount);
         to.setBlockHeight(height);
-        store.put(from.getPubkeyHash(), from);
         store.put(to.getPubkeyHash(), to);
     }
 
