@@ -362,14 +362,14 @@ public class AccountStateUpdater {
 
     private void updateVote(Transaction tx, Map<byte[], AccountState> states, long height) {
         AccountState from = states.get(tx.getFromPKHash());
-        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         from.subBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setBlockHeight(height);
         from.setNonce(tx.nonce);
+        states.put(from.getPubkeyHash(), from);
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         to.addVote(tx.amount);
         to.setBlockHeight(height);
-        states.put(from.getPubkeyHash(), from);
         states.put(to.getPubkeyHash(), to);
     }
 
