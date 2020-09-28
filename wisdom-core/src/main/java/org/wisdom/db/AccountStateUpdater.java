@@ -350,26 +350,26 @@ public class AccountStateUpdater {
 
     private void updateTransfer(Transaction tx, Map<byte[], AccountState> states, long height) {
         AccountState from = states.get(tx.getFromPKHash());
-        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         from.subBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
+        states.put(from.getPubkeyHash(), from);
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         to.addBalance(tx.amount);
         to.setBlockHeight(height);
-        states.put(from.getPubkeyHash(), from);
         states.put(to.getPubkeyHash(), to);
     }
 
     private void updateVote(Transaction tx, Map<byte[], AccountState> states, long height) {
         AccountState from = states.get(tx.getFromPKHash());
-        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         from.subBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setBlockHeight(height);
         from.setNonce(tx.nonce);
+        states.put(from.getPubkeyHash(), from);
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         to.addVote(tx.amount);
         to.setBlockHeight(height);
-        states.put(from.getPubkeyHash(), from);
         states.put(to.getPubkeyHash(), to);
     }
 
@@ -470,26 +470,16 @@ public class AccountStateUpdater {
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
         from.setBlockHeight(height);
-        if (Arrays.equals(tx.getFromPKHash(), rateheightlockWithdraw.getTo())) {//from和to一致
-            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                from.addBalance(amount);
-            } else {
-                Map<byte[], Long> tokensMap = from.getTokensMap();
-                long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
-                tokenbalance += amount;
-                tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
-                from.setTokensMap(tokensMap);
-            }
-        }
         Map<byte[], Long> quotaMap = from.getQuotaMap();
         long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
         quotabalance -= amount;
         quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
         from.setQuotaMap(quotaMap);
+        store.put(tx.getFromPKHash(), from);
         //to
         AccountState to = store.getOrDefault(rateheightlockWithdraw.getTo(), new AccountState(rateheightlockWithdraw.getTo()));
         if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-            to.subBalance(amount);
+            to.addBalance(amount);
         } else {
             Map<byte[], Long> tokensMap = to.getTokensMap();
             long tokenbalance = 0;
@@ -519,7 +509,6 @@ public class AccountStateUpdater {
             rateheightlock.setStateMap(statMap);
         }
         contract.setContract(rateheightlock.RLPserialization());
-        store.put(tx.getFromPKHash(), from);
         store.put(rateheightlockWithdraw.getTo(), to);
         store.put(tx.to, contract);
     }
@@ -1161,15 +1150,14 @@ public class AccountStateUpdater {
 
     private void updateCancelVote(Transaction tx, Map<byte[], AccountState> store, long height) {
         AccountState from = store.get(tx.getFromPKHash());
-        AccountState to = store.get(tx.to);
-
         from.addBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
         from.setBlockHeight(height);
+        store.put(from.getPubkeyHash(), from);
+        AccountState to = store.get(tx.to);
         to.subVote(tx.amount);
         to.setBlockHeight(height);
-        store.put(from.getPubkeyHash(), from);
         store.put(to.getPubkeyHash(), to);
     }
 
