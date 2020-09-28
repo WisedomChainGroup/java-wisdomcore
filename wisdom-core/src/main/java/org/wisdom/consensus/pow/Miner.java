@@ -121,6 +121,12 @@ public class Miner implements ApplicationListener {
         return tx;
     }
 
+    private Trie<byte[], AccountState> getTempTrie(byte[] root){
+        return accountStateTrie
+                .getTrie()
+                .revert(root);
+    }
+
     private Block createBlock() throws Exception {
         Block parent = repository.getBestBlock();
         Block block = new Block();
@@ -144,11 +150,9 @@ public class Miner implements ApplicationListener {
         // 校验官方孵化余额
         List<Transaction> newTranList = officialIncubateBalanceRule.validateTransaction(notWrittern, parent.getHash());
 
-        Trie<byte[], AccountState> tmp = accountStateTrie
-                .getTrie()
-                .revert(accountStateTrie.getRootStore().get(parent.getHash()).get());
+        byte[] tmpRoot = accountStateTrie.getRootStore().get(parent.getHash()).get();
 
-        List<Transaction> wasmList = wasmtxPool.popPackable(new PrevNonceWrapper(newTranList, tmp.asMap()), -1);
+        List<Transaction> wasmList = wasmtxPool.popPackable(new PrevNonceWrapper(newTranList, getTempTrie(tmpRoot).asMap()), -1);
         if(newTranList == null){
             newTranList = wasmList;
         }else{
@@ -174,21 +178,25 @@ public class Miner implements ApplicationListener {
             }
             // 校验事务
             try{
+                Trie<byte[], AccountState> tmp = getTempTrie(tmpRoot);
                 WASMResult res = accountStateTrie.update(tmp, block, tx);
+                tmpRoot = tmp.commit();
                 block.body.get(0).amount += res.getGasUsed() * tx.gasPrice;
                 results.put(tx.getHash(), res);
                 included.put(tx.getHash(), tx);
                 block.body.add(tx);
             }catch (Exception e){
                 e.printStackTrace();
+                WebSocket.broadcastDrop(tx, e.getMessage());
             }
 
         }
 
         // 更新 coinbase
-        accountStateTrie.update(tmp, block, block.body.get(0));
-        block.accountStateTrieRoot = tmp.commit();
-        tmp.flush();
+        Trie<byte[], AccountState> trie = getTempTrie(tmpRoot);
+        accountStateTrie.update(trie, block, block.body.get(0));
+        block.accountStateTrieRoot = trie.commit();
+        trie.flush();
         accountStateTrie.getRootStore().put(block.getHash(), block.accountStateTrieRoot);
 
         block.body.get(0).setHashCache(
