@@ -345,6 +345,7 @@ public class AccountStateUpdater {
     private void updateCoinBase(Transaction tx, Map<byte[], AccountState> states, long height) {
         AccountState toAccount = states.getOrDefault(tx.to, new AccountState(tx.to));
         toAccount.addBalance(tx.amount);
+        toAccount.setBlockHeight(height);
         states.put(toAccount.getPubkeyHash(), toAccount);
     }
 
