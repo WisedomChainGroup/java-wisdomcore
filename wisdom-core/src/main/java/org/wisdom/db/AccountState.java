@@ -137,6 +137,9 @@ public class AccountState {
 
     @JsonIgnore
     public WASMContract getWASMContract() {
+        if (this.Contract.length == 0) {
+            return new WASMContract();
+        }
         return RLPCodec.decode(this.Contract, WASMContract.class);
     }
 
