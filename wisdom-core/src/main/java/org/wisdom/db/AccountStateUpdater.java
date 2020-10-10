@@ -29,10 +29,7 @@ import org.wisdom.contract.RateheightlockDefinition.Extract;
 import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockWithdraw;
-import org.wisdom.core.Block;
-import org.wisdom.core.DB;
-import org.wisdom.core.Header;
-import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.*;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
@@ -855,6 +852,7 @@ public class AccountStateUpdater {
         tokenbalance -= assetTransfer.getValue();
         tokensmap.put(tx.to, tokenbalance);
         from.setTokensMap(tokensmap);
+        store.put(tx.getFromPKHash(), from);
         //to
         AccountState to = store.getOrDefault(assetTransfer.getTo(), new AccountState(assetTransfer.getTo()));
         Map<byte[], Long> tokensmapTo = to.getTokensMap();
@@ -865,7 +863,6 @@ public class AccountStateUpdater {
         balance += assetTransfer.getValue();
         tokensmapTo.put(tx.to, balance);
         to.setTokensMap(tokensmapTo);
-        store.put(tx.getFromPKHash(), from);
         store.put(assetTransfer.getTo(), to);
     }
 
@@ -921,7 +918,9 @@ public class AccountStateUpdater {
             store.put(sharepublic, share);
         }
         store.put(tx.getFromPKHash(), from);
-        store.put(IncubatorAddress.resultpubhash(), incubatorTotal);
+        if (sharpub == null || sharpub.equals("")) {
+            store.put(IncubatorAddress.resultpubhash(), incubatorTotal);
+        }
     }
 
     public Map<byte[], AccountState> getGenesisStates() {

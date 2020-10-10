@@ -131,6 +131,11 @@ public class TransactionCheck {
                 apiResult.setMessage("Hatching transactions have been disabled");
                 return apiResult;
             }
+            if (type[0] == Transaction.Type.DEPOSIT.ordinal()) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Deposit transactions have been disabled");
+                return apiResult;
+            }
             if (Transaction.TYPE_MAX >= type[0] && type[0] >= 0) {
                 gas = Transaction.GAS_TABLE[type[0]];
             } else {
