@@ -354,6 +354,7 @@ public class AccountStateUpdater {
         from.subBalance(tx.amount);
         from.subBalance(tx.getFee());
         from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
         states.put(from.getPubkeyHash(), from);
         AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
         to.addBalance(tx.amount);
