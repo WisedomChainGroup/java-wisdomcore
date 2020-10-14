@@ -219,8 +219,8 @@ public class ContractCall {
 
         // transfer amount from origin account to contract account
         if (!readonly) {
-            originAccount.setBalance(SafeMath.sub(originAccount.getBalance(), amount.longValue()));
-            contractAccount.setBalance(SafeMath.add(originAccount.getBalance(), amount.longValue()));
+            originAccount.subBalance(amount.longValue());
+            contractAccount.addBalance(amount.longValue());
             states.put(contractAccount.getPubkeyHash(), contractAccount);
             states.put(originAccount.getPubkeyHash(), originAccount);
         }

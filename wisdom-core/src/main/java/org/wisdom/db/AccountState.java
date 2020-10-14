@@ -202,7 +202,7 @@ public class AccountState {
         return account.getBalance();
     }
 
-    public void setBalance(long balance) {
+    private void setBalance(long balance) {
         account.setBalance(balance);
     }
 
