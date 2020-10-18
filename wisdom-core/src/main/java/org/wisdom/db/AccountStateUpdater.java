@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Setter
 // TODO: make omit branch unreachable
 public class AccountStateUpdater {
+    public static final String[] METHOD_BLACK_LIST = {"__alloc", "__retain", "__release", "__collect", "__rtti_base", "init"};
 
     @Autowired
     private RateTable rateTable;
@@ -140,6 +141,10 @@ public class AccountStateUpdater {
 
                 ContractCallPayload callPayload = RLPCodec.decode(transaction.payload, ContractCallPayload.class);
 
+                for (String s : METHOD_BLACK_LIST) {
+                    if(callPayload.getMethod().equals(s))
+                        throw new RuntimeException("call native method " + s + " is not allowed");
+                }
                 // execute method
                 Limit limit = new Limit(0, 0, callPayload.getGasLimit(), transaction.payload.length / 1024);
                 ContractCall contractCall = new ContractCall(

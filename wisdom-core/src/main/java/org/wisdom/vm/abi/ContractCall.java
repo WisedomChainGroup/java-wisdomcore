@@ -29,7 +29,6 @@ import static org.wisdom.vm.Constants.PK_HASH_SIZE;
 
 @Getter
 public class ContractCall {
-
     private final Map<byte[], AccountState> states;
     private final Header header;
     private final Transaction transaction;
