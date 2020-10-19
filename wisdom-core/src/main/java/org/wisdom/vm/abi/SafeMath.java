@@ -29,4 +29,33 @@ public class SafeMath {
             throw new RuntimeException("math overflow");
         return z;
     }
+
+    public static void main(String[] args) {
+        // 加法溢出
+        assertException(() -> {
+            add(1, Long.MAX_VALUE);
+        });
+        assertException(() -> {
+            add(Long.MAX_VALUE, 1);
+        });
+        // 减法溢出
+        assertException(() -> {
+            sub(1, 2);
+        });
+        // 乘法溢出
+        assertException(() -> {
+            mul(Long.MAX_VALUE/2 + 1, 2);
+        });
+    }
+
+    public static void assertException(Runnable r){
+        Exception e0 = null;
+        try{
+            r.run();
+        }catch (Exception e){
+            e0 = e;
+        }
+        if(e0 == null)
+            throw new RuntimeException("assert failed");
+    }
 }

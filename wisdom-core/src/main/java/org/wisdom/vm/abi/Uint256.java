@@ -78,6 +78,7 @@ public class Uint256 {
     private final byte[] data;
     public static final Uint256 ZERO = new Uint256(new byte[32]);
     public static final Uint256 ONE = of((byte) 1);
+    public static final Uint256 MAX_U256 = Uint256.of(HexBytes.decode("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
 
     public static Uint256 of(String pattern, int radix) {
         BigInteger i = new BigInteger(pattern, radix);
@@ -215,9 +216,8 @@ public class Uint256 {
 
     // TODO: improve with no BigInteger
     public Uint256 div(Uint256 word) {
-
         if (word.isZero()) {
-            return ZERO;
+            throw new RuntimeException("divided by zero");
         }
 
         BigInteger result = value().divide(word.value());
@@ -287,5 +287,34 @@ public class Uint256 {
 
     public long longValue(){
         return value().longValueExact();
+    }
+
+    public static void main(String[] args) {
+        // 加法溢出
+        assertException(() -> {
+            MAX_U256.safeAdd(ONE);
+        });
+        assertException(() -> {
+            ONE.safeAdd(MAX_U256);
+        });
+        // 减法溢出
+        assertException(() -> {
+            ONE.safeSub(Uint256.of(2));
+        });
+        // 乘法溢出
+        assertException(() -> {
+            MAX_U256.safeMul(Uint256.of(2));
+        });
+    }
+
+    public static void assertException(Runnable r){
+        Exception e0 = null;
+        try{
+            r.run();
+        }catch (Exception e){
+            e0 = e;
+        }
+        if(e0 == null)
+            throw new RuntimeException("assert failed");
     }
 }
