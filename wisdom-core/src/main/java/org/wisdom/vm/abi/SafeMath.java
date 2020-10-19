@@ -14,7 +14,7 @@ public class SafeMath {
         if (x < 0 || y < 0)
             throw new RuntimeException("math overflow");
         long z = x - y;
-        if (z > x || z > y || z < 0)
+        if (z > x || z < 0)
             throw new RuntimeException("math overflow");
         return z;
     }
