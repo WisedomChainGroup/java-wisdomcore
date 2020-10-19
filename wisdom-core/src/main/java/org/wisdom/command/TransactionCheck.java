@@ -122,6 +122,11 @@ public class TransactionCheck {
             //gasPrice
             byte[] gasbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
             long gasPrice = BigEndian.decodeUint64(gasbyte);
+            if ((type[0] == Transaction.Type.WASM_DEPLOY.ordinal() || type[0] == Transaction.Type.WASM_CALL.ordinal()) && gasPrice < 200000) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Gasprice cannot be lower than 200000");
+                return apiResult;
+            }
             //gas
             long gas = 0;
             //hatch disabled
@@ -129,6 +134,11 @@ public class TransactionCheck {
             if (nowheight > 1305500 && type[0] == 9) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Hatching transactions have been disabled");
+                return apiResult;
+            }
+            if (nowheight > 3868529 && (type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal() || type[0] == Transaction.Type.CALL_CONTRACT.ordinal())) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Old contract transactions have been disabled");
                 return apiResult;
             }
             if (type[0] == Transaction.Type.DEPOSIT.ordinal()) {
