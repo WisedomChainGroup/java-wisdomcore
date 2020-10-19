@@ -82,7 +82,10 @@ public class AccountStateUpdater {
         Transaction.Type t = Transaction.Type.values()[transaction.type];
         switch (t) {
             case WASM_DEPLOY: {
-                AccountState createdBy = store.get(transaction.getFromPKHash());
+                AccountState createdBy = store.getOrDefault(
+                        transaction.getFromPKHash(),
+                        new AccountState(transaction.getFromPKHash())
+                );
 
                 // 校验 nonce
                 if (createdBy.getNonce() + 1 != transaction.nonce)
@@ -125,7 +128,10 @@ public class AccountStateUpdater {
                 return ret;
             }
             case WASM_CALL: {
-                AccountState originAccount = store.get(transaction.getFromPKHash());
+                AccountState originAccount = store.getOrDefault(
+                        transaction.getFromPKHash(),
+                        new AccountState(transaction.getFromPKHash())
+                );
 
                 // 校验 nonce
                 if (originAccount.getNonce() + 1 != transaction.nonce)
