@@ -114,7 +114,7 @@ public class WebSocket {
                         new Transaction[]{msg.getBody().get(1).as(Transaction.class)};
                 for (Transaction tx : txs) {
                     APIResult res = transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
-                    if(res.isSuccess()){
+                    if(res.getCode() == APIResult.SUCCESS){
                         this.wasmtxPool.collect(Collections.singleton(tx));
                         transactionHandler.broadcastTransactions(Collections.singletonList(tx));
                         broadcastPendingOrConfirm(tx, Transaction.Status.PENDING);

@@ -77,9 +77,4 @@ public class APIResult<T> extends ResultSupport {
         apiResult.setMessage("SUCCESS");
         return apiResult;
     }
-
-    @JsonIgnore
-    public boolean isSuccess(){
-        return getCode() == SUCCESS;
-    }
 }
