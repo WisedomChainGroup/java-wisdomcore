@@ -18,6 +18,8 @@
 
 package org.wisdom.ApiResult;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class APIResult<T> extends ResultSupport {
     public static int FAIL = 5000;
     public static int SUCCESS = 2000;
@@ -76,6 +78,7 @@ public class APIResult<T> extends ResultSupport {
         return apiResult;
     }
 
+    @JsonIgnore
     public boolean isSuccess(){
         return getCode() == SUCCESS;
     }
