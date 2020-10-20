@@ -290,21 +290,39 @@ public class Uint256 {
     }
 
     public static void main(String[] args) {
+        // 正常加法
+        assertTrue(MAX_U256.safeAdd(Uint256.ZERO).equals(MAX_U256));
+        assertTrue(Uint256.ZERO.safeAdd(MAX_U256).equals(MAX_U256));
+        assertTrue(MAX_U256.safeSub(Uint256.ONE).safeAdd(Uint256.ONE).equals(MAX_U256));
+        assertTrue(Uint256.ZERO.safeAdd(Uint256.ZERO).equals(Uint256.ZERO));
+        assertTrue(Uint256.ZERO.safeAdd(Uint256.ONE).equals(Uint256.ONE));
+        assertTrue(Uint256.ONE.safeAdd(Uint256.ZERO).equals(Uint256.ONE));
+        assertTrue(Uint256.ONE.safeAdd(Uint256.ONE).equals(Uint256.of(2)));
+
         // 加法溢出
-        assertException(() -> {
-            MAX_U256.safeAdd(ONE);
-        });
-        assertException(() -> {
-            ONE.safeAdd(MAX_U256);
-        });
+        assertException(() -> Uint256.ONE.safeAdd(Uint256.MAX_U256));
+        assertException(() -> Uint256.MAX_U256.safeAdd(Uint256.ONE));
+        assertException(() -> Uint256.MAX_U256.safeSub(Uint256.ONE).safeAdd(Uint256.of(2)));
+
+        // 普通减法
+        assertTrue(Uint256.ONE.safeSub(Uint256.ZERO).equals(Uint256.ONE));
+        assertException(() -> Uint256.ZERO.safeSub(Uint256.ONE));
+        assertTrue(Uint256.MAX_U256.safeSub(Uint256.ONE).equals(Uint256.of("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe", 16)));
+        assertTrue(Uint256.MAX_U256.safeSub(Uint256.ZERO).equals(Uint256.MAX_U256));
+
         // 减法溢出
-        assertException(() -> {
-            ONE.safeSub(Uint256.of(2));
-        });
+        assertException(() -> Uint256.ONE.safeSub(Uint256.of(2)));
+
+
+        assertTrue(Uint256.ONE.safeMul(Uint256.ONE).equals(Uint256.ONE));
+        assertTrue(Uint256.MAX_U256.safeMul(Uint256.ONE).equals(Uint256.MAX_U256));
+        assertTrue(Uint256.MAX_U256.safeMul(Uint256.ZERO).equals(Uint256.ZERO));
+
         // 乘法溢出
-        assertException(() -> {
-            MAX_U256.safeMul(Uint256.of(2));
-        });
+        assertException(() -> Uint256.MAX_U256.div(Uint256.of(2)).add(Uint256.ONE).safeMul(Uint256.of(2)));
+
+        // 除法溢出
+        assertException(() -> Uint256.ONE.div(Uint256.ZERO));
     }
 
     public static void assertException(Runnable r){
@@ -315,6 +333,11 @@ public class Uint256 {
             e0 = e;
         }
         if(e0 == null)
+            throw new RuntimeException("assert failed");
+    }
+
+    public static void assertTrue(boolean b){
+        if(!b)
             throw new RuntimeException("assert failed");
     }
 }
