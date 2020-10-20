@@ -65,18 +65,7 @@ public class CoinbaseRule implements BlockRule, TransactionRule {
         }
 
         long fees = 0;
-        // the block body contains at most one coin base transaction
-        for (int i = 1; i < block.body.size(); i++) {
-            fees += block.body.get(i).getFee();
-            if (block.body.get(i).type == Transaction.Type.COINBASE.ordinal()) {
-                return Result.Error("a block contains at most one coin base ");
-            }
-        }
 
-        // check amount = consensus amount + fees
-        if (coinbase.amount != economicModel.getConsensusRewardAtHeight1(block.nHeight) + fees) {
-            return Result.Error("amount not equals to consensus reward plus fees");
-        }
         return Result.SUCCESS;
     }
 

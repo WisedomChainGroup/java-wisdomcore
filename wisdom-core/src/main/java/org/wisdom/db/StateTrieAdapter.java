@@ -1,7 +1,5 @@
 package org.wisdom.db;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.tdf.common.serialize.Codec;
@@ -9,7 +7,6 @@ import org.tdf.common.store.*;
 import org.tdf.common.trie.ReadOnlyTrie;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
-import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
@@ -45,7 +42,23 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         return rootStore.get(blockHash);
     }
 
-    public StateTrieAdapter(Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis, DatabaseStoreFactory factory, boolean logDeletes, boolean reset) {
+    public StateTrieAdapter(
+            Class<T> clazz, Map<byte[], T> genesisState,
+            Block genesis, DatabaseStoreFactory factory,
+            boolean logDeletes, boolean reset
+    ) {
+        this(clazz, genesisState, genesis, factory, logDeletes, reset, null);
+    }
+
+    public StateTrieAdapter(
+            Class<T> clazz,
+            Map<byte[], T> genesisStates,
+            Block genesis,
+            DatabaseStoreFactory factory,
+            boolean logDeletes,
+            boolean reset,
+            AbstractStateUpdater<T> updater
+    ) {
         TRIE = getPrefix() + "-trie";
         DELETED = getPrefix() + "-deleted";
         ROOTS = getPrefix() + "-trie-roots";
@@ -71,7 +84,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 trie
                         .revert(trie.getNullHash(), new CachedStore<>(trieStore, ByteArrayMap::new));
 
-        updater.getGenesisStates().forEach(tmp::put);
+        genesisStates.forEach(tmp::put);
         byte[] root = tmp.commit();
         tmp.flush();
         rootStore.put(genesis.getHash(), root);
@@ -108,7 +121,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                 .get(blockHash)
                 .orElseThrow(RuntimeException::new);
 
-        return  this.getTrieByRootHash(root);
+        return this.getTrieByRootHash(root);
 
     }
 

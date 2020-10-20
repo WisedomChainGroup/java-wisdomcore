@@ -1,10 +1,7 @@
 package org.wisdom.db;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.ByteArraySet;
 import org.tdf.common.util.HexBytes;
+import org.tdf.rlp.RLPCodec;
 import org.wisdom.command.Configuration;
 import org.wisdom.command.IncubatorAddress;
 import org.wisdom.consensus.pow.EconomicModel;
@@ -31,8 +29,7 @@ import org.wisdom.contract.RateheightlockDefinition.Extract;
 import org.wisdom.contract.RateheightlockDefinition.Rateheightlock;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockDeposit;
 import org.wisdom.contract.RateheightlockDefinition.RateheightlockWithdraw;
-import org.wisdom.core.Block;
-import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.*;
 import org.wisdom.core.account.Account;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.Incubator;
@@ -44,14 +41,18 @@ import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
 import org.wisdom.util.Address;
 import org.wisdom.util.ByteUtil;
+import org.wisdom.vm.abi.*;
+import org.wisdom.vm.hosts.Limit;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 @Setter
 // TODO: make omit branch unreachable
-public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
+public class AccountStateUpdater {
+    public static final String[] METHOD_BLACK_LIST = {"__alloc", "__retain", "__release", "__collect", "__rtti_base", "init"};
 
     @Autowired
     private RateTable rateTable;
@@ -69,52 +70,165 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
 
     private static final byte[] twentyBytes = new byte[20];
 
-    @Override
-    public AccountState update(Map<byte[], AccountState> related, byte[] id, AccountState state, TransactionInfo info) {
-        return updateOne(info, state.copy(), related);
+    public WASMResult update(DB db, Header header, Transaction tx) {
+        return updateOne(db, header, tx);
     }
 
-    public AccountState updateOne(TransactionInfo info, AccountState accountState, Map<byte[], AccountState> store) {
-        Transaction transaction = info.getTransaction();
-        long height = info.getHeight();
+    public WASMResult updateOne(
+            DB db, Header header, Transaction transaction) {
+        Map<byte[], AccountState> store = db.getAccountStore();
+        long height = header.getnHeight();
         transaction.height = height;
-        try {
-            switch (transaction.type) {
-                case 0x00://coinbase
-                    return updateCoinBase(transaction, accountState, height);
-                case 0x01://TRANSFER
-                    return updateTransfer(transaction, accountState, height);
-                case 0x02://VOTE
-                    return updateVote(transaction, accountState, height);
-                case 0x03://DEPOSIT
-                    return updateDeposit(transaction, accountState, height);
-                case 0x07://DEPLOY_CONTRACT
-                    return updateDeployContract(transaction, accountState, height);
-                case 0x08://CALL_CONTRACT
-                    return updateCallContract(transaction, accountState, height, store);
-                case 0x09://INCUBATE
-                    return updateIncubate(transaction, accountState, height);
-                case 0x0a://EXTRACT_INTEREST
-                    return updateExtractInterest(transaction, accountState, height);
-                case 0x0b://EXTRACT_SHARING_PROFIT
-                    return updateExtractShare(transaction, accountState, height);
-                case 0x0c://EXTRACT_COST
-                    return updateExtranctCost(transaction, accountState, height);
-                case 0x0d://EXIT_VOTE
-                    return updateCancelVote(transaction, accountState, height);
-                case 0x0e://MORTGAGE
-                    return updateMortgage(transaction, accountState, height);
-                case 0x0f://EXTRACT_MORTGAGE
-                    return updateCancelMortgage(transaction, accountState, height);
-                default:
-                    throw new Exception("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
+        Transaction.Type t = Transaction.Type.values()[transaction.type];
+        switch (t) {
+            case WASM_DEPLOY: {
+                AccountState createdBy = store.getOrDefault(
+                        transaction.getFromPKHash(),
+                        new AccountState(transaction.getFromPKHash())
+                );
+
+                // 校验 nonce
+                if (createdBy.getNonce() + 1 != transaction.nonce)
+                    throw new RuntimeException("nonce is too small");
+
+                createdBy.setNonce(transaction.nonce);
+                store.put(createdBy.getPubkeyHash(), createdBy);
+
+
+                ContractDeployPayload contractDeployPayload =
+                        RLPCodec.decode(transaction.payload, ContractDeployPayload.class);
+
+                Limit limit = new Limit(0, 0, contractDeployPayload.getGasLimit(), transaction.payload.length / 1024);
+
+                // execute constructor of contract
+                ContractCall contractCall = new ContractCall(
+                        store, header,
+                        transaction, root -> db.getStorageTrie().revert(root), db.getContractCodeStore(),
+                        limit, 0, transaction.getFromPKHash(),
+                        false, new AtomicInteger()
+                );
+
+                WASMResult ret = contractCall.call(
+                        contractDeployPayload.getBinary(),
+                        "init",
+                        contractDeployPayload.getParameters(),
+                        Uint256.of(transaction.amount),
+                        false,
+                        contractDeployPayload.getContractABIs()
+                );
+
+
+                // restore from map
+                createdBy = store.get(transaction.getFromPKHash());
+
+                // estimate gas
+                Uint256 fee = Uint256.of(limit.getGas()).safeMul(Uint256.of(transaction.gasPrice));
+                createdBy.subBalance(fee.longValue());
+                store.put(createdBy.getPubkeyHash(), createdBy);
+                return ret;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            case WASM_CALL: {
+                AccountState originAccount = store.getOrDefault(
+                        transaction.getFromPKHash(),
+                        new AccountState(transaction.getFromPKHash())
+                );
+
+                // 校验 nonce
+                if (originAccount.getNonce() + 1 != transaction.nonce)
+                    throw new RuntimeException("nonce is too small");
+
+                originAccount.setNonce(transaction.nonce);
+                store.put(originAccount.getPubkeyHash(), originAccount);
+
+                AccountState contractAccount = store.get(transaction.to);
+                if (contractAccount == null) {
+                    throw new RuntimeException("contract " + HexBytes.fromBytes(transaction.to) + " not found");
+                }
+
+                ContractCallPayload callPayload = RLPCodec.decode(transaction.payload, ContractCallPayload.class);
+
+                for (String s : METHOD_BLACK_LIST) {
+                    if(callPayload.getMethod().equals(s))
+                        throw new RuntimeException("call native method " + s + " is not allowed");
+                }
+                // execute method
+                Limit limit = new Limit(0, 0, callPayload.getGasLimit(), transaction.payload.length / 1024);
+                ContractCall contractCall = new ContractCall(
+                        store, header,
+                        transaction, root -> db.getStorageTrie().revert(root),
+                        db.getContractCodeStore(),
+                        limit, 0, transaction.getFromPKHash(),
+                        false, new AtomicInteger()
+                );
+
+                WASMResult result = contractCall.call(
+                        contractAccount.getPubkeyHash(),
+                        callPayload.getMethod(),
+                        callPayload.getParameters(),
+                        Uint256.of(transaction.amount),
+                        false,
+                        null
+                );
+
+                contractAccount = store.get(transaction.to);
+                AccountState caller = store.get(transaction.getFromPKHash());
+
+                Uint256 fee = Uint256.of(limit.getGas()).safeMul(Uint256.of(transaction.gasPrice));
+                caller.subBalance(fee.longValue());
+                store.put(contractAccount.getPubkeyHash(), contractAccount);
+                store.put(caller.getPubkeyHash(), caller);
+                return result;
+            }
+        }
+        long gas = Transaction.GAS_TABLE[transaction.type];
+        WASMResult empty = WASMResult.empty(gas);
+
+        switch (transaction.type) {
+            case 0x00://coinbase
+                updateCoinBase(transaction, store, height);
+                return empty;
+            case 0x01://TRANSFER
+                updateTransfer(transaction, store, height);
+                return empty;
+            case 0x02://VOTE
+                updateVote(transaction, store, height);
+                return empty;
+            case 0x03://DEPOSIT
+                updateDeposit(transaction, store, height);
+                return empty;
+            case 0x07://DEPLOY_CONTRACT
+                updateDeployContract(transaction, store, height);
+                return empty;
+            case 0x08://CALL_CONTRACT
+                updateCallContract(transaction, store, height);
+                return empty;
+            case 0x09://INCUBATE
+                updateIncubate(transaction, store, height);
+                return empty;
+            case 0x0a://EXTRACT_INTEREST
+                updateExtractInterest(transaction, store, height);
+                return empty;
+            case 0x0b://EXTRACT_SHARING_PROFIT
+                updateExtractShare(transaction, store, height);
+                return empty;
+            case 0x0c://EXTRACT_COST
+                updateExtranctCost(transaction, store, height);
+                return empty;
+            case 0x0d://EXIT_VOTE
+                updateCancelVote(transaction, store, height);
+                return empty;
+            case 0x0e://MORTGAGE
+                updateMortgage(transaction, store, height);
+                return empty;
+            case 0x0f://EXTRACT_MORTGAGE
+                updateCancelMortgage(transaction, store, height);
+                return empty;
+            default:
+                throw new RuntimeException("unsupported transaction type: " + Transaction.Type.values()[transaction.type].toString());
         }
     }
 
-    @Override
+    @Deprecated
     public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AccountState> store) {
         switch (transaction.type) {
             case 0x00://coinbase
@@ -201,6 +315,7 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     private Set<byte[]> getTransactionTo(Transaction tx) {
         Set<byte[]> bytes = new ByteArraySet();
         bytes.add(tx.to);
+        // INCUBATE
         if (tx.type == 0x09) {
             bytes.add(IncubatorAddress.resultpubhash());
             try {
@@ -235,221 +350,122 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
     }
 
 
-    private AccountState updateCoinBase(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
-            throw new RuntimeException("CoinBase transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance += tx.amount;
-        if (balance < 0) {
-            throw new RuntimeException("math overflow");
-        }
-        account.setBalance(balance);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateCoinBase(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState toAccount = states.getOrDefault(tx.to, new AccountState(tx.to));
+        toAccount.addBalance(tx.amount);
+        toAccount.setBlockHeight(height);
+        states.put(toAccount.getPubkeyHash(), toAccount);
     }
 
-    private AccountState updateTransfer(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        long balance;
-        boolean state = true;
-        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance -= tx.amount;
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance += tx.amount;
-            account.setBalance(balance);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("Transfer transaction account do not match");
-        }
-        accountState.setAccount(account);
-        return accountState;
+    private void updateTransfer(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        from.subBalance(tx.amount);
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        states.put(from.getPubkeyHash(), from);
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
+        to.addBalance(tx.amount);
+        to.setBlockHeight(height);
+        states.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateVote(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        long balance;
-        boolean state = true;
-        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance -= tx.amount;
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            long vote = account.getVote();
-            vote += tx.amount;
-            account.setVote(vote);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("Vote transaction account do not match");
-        }
-        accountState.setAccount(account);
-        return accountState;
+    private void updateVote(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        from.subBalance(tx.amount);
+        from.subBalance(tx.getFee());
+        from.setBlockHeight(height);
+        from.setNonce(tx.nonce);
+        states.put(from.getPubkeyHash(), from);
+        AccountState to = states.getOrDefault(tx.to, new AccountState(tx.to));
+        to.addVote(tx.amount);
+        to.setBlockHeight(height);
+        states.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateDeposit(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            throw new RuntimeException("Deposit transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance -= tx.getFee();
-        account.setBalance(balance);
-        account.setNonce(tx.nonce);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateDeposit(Transaction tx, Map<byte[], AccountState> states, long height) {
+        AccountState from = states.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        states.put(from.getPubkeyHash(), from);
     }
 
-    private AccountState updateDeployContract(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
+    private void updateDeployContract(Transaction tx, Map<byte[], AccountState> states, long height) {
         tx.setContractType(tx.payload[0]);
+        byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
+        AccountState from;
+        AccountState contract = new AccountState(RipemdUtility.ripemd160(tx.getHash()));
+        contract.setContract(rlpbyte);
         switch (tx.getContractType()) {
             case 0:
-                byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
                 Asset asset = Asset.getAsset(rlpbyte);
-
-                byte[] fromhash = Address.publicKeyToHash(tx.from);
-                if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
-                    long balance = account.getBalance();
-                    balance -= tx.getFee();
-                    account.setBalance(balance);
-                    account.setNonce(tx.nonce);
-                    account.setBlockHeight(height);
-                    accountState.setAccount(account);
-
-                    if (Arrays.equals(fromhash, asset.getOwner())) {//from和owner相同
-                        Map<byte[], Long> tokensmap = accountState.getTokensMap();
-                        tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
-                        accountState.setTokensMap(tokensmap);
-                    }
-                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
-                    accountState.setType(1);
-                    accountState.setContract(rlpbyte);
-                } else if (Arrays.equals(asset.getOwner(), account.getPubkeyHash())) {//owner
-                    Map<byte[], Long> tokensmap = accountState.getTokensMap();
+                //from
+                from = states.get(tx.getFromPKHash());
+                from.subBalance(tx.getFee());
+                from.setNonce(tx.nonce);
+                from.setBlockHeight(height);
+                if (Arrays.equals(from.getPubkeyHash(), asset.getOwner())) {//from和owner相同
+                    Map<byte[], Long> tokensmap = from.getTokensMap();
                     tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
-                    accountState.setTokensMap(tokensmap);
+                    from.setTokensMap(tokensmap);
                 } else {
-                    throw new RuntimeException("Deploy asset transaction account do not match");
+                    AccountState owner = states.getOrDefault(asset.getOwner(), new AccountState(asset.getOwner()));
+                    Map<byte[], Long> tokensmap = owner.getTokensMap();
+                    tokensmap.put(RipemdUtility.ripemd160(tx.getHash()), asset.getTotalamount());
+                    owner.setTokensMap(tokensmap);
+                    states.put(asset.getOwner(), owner);
                 }
+                contract.setType(1);
+                states.put(tx.getFromPKHash(), from);
+                states.put(contract.getPubkeyHash(), contract);
                 break;
             case 1://多签
-                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-                    long balance = account.getBalance();
-                    balance -= tx.getFee();
-                    account.setBalance(balance);
-                    account.setNonce(tx.nonce);
-                    account.setBlockHeight(height);
-                    accountState.setAccount(account);
-                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
-                    byte[] mulrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-                    accountState.setType(2);
-                    accountState.setContract(mulrlpbyte);
-                } else {
-                    throw new RuntimeException("Deploy mult transaction account do not match");
-                }
-                break;
             case 2://锁定时间哈希
             case 3://锁定高度哈希
-                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-                    long balance = account.getBalance();
-                    balance -= tx.getFee();
-                    account.setBalance(balance);
-                    account.setNonce(tx.nonce);
-                    account.setBlockHeight(height);
-                    accountState.setAccount(account);
-                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
-                    byte[] lockrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-                    if (tx.getContractType() == 2) {
-                        accountState.setType(3);
-                    } else {
-                        accountState.setType(4);
-                    }
-                    accountState.setContract(lockrlpbyte);
-                } else {
-                    throw new RuntimeException("Deploy lock transaction account do not match");
-                }
                 break;
             case 4://定额条件比例支付
-                if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-                    long balance = account.getBalance();
-                    balance -= tx.getFee();
-                    account.setBalance(balance);
-                    account.setNonce(tx.nonce);
-                    account.setBlockHeight(height);
-                    accountState.setAccount(account);
-                } else if (Arrays.equals(RipemdUtility.ripemd160(tx.getHash()), account.getPubkeyHash())) {//合约hash
-                    byte[] lockrlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-                    accountState.setType(5);
-                    accountState.setContract(lockrlpbyte);
-                } else {
-                    throw new RuntimeException("Deploy rate lock transaction account do not match");
-                }
+                //from
+                from = states.get(tx.getFromPKHash());
+                from.subBalance(tx.getFee());
+                from.setNonce(tx.nonce);
+                from.setBlockHeight(height);
+                contract.setType(5);
+                states.put(tx.getFromPKHash(), from);
+                states.put(contract.getPubkeyHash(), contract);
                 break;
         }
-        return accountState;
     }
 
-    private AccountState updateCallContract(Transaction tx, AccountState accountState, long height, Map<byte[], AccountState> store) {
+    private void updateCallContract(Transaction tx, Map<byte[], AccountState> store, long height) {
         tx.setMethodType(tx.payload[0]);
-        Account account = accountState.getAccount();
         byte[] rlpbyte = ByteUtil.bytearrayridfirst(tx.payload);
-        byte[] fromhash = Address.publicKeyToHash(tx.from);
         switch (tx.getMethodType()) {
             case 0://更改所有者
-                accountState = updateAssetChangeowner(fromhash, accountState, account, tx, height, rlpbyte);
+                updateAssetChangeowner(tx, height, rlpbyte, store);
                 break;
             case 1://转发资产
-                accountState = updateAssetTransfer(fromhash, accountState, account, tx, height, rlpbyte);
+                updateAssetTransfer(tx, height, rlpbyte, store);
                 break;
             case 2://增发
-                accountState = updateAssetIncreased(fromhash, accountState, account, tx, height, rlpbyte);
+                updateAssetIncreased(tx, height, rlpbyte, store);
                 break;
             case 3://多签转账
-                accountState = updateMultTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
-                break;
             case 4://锁定时间哈希资产转发
-                accountState = updateHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
-                break;
             case 5://锁定时间哈希获取资产
-                accountState = updategetHashtimeTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
-                break;
             case 6://锁定高度哈希资产转发
-                accountState = updateHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
-                break;
             case 7://锁定高度哈希获取资产
-                accountState = updategetHashheightTransfer(fromhash, accountState, account, tx, height, rlpbyte, store);
                 break;
             case 8://定额条件比例支付
-                accountState = updateRateheightDeposit(fromhash, accountState, account, tx, height, rlpbyte, store);
+                updateRateheightDeposit(tx, height, rlpbyte, store);
                 break;
             case 9://定额条件比例获取
-                accountState = updateRateheightWithdraw(fromhash, accountState, account, tx, height, rlpbyte, store);
+                updateRateheightWithdraw(tx, height, rlpbyte, store);
                 break;
         }
-        return accountState;
     }
 
-    private AccountState updateRateheightWithdraw(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+    private void updateRateheightWithdraw(Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         AccountState contractaccountstate = store.get(tx.to);
         Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contractaccountstate.getContract());
         RateheightlockWithdraw rateheightlockWithdraw = RateheightlockWithdraw.getRateheightlockWithdraw(rlpbyte);
@@ -459,144 +475,95 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
         BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
         long amount = onceamount.longValue();
-        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
-            long balance = account.getBalance();
-            balance -= tx.getFee();
-
-            if (Arrays.equals(fromhash, rateheightlockWithdraw.getTo())) {//from和to一致
-                if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                    Map<byte[], Long> quotaMap = account.getQuotaMap();
-                    long quotabalance = quotaMap.get(twentyBytes);
-                    quotabalance -= amount;
-                    quotaMap.put(twentyBytes, quotabalance);
-                    account.setQuotaMap(quotaMap);
-
-                    balance += amount;
-                } else {
-                    Map<byte[], Long> quotaMap = account.getQuotaMap();
-                    long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
-                    quotabalance -= amount;
-                    quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
-                    account.setQuotaMap(quotaMap);
-
-                    Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                    long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
-                    tokenbalance += amount;
-                    tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
-                    accountState.setTokensMap(tokensMap);
-                }
-            } else {
-                if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                    Map<byte[], Long> quotaMap = account.getQuotaMap();
-                    long quotabalance = quotaMap.get(twentyBytes);
-                    quotabalance -= amount;
-                    quotaMap.put(twentyBytes, quotabalance);
-                    account.setQuotaMap(quotaMap);
-                } else {
-                    Map<byte[], Long> quotaMap = account.getQuotaMap();
-                    long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
-                    quotabalance -= amount;
-                    quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
-                    account.setQuotaMap(quotaMap);
-                }
+        //from
+        AccountState from = store.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        Map<byte[], Long> quotaMap = from.getQuotaMap();
+        long quotabalance = quotaMap.get(rateheightlock.getAssetHash());
+        quotabalance -= amount;
+        quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
+        from.setQuotaMap(quotaMap);
+        store.put(tx.getFromPKHash(), from);
+        //to
+        AccountState to = store.getOrDefault(rateheightlockWithdraw.getTo(), new AccountState(rateheightlockWithdraw.getTo()));
+        if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+            to.addBalance(amount);
+        } else {
+            Map<byte[], Long> tokensMap = to.getTokensMap();
+            long tokenbalance = 0;
+            if (tokensMap.containsKey(rateheightlock.getAssetHash())) {
+                tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
             }
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            accountState.setAccount(account);
-            return accountState;
+            tokenbalance += amount;
+            tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
+            to.setTokensMap(tokensMap);
         }
-        if (Arrays.equals(account.getPubkeyHash(), rateheightlockWithdraw.getTo())) {//to
-            long balance = account.getBalance();
-            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                balance += amount;
-                account.setBalance(balance);
-                accountState.setAccount(account);
-            } else {
-                Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long tokenbalance = 0;
-                if (tokensMap.containsKey(rateheightlock.getAssetHash())) {
-                    tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
-                }
-                tokenbalance += amount;
-                tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
-                accountState.setTokensMap(tokensMap);
-            }
+        //contract
+        AccountState contract = store.get(tx.to);
+        rateheightlock = Rateheightlock.getRateheightlock(contract.getContract());
+        Map<HexBytes, Extract> statMap = rateheightlock.getStateMap();
+        Extract extract = statMap.get(HexBytes.fromBytes(deposithash));
+        int surplus = extract.getSurplus();
+        surplus--;
+        if (surplus == 0) {//已全部领取完
+            statMap.remove(HexBytes.fromBytes(deposithash));
+            rateheightlock.setStateMap(statMap);
+        } else {
+            long extractheight = extract.getExtractheight();
+            extractheight += rateheightlock.getWithdrawperiodheight();
+            extract.setSurplus(surplus);
+            extract.setExtractheight(extractheight);
+            statMap.put(HexBytes.fromBytes(deposithash), extract);
+            rateheightlock.setStateMap(statMap);
         }
-        if (Arrays.equals(account.getPubkeyHash(), tx.to)) {//合约
-            rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
-            Map<HexBytes, Extract> statMap = rateheightlock.getStateMap();
-            Extract extract = statMap.get(HexBytes.fromBytes(deposithash));
-            int surplus = extract.getSurplus();
-            surplus--;
-            if (surplus == 0) {//已全部领取完
-                statMap.remove(HexBytes.fromBytes(deposithash));
-                rateheightlock.setStateMap(statMap);
-            } else {
-                long extractheight = extract.getExtractheight();
-                extractheight += rateheightlock.getWithdrawperiodheight();
-                extract.setSurplus(surplus);
-                extract.setExtractheight(extractheight);
-                statMap.put(HexBytes.fromBytes(deposithash), extract);
-                rateheightlock.setStateMap(statMap);
-            }
-            accountState.setContract(rateheightlock.RLPserialization());
-        }
-        return accountState;
+        contract.setContract(rateheightlock.RLPserialization());
+        store.put(rateheightlockWithdraw.getTo(), to);
+        store.put(tx.to, contract);
     }
 
-    private AccountState updateRateheightDeposit(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+    private void updateRateheightDeposit(Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         AccountState contractaccountstate = store.get(tx.to);
         Rateheightlock rateheightlock = Rateheightlock.getRateheightlock(contractaccountstate.getContract());
         RateheightlockDeposit rateheightlockDeposit = RateheightlockDeposit.getRateheightlockDeposit(rlpbyte);
-        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//from
-            long balance = account.getBalance();
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-
-            Map<byte[], Long> quotaMap = account.getQuotaMap();
-            long quotabalance = 0;
-            if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
-                balance = account.getBalance();
-                balance -= rateheightlockDeposit.getValue();
-                account.setBalance(balance);
-
-                if (quotaMap.containsKey(twentyBytes)) {
-                    quotabalance = quotaMap.get(twentyBytes);
-                }
-                quotabalance += rateheightlockDeposit.getValue();
-                quotaMap.put(twentyBytes, quotabalance);
-                account.setQuotaMap(quotaMap);
-            } else {
-                Map<byte[], Long> tokensMap = accountState.getTokensMap();
-                long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
-                tokenbalance -= rateheightlockDeposit.getValue();
-                tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
-                accountState.setTokensMap(tokensMap);
-
-                if (quotaMap.containsKey(rateheightlock.getAssetHash())) {
-                    quotabalance = quotaMap.get(rateheightlock.getAssetHash());
-                }
-                quotabalance += rateheightlockDeposit.getValue();
-                quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
-                account.setQuotaMap(quotaMap);
-            }
-            accountState.setAccount(account);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
-            rateheightlock = Rateheightlock.getRateheightlock(accountState.getContract());
-            BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
-            BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
-            int count = bigDecimal.divide(onceamount).intValue();
-            Map<HexBytes, Extract> stateMap = rateheightlock.getStateMap();
-            stateMap.put(HexBytes.fromBytes(tx.getHash()), new Extract(height, count));
-            rateheightlock.setStateMap(stateMap);
-            accountState.setContract(rateheightlock.RLPserialization());
-        } else {
-            throw new RuntimeException("RateheightDeposit transaction account do not match");
+        //from
+        AccountState from = store.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        Map<byte[], Long> quotaMap = from.getQuotaMap();
+        if (quotaMap == null) {
+            quotaMap = new ByteArrayMap<>();
         }
-        return accountState;
+        if (Arrays.equals(rateheightlock.getAssetHash(), twentyBytes)) {//WDC
+            from.subBalance(rateheightlockDeposit.getValue());
+        } else {
+            Map<byte[], Long> tokensMap = from.getTokensMap();
+            long tokenbalance = tokensMap.get(rateheightlock.getAssetHash());
+            tokenbalance -= rateheightlockDeposit.getValue();
+            tokensMap.put(rateheightlock.getAssetHash(), tokenbalance);
+            from.setTokensMap(tokensMap);
+        }
+        long quotabalance = 0;
+        if (quotaMap.containsKey(rateheightlock.getAssetHash())) {
+            quotabalance = quotaMap.get(rateheightlock.getAssetHash());
+        }
+        quotabalance += rateheightlockDeposit.getValue();
+        quotaMap.put(rateheightlock.getAssetHash(), quotabalance);
+        from.setQuotaMap(quotaMap);
+        //contract
+        AccountState contract = store.get(tx.to);
+        rateheightlock = Rateheightlock.getRateheightlock(contract.getContract());
+        BigDecimal bigDecimal = new BigDecimal(rateheightlockDeposit.getValue());
+        BigDecimal onceamount = bigDecimal.multiply(new BigDecimal(rateheightlock.getWithdrawrate()));
+        int count = bigDecimal.divide(onceamount).intValue();
+        Map<HexBytes, Extract> stateMap = rateheightlock.getStateMap();
+        stateMap.put(HexBytes.fromBytes(tx.getHash()), new Extract(height, count));
+        rateheightlock.setStateMap(stateMap);
+        contract.setContract(rateheightlock.RLPserialization());
+        store.put(tx.getFromPKHash(), from);
+        store.put(tx.to, contract);
     }
 
     private AccountState updategetHashheightTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
@@ -857,140 +824,116 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         }
     }
 
-    private AccountState updateAssetIncreased(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+    private void updateAssetIncreased(Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         AssetIncreased assetIncreased = AssetIncreased.getAssetIncreased(rlpbyte);
-        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
-            long balance = account.getBalance();
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            accountState.setAccount(account);
-
-            Map<byte[], Long> tokensmap = accountState.getTokensMap();
-            long tokenbalance = 0;
-            if (tokensmap.containsKey(tx.to)) {
-                tokenbalance = tokensmap.get(tx.to);
-            }
-            tokenbalance += assetIncreased.getAmount();
-            tokensmap.put(tx.to, tokenbalance);
-            accountState.setTokensMap(tokensmap);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
-            byte[] contract = accountState.getContract();
-            Asset asset = Asset.getAsset(contract);
-            long totalbalance = asset.getTotalamount();
-            totalbalance += assetIncreased.getAmount();
-            asset.setTotalamount(totalbalance);
-            accountState.setContract(asset.RLPserialization());
-        } else {
-            throw new RuntimeException("AssetIncreased transaction account do not match");
+        //from
+        AccountState from = store.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        Map<byte[], Long> tokensmap = from.getTokensMap();
+        long tokenbalance = 0;
+        if (tokensmap.containsKey(tx.to)) {
+            tokenbalance = tokensmap.get(tx.to);
         }
-        return accountState;
+        tokenbalance += assetIncreased.getAmount();
+        tokensmap.put(tx.to, tokenbalance);
+        from.setTokensMap(tokensmap);
+        //contract
+        AccountState contract = store.get(tx.to);
+        byte[] contractbyte = contract.getContract();
+        Asset asset = Asset.getAsset(contractbyte);
+        long totalbalance = asset.getTotalamount();
+        totalbalance += assetIncreased.getAmount();
+        asset.setTotalamount(totalbalance);
+        contract.setContract(asset.RLPserialization());
+        store.put(tx.getFromPKHash(), from);
+        store.put(tx.to, contract);
     }
 
-    private AccountState updateAssetTransfer(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
+    private void updateAssetTransfer(Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
         AssetTransfer assetTransfer = AssetTransfer.getAssetTransfer(rlpbyte);
-        boolean state = true;
-        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//合约from
-            long balance = account.getBalance();
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            accountState.setAccount(account);
-
-            Map<byte[], Long> tokensmap = accountState.getTokensMap();
-            long tokenbalance = tokensmap.get(tx.to);
-            tokenbalance -= assetTransfer.getValue();
-            tokensmap.put(tx.to, tokenbalance);
-            accountState.setTokensMap(tokensmap);
-            state = false;
+        //from
+        AccountState from = store.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        Map<byte[], Long> tokensmap = from.getTokensMap();
+        long tokenbalance = tokensmap.get(tx.to);
+        tokenbalance -= assetTransfer.getValue();
+        tokensmap.put(tx.to, tokenbalance);
+        from.setTokensMap(tokensmap);
+        store.put(tx.getFromPKHash(), from);
+        //to
+        AccountState to = store.getOrDefault(assetTransfer.getTo(), new AccountState(assetTransfer.getTo()));
+        Map<byte[], Long> tokensmapTo = to.getTokensMap();
+        long balance = 0;
+        if (tokensmapTo.containsKey(tx.to)) {
+            balance = tokensmapTo.get(tx.to);
         }
-        if (Arrays.equals(assetTransfer.getTo(), account.getPubkeyHash())) {//to
-            Map<byte[], Long> tokensmap = accountState.getTokensMap();
-            long balance = 0;
-            if (tokensmap.containsKey(tx.to)) {
-                balance = tokensmap.get(tx.to);
-            }
-            balance += assetTransfer.getValue();
-            tokensmap.put(tx.to, balance);
-            accountState.setTokensMap(tokensmap);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("AssetTransfer transaction account do not match");
-        }
-        return accountState;
+        balance += assetTransfer.getValue();
+        tokensmapTo.put(tx.to, balance);
+        to.setTokensMap(tokensmapTo);
+        store.put(assetTransfer.getTo(), to);
     }
 
-    private AccountState updateAssetChangeowner(byte[] fromhash, AccountState accountState, Account account, Transaction tx, long height, byte[] rlpbyte) {
-        if (Arrays.equals(fromhash, account.getPubkeyHash())) {//事务from
-            long balance = account.getBalance();
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            accountState.setAccount(account);
-        } else if (Arrays.equals(tx.to, account.getPubkeyHash())) {//合约
-            AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(rlpbyte);
-            byte[] contract = accountState.getContract();
-            Asset asset = Asset.getAsset(contract);
-            asset.setOwner(assetChangeowner.getNewowner());
-            accountState.setContract(asset.RLPserialization());
-        } else {
-            throw new RuntimeException("AssetChangeowner transaction account do not match");
-        }
-        return accountState;
+    private void updateAssetChangeowner(Transaction tx, long height, byte[] rlpbyte, Map<byte[], AccountState> store) {
+        //from
+        AccountState from = store.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        //contract
+        AccountState contract = store.get(tx.to);
+        AssetChangeowner assetChangeowner = AssetChangeowner.getAssetChangeowner(rlpbyte);
+        byte[] contractbyte = contract.getContract();
+        Asset asset = Asset.getAsset(contractbyte);
+        asset.setOwner(assetChangeowner.getNewowner());
+        contract.setContract(asset.RLPserialization());
+        store.put(tx.getFromPKHash(), from);
+        store.put(tx.to, contract);
     }
 
-    private AccountState updateIncubate(Transaction tx, AccountState accountState, long height) throws InvalidProtocolBufferException, DecoderException {
-        Account account = accountState.getAccount();
+    @SneakyThrows
+    private void updateIncubate(Transaction tx, Map<byte[], AccountState> store, long height) {
         HatchModel.Payload payloadproto = HatchModel.Payload.parseFrom(tx.payload);
         int days = payloadproto.getType();
         String sharpub = payloadproto.getSharePubkeyHash();
-        long balance;
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance -= tx.getFee();
-            balance -= tx.amount;
-            long incub = account.getIncubatecost();
-            incub += tx.amount;
-            account.setBalance(balance);
-            account.setIncubatecost(incub);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            Incubator incubator = new Incubator(tx.to, tx.getHash(), height, tx.amount, tx.getInterest(height, rateTable, days), height, days);
-            Map<byte[], Incubator> maps = accountState.getInterestMap();
-            maps.put(tx.getHash(), incubator);
-            accountState.setInterestMap(maps);
-            accountState.setAccount(account);
-        } else if (sharpub != null && !sharpub.equals("")) {
+        //from
+        AccountState from = store.get(tx.getFromPKHash());
+        from.subBalance(tx.getFee());
+        from.subBalance(tx.amount);
+        from.addIncubatecost(tx.amount);
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        Incubator incubator = new Incubator(tx.to, tx.getHash(), height, tx.amount, tx.getInterest(height, rateTable, days), height, days);
+        Map<byte[], Incubator> maps = from.getInterestMap();
+        maps.put(tx.getHash(), incubator);
+        from.setInterestMap(maps);
+        //IncubatorAddress
+        AccountState incubatorTotal = store.get(IncubatorAddress.resultpubhash());
+        incubatorTotal.subBalance(tx.getInterest(height, rateTable, days));
+        long nonce = incubatorTotal.getNonce();
+        incubatorTotal.setNonce(++nonce);
+        incubatorTotal.setBlockHeight(height);
+        //share
+        if (sharpub != null && !sharpub.equals("")) {
+            incubatorTotal.subBalance(tx.getShare(height, rateTable, days));
+
             byte[] sharepublic = Hex.decodeHex(sharpub.toCharArray());
-            if (Arrays.equals(sharepublic, account.getPubkeyHash())) {
-                Incubator share = new Incubator(sharepublic, tx.getHash(), height, tx.amount, days, tx.getShare(height, rateTable, days), height);
-                Map<byte[], Incubator> sharemaps = accountState.getShareMap();
-                sharemaps.put(tx.getHash(), share);
-                accountState.setShareMap(sharemaps);
-            }
-        } else if (Arrays.equals(IncubatorAddress.resultpubhash(), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance -= tx.getInterest(height, rateTable, days);
-            if (sharpub != null && !sharpub.equals("")) {
-                balance -= tx.getShare(height, rateTable, days);
-            }
-            long nonce = account.getNonce();
-            nonce++;
-            account.setBalance(balance);
-            account.setNonce(nonce);
-            account.setBlockHeight(height);
-            accountState.setAccount(account);
-        } else {
-            throw new RuntimeException("Incubate transaction account do not match");
+            AccountState share = store.getOrDefault(sharepublic, new AccountState(sharepublic));
+            Incubator shareIb = new Incubator(sharepublic, tx.getHash(), height, tx.amount, days, tx.getShare(height, rateTable, days), height);
+            Map<byte[], Incubator> sharemaps = share.getShareMap();
+            sharemaps.put(tx.getHash(), shareIb);
+            share.setShareMap(sharemaps);
+            store.put(sharepublic, share);
         }
-        return accountState;
+        store.put(tx.getFromPKHash(), from);
+        if (sharpub == null || sharpub.equals("")) {
+            store.put(IncubatorAddress.resultpubhash(), incubatorTotal);
+        }
     }
 
-    @Override
     public Map<byte[], AccountState> getGenesisStates() {
         List<Genesis.IncubateAmount> incubateAmountList = genesisJSON.alloc.incubateAmount;
         Genesis.IncubateAmount incubateAmount = incubateAmountList.get(0);
@@ -1137,7 +1080,8 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         return incubator;
     }
 
-    private AccountState updateExtractInterest(Transaction tx, AccountState accountState, long height) {
+    private void updateExtractInterest(Transaction tx, Map<byte[], AccountState> store, long height) {
+        AccountState accountState = store.get(tx.to);
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -1159,10 +1103,11 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
         accountState.setAccount(account);
-        return accountState;
+        store.put(tx.to, accountState);
     }
 
-    private AccountState updateExtractShare(Transaction tx, AccountState accountState, long height) {
+    private void updateExtractShare(Transaction tx, Map<byte[], AccountState> store, long height) {
+        AccountState accountState = store.get(tx.to);
         Map<byte[], Incubator> map = accountState.getShareMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -1183,10 +1128,11 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
         accountState.setAccount(account);
-        return accountState;
+        store.put(tx.to, accountState);
     }
 
-    private AccountState updateExtranctCost(Transaction tx, AccountState accountState, long height) {
+    private void updateExtranctCost(Transaction tx, Map<byte[], AccountState> store, long height) {
+        AccountState accountState = store.get(tx.to);
         Map<byte[], Incubator> map = accountState.getInterestMap();
         Incubator incubator = map.get(tx.payload);
         if (incubator == null) {
@@ -1211,70 +1157,40 @@ public class AccountStateUpdater extends AbstractStateUpdater<AccountState> {
         account.setNonce(tx.nonce);
         account.setBlockHeight(height);
         accountState.setAccount(account);
-        return accountState;
+        store.put(tx.to, accountState);
     }
 
-    private AccountState updateCancelVote(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        long balance;
-        boolean state = true;
-        if (Arrays.equals(Address.publicKeyToHash(tx.from), account.getPubkeyHash())) {
-            balance = account.getBalance();
-            balance += tx.amount;
-            balance -= tx.getFee();
-            account.setBalance(balance);
-            account.setNonce(tx.nonce);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (Arrays.equals(tx.to, account.getPubkeyHash())) {
-            long vote = account.getVote();
-            vote -= tx.amount;
-            account.setVote(vote);
-            account.setBlockHeight(height);
-            state = false;
-        }
-        if (state) {
-            throw new RuntimeException("CancelVote transaction account do not match");
-        }
-        accountState.setAccount(account);
-        return accountState;
+    private void updateCancelVote(Transaction tx, Map<byte[], AccountState> store, long height) {
+        AccountState from = store.get(tx.getFromPKHash());
+        from.addBalance(tx.amount);
+        from.subBalance(tx.getFee());
+        from.setNonce(tx.nonce);
+        from.setBlockHeight(height);
+        store.put(from.getPubkeyHash(), from);
+        AccountState to = store.get(tx.to);
+        to.subVote(tx.amount);
+        to.setBlockHeight(height);
+        store.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateMortgage(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
-            throw new RuntimeException("Mortgage transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance -= tx.getFee();
-        balance -= tx.amount;
-        long mortgage = account.getMortgage();
-        mortgage += tx.amount;
-        account.setBalance(balance);
-        account.setMortgage(mortgage);
-        account.setNonce(tx.nonce);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateMortgage(Transaction tx, Map<byte[], AccountState> store, long height) {
+        AccountState to = store.get(tx.to);
+        to.subBalance(tx.getFee());
+        to.subBalance(tx.amount);
+        to.addMortgage(tx.amount);
+        to.setNonce(tx.nonce);
+        to.setBlockHeight(height);
+        store.put(to.getPubkeyHash(), to);
     }
 
-    private AccountState updateCancelMortgage(Transaction tx, AccountState accountState, long height) {
-        Account account = accountState.getAccount();
-        if (!Arrays.equals(tx.to, account.getPubkeyHash())) {
-            throw new RuntimeException("CancelMortgage transaction account do not match");
-        }
-        long balance = account.getBalance();
-        balance -= tx.getFee();
-        balance += tx.amount;
-        long mortgage = account.getMortgage();
-        mortgage -= tx.amount;
-        account.setBalance(balance);
-        account.setMortgage(mortgage);
-        account.setNonce(tx.nonce);
-        account.setBlockHeight(height);
-        accountState.setAccount(account);
-        return accountState;
+    private void updateCancelMortgage(Transaction tx, Map<byte[], AccountState> store, long height) {
+        AccountState to = store.get(tx.to);
+        to.subBalance(tx.getFee());
+        to.addBalance(tx.amount);
+        to.subMortgage(tx.amount);
+        to.setNonce(tx.nonce);
+        to.setBlockHeight(height);
+        store.put(to.getPubkeyHash(), to);
     }
 
     // 构造一个数据全为空的账户

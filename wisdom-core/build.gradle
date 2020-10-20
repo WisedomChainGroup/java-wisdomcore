@@ -1,4 +1,3 @@
-import java.text.SimpleDateFormat
 
 buildscript {
     repositories {
@@ -17,7 +16,7 @@ buildscript {
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
             }
         }
-        maven { url "http://repo.springsource.org/plugins-release" }
+        maven { url "https://repo.springsource.org/plugins-release" }
         jcenter()
         mavenCentral()
     }
@@ -196,35 +195,6 @@ task buildDockerPgsql(type: Docker) {
     }
 }
 
-/**
- * Runs all tests
- * EthereumJ also runs common Ethereum clients tests
- * See {@link #prepareGithubTests()} if you want to use local repo
- * instead of downloading tests during test execution
- */
-test {
-
-    beforeTest { descriptor ->
-        logger.lifecycle("Running test: ${descriptor}")
-    }
-
-    jvmArgs = ["-Xss8m", "-Xmx3G"]
-
-    prepareGithubTests()
-    // If Github tests directory is provided, it's passed to test runner
-    if (System.getProperty("GitHubTests.testPath") != null) {
-        jvmArgs.add('-DGitHubTests.testPath' + '=' + System.getProperty("GitHubTests.testPath"))
-    }
-
-    testLogging {
-        events "failed"
-        exceptionFormat "short"
-    }
-
-    systemProperties System.properties
-    systemProperty "user.dir", workingDir
-    systemProperty "file.encoding", "UTF-8"
-}
 
 ext {
     slf4jVersion = '1.7.7'
@@ -302,6 +272,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.6.0'
     compile group: 'org.hibernate.validator', name: 'hibernate-validator', version: '6.0.17.Final'
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.8'
+    compile "org.springframework.boot:spring-boot-starter-websocket:${springbootVersion}"
 
     compile group: 'io.netty', name: 'netty-all', version: '4.1.42.Final'
     compile "io.grpc:grpc-netty-shaded:${gRPCVersion}"
@@ -339,19 +310,6 @@ dependencies {
     compile group: 'com.h2database', name: 'h2', version: '1.4.200'
 }
 
-
-javadoc {
-    options.author = true
-    options.header = project.name
-    options.addStringOption('-quiet')
-    options.encoding = "UTF-8"
-    options.links(
-            "http://docs.oracle.com/javase/8/docs/api/",
-            "http://netty.io/4.0/api/"
-    )
-}
-
-
 task copyDependencies(type: Copy) {
     from configurations.runtime
     destinationDir = file('build/libs/lib')
@@ -364,151 +322,5 @@ jar {
     }
 }
 
-// jar.dependsOn += copyDependencies
-
-
-//create a single Jar with all dependencies
-task fatJar(type: Jar) {
-    classifier = 'all'
-    manifest {
-        attributes 'Main-Class': mainClassName
-        attributes 'Class-Path': configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
-    }
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar) {
-    classifier = "javadoc"
-    from javadoc
-}
-
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
-
-//jacocoTestReport {
-//    reports {
-//        xml.enabled = true
-//        html.enabled = true
-//    }
-//}
-
-def bintrayUsername = project.hasProperty('bintrayUser') ? project.bintrayUser : ''
-def bintrayPassword = project.hasProperty('bintrayKey') ? project.bintrayKey : ''
-def pullRequest = System.getenv('TRAVIS_PULL_REQUEST')
-def branchName = System.getenv('TRAVIS_BRANCH')
-
-artifactory {
-    contextUrl = 'http://oss.jfrog.org/artifactory'
-    publish {
-        repository {
-            repoKey = 'oss-snapshot-local'
-            username = bintrayUsername
-            password = bintrayPassword
-        }
-    }
-    resolve {
-        repository {
-            repoKey = 'libs-release'
-        }
-    }
-
-}
-
-artifactoryPublish.onlyIf {
-    (branchName != null) &&
-            (!pullRequest || pullRequest == 'false') &&
-            project.version.endsWith('-SNAPSHOT') &&
-            (branchName.startsWith('master') ||
-                    branchName.startsWith('develop') ||
-                    branchName.startsWith('stage'))
-}
-
-bintrayUpload.onlyIf {
-    // comment 'false' and uncomment the next line to publish next release
-    (!pullRequest || pullRequest == 'false') && !project.version.endsWith('-SNAPSHOT')
-//     false
-}
-
-tasks.processResources.doLast() {
-    println 'This will be printed after the build task even if something else calls the build task'
-
-    File versionfile = file(new File('build/resources/main/build-info.properties'))
-    versionfile.text = 'build.hash=' + gitCommitHash() + '\n' + 'build.time=' + buildTime() + '\n' + 'build.branch=' + gitCurBranch() + '\n'
-}
-
-task publish {
-
-    println "publishing if master || develop current branch: " + branchName
-    description = "Publishes snapshots to oss.jfrog.org and releases to Bintray/JCenter"
-    dependsOn artifactoryPublish, bintrayUpload
-}
-
-def gitCommitHash() {
-    def process = "git rev-parse --short HEAD".execute()
-    return process.text.trim()
-}
-
-def buildTime() {
-    def df = new SimpleDateFormat("[dd/MMM/yyyy]-[HH:mm]")
-    df.setTimeZone(TimeZone.getTimeZone("GMT"));
-    return '[GMT]-' + df.format(new Date())
-}
-
-def gitCurBranch() {
-    def branchName = System.getenv('TRAVIS_BRANCH')
-    if (branchName) return branchName
-    def process = "git rev-parse --abbrev-ref HEAD".execute()
-    return process.text.trim()
-}
-
-
-import org.ajoberstar.grgit.Grgit
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
-
-def prepareGithubTests() {
-    String testsPathKey = "GitHubTests.testPath"
-    String testsCommitKey = "GitHubTests.commit"
-    String testUserConf = "wisdom-core/src/test/resources/test-user.conf"
-    String githubTestsProp = "wisdom-core/src/test/resources/github-tests.prop"
-    def repoPath = System.getProperty(testsPathKey)
-    if (repoPath == null) {
-        try {
-            Config userTest = ConfigFactory.parseFile(new File(testUserConf))
-            repoPath = userTest.getString(testsPathKey)
-        } catch (Exception ex) {
-        }
-    }
-    if (repoPath == null) return
-    def commit = System.getProperty(testsCommitKey)
-    if (commit == null) {
-        Properties testProp = new Properties();
-        testProp.load(new File(githubTestsProp).newDataInputStream());
-        commit = testProp.getProperty(testsCommitKey)
-    }
-    if (repoPath != null && commit != null) {
-        println "Tests: Checking out Ethereum Tests repo at " + repoPath + " to commit #" + commit
-        try {
-            def testsRepo = Grgit.open(dir: repoPath)
-            testsRepo.fetch()
-            testsRepo.checkout(branch: commit)
-        } catch (Exception ex) {
-            println "Error occurs while trying to checkout local Ethereum tests repo to specific commit"
-            println "Either remove " + testsPathKey + " property to use remote repo in tests or fix the issue"
-            println "Error: "
-            println ex
-            throw ex
-        }
-    }
-}
 
 run.jvmArgs=['-Xms16g']

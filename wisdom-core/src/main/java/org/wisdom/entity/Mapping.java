@@ -52,7 +52,8 @@ public class Mapping {
                 entity.version, entity.type, entity.nonce,
                 entity.from, entity.gasPrice, entity.amount,
                 entity.payload, entity.to, entity.signature,
-                headerEntity.blockHash, headerEntity.height
+                headerEntity.blockHash, headerEntity.height,
+                entity.wasmPayload
         );
         if (tx.type == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
             tx.contractType = tx.payload[0];
@@ -65,18 +66,23 @@ public class Mapping {
     }
 
     public static TransactionEntity getEntityFromTransaction(@NonNull Transaction tx) {
-        return TransactionEntity.builder()
+        TransactionEntity.TransactionEntityBuilder builder = TransactionEntity.builder()
                 .amount(tx.amount)
                 .from(tx.from)
                 .gasPrice(tx.gasPrice)
                 .nonce(tx.nonce)
-                .payload(tx.payload)
                 .signature(tx.signature)
                 .to(tx.to)
                 .txHash(tx.getHash())
                 .type(tx.type)
-                .version(tx.version)
-                .build();
+                .version(tx.version);
+        Transaction.Type type = Transaction.Type.values()[tx.type];
+        if(type == Transaction.Type.WASM_CALL || type == Transaction.Type.WASM_DEPLOY){
+            builder.wasmPayload(tx.payload);
+        }else{
+            builder.payload(tx.payload);
+        }
+        return builder.build();
     }
 
     public static List<TransactionEntity> getEntitiesFromTransactions(Block block) {

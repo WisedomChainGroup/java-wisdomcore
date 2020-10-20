@@ -11,7 +11,7 @@ public abstract class AbstractStateTrie<T> extends StateTrieAdapter<T>{
             Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis, DatabaseStoreFactory factory,
             boolean logDeletes, boolean reset
     ) {
-        super(clazz, updater, genesis, factory, logDeletes, reset);
+        super(clazz, updater.getGenesisStates(), genesis, factory, logDeletes, reset, updater);
     }
 
 

@@ -95,20 +95,7 @@ public class MerkleRule implements BlockRule {
             return Result.SUCCESS;
         }
 
-        Trie<byte[], AccountState> parentTrie = accountStateTrie
-                .getTrie()
-                .revert(
-                        accountStateTrie.getRootStore().get(block.hashPrevBlock).get(),
-                        new CachedStore<>(accountStateTrie.getTrieStore(), ByteArrayMap::new)
-                );
 
-        Map<byte[], AccountState> accountStateMap = accountStateUpdater.
-                update(accountStateTrie.batchGet(block.hashPrevBlock, accountStateUpdater.getRelatedKeys(block, parentTrie.asMap())),
-                        block.body.stream().map(tx -> new TransactionInfo(tx, block.nHeight)).collect(Collectors.toList()));
-        List<AccountState> accountStateList = new ArrayList<>(accountStateMap.values());
-        if (!Arrays.equals(block.hashMerkleState, Block.calculateMerkleState(accountStateList))) {
-            return Result.Error("merkle state validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleState) + " " + Hex.encodeHexString(Block.calculateMerkleState(accountStateList)));
-        }
         if (!Arrays.equals(block.hashMerkleIncubate, new byte[32])) {
             return Result.Error("merkle incubate validate fail " + new String(codec.encodeBlock(block)) + " " + Hex.encodeHexString(block.hashMerkleIncubate) + " " + Hex.encodeHexString(new byte[32]));
         }

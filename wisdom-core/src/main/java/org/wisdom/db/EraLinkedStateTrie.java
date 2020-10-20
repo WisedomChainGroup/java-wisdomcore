@@ -13,7 +13,7 @@ public abstract class EraLinkedStateTrie<T> extends StateTrieAdapter<T> {
     public EraLinkedStateTrie(
             Class<T> clazz, AbstractStateUpdater<T> updater, Block genesis,
             DatabaseStoreFactory factory, boolean logDeletes, boolean reset, int blocksPerEra) {
-        super(clazz, updater, genesis, factory, logDeletes, reset);
+        super(clazz, updater.getGenesisStates(), genesis, factory, logDeletes, reset, updater);
         this.eraLinker = new EraLinker(blocksPerEra);
     }
 

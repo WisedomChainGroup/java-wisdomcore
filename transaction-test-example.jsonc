@@ -1,9 +1,9 @@
 {
-   // windows脚本 .\gradlew runTransactionTestTool -PappArgs="-c F:\java-wisdomcore\transaction-test-example.jsonc"
+   // windows脚本 .\gradlew runTransactionTestTool -PappArgs="-c D:\IDEA\IdeaProjects\java-wisdomcore-master\transaction-test-example.jsonc"
    // unix 脚本 ./gradlew runTransactionTestTool -PappArgs="-c ../java-wisdomcore/transaction-test-example.jsonc"
-  "host": "192.168.1.239", // 可以通过命令行 -h 参数 覆盖
+  "host": "192.168.1.135", // 可以通过命令行 -h 参数 覆盖
   "port": "19585", // 可以通过命令行 -p 参数 覆盖
-  "privateKey": "f4b6b5b72dfb8b44241e7ed61e2c61e56e48e8d035650f35b5ebc58981ce009e", // 通过命令行 -k 参数覆盖 传递私钥
+  "privateKey": "c36698fb38a3b543311a38f8062628f43502bbcbe0c26ffa2ac9ab6103a905cb", // 通过命令行 -k 参数覆盖 传递私钥
   "nonce": 0, // 起始 nonce 可选，如果为 0 自动获取，通过命令行 -n 参数 传递
   "protocol": "http", // 从 http 发事务是批量 http 请求，从 grpc 发是单次 http2 请求速度更快
   "grpc.port": "9585", // 接收者节点的 grpc 监听端口, 如果节点的p2p地址是 wisdom://192.168.1.118:9585， 就填 9585
@@ -13,63 +13,37 @@
     {
       "amount": 100000, // 单位是 WDC，不可省略
       "type": "MORTGAGE", // 事务类型
-      /*
-              事务类型
-              TRANSFER, VOTE,
-              DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
-              TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
-              INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
-              EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
-      */
       "payload": "", // 可选，备注信息
-      "to": "WX19pa5aiXSkHnfU7DrwFfwZvzWgE8NCeBiH", // 接收者的 公钥，公钥哈希或者地址
-      "times": 1, // 发送次数
-    },
-    //撤回抵押
-    {
-      "amount": 100000, // 单位是 WDC，不可省略
-      "type": "EXIT_MORTGAGE", // 事务类型
-      "payload": "", // 抵押的事务哈希
-      "to": "WX19pa5aiXSkHnfU7DrwFfwZvzWgE8NCeBiH", // 接收者的 公钥，公钥哈希或者地址
+      "to": "WX1DL55mQ6HsfXrnaCak9TdAHxdMYLNxdg3", // 接收者的 公钥，公钥哈希或者地址
       "times": 1, // 发送次数
     },
     //孵化
-      {
+      /*{
         "amount":"300",// 单位是 WDC
         "type": "INCUBATE",//事务类型
         "payload": "7d4d105a3fc6db71d35ed654b1b7aab73d8fa50d", // 孵化分享者  公钥，公钥哈希或者地址，非必填
         "to": "1G4HkuzKq8FaJZpcW7PTmrQMEh4tgk9Mwj", // 孵化事务的 to 填自己
         "times": 1, // 发送次数,
         "hatchType": 120 // 孵化天数（120天/365天）
-      },
-      //提取利息
-      {
-        "amount": 100000, // 单位是 WDC，不可省略
-        "type": "EXTRACT_INTEREST", // 事务类型
-        "payload": "", // 孵化的事务哈希
-        "to": "WX19pa5aiXSkHnfU7DrwFfwZvzWgE8NCeBiH", // 接收者的 公钥，公钥哈希或者地址
-        "times": 1, // 发送次数
-      },
-      //提取分享利息
-      {
-          "amount": 100000, // 单位是 WDC，不可省略
-          "type": "EXTRACT_SHARING_PROFIT", // 事务类型
-          "payload": "", // 孵化的事务哈希
-          "to": "WX19pa5aiXSkHnfU7DrwFfwZvzWgE8NCeBiH", // 接收者的 公钥，公钥哈希或者地址
-          "times": 1, // 发送次数
-        },
-        //提取本金
-        {
-          "amount": 100000, // 单位是 WDC，不可省略
-          "type": "EXTRACT_SHARING_PROFIT", // 事务类型
-          "payload": "", // 孵化的事务哈希
-          "to": "WX19pa5aiXSkHnfU7DrwFfwZvzWgE8NCeBiH", // 接收者的 公钥，公钥哈希或者地址
-          "times": 1, // 发送次数
-        }
+      },*/
   ]
 }
-
 /*
+          TRANSFER           转账
+          VOTE               投票
+          EXIT_VOTE          撤回投票
+          INCUBATE           孵化
+          EXTRACT_INTEREST   提取收益
+          EXTRACT_SHARING_PROFIT   提取分享收益
+          EXTRACT_COST             提取本金
+          MORTGAGE            抵押
+          EXIT_MORTGAGE       撤回抵押
+          DEPOSIT      存证
+                                                  TRANSFER, VOTE,
+                                                  DEPOSIT, TRANSFER_MULTISIG_MULTISIG, TRANSFER_MULTISIG_NORMAL,
+                                                  TRANSFER_NORMAL_MULTISIG, ASSET_DEFINE, ATOMIC_EXCHANGE,
+                                                  INCUBATE, EXTRACT_INTEREST, EXTRACT_SHARING_PROFIT,
+                                                  EXTRACT_COST, EXIT_VOTE, MORTGAGE, EXIT_MORTGAGE
 存证事务的 payload 可以填文本了
 如果文本内容是合法的十六进制字符串则会被解析为字节数组 例如 "payload": "ff", 提交的是一个字节
 如果要强制提交文本用 `` 包含 例如 "payload": "`ff`", 提交的是两个字节，表示 f 这个字符的 utf8 编码
