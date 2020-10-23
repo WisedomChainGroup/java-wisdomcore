@@ -19,6 +19,7 @@ import org.wisdom.db.CandidateStateTrie;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.sync.SyncManager;
+import org.wisdom.vm.abi.WASMTXPool;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -53,6 +54,9 @@ public class InternalController {
 
     @Autowired
     private BlocksDump blocksDump;
+
+    @Autowired
+    private WASMTXPool wasmtxPool;
 
     // 根据区块哈希获取状态树根
     // 获取 forkdb 里面的事务
@@ -194,5 +198,14 @@ public class InternalController {
             @ModelAttribute  @Validated TransactionQuery query
     ) {
         return wisdomRepository.getTransactionByQuery(query);
+    }
+
+    @GetMapping(value = {
+            "/internal/wasmTxPool/{hash}"
+    }, produces = "application/json")
+    public Transaction getWASMTXInPool(
+            @PathVariable String hash
+    ) {
+        return wasmtxPool.get(HexBytes.fromHex(hash)).orElse(null);
     }
 }
