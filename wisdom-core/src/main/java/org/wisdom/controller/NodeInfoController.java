@@ -104,7 +104,8 @@ public class NodeInfoController {
         }
         List<CandidateInfo> proposers = repository.getLatestTopCandidates();
         List<CandidateInfo> blocksList = repository.getLatestBlockedCandidates();
-        res.put("proposers", proposers.stream()
+        res.put("proposers", proposers == null ? Collections.emptyList() :
+                proposers.stream()
                 .map(CandidateInfo::getPublicKeyHash)
                 .toArray()
         );

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) [2018]
- * This file is part of the java-wisdomcore
- *
- * The java-wisdomcore is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * The java-wisdomcore is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with the java-wisdomcore. If not, see <http://www.gnu.org/licenses/>.
- */
-
 package org.wisdom.util;
 
 import java.util.Collection;
@@ -23,24 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * A thread-safe version of {@link Map} in which all operations that change the
- * Map are implemented by making a new copy of the underlying Map.
- *
- * While the creation of a new Map can be expensive, this class is designed for
- * cases in which the primary function is to read data from the Map, not to
- * modify the Map.  Therefore the operations that do not cause a change to this
- * class happen quickly and concurrently.
- *
- * @author The Apache MINA Project (dev@mina.apache.org)
- * @version $Rev$, $Date$
- */
-public class CopyOnWriteMap<K, V> implements Map<K, V>, Cloneable {
+public class CopyOnWriteMap<K, V> implements Map<K, V> {
     private volatile Map<K, V> internalMap;
 
     /**
      * Creates a new instance of CopyOnWriteMap.
-     *
      */
     public CopyOnWriteMap() {
         internalMap = new HashMap<K, V>();
@@ -49,8 +18,7 @@ public class CopyOnWriteMap<K, V> implements Map<K, V>, Cloneable {
     /**
      * Creates a new instance of CopyOnWriteMap with the specified initial size
      *
-     * @param initialCapacity
-     *  The initial size of the Map.
+     * @param initialCapacity The initial size of the Map.
      */
     public CopyOnWriteMap(int initialCapacity) {
         internalMap = new HashMap<K, V>(initialCapacity);
@@ -61,9 +29,8 @@ public class CopyOnWriteMap<K, V> implements Map<K, V>, Cloneable {
      * initial data being held by this map is contained in
      * the supplied map.
      *
-     * @param data
-     *  A Map containing the initial contents to be placed into
-     *  this class.
+     * @param data A Map containing the initial contents to be placed into
+     *             this class.
      */
     public CopyOnWriteMap(Map<K, V> data) {
         internalMap = new HashMap<K, V>(data);
@@ -126,6 +93,7 @@ public class CopyOnWriteMap<K, V> implements Map<K, V>, Cloneable {
     //
     //  Below are methods that do not modify
     //          the internal Maps
+
     /**
      * Returns the number of key/value pairs in this map.
      *
@@ -193,14 +161,5 @@ public class CopyOnWriteMap<K, V> implements Map<K, V>, Cloneable {
      */
     public Set<Entry<K, V>> entrySet() {
         return internalMap.entrySet();
-    }
-
-    @Override
-    public Object clone() {
-        try {
-            return super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new InternalError();
-        }
     }
 }

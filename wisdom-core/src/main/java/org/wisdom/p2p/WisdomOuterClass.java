@@ -193,6 +193,8 @@ public final class WisdomOuterClass {
     }
 
     /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -200,6 +202,10 @@ public final class WisdomOuterClass {
       return forNumber(value);
     }
 
+    /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
+     */
     public static Code forNumber(int value) {
       switch (value) {
         case 0: return NOTHING;
@@ -304,6 +310,8 @@ public final class WisdomOuterClass {
     }
 
     /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -311,6 +319,10 @@ public final class WisdomOuterClass {
       return forNumber(value);
     }
 
+    /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
+     */
     public static ClipDirection forNumber(int value) {
       switch (value) {
         case 0: return CLIP_TAIL;
@@ -436,6 +448,14 @@ public final class WisdomOuterClass {
      * <code>EXIT_PLEDGE = 15;</code>
      */
     EXIT_PLEDGE(15),
+    /**
+     * <code>WASM_DEPLOY = 16;</code>
+     */
+    WASM_DEPLOY(16),
+    /**
+     * <code>WASM_CALL = 17;</code>
+     */
+    WASM_CALL(17),
     UNRECOGNIZED(-1),
     ;
 
@@ -503,6 +523,14 @@ public final class WisdomOuterClass {
      * <code>EXIT_PLEDGE = 15;</code>
      */
     public static final int EXIT_PLEDGE_VALUE = 15;
+    /**
+     * <code>WASM_DEPLOY = 16;</code>
+     */
+    public static final int WASM_DEPLOY_VALUE = 16;
+    /**
+     * <code>WASM_CALL = 17;</code>
+     */
+    public static final int WASM_CALL_VALUE = 17;
 
 
     public final int getNumber() {
@@ -514,6 +542,8 @@ public final class WisdomOuterClass {
     }
 
     /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -521,6 +551,10 @@ public final class WisdomOuterClass {
       return forNumber(value);
     }
 
+    /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
+     */
     public static TransactionType forNumber(int value) {
       switch (value) {
         case 0: return COINBASE;
@@ -539,6 +573,8 @@ public final class WisdomOuterClass {
         case 13: return EXIT_VOTE;
         case 14: return PLEDGE;
         case 15: return EXIT_PLEDGE;
+        case 16: return WASM_DEPLOY;
+        case 17: return WASM_CALL;
         default: return null;
       }
     }
@@ -601,6 +637,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>.Code code = 1;</code>
+     * @return The enum numeric value on the wire for code.
      */
     int getCodeValue();
     /**
@@ -609,15 +646,18 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>.Code code = 1;</code>
+     * @return The code.
      */
     org.wisdom.p2p.WisdomOuterClass.Code getCode();
 
     /**
      * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * @return Whether the createdAt field is set.
      */
     boolean hasCreatedAt();
     /**
      * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * @return The createdAt.
      */
     com.google.protobuf.Timestamp getCreatedAt();
     /**
@@ -627,10 +667,12 @@ public final class WisdomOuterClass {
 
     /**
      * <code>string remote_peer = 3;</code>
+     * @return The remotePeer.
      */
     java.lang.String getRemotePeer();
     /**
      * <code>string remote_peer = 3;</code>
+     * @return The bytes for remotePeer.
      */
     com.google.protobuf.ByteString
         getRemotePeerBytes();
@@ -641,6 +683,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>uint64 ttl = 4;</code>
+     * @return The ttl.
      */
     long getTtl();
 
@@ -650,11 +693,13 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>uint64 nonce = 5;</code>
+     * @return The nonce.
      */
     long getNonce();
 
     /**
      * <code>bytes signature = 6;</code>
+     * @return The signature.
      */
     com.google.protobuf.ByteString getSignature();
 
@@ -664,6 +709,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>bytes body = 7;</code>
+     * @return The body.
      */
     com.google.protobuf.ByteString getBody();
   }
@@ -687,6 +733,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Message();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -699,7 +752,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -795,6 +847,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>.Code code = 1;</code>
+     * @return The enum numeric value on the wire for code.
      */
     public int getCodeValue() {
       return code_;
@@ -805,6 +858,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>.Code code = 1;</code>
+     * @return The code.
      */
     public org.wisdom.p2p.WisdomOuterClass.Code getCode() {
       @SuppressWarnings("deprecation")
@@ -816,12 +870,14 @@ public final class WisdomOuterClass {
     private com.google.protobuf.Timestamp createdAt_;
     /**
      * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * @return Whether the createdAt field is set.
      */
     public boolean hasCreatedAt() {
       return createdAt_ != null;
     }
     /**
      * <code>.google.protobuf.Timestamp created_at = 2;</code>
+     * @return The createdAt.
      */
     public com.google.protobuf.Timestamp getCreatedAt() {
       return createdAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : createdAt_;
@@ -837,6 +893,7 @@ public final class WisdomOuterClass {
     private volatile java.lang.Object remotePeer_;
     /**
      * <code>string remote_peer = 3;</code>
+     * @return The remotePeer.
      */
     public java.lang.String getRemotePeer() {
       java.lang.Object ref = remotePeer_;
@@ -852,6 +909,7 @@ public final class WisdomOuterClass {
     }
     /**
      * <code>string remote_peer = 3;</code>
+     * @return The bytes for remotePeer.
      */
     public com.google.protobuf.ByteString
         getRemotePeerBytes() {
@@ -875,6 +933,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>uint64 ttl = 4;</code>
+     * @return The ttl.
      */
     public long getTtl() {
       return ttl_;
@@ -888,6 +947,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>uint64 nonce = 5;</code>
+     * @return The nonce.
      */
     public long getNonce() {
       return nonce_;
@@ -897,6 +957,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString signature_;
     /**
      * <code>bytes signature = 6;</code>
+     * @return The signature.
      */
     public com.google.protobuf.ByteString getSignature() {
       return signature_;
@@ -910,6 +971,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>bytes body = 7;</code>
+     * @return The body.
      */
     public com.google.protobuf.ByteString getBody() {
       return body_;
@@ -1340,6 +1402,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>.Code code = 1;</code>
+       * @return The enum numeric value on the wire for code.
        */
       public int getCodeValue() {
         return code_;
@@ -1350,6 +1413,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>.Code code = 1;</code>
+       * @param value The enum numeric value on the wire for code to set.
+       * @return This builder for chaining.
        */
       public Builder setCodeValue(int value) {
         code_ = value;
@@ -1362,6 +1427,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>.Code code = 1;</code>
+       * @return The code.
        */
       public org.wisdom.p2p.WisdomOuterClass.Code getCode() {
         @SuppressWarnings("deprecation")
@@ -1374,6 +1440,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>.Code code = 1;</code>
+       * @param value The code to set.
+       * @return This builder for chaining.
        */
       public Builder setCode(org.wisdom.p2p.WisdomOuterClass.Code value) {
         if (value == null) {
@@ -1390,6 +1458,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>.Code code = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearCode() {
         
@@ -1403,12 +1472,14 @@ public final class WisdomOuterClass {
           com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> createdAtBuilder_;
       /**
        * <code>.google.protobuf.Timestamp created_at = 2;</code>
+       * @return Whether the createdAt field is set.
        */
       public boolean hasCreatedAt() {
         return createdAtBuilder_ != null || createdAt_ != null;
       }
       /**
        * <code>.google.protobuf.Timestamp created_at = 2;</code>
+       * @return The createdAt.
        */
       public com.google.protobuf.Timestamp getCreatedAt() {
         if (createdAtBuilder_ == null) {
@@ -1518,6 +1589,7 @@ public final class WisdomOuterClass {
       private java.lang.Object remotePeer_ = "";
       /**
        * <code>string remote_peer = 3;</code>
+       * @return The remotePeer.
        */
       public java.lang.String getRemotePeer() {
         java.lang.Object ref = remotePeer_;
@@ -1533,6 +1605,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string remote_peer = 3;</code>
+       * @return The bytes for remotePeer.
        */
       public com.google.protobuf.ByteString
           getRemotePeerBytes() {
@@ -1549,6 +1622,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string remote_peer = 3;</code>
+       * @param value The remotePeer to set.
+       * @return This builder for chaining.
        */
       public Builder setRemotePeer(
           java.lang.String value) {
@@ -1562,6 +1637,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string remote_peer = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearRemotePeer() {
         
@@ -1571,6 +1647,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string remote_peer = 3;</code>
+       * @param value The bytes for remotePeer to set.
+       * @return This builder for chaining.
        */
       public Builder setRemotePeerBytes(
           com.google.protobuf.ByteString value) {
@@ -1591,6 +1669,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>uint64 ttl = 4;</code>
+       * @return The ttl.
        */
       public long getTtl() {
         return ttl_;
@@ -1601,6 +1680,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>uint64 ttl = 4;</code>
+       * @param value The ttl to set.
+       * @return This builder for chaining.
        */
       public Builder setTtl(long value) {
         
@@ -1614,6 +1695,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>uint64 ttl = 4;</code>
+       * @return This builder for chaining.
        */
       public Builder clearTtl() {
         
@@ -1629,6 +1711,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>uint64 nonce = 5;</code>
+       * @return The nonce.
        */
       public long getNonce() {
         return nonce_;
@@ -1639,6 +1722,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>uint64 nonce = 5;</code>
+       * @param value The nonce to set.
+       * @return This builder for chaining.
        */
       public Builder setNonce(long value) {
         
@@ -1652,6 +1737,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>uint64 nonce = 5;</code>
+       * @return This builder for chaining.
        */
       public Builder clearNonce() {
         
@@ -1663,12 +1749,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString signature_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes signature = 6;</code>
+       * @return The signature.
        */
       public com.google.protobuf.ByteString getSignature() {
         return signature_;
       }
       /**
        * <code>bytes signature = 6;</code>
+       * @param value The signature to set.
+       * @return This builder for chaining.
        */
       public Builder setSignature(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -1681,6 +1770,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes signature = 6;</code>
+       * @return This builder for chaining.
        */
       public Builder clearSignature() {
         
@@ -1696,6 +1786,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>bytes body = 7;</code>
+       * @return The body.
        */
       public com.google.protobuf.ByteString getBody() {
         return body_;
@@ -1706,6 +1797,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>bytes body = 7;</code>
+       * @param value The body to set.
+       * @return This builder for chaining.
        */
       public Builder setBody(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -1722,6 +1815,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>bytes body = 7;</code>
+       * @return This builder for chaining.
        */
       public Builder clearBody() {
         
@@ -1799,6 +1893,13 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Ping() {
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Ping();
     }
 
     @java.lang.Override
@@ -2213,6 +2314,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Pong();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -2624,6 +2732,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Lookup();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -3021,19 +3136,25 @@ public final class WisdomOuterClass {
 
     /**
      * <code>repeated string peers = 1;</code>
+     * @return A list containing the peers.
      */
     java.util.List<java.lang.String>
         getPeersList();
     /**
      * <code>repeated string peers = 1;</code>
+     * @return The count of peers.
      */
     int getPeersCount();
     /**
      * <code>repeated string peers = 1;</code>
+     * @param index The index of the element to return.
+     * @return The peers at the given index.
      */
     java.lang.String getPeers(int index);
     /**
      * <code>repeated string peers = 1;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the peers at the given index.
      */
     com.google.protobuf.ByteString
         getPeersBytes(int index);
@@ -3056,6 +3177,13 @@ public final class WisdomOuterClass {
     }
     private Peers() {
       peers_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Peers();
     }
 
     @java.lang.Override
@@ -3130,6 +3258,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.LazyStringList peers_;
     /**
      * <code>repeated string peers = 1;</code>
+     * @return A list containing the peers.
      */
     public com.google.protobuf.ProtocolStringList
         getPeersList() {
@@ -3137,18 +3266,23 @@ public final class WisdomOuterClass {
     }
     /**
      * <code>repeated string peers = 1;</code>
+     * @return The count of peers.
      */
     public int getPeersCount() {
       return peers_.size();
     }
     /**
      * <code>repeated string peers = 1;</code>
+     * @param index The index of the element to return.
+     * @return The peers at the given index.
      */
     public java.lang.String getPeers(int index) {
       return peers_.get(index);
     }
     /**
      * <code>repeated string peers = 1;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the peers at the given index.
      */
     public com.google.protobuf.ByteString
         getPeersBytes(int index) {
@@ -3489,6 +3623,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @return A list containing the peers.
        */
       public com.google.protobuf.ProtocolStringList
           getPeersList() {
@@ -3496,18 +3631,23 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @return The count of peers.
        */
       public int getPeersCount() {
         return peers_.size();
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @param index The index of the element to return.
+       * @return The peers at the given index.
        */
       public java.lang.String getPeers(int index) {
         return peers_.get(index);
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the peers at the given index.
        */
       public com.google.protobuf.ByteString
           getPeersBytes(int index) {
@@ -3515,6 +3655,9 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @param index The index to set the value at.
+       * @param value The peers to set.
+       * @return This builder for chaining.
        */
       public Builder setPeers(
           int index, java.lang.String value) {
@@ -3528,6 +3671,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @param value The peers to add.
+       * @return This builder for chaining.
        */
       public Builder addPeers(
           java.lang.String value) {
@@ -3541,6 +3686,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @param values The peers to add.
+       * @return This builder for chaining.
        */
       public Builder addAllPeers(
           java.lang.Iterable<java.lang.String> values) {
@@ -3552,6 +3699,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearPeers() {
         peers_ = com.google.protobuf.LazyStringArrayList.EMPTY;
@@ -3561,6 +3709,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>repeated string peers = 1;</code>
+       * @param value The bytes of the peers to add.
+       * @return This builder for chaining.
        */
       public Builder addPeersBytes(
           com.google.protobuf.ByteString value) {
@@ -3643,6 +3793,13 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private GetStatus() {
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new GetStatus();
     }
 
     @java.lang.Override
@@ -4043,16 +4200,19 @@ public final class WisdomOuterClass {
 
     /**
      * <code>uint64 current_height = 1;</code>
+     * @return The currentHeight.
      */
     long getCurrentHeight();
 
     /**
      * <code>bytes best_block_hash = 2;</code>
+     * @return The bestBlockHash.
      */
     com.google.protobuf.ByteString getBestBlockHash();
 
     /**
      * <code>bytes genesis_hash = 3;</code>
+     * @return The genesisHash.
      */
     com.google.protobuf.ByteString getGenesisHash();
   }
@@ -4074,6 +4234,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Status();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -4086,7 +4253,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -4148,6 +4314,7 @@ public final class WisdomOuterClass {
     private long currentHeight_;
     /**
      * <code>uint64 current_height = 1;</code>
+     * @return The currentHeight.
      */
     public long getCurrentHeight() {
       return currentHeight_;
@@ -4157,6 +4324,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString bestBlockHash_;
     /**
      * <code>bytes best_block_hash = 2;</code>
+     * @return The bestBlockHash.
      */
     public com.google.protobuf.ByteString getBestBlockHash() {
       return bestBlockHash_;
@@ -4166,6 +4334,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString genesisHash_;
     /**
      * <code>bytes genesis_hash = 3;</code>
+     * @return The genesisHash.
      */
     public com.google.protobuf.ByteString getGenesisHash() {
       return genesisHash_;
@@ -4511,12 +4680,15 @@ public final class WisdomOuterClass {
       private long currentHeight_ ;
       /**
        * <code>uint64 current_height = 1;</code>
+       * @return The currentHeight.
        */
       public long getCurrentHeight() {
         return currentHeight_;
       }
       /**
        * <code>uint64 current_height = 1;</code>
+       * @param value The currentHeight to set.
+       * @return This builder for chaining.
        */
       public Builder setCurrentHeight(long value) {
         
@@ -4526,6 +4698,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint64 current_height = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearCurrentHeight() {
         
@@ -4537,12 +4710,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString bestBlockHash_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes best_block_hash = 2;</code>
+       * @return The bestBlockHash.
        */
       public com.google.protobuf.ByteString getBestBlockHash() {
         return bestBlockHash_;
       }
       /**
        * <code>bytes best_block_hash = 2;</code>
+       * @param value The bestBlockHash to set.
+       * @return This builder for chaining.
        */
       public Builder setBestBlockHash(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -4555,6 +4731,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes best_block_hash = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearBestBlockHash() {
         
@@ -4566,12 +4743,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString genesisHash_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes genesis_hash = 3;</code>
+       * @return The genesisHash.
        */
       public com.google.protobuf.ByteString getGenesisHash() {
         return genesisHash_;
       }
       /**
        * <code>bytes genesis_hash = 3;</code>
+       * @param value The genesisHash to set.
+       * @return This builder for chaining.
        */
       public Builder setGenesisHash(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -4584,6 +4764,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes genesis_hash = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearGenesisHash() {
         
@@ -4650,20 +4831,24 @@ public final class WisdomOuterClass {
 
     /**
      * <code>uint64 start_height = 1;</code>
+     * @return The startHeight.
      */
     long getStartHeight();
 
     /**
      * <code>uint64 stop_height = 2;</code>
+     * @return The stopHeight.
      */
     long getStopHeight();
 
     /**
      * <code>.ClipDirection clip_direction = 3;</code>
+     * @return The enum numeric value on the wire for clipDirection.
      */
     int getClipDirectionValue();
     /**
      * <code>.ClipDirection clip_direction = 3;</code>
+     * @return The clipDirection.
      */
     org.wisdom.p2p.WisdomOuterClass.ClipDirection getClipDirection();
   }
@@ -4684,6 +4869,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new GetBlocks();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -4696,7 +4888,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -4759,6 +4950,7 @@ public final class WisdomOuterClass {
     private long startHeight_;
     /**
      * <code>uint64 start_height = 1;</code>
+     * @return The startHeight.
      */
     public long getStartHeight() {
       return startHeight_;
@@ -4768,6 +4960,7 @@ public final class WisdomOuterClass {
     private long stopHeight_;
     /**
      * <code>uint64 stop_height = 2;</code>
+     * @return The stopHeight.
      */
     public long getStopHeight() {
       return stopHeight_;
@@ -4777,12 +4970,14 @@ public final class WisdomOuterClass {
     private int clipDirection_;
     /**
      * <code>.ClipDirection clip_direction = 3;</code>
+     * @return The enum numeric value on the wire for clipDirection.
      */
     public int getClipDirectionValue() {
       return clipDirection_;
     }
     /**
      * <code>.ClipDirection clip_direction = 3;</code>
+     * @return The clipDirection.
      */
     public org.wisdom.p2p.WisdomOuterClass.ClipDirection getClipDirection() {
       @SuppressWarnings("deprecation")
@@ -5130,12 +5325,15 @@ public final class WisdomOuterClass {
       private long startHeight_ ;
       /**
        * <code>uint64 start_height = 1;</code>
+       * @return The startHeight.
        */
       public long getStartHeight() {
         return startHeight_;
       }
       /**
        * <code>uint64 start_height = 1;</code>
+       * @param value The startHeight to set.
+       * @return This builder for chaining.
        */
       public Builder setStartHeight(long value) {
         
@@ -5145,6 +5343,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint64 start_height = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearStartHeight() {
         
@@ -5156,12 +5355,15 @@ public final class WisdomOuterClass {
       private long stopHeight_ ;
       /**
        * <code>uint64 stop_height = 2;</code>
+       * @return The stopHeight.
        */
       public long getStopHeight() {
         return stopHeight_;
       }
       /**
        * <code>uint64 stop_height = 2;</code>
+       * @param value The stopHeight to set.
+       * @return This builder for chaining.
        */
       public Builder setStopHeight(long value) {
         
@@ -5171,6 +5373,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint64 stop_height = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearStopHeight() {
         
@@ -5182,12 +5385,15 @@ public final class WisdomOuterClass {
       private int clipDirection_ = 0;
       /**
        * <code>.ClipDirection clip_direction = 3;</code>
+       * @return The enum numeric value on the wire for clipDirection.
        */
       public int getClipDirectionValue() {
         return clipDirection_;
       }
       /**
        * <code>.ClipDirection clip_direction = 3;</code>
+       * @param value The enum numeric value on the wire for clipDirection to set.
+       * @return This builder for chaining.
        */
       public Builder setClipDirectionValue(int value) {
         clipDirection_ = value;
@@ -5196,6 +5402,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>.ClipDirection clip_direction = 3;</code>
+       * @return The clipDirection.
        */
       public org.wisdom.p2p.WisdomOuterClass.ClipDirection getClipDirection() {
         @SuppressWarnings("deprecation")
@@ -5204,6 +5411,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>.ClipDirection clip_direction = 3;</code>
+       * @param value The clipDirection to set.
+       * @return This builder for chaining.
        */
       public Builder setClipDirection(org.wisdom.p2p.WisdomOuterClass.ClipDirection value) {
         if (value == null) {
@@ -5216,6 +5425,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>.ClipDirection clip_direction = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearClipDirection() {
         
@@ -5318,6 +5528,13 @@ public final class WisdomOuterClass {
     }
     private Blocks() {
       blocks_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Blocks();
     }
 
     @java.lang.Override
@@ -6063,10 +6280,12 @@ public final class WisdomOuterClass {
 
     /**
      * <code>.Block block = 1;</code>
+     * @return Whether the block field is set.
      */
     boolean hasBlock();
     /**
      * <code>.Block block = 1;</code>
+     * @return The block.
      */
     org.wisdom.p2p.WisdomOuterClass.Block getBlock();
     /**
@@ -6090,6 +6309,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Proposal();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -6102,7 +6328,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -6162,12 +6387,14 @@ public final class WisdomOuterClass {
     private org.wisdom.p2p.WisdomOuterClass.Block block_;
     /**
      * <code>.Block block = 1;</code>
+     * @return Whether the block field is set.
      */
     public boolean hasBlock() {
       return block_ != null;
     }
     /**
      * <code>.Block block = 1;</code>
+     * @return The block.
      */
     public org.wisdom.p2p.WisdomOuterClass.Block getBlock() {
       return block_ == null ? org.wisdom.p2p.WisdomOuterClass.Block.getDefaultInstance() : block_;
@@ -6499,12 +6726,14 @@ public final class WisdomOuterClass {
           org.wisdom.p2p.WisdomOuterClass.Block, org.wisdom.p2p.WisdomOuterClass.Block.Builder, org.wisdom.p2p.WisdomOuterClass.BlockOrBuilder> blockBuilder_;
       /**
        * <code>.Block block = 1;</code>
+       * @return Whether the block field is set.
        */
       public boolean hasBlock() {
         return blockBuilder_ != null || block_ != null;
       }
       /**
        * <code>.Block block = 1;</code>
+       * @return The block.
        */
       public org.wisdom.p2p.WisdomOuterClass.Block getBlock() {
         if (blockBuilder_ == null) {
@@ -6680,6 +6909,13 @@ public final class WisdomOuterClass {
       super(builder);
     }
     private Nothing() {
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Nothing();
     }
 
     @java.lang.Override
@@ -7116,6 +7352,13 @@ public final class WisdomOuterClass {
     }
     private Transactions() {
       transactions_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Transactions();
     }
 
     @java.lang.Override
@@ -7861,50 +8104,60 @@ public final class WisdomOuterClass {
 
     /**
      * <code>int32 version = 1;</code>
+     * @return The version.
      */
     int getVersion();
 
     /**
      * <code>.TransactionType transaction_type = 2;</code>
+     * @return The enum numeric value on the wire for transactionType.
      */
     int getTransactionTypeValue();
     /**
      * <code>.TransactionType transaction_type = 2;</code>
+     * @return The transactionType.
      */
     org.wisdom.p2p.WisdomOuterClass.TransactionType getTransactionType();
 
     /**
      * <code>uint64 nonce = 3;</code>
+     * @return The nonce.
      */
     long getNonce();
 
     /**
      * <code>bytes from = 4;</code>
+     * @return The from.
      */
     com.google.protobuf.ByteString getFrom();
 
     /**
      * <code>uint64 gas_price = 5;</code>
+     * @return The gasPrice.
      */
     long getGasPrice();
 
     /**
      * <code>uint64 amount = 6;</code>
+     * @return The amount.
      */
     long getAmount();
 
     /**
      * <code>bytes signature = 7;</code>
+     * @return The signature.
      */
     com.google.protobuf.ByteString getSignature();
 
     /**
      * <code>bytes to = 8;</code>
+     * @return The to.
      */
     com.google.protobuf.ByteString getTo();
 
     /**
      * <code>bytes payload = 9;</code>
+     * @return The payload.
      */
     com.google.protobuf.ByteString getPayload();
   }
@@ -7929,6 +8182,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Transaction();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -7941,7 +8201,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -8034,6 +8293,7 @@ public final class WisdomOuterClass {
     private int version_;
     /**
      * <code>int32 version = 1;</code>
+     * @return The version.
      */
     public int getVersion() {
       return version_;
@@ -8043,12 +8303,14 @@ public final class WisdomOuterClass {
     private int transactionType_;
     /**
      * <code>.TransactionType transaction_type = 2;</code>
+     * @return The enum numeric value on the wire for transactionType.
      */
     public int getTransactionTypeValue() {
       return transactionType_;
     }
     /**
      * <code>.TransactionType transaction_type = 2;</code>
+     * @return The transactionType.
      */
     public org.wisdom.p2p.WisdomOuterClass.TransactionType getTransactionType() {
       @SuppressWarnings("deprecation")
@@ -8060,6 +8322,7 @@ public final class WisdomOuterClass {
     private long nonce_;
     /**
      * <code>uint64 nonce = 3;</code>
+     * @return The nonce.
      */
     public long getNonce() {
       return nonce_;
@@ -8069,6 +8332,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString from_;
     /**
      * <code>bytes from = 4;</code>
+     * @return The from.
      */
     public com.google.protobuf.ByteString getFrom() {
       return from_;
@@ -8078,6 +8342,7 @@ public final class WisdomOuterClass {
     private long gasPrice_;
     /**
      * <code>uint64 gas_price = 5;</code>
+     * @return The gasPrice.
      */
     public long getGasPrice() {
       return gasPrice_;
@@ -8087,6 +8352,7 @@ public final class WisdomOuterClass {
     private long amount_;
     /**
      * <code>uint64 amount = 6;</code>
+     * @return The amount.
      */
     public long getAmount() {
       return amount_;
@@ -8096,6 +8362,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString signature_;
     /**
      * <code>bytes signature = 7;</code>
+     * @return The signature.
      */
     public com.google.protobuf.ByteString getSignature() {
       return signature_;
@@ -8105,6 +8372,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString to_;
     /**
      * <code>bytes to = 8;</code>
+     * @return The to.
      */
     public com.google.protobuf.ByteString getTo() {
       return to_;
@@ -8114,6 +8382,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString payload_;
     /**
      * <code>bytes payload = 9;</code>
+     * @return The payload.
      */
     public com.google.protobuf.ByteString getPayload() {
       return payload_;
@@ -8562,12 +8831,15 @@ public final class WisdomOuterClass {
       private int version_ ;
       /**
        * <code>int32 version = 1;</code>
+       * @return The version.
        */
       public int getVersion() {
         return version_;
       }
       /**
        * <code>int32 version = 1;</code>
+       * @param value The version to set.
+       * @return This builder for chaining.
        */
       public Builder setVersion(int value) {
         
@@ -8577,6 +8849,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>int32 version = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearVersion() {
         
@@ -8588,12 +8861,15 @@ public final class WisdomOuterClass {
       private int transactionType_ = 0;
       /**
        * <code>.TransactionType transaction_type = 2;</code>
+       * @return The enum numeric value on the wire for transactionType.
        */
       public int getTransactionTypeValue() {
         return transactionType_;
       }
       /**
        * <code>.TransactionType transaction_type = 2;</code>
+       * @param value The enum numeric value on the wire for transactionType to set.
+       * @return This builder for chaining.
        */
       public Builder setTransactionTypeValue(int value) {
         transactionType_ = value;
@@ -8602,6 +8878,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>.TransactionType transaction_type = 2;</code>
+       * @return The transactionType.
        */
       public org.wisdom.p2p.WisdomOuterClass.TransactionType getTransactionType() {
         @SuppressWarnings("deprecation")
@@ -8610,6 +8887,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>.TransactionType transaction_type = 2;</code>
+       * @param value The transactionType to set.
+       * @return This builder for chaining.
        */
       public Builder setTransactionType(org.wisdom.p2p.WisdomOuterClass.TransactionType value) {
         if (value == null) {
@@ -8622,6 +8901,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>.TransactionType transaction_type = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearTransactionType() {
         
@@ -8633,12 +8913,15 @@ public final class WisdomOuterClass {
       private long nonce_ ;
       /**
        * <code>uint64 nonce = 3;</code>
+       * @return The nonce.
        */
       public long getNonce() {
         return nonce_;
       }
       /**
        * <code>uint64 nonce = 3;</code>
+       * @param value The nonce to set.
+       * @return This builder for chaining.
        */
       public Builder setNonce(long value) {
         
@@ -8648,6 +8931,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint64 nonce = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearNonce() {
         
@@ -8659,12 +8943,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString from_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes from = 4;</code>
+       * @return The from.
        */
       public com.google.protobuf.ByteString getFrom() {
         return from_;
       }
       /**
        * <code>bytes from = 4;</code>
+       * @param value The from to set.
+       * @return This builder for chaining.
        */
       public Builder setFrom(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -8677,6 +8964,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes from = 4;</code>
+       * @return This builder for chaining.
        */
       public Builder clearFrom() {
         
@@ -8688,12 +8976,15 @@ public final class WisdomOuterClass {
       private long gasPrice_ ;
       /**
        * <code>uint64 gas_price = 5;</code>
+       * @return The gasPrice.
        */
       public long getGasPrice() {
         return gasPrice_;
       }
       /**
        * <code>uint64 gas_price = 5;</code>
+       * @param value The gasPrice to set.
+       * @return This builder for chaining.
        */
       public Builder setGasPrice(long value) {
         
@@ -8703,6 +8994,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint64 gas_price = 5;</code>
+       * @return This builder for chaining.
        */
       public Builder clearGasPrice() {
         
@@ -8714,12 +9006,15 @@ public final class WisdomOuterClass {
       private long amount_ ;
       /**
        * <code>uint64 amount = 6;</code>
+       * @return The amount.
        */
       public long getAmount() {
         return amount_;
       }
       /**
        * <code>uint64 amount = 6;</code>
+       * @param value The amount to set.
+       * @return This builder for chaining.
        */
       public Builder setAmount(long value) {
         
@@ -8729,6 +9024,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint64 amount = 6;</code>
+       * @return This builder for chaining.
        */
       public Builder clearAmount() {
         
@@ -8740,12 +9036,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString signature_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes signature = 7;</code>
+       * @return The signature.
        */
       public com.google.protobuf.ByteString getSignature() {
         return signature_;
       }
       /**
        * <code>bytes signature = 7;</code>
+       * @param value The signature to set.
+       * @return This builder for chaining.
        */
       public Builder setSignature(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -8758,6 +9057,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes signature = 7;</code>
+       * @return This builder for chaining.
        */
       public Builder clearSignature() {
         
@@ -8769,12 +9069,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString to_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes to = 8;</code>
+       * @return The to.
        */
       public com.google.protobuf.ByteString getTo() {
         return to_;
       }
       /**
        * <code>bytes to = 8;</code>
+       * @param value The to to set.
+       * @return This builder for chaining.
        */
       public Builder setTo(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -8787,6 +9090,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes to = 8;</code>
+       * @return This builder for chaining.
        */
       public Builder clearTo() {
         
@@ -8798,12 +9102,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString payload_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes payload = 9;</code>
+       * @return The payload.
        */
       public com.google.protobuf.ByteString getPayload() {
         return payload_;
       }
       /**
        * <code>bytes payload = 9;</code>
+       * @param value The payload to set.
+       * @return This builder for chaining.
        */
       public Builder setPayload(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -8816,6 +9123,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes payload = 9;</code>
+       * @return This builder for chaining.
        */
       public Builder clearPayload() {
         
@@ -8882,46 +9190,55 @@ public final class WisdomOuterClass {
 
     /**
      * <code>uint32 version = 1;</code>
+     * @return The version.
      */
     int getVersion();
 
     /**
      * <code>bytes hash_prev_block = 2;</code>
+     * @return The hashPrevBlock.
      */
     com.google.protobuf.ByteString getHashPrevBlock();
 
     /**
      * <code>bytes hash_merkle_root = 3;</code>
+     * @return The hashMerkleRoot.
      */
     com.google.protobuf.ByteString getHashMerkleRoot();
 
     /**
      * <code>bytes hash_merkle_state = 4;</code>
+     * @return The hashMerkleState.
      */
     com.google.protobuf.ByteString getHashMerkleState();
 
     /**
      * <code>bytes hash_merkle_incubate = 5;</code>
+     * @return The hashMerkleIncubate.
      */
     com.google.protobuf.ByteString getHashMerkleIncubate();
 
     /**
      * <code>uint32 height = 6;</code>
+     * @return The height.
      */
     int getHeight();
 
     /**
      * <code>uint32 created_at = 7;</code>
+     * @return The createdAt.
      */
     int getCreatedAt();
 
     /**
      * <code>bytes n_bits = 8;</code>
+     * @return The nBits.
      */
     com.google.protobuf.ByteString getNBits();
 
     /**
      * <code>bytes nonce = 9;</code>
+     * @return The nonce.
      */
     com.google.protobuf.ByteString getNonce();
 
@@ -8951,6 +9268,7 @@ public final class WisdomOuterClass {
 
     /**
      * <code>bytes account_state_trie_root = 11;</code>
+     * @return The accountStateTrieRoot.
      */
     com.google.protobuf.ByteString getAccountStateTrieRoot();
   }
@@ -8975,6 +9293,13 @@ public final class WisdomOuterClass {
       nonce_ = com.google.protobuf.ByteString.EMPTY;
       body_ = java.util.Collections.emptyList();
       accountStateTrieRoot_ = com.google.protobuf.ByteString.EMPTY;
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new Block();
     }
 
     @java.lang.Override
@@ -9047,9 +9372,9 @@ public final class WisdomOuterClass {
               break;
             }
             case 82: {
-              if (!((mutable_bitField0_ & 0x00000200) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 body_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>();
-                mutable_bitField0_ |= 0x00000200;
+                mutable_bitField0_ |= 0x00000001;
               }
               body_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.Transaction.parser(), extensionRegistry));
@@ -9075,7 +9400,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000200) != 0)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           body_ = java.util.Collections.unmodifiableList(body_);
         }
         this.unknownFields = unknownFields.build();
@@ -9095,11 +9420,11 @@ public final class WisdomOuterClass {
               org.wisdom.p2p.WisdomOuterClass.Block.class, org.wisdom.p2p.WisdomOuterClass.Block.Builder.class);
     }
 
-    private int bitField0_;
     public static final int VERSION_FIELD_NUMBER = 1;
     private int version_;
     /**
      * <code>uint32 version = 1;</code>
+     * @return The version.
      */
     public int getVersion() {
       return version_;
@@ -9109,6 +9434,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString hashPrevBlock_;
     /**
      * <code>bytes hash_prev_block = 2;</code>
+     * @return The hashPrevBlock.
      */
     public com.google.protobuf.ByteString getHashPrevBlock() {
       return hashPrevBlock_;
@@ -9118,6 +9444,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString hashMerkleRoot_;
     /**
      * <code>bytes hash_merkle_root = 3;</code>
+     * @return The hashMerkleRoot.
      */
     public com.google.protobuf.ByteString getHashMerkleRoot() {
       return hashMerkleRoot_;
@@ -9127,6 +9454,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString hashMerkleState_;
     /**
      * <code>bytes hash_merkle_state = 4;</code>
+     * @return The hashMerkleState.
      */
     public com.google.protobuf.ByteString getHashMerkleState() {
       return hashMerkleState_;
@@ -9136,6 +9464,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString hashMerkleIncubate_;
     /**
      * <code>bytes hash_merkle_incubate = 5;</code>
+     * @return The hashMerkleIncubate.
      */
     public com.google.protobuf.ByteString getHashMerkleIncubate() {
       return hashMerkleIncubate_;
@@ -9145,6 +9474,7 @@ public final class WisdomOuterClass {
     private int height_;
     /**
      * <code>uint32 height = 6;</code>
+     * @return The height.
      */
     public int getHeight() {
       return height_;
@@ -9154,6 +9484,7 @@ public final class WisdomOuterClass {
     private int createdAt_;
     /**
      * <code>uint32 created_at = 7;</code>
+     * @return The createdAt.
      */
     public int getCreatedAt() {
       return createdAt_;
@@ -9163,6 +9494,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString nBits_;
     /**
      * <code>bytes n_bits = 8;</code>
+     * @return The nBits.
      */
     public com.google.protobuf.ByteString getNBits() {
       return nBits_;
@@ -9172,6 +9504,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString nonce_;
     /**
      * <code>bytes nonce = 9;</code>
+     * @return The nonce.
      */
     public com.google.protobuf.ByteString getNonce() {
       return nonce_;
@@ -9216,6 +9549,7 @@ public final class WisdomOuterClass {
     private com.google.protobuf.ByteString accountStateTrieRoot_;
     /**
      * <code>bytes account_state_trie_root = 11;</code>
+     * @return The accountStateTrieRoot.
      */
     public com.google.protobuf.ByteString getAccountStateTrieRoot() {
       return accountStateTrieRoot_;
@@ -9547,7 +9881,7 @@ public final class WisdomOuterClass {
 
         if (bodyBuilder_ == null) {
           body_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
           bodyBuilder_.clear();
         }
@@ -9580,7 +9914,6 @@ public final class WisdomOuterClass {
       public org.wisdom.p2p.WisdomOuterClass.Block buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.Block result = new org.wisdom.p2p.WisdomOuterClass.Block(this);
         int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
         result.version_ = version_;
         result.hashPrevBlock_ = hashPrevBlock_;
         result.hashMerkleRoot_ = hashMerkleRoot_;
@@ -9591,16 +9924,15 @@ public final class WisdomOuterClass {
         result.nBits_ = nBits_;
         result.nonce_ = nonce_;
         if (bodyBuilder_ == null) {
-          if (((bitField0_ & 0x00000200) != 0)) {
+          if (((bitField0_ & 0x00000001) != 0)) {
             body_ = java.util.Collections.unmodifiableList(body_);
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000001);
           }
           result.body_ = body_;
         } else {
           result.body_ = bodyBuilder_.build();
         }
         result.accountStateTrieRoot_ = accountStateTrieRoot_;
-        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -9680,7 +10012,7 @@ public final class WisdomOuterClass {
           if (!other.body_.isEmpty()) {
             if (body_.isEmpty()) {
               body_ = other.body_;
-              bitField0_ = (bitField0_ & ~0x00000200);
+              bitField0_ = (bitField0_ & ~0x00000001);
             } else {
               ensureBodyIsMutable();
               body_.addAll(other.body_);
@@ -9693,7 +10025,7 @@ public final class WisdomOuterClass {
               bodyBuilder_.dispose();
               bodyBuilder_ = null;
               body_ = other.body_;
-              bitField0_ = (bitField0_ & ~0x00000200);
+              bitField0_ = (bitField0_ & ~0x00000001);
               bodyBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getBodyFieldBuilder() : null;
@@ -9738,12 +10070,15 @@ public final class WisdomOuterClass {
       private int version_ ;
       /**
        * <code>uint32 version = 1;</code>
+       * @return The version.
        */
       public int getVersion() {
         return version_;
       }
       /**
        * <code>uint32 version = 1;</code>
+       * @param value The version to set.
+       * @return This builder for chaining.
        */
       public Builder setVersion(int value) {
         
@@ -9753,6 +10088,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint32 version = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearVersion() {
         
@@ -9764,12 +10100,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString hashPrevBlock_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes hash_prev_block = 2;</code>
+       * @return The hashPrevBlock.
        */
       public com.google.protobuf.ByteString getHashPrevBlock() {
         return hashPrevBlock_;
       }
       /**
        * <code>bytes hash_prev_block = 2;</code>
+       * @param value The hashPrevBlock to set.
+       * @return This builder for chaining.
        */
       public Builder setHashPrevBlock(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9782,6 +10121,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes hash_prev_block = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHashPrevBlock() {
         
@@ -9793,12 +10133,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString hashMerkleRoot_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes hash_merkle_root = 3;</code>
+       * @return The hashMerkleRoot.
        */
       public com.google.protobuf.ByteString getHashMerkleRoot() {
         return hashMerkleRoot_;
       }
       /**
        * <code>bytes hash_merkle_root = 3;</code>
+       * @param value The hashMerkleRoot to set.
+       * @return This builder for chaining.
        */
       public Builder setHashMerkleRoot(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9811,6 +10154,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes hash_merkle_root = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHashMerkleRoot() {
         
@@ -9822,12 +10166,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString hashMerkleState_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes hash_merkle_state = 4;</code>
+       * @return The hashMerkleState.
        */
       public com.google.protobuf.ByteString getHashMerkleState() {
         return hashMerkleState_;
       }
       /**
        * <code>bytes hash_merkle_state = 4;</code>
+       * @param value The hashMerkleState to set.
+       * @return This builder for chaining.
        */
       public Builder setHashMerkleState(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9840,6 +10187,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes hash_merkle_state = 4;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHashMerkleState() {
         
@@ -9851,12 +10199,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString hashMerkleIncubate_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes hash_merkle_incubate = 5;</code>
+       * @return The hashMerkleIncubate.
        */
       public com.google.protobuf.ByteString getHashMerkleIncubate() {
         return hashMerkleIncubate_;
       }
       /**
        * <code>bytes hash_merkle_incubate = 5;</code>
+       * @param value The hashMerkleIncubate to set.
+       * @return This builder for chaining.
        */
       public Builder setHashMerkleIncubate(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9869,6 +10220,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes hash_merkle_incubate = 5;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHashMerkleIncubate() {
         
@@ -9880,12 +10232,15 @@ public final class WisdomOuterClass {
       private int height_ ;
       /**
        * <code>uint32 height = 6;</code>
+       * @return The height.
        */
       public int getHeight() {
         return height_;
       }
       /**
        * <code>uint32 height = 6;</code>
+       * @param value The height to set.
+       * @return This builder for chaining.
        */
       public Builder setHeight(int value) {
         
@@ -9895,6 +10250,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint32 height = 6;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHeight() {
         
@@ -9906,12 +10262,15 @@ public final class WisdomOuterClass {
       private int createdAt_ ;
       /**
        * <code>uint32 created_at = 7;</code>
+       * @return The createdAt.
        */
       public int getCreatedAt() {
         return createdAt_;
       }
       /**
        * <code>uint32 created_at = 7;</code>
+       * @param value The createdAt to set.
+       * @return This builder for chaining.
        */
       public Builder setCreatedAt(int value) {
         
@@ -9921,6 +10280,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>uint32 created_at = 7;</code>
+       * @return This builder for chaining.
        */
       public Builder clearCreatedAt() {
         
@@ -9932,12 +10292,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString nBits_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes n_bits = 8;</code>
+       * @return The nBits.
        */
       public com.google.protobuf.ByteString getNBits() {
         return nBits_;
       }
       /**
        * <code>bytes n_bits = 8;</code>
+       * @param value The nBits to set.
+       * @return This builder for chaining.
        */
       public Builder setNBits(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9950,6 +10313,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes n_bits = 8;</code>
+       * @return This builder for chaining.
        */
       public Builder clearNBits() {
         
@@ -9961,12 +10325,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString nonce_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes nonce = 9;</code>
+       * @return The nonce.
        */
       public com.google.protobuf.ByteString getNonce() {
         return nonce_;
       }
       /**
        * <code>bytes nonce = 9;</code>
+       * @param value The nonce to set.
+       * @return This builder for chaining.
        */
       public Builder setNonce(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -9979,6 +10346,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes nonce = 9;</code>
+       * @return This builder for chaining.
        */
       public Builder clearNonce() {
         
@@ -9990,9 +10358,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.Transaction> body_ =
         java.util.Collections.emptyList();
       private void ensureBodyIsMutable() {
-        if (!((bitField0_ & 0x00000200) != 0)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           body_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.Transaction>(body_);
-          bitField0_ |= 0x00000200;
+          bitField0_ |= 0x00000001;
          }
       }
 
@@ -10142,7 +10510,7 @@ public final class WisdomOuterClass {
       public Builder clearBody() {
         if (bodyBuilder_ == null) {
           body_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000001);
           onChanged();
         } else {
           bodyBuilder_.clear();
@@ -10219,7 +10587,7 @@ public final class WisdomOuterClass {
           bodyBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder>(
                   body_,
-                  ((bitField0_ & 0x00000200) != 0),
+                  ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
                   isClean());
           body_ = null;
@@ -10230,12 +10598,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString accountStateTrieRoot_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes account_state_trie_root = 11;</code>
+       * @return The accountStateTrieRoot.
        */
       public com.google.protobuf.ByteString getAccountStateTrieRoot() {
         return accountStateTrieRoot_;
       }
       /**
        * <code>bytes account_state_trie_root = 11;</code>
+       * @param value The accountStateTrieRoot to set.
+       * @return This builder for chaining.
        */
       public Builder setAccountStateTrieRoot(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -10248,6 +10619,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes account_state_trie_root = 11;</code>
+       * @return This builder for chaining.
        */
       public Builder clearAccountStateTrieRoot() {
         
@@ -10314,6 +10686,7 @@ public final class WisdomOuterClass {
 
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     com.google.protobuf.ByteString getBlockHash();
 
@@ -10379,6 +10752,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new GetMerkleTransactions();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -10408,9 +10788,9 @@ public final class WisdomOuterClass {
               break;
             }
             case 18: {
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
-                mutable_bitField0_ |= 0x00000002;
+                mutable_bitField0_ |= 0x00000001;
               }
               treeNodes_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
@@ -10431,7 +10811,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
         }
         this.unknownFields = unknownFields.build();
@@ -10451,11 +10831,11 @@ public final class WisdomOuterClass {
               org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.class, org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions.Builder.class);
     }
 
-    private int bitField0_;
     public static final int BLOCK_HASH_FIELD_NUMBER = 1;
     private com.google.protobuf.ByteString blockHash_;
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     public com.google.protobuf.ByteString getBlockHash() {
       return blockHash_;
@@ -10727,7 +11107,7 @@ public final class WisdomOuterClass {
 
         if (treeNodesBuilder_ == null) {
           treeNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
           treeNodesBuilder_.clear();
         }
@@ -10758,18 +11138,16 @@ public final class WisdomOuterClass {
       public org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions result = new org.wisdom.p2p.WisdomOuterClass.GetMerkleTransactions(this);
         int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
         result.blockHash_ = blockHash_;
         if (treeNodesBuilder_ == null) {
-          if (((bitField0_ & 0x00000002) != 0)) {
+          if (((bitField0_ & 0x00000001) != 0)) {
             treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
-            bitField0_ = (bitField0_ & ~0x00000002);
+            bitField0_ = (bitField0_ & ~0x00000001);
           }
           result.treeNodes_ = treeNodes_;
         } else {
           result.treeNodes_ = treeNodesBuilder_.build();
         }
-        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -10825,7 +11203,7 @@ public final class WisdomOuterClass {
           if (!other.treeNodes_.isEmpty()) {
             if (treeNodes_.isEmpty()) {
               treeNodes_ = other.treeNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
             } else {
               ensureTreeNodesIsMutable();
               treeNodes_.addAll(other.treeNodes_);
@@ -10838,7 +11216,7 @@ public final class WisdomOuterClass {
               treeNodesBuilder_.dispose();
               treeNodesBuilder_ = null;
               treeNodes_ = other.treeNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
               treeNodesBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getTreeNodesFieldBuilder() : null;
@@ -10880,12 +11258,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return The blockHash.
        */
       public com.google.protobuf.ByteString getBlockHash() {
         return blockHash_;
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @param value The blockHash to set.
+       * @return This builder for chaining.
        */
       public Builder setBlockHash(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -10898,6 +11279,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearBlockHash() {
         
@@ -10909,9 +11291,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_ =
         java.util.Collections.emptyList();
       private void ensureTreeNodesIsMutable() {
-        if (!((bitField0_ & 0x00000002) != 0)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(treeNodes_);
-          bitField0_ |= 0x00000002;
+          bitField0_ |= 0x00000001;
          }
       }
 
@@ -11105,7 +11487,7 @@ public final class WisdomOuterClass {
       public Builder clearTreeNodes() {
         if (treeNodesBuilder_ == null) {
           treeNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
           onChanged();
         } else {
           treeNodesBuilder_.clear();
@@ -11210,7 +11592,7 @@ public final class WisdomOuterClass {
           treeNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
                   treeNodes_,
-                  ((bitField0_ & 0x00000002) != 0),
+                  ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
                   isClean());
           treeNodes_ = null;
@@ -11276,6 +11658,7 @@ public final class WisdomOuterClass {
 
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     com.google.protobuf.ByteString getBlockHash();
 
@@ -11366,6 +11749,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new MerkleTransactions();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -11395,18 +11785,18 @@ public final class WisdomOuterClass {
               break;
             }
             case 18: {
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
-                mutable_bitField0_ |= 0x00000002;
+                mutable_bitField0_ |= 0x00000001;
               }
               treeNodes_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
               break;
             }
             case 26: {
-              if (!((mutable_bitField0_ & 0x00000004) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
                 merketTrans_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction>();
-                mutable_bitField0_ |= 0x00000004;
+                mutable_bitField0_ |= 0x00000002;
               }
               merketTrans_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.parser(), extensionRegistry));
@@ -11427,10 +11817,10 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
         }
-        if (((mutable_bitField0_ & 0x00000004) != 0)) {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
           merketTrans_ = java.util.Collections.unmodifiableList(merketTrans_);
         }
         this.unknownFields = unknownFields.build();
@@ -11450,11 +11840,11 @@ public final class WisdomOuterClass {
               org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.class, org.wisdom.p2p.WisdomOuterClass.MerkleTransactions.Builder.class);
     }
 
-    private int bitField0_;
     public static final int BLOCK_HASH_FIELD_NUMBER = 1;
     private com.google.protobuf.ByteString blockHash_;
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     public com.google.protobuf.ByteString getBlockHash() {
       return blockHash_;
@@ -11775,13 +12165,13 @@ public final class WisdomOuterClass {
 
         if (treeNodesBuilder_ == null) {
           treeNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
           treeNodesBuilder_.clear();
         }
         if (merketTransBuilder_ == null) {
           merketTrans_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000002);
         } else {
           merketTransBuilder_.clear();
         }
@@ -11812,27 +12202,25 @@ public final class WisdomOuterClass {
       public org.wisdom.p2p.WisdomOuterClass.MerkleTransactions buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.MerkleTransactions result = new org.wisdom.p2p.WisdomOuterClass.MerkleTransactions(this);
         int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
         result.blockHash_ = blockHash_;
         if (treeNodesBuilder_ == null) {
-          if (((bitField0_ & 0x00000002) != 0)) {
+          if (((bitField0_ & 0x00000001) != 0)) {
             treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
-            bitField0_ = (bitField0_ & ~0x00000002);
+            bitField0_ = (bitField0_ & ~0x00000001);
           }
           result.treeNodes_ = treeNodes_;
         } else {
           result.treeNodes_ = treeNodesBuilder_.build();
         }
         if (merketTransBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) != 0)) {
+          if (((bitField0_ & 0x00000002) != 0)) {
             merketTrans_ = java.util.Collections.unmodifiableList(merketTrans_);
-            bitField0_ = (bitField0_ & ~0x00000004);
+            bitField0_ = (bitField0_ & ~0x00000002);
           }
           result.merketTrans_ = merketTrans_;
         } else {
           result.merketTrans_ = merketTransBuilder_.build();
         }
-        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -11888,7 +12276,7 @@ public final class WisdomOuterClass {
           if (!other.treeNodes_.isEmpty()) {
             if (treeNodes_.isEmpty()) {
               treeNodes_ = other.treeNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
             } else {
               ensureTreeNodesIsMutable();
               treeNodes_.addAll(other.treeNodes_);
@@ -11901,7 +12289,7 @@ public final class WisdomOuterClass {
               treeNodesBuilder_.dispose();
               treeNodesBuilder_ = null;
               treeNodes_ = other.treeNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
               treeNodesBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getTreeNodesFieldBuilder() : null;
@@ -11914,7 +12302,7 @@ public final class WisdomOuterClass {
           if (!other.merketTrans_.isEmpty()) {
             if (merketTrans_.isEmpty()) {
               merketTrans_ = other.merketTrans_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000002);
             } else {
               ensureMerketTransIsMutable();
               merketTrans_.addAll(other.merketTrans_);
@@ -11927,7 +12315,7 @@ public final class WisdomOuterClass {
               merketTransBuilder_.dispose();
               merketTransBuilder_ = null;
               merketTrans_ = other.merketTrans_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000002);
               merketTransBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getMerketTransFieldBuilder() : null;
@@ -11969,12 +12357,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return The blockHash.
        */
       public com.google.protobuf.ByteString getBlockHash() {
         return blockHash_;
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @param value The blockHash to set.
+       * @return This builder for chaining.
        */
       public Builder setBlockHash(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -11987,6 +12378,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearBlockHash() {
         
@@ -11998,9 +12390,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_ =
         java.util.Collections.emptyList();
       private void ensureTreeNodesIsMutable() {
-        if (!((bitField0_ & 0x00000002) != 0)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(treeNodes_);
-          bitField0_ |= 0x00000002;
+          bitField0_ |= 0x00000001;
          }
       }
 
@@ -12194,7 +12586,7 @@ public final class WisdomOuterClass {
       public Builder clearTreeNodes() {
         if (treeNodesBuilder_ == null) {
           treeNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
           onChanged();
         } else {
           treeNodesBuilder_.clear();
@@ -12299,7 +12691,7 @@ public final class WisdomOuterClass {
           treeNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
                   treeNodes_,
-                  ((bitField0_ & 0x00000002) != 0),
+                  ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
                   isClean());
           treeNodes_ = null;
@@ -12310,9 +12702,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction> merketTrans_ =
         java.util.Collections.emptyList();
       private void ensureMerketTransIsMutable() {
-        if (!((bitField0_ & 0x00000004) != 0)) {
+        if (!((bitField0_ & 0x00000002) != 0)) {
           merketTrans_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.MerkleTransaction>(merketTrans_);
-          bitField0_ |= 0x00000004;
+          bitField0_ |= 0x00000002;
          }
       }
 
@@ -12462,7 +12854,7 @@ public final class WisdomOuterClass {
       public Builder clearMerketTrans() {
         if (merketTransBuilder_ == null) {
           merketTrans_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000002);
           onChanged();
         } else {
           merketTransBuilder_.clear();
@@ -12539,7 +12931,7 @@ public final class WisdomOuterClass {
           merketTransBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.MerkleTransaction, org.wisdom.p2p.WisdomOuterClass.MerkleTransaction.Builder, org.wisdom.p2p.WisdomOuterClass.MerkleTransactionOrBuilder>(
                   merketTrans_,
-                  ((bitField0_ & 0x00000004) != 0),
+                  ((bitField0_ & 0x00000002) != 0),
                   getParentForChildren(),
                   isClean());
           merketTrans_ = null;
@@ -12605,10 +12997,12 @@ public final class WisdomOuterClass {
 
     /**
      * <code>.Transaction transaction = 1;</code>
+     * @return Whether the transaction field is set.
      */
     boolean hasTransaction();
     /**
      * <code>.Transaction transaction = 1;</code>
+     * @return The transaction.
      */
     org.wisdom.p2p.WisdomOuterClass.Transaction getTransaction();
     /**
@@ -12622,6 +13016,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>int32 index = 2;</code>
+     * @return The index.
      */
     int getIndex();
   }
@@ -12641,6 +13036,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new MerkleTransaction();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -12653,7 +13055,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -12718,12 +13119,14 @@ public final class WisdomOuterClass {
     private org.wisdom.p2p.WisdomOuterClass.Transaction transaction_;
     /**
      * <code>.Transaction transaction = 1;</code>
+     * @return Whether the transaction field is set.
      */
     public boolean hasTransaction() {
       return transaction_ != null;
     }
     /**
      * <code>.Transaction transaction = 1;</code>
+     * @return The transaction.
      */
     public org.wisdom.p2p.WisdomOuterClass.Transaction getTransaction() {
       return transaction_ == null ? org.wisdom.p2p.WisdomOuterClass.Transaction.getDefaultInstance() : transaction_;
@@ -12743,6 +13146,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>int32 index = 2;</code>
+     * @return The index.
      */
     public int getIndex() {
       return index_;
@@ -13085,12 +13489,14 @@ public final class WisdomOuterClass {
           org.wisdom.p2p.WisdomOuterClass.Transaction, org.wisdom.p2p.WisdomOuterClass.Transaction.Builder, org.wisdom.p2p.WisdomOuterClass.TransactionOrBuilder> transactionBuilder_;
       /**
        * <code>.Transaction transaction = 1;</code>
+       * @return Whether the transaction field is set.
        */
       public boolean hasTransaction() {
         return transactionBuilder_ != null || transaction_ != null;
       }
       /**
        * <code>.Transaction transaction = 1;</code>
+       * @return The transaction.
        */
       public org.wisdom.p2p.WisdomOuterClass.Transaction getTransaction() {
         if (transactionBuilder_ == null) {
@@ -13204,6 +13610,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>int32 index = 2;</code>
+       * @return The index.
        */
       public int getIndex() {
         return index_;
@@ -13214,6 +13621,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>int32 index = 2;</code>
+       * @param value The index to set.
+       * @return This builder for chaining.
        */
       public Builder setIndex(int value) {
         
@@ -13227,6 +13636,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>int32 index = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIndex() {
         
@@ -13293,6 +13703,7 @@ public final class WisdomOuterClass {
 
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     com.google.protobuf.ByteString getBlockHash();
 
@@ -13358,6 +13769,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new GetTreeNodes();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -13387,9 +13805,9 @@ public final class WisdomOuterClass {
               break;
             }
             case 18: {
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
-                mutable_bitField0_ |= 0x00000002;
+                mutable_bitField0_ |= 0x00000001;
               }
               parentNodes_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
@@ -13410,7 +13828,7 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
         }
         this.unknownFields = unknownFields.build();
@@ -13430,11 +13848,11 @@ public final class WisdomOuterClass {
               org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.class, org.wisdom.p2p.WisdomOuterClass.GetTreeNodes.Builder.class);
     }
 
-    private int bitField0_;
     public static final int BLOCK_HASH_FIELD_NUMBER = 1;
     private com.google.protobuf.ByteString blockHash_;
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     public com.google.protobuf.ByteString getBlockHash() {
       return blockHash_;
@@ -13706,7 +14124,7 @@ public final class WisdomOuterClass {
 
         if (parentNodesBuilder_ == null) {
           parentNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
           parentNodesBuilder_.clear();
         }
@@ -13737,18 +14155,16 @@ public final class WisdomOuterClass {
       public org.wisdom.p2p.WisdomOuterClass.GetTreeNodes buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.GetTreeNodes result = new org.wisdom.p2p.WisdomOuterClass.GetTreeNodes(this);
         int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
         result.blockHash_ = blockHash_;
         if (parentNodesBuilder_ == null) {
-          if (((bitField0_ & 0x00000002) != 0)) {
+          if (((bitField0_ & 0x00000001) != 0)) {
             parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
-            bitField0_ = (bitField0_ & ~0x00000002);
+            bitField0_ = (bitField0_ & ~0x00000001);
           }
           result.parentNodes_ = parentNodes_;
         } else {
           result.parentNodes_ = parentNodesBuilder_.build();
         }
-        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -13804,7 +14220,7 @@ public final class WisdomOuterClass {
           if (!other.parentNodes_.isEmpty()) {
             if (parentNodes_.isEmpty()) {
               parentNodes_ = other.parentNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
             } else {
               ensureParentNodesIsMutable();
               parentNodes_.addAll(other.parentNodes_);
@@ -13817,7 +14233,7 @@ public final class WisdomOuterClass {
               parentNodesBuilder_.dispose();
               parentNodesBuilder_ = null;
               parentNodes_ = other.parentNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
               parentNodesBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getParentNodesFieldBuilder() : null;
@@ -13859,12 +14275,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return The blockHash.
        */
       public com.google.protobuf.ByteString getBlockHash() {
         return blockHash_;
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @param value The blockHash to set.
+       * @return This builder for chaining.
        */
       public Builder setBlockHash(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -13877,6 +14296,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearBlockHash() {
         
@@ -13888,9 +14308,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> parentNodes_ =
         java.util.Collections.emptyList();
       private void ensureParentNodesIsMutable() {
-        if (!((bitField0_ & 0x00000002) != 0)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(parentNodes_);
-          bitField0_ |= 0x00000002;
+          bitField0_ |= 0x00000001;
          }
       }
 
@@ -14084,7 +14504,7 @@ public final class WisdomOuterClass {
       public Builder clearParentNodes() {
         if (parentNodesBuilder_ == null) {
           parentNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
           onChanged();
         } else {
           parentNodesBuilder_.clear();
@@ -14189,7 +14609,7 @@ public final class WisdomOuterClass {
           parentNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
                   parentNodes_,
-                  ((bitField0_ & 0x00000002) != 0),
+                  ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
                   isClean());
           parentNodes_ = null;
@@ -14255,6 +14675,7 @@ public final class WisdomOuterClass {
 
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     com.google.protobuf.ByteString getBlockHash();
 
@@ -14345,6 +14766,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new TreeNodes();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -14374,18 +14802,18 @@ public final class WisdomOuterClass {
               break;
             }
             case 18: {
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
                 treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
-                mutable_bitField0_ |= 0x00000002;
+                mutable_bitField0_ |= 0x00000001;
               }
               treeNodes_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
               break;
             }
             case 26: {
-              if (!((mutable_bitField0_ & 0x00000004) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
                 parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>();
-                mutable_bitField0_ |= 0x00000004;
+                mutable_bitField0_ |= 0x00000002;
               }
               parentNodes_.add(
                   input.readMessage(org.wisdom.p2p.WisdomOuterClass.TreeNode.parser(), extensionRegistry));
@@ -14406,10 +14834,10 @@ public final class WisdomOuterClass {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000002) != 0)) {
+        if (((mutable_bitField0_ & 0x00000001) != 0)) {
           treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
         }
-        if (((mutable_bitField0_ & 0x00000004) != 0)) {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
           parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
         }
         this.unknownFields = unknownFields.build();
@@ -14429,11 +14857,11 @@ public final class WisdomOuterClass {
               org.wisdom.p2p.WisdomOuterClass.TreeNodes.class, org.wisdom.p2p.WisdomOuterClass.TreeNodes.Builder.class);
     }
 
-    private int bitField0_;
     public static final int BLOCK_HASH_FIELD_NUMBER = 1;
     private com.google.protobuf.ByteString blockHash_;
     /**
      * <code>bytes block_hash = 1;</code>
+     * @return The blockHash.
      */
     public com.google.protobuf.ByteString getBlockHash() {
       return blockHash_;
@@ -14754,13 +15182,13 @@ public final class WisdomOuterClass {
 
         if (treeNodesBuilder_ == null) {
           treeNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
           treeNodesBuilder_.clear();
         }
         if (parentNodesBuilder_ == null) {
           parentNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000002);
         } else {
           parentNodesBuilder_.clear();
         }
@@ -14791,27 +15219,25 @@ public final class WisdomOuterClass {
       public org.wisdom.p2p.WisdomOuterClass.TreeNodes buildPartial() {
         org.wisdom.p2p.WisdomOuterClass.TreeNodes result = new org.wisdom.p2p.WisdomOuterClass.TreeNodes(this);
         int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
         result.blockHash_ = blockHash_;
         if (treeNodesBuilder_ == null) {
-          if (((bitField0_ & 0x00000002) != 0)) {
+          if (((bitField0_ & 0x00000001) != 0)) {
             treeNodes_ = java.util.Collections.unmodifiableList(treeNodes_);
-            bitField0_ = (bitField0_ & ~0x00000002);
+            bitField0_ = (bitField0_ & ~0x00000001);
           }
           result.treeNodes_ = treeNodes_;
         } else {
           result.treeNodes_ = treeNodesBuilder_.build();
         }
         if (parentNodesBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) != 0)) {
+          if (((bitField0_ & 0x00000002) != 0)) {
             parentNodes_ = java.util.Collections.unmodifiableList(parentNodes_);
-            bitField0_ = (bitField0_ & ~0x00000004);
+            bitField0_ = (bitField0_ & ~0x00000002);
           }
           result.parentNodes_ = parentNodes_;
         } else {
           result.parentNodes_ = parentNodesBuilder_.build();
         }
-        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -14867,7 +15293,7 @@ public final class WisdomOuterClass {
           if (!other.treeNodes_.isEmpty()) {
             if (treeNodes_.isEmpty()) {
               treeNodes_ = other.treeNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
             } else {
               ensureTreeNodesIsMutable();
               treeNodes_.addAll(other.treeNodes_);
@@ -14880,7 +15306,7 @@ public final class WisdomOuterClass {
               treeNodesBuilder_.dispose();
               treeNodesBuilder_ = null;
               treeNodes_ = other.treeNodes_;
-              bitField0_ = (bitField0_ & ~0x00000002);
+              bitField0_ = (bitField0_ & ~0x00000001);
               treeNodesBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getTreeNodesFieldBuilder() : null;
@@ -14893,7 +15319,7 @@ public final class WisdomOuterClass {
           if (!other.parentNodes_.isEmpty()) {
             if (parentNodes_.isEmpty()) {
               parentNodes_ = other.parentNodes_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000002);
             } else {
               ensureParentNodesIsMutable();
               parentNodes_.addAll(other.parentNodes_);
@@ -14906,7 +15332,7 @@ public final class WisdomOuterClass {
               parentNodesBuilder_.dispose();
               parentNodesBuilder_ = null;
               parentNodes_ = other.parentNodes_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000002);
               parentNodesBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getParentNodesFieldBuilder() : null;
@@ -14948,12 +15374,15 @@ public final class WisdomOuterClass {
       private com.google.protobuf.ByteString blockHash_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return The blockHash.
        */
       public com.google.protobuf.ByteString getBlockHash() {
         return blockHash_;
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @param value The blockHash to set.
+       * @return This builder for chaining.
        */
       public Builder setBlockHash(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -14966,6 +15395,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>bytes block_hash = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearBlockHash() {
         
@@ -14977,9 +15407,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> treeNodes_ =
         java.util.Collections.emptyList();
       private void ensureTreeNodesIsMutable() {
-        if (!((bitField0_ & 0x00000002) != 0)) {
+        if (!((bitField0_ & 0x00000001) != 0)) {
           treeNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(treeNodes_);
-          bitField0_ |= 0x00000002;
+          bitField0_ |= 0x00000001;
          }
       }
 
@@ -15129,7 +15559,7 @@ public final class WisdomOuterClass {
       public Builder clearTreeNodes() {
         if (treeNodesBuilder_ == null) {
           treeNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
           onChanged();
         } else {
           treeNodesBuilder_.clear();
@@ -15206,7 +15636,7 @@ public final class WisdomOuterClass {
           treeNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
                   treeNodes_,
-                  ((bitField0_ & 0x00000002) != 0),
+                  ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
                   isClean());
           treeNodes_ = null;
@@ -15217,9 +15647,9 @@ public final class WisdomOuterClass {
       private java.util.List<org.wisdom.p2p.WisdomOuterClass.TreeNode> parentNodes_ =
         java.util.Collections.emptyList();
       private void ensureParentNodesIsMutable() {
-        if (!((bitField0_ & 0x00000004) != 0)) {
+        if (!((bitField0_ & 0x00000002) != 0)) {
           parentNodes_ = new java.util.ArrayList<org.wisdom.p2p.WisdomOuterClass.TreeNode>(parentNodes_);
-          bitField0_ |= 0x00000004;
+          bitField0_ |= 0x00000002;
          }
       }
 
@@ -15413,7 +15843,7 @@ public final class WisdomOuterClass {
       public Builder clearParentNodes() {
         if (parentNodesBuilder_ == null) {
           parentNodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000002);
           onChanged();
         } else {
           parentNodesBuilder_.clear();
@@ -15518,7 +15948,7 @@ public final class WisdomOuterClass {
           parentNodesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               org.wisdom.p2p.WisdomOuterClass.TreeNode, org.wisdom.p2p.WisdomOuterClass.TreeNode.Builder, org.wisdom.p2p.WisdomOuterClass.TreeNodeOrBuilder>(
                   parentNodes_,
-                  ((bitField0_ & 0x00000004) != 0),
+                  ((bitField0_ & 0x00000002) != 0),
                   getParentForChildren(),
                   isClean());
           parentNodes_ = null;
@@ -15584,25 +16014,30 @@ public final class WisdomOuterClass {
 
     /**
      * <code>string hash = 1;</code>
+     * @return The hash.
      */
     java.lang.String getHash();
     /**
      * <code>string hash = 1;</code>
+     * @return The bytes for hash.
      */
     com.google.protobuf.ByteString
         getHashBytes();
 
     /**
      * <code>int32 level = 2;</code>
+     * @return The level.
      */
     int getLevel();
 
     /**
      * <code>string name = 3;</code>
+     * @return The name.
      */
     java.lang.String getName();
     /**
      * <code>string name = 3;</code>
+     * @return The bytes for name.
      */
     com.google.protobuf.ByteString
         getNameBytes();
@@ -15613,6 +16048,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>string data = 4;</code>
+     * @return The data.
      */
     java.lang.String getData();
     /**
@@ -15621,6 +16057,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>string data = 4;</code>
+     * @return The bytes for data.
      */
     com.google.protobuf.ByteString
         getDataBytes();
@@ -15631,6 +16068,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>int32 index = 5;</code>
+     * @return The index.
      */
     int getIndex();
   }
@@ -15653,6 +16091,13 @@ public final class WisdomOuterClass {
     }
 
     @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new TreeNode();
+    }
+
+    @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
     getUnknownFields() {
       return this.unknownFields;
@@ -15665,7 +16110,6 @@ public final class WisdomOuterClass {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -15740,6 +16184,7 @@ public final class WisdomOuterClass {
     private volatile java.lang.Object hash_;
     /**
      * <code>string hash = 1;</code>
+     * @return The hash.
      */
     public java.lang.String getHash() {
       java.lang.Object ref = hash_;
@@ -15755,6 +16200,7 @@ public final class WisdomOuterClass {
     }
     /**
      * <code>string hash = 1;</code>
+     * @return The bytes for hash.
      */
     public com.google.protobuf.ByteString
         getHashBytes() {
@@ -15774,6 +16220,7 @@ public final class WisdomOuterClass {
     private int level_;
     /**
      * <code>int32 level = 2;</code>
+     * @return The level.
      */
     public int getLevel() {
       return level_;
@@ -15783,6 +16230,7 @@ public final class WisdomOuterClass {
     private volatile java.lang.Object name_;
     /**
      * <code>string name = 3;</code>
+     * @return The name.
      */
     public java.lang.String getName() {
       java.lang.Object ref = name_;
@@ -15798,6 +16246,7 @@ public final class WisdomOuterClass {
     }
     /**
      * <code>string name = 3;</code>
+     * @return The bytes for name.
      */
     public com.google.protobuf.ByteString
         getNameBytes() {
@@ -15821,6 +16270,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>string data = 4;</code>
+     * @return The data.
      */
     public java.lang.String getData() {
       java.lang.Object ref = data_;
@@ -15840,6 +16290,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>string data = 4;</code>
+     * @return The bytes for data.
      */
     public com.google.protobuf.ByteString
         getDataBytes() {
@@ -15863,6 +16314,7 @@ public final class WisdomOuterClass {
      * </pre>
      *
      * <code>int32 index = 5;</code>
+     * @return The index.
      */
     public int getIndex() {
       return index_;
@@ -16241,6 +16693,7 @@ public final class WisdomOuterClass {
       private java.lang.Object hash_ = "";
       /**
        * <code>string hash = 1;</code>
+       * @return The hash.
        */
       public java.lang.String getHash() {
         java.lang.Object ref = hash_;
@@ -16256,6 +16709,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string hash = 1;</code>
+       * @return The bytes for hash.
        */
       public com.google.protobuf.ByteString
           getHashBytes() {
@@ -16272,6 +16726,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string hash = 1;</code>
+       * @param value The hash to set.
+       * @return This builder for chaining.
        */
       public Builder setHash(
           java.lang.String value) {
@@ -16285,6 +16741,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string hash = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHash() {
         
@@ -16294,6 +16751,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string hash = 1;</code>
+       * @param value The bytes for hash to set.
+       * @return This builder for chaining.
        */
       public Builder setHashBytes(
           com.google.protobuf.ByteString value) {
@@ -16310,12 +16769,15 @@ public final class WisdomOuterClass {
       private int level_ ;
       /**
        * <code>int32 level = 2;</code>
+       * @return The level.
        */
       public int getLevel() {
         return level_;
       }
       /**
        * <code>int32 level = 2;</code>
+       * @param value The level to set.
+       * @return This builder for chaining.
        */
       public Builder setLevel(int value) {
         
@@ -16325,6 +16787,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>int32 level = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearLevel() {
         
@@ -16336,6 +16799,7 @@ public final class WisdomOuterClass {
       private java.lang.Object name_ = "";
       /**
        * <code>string name = 3;</code>
+       * @return The name.
        */
       public java.lang.String getName() {
         java.lang.Object ref = name_;
@@ -16351,6 +16815,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string name = 3;</code>
+       * @return The bytes for name.
        */
       public com.google.protobuf.ByteString
           getNameBytes() {
@@ -16367,6 +16832,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string name = 3;</code>
+       * @param value The name to set.
+       * @return This builder for chaining.
        */
       public Builder setName(
           java.lang.String value) {
@@ -16380,6 +16847,7 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string name = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearName() {
         
@@ -16389,6 +16857,8 @@ public final class WisdomOuterClass {
       }
       /**
        * <code>string name = 3;</code>
+       * @param value The bytes for name to set.
+       * @return This builder for chaining.
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
@@ -16409,6 +16879,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>string data = 4;</code>
+       * @return The data.
        */
       public java.lang.String getData() {
         java.lang.Object ref = data_;
@@ -16428,6 +16899,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>string data = 4;</code>
+       * @return The bytes for data.
        */
       public com.google.protobuf.ByteString
           getDataBytes() {
@@ -16448,6 +16920,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>string data = 4;</code>
+       * @param value The data to set.
+       * @return This builder for chaining.
        */
       public Builder setData(
           java.lang.String value) {
@@ -16465,6 +16939,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>string data = 4;</code>
+       * @return This builder for chaining.
        */
       public Builder clearData() {
         
@@ -16478,6 +16953,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>string data = 4;</code>
+       * @param value The bytes for data to set.
+       * @return This builder for chaining.
        */
       public Builder setDataBytes(
           com.google.protobuf.ByteString value) {
@@ -16498,6 +16975,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>int32 index = 5;</code>
+       * @return The index.
        */
       public int getIndex() {
         return index_;
@@ -16508,6 +16986,8 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>int32 index = 5;</code>
+       * @param value The index to set.
+       * @return This builder for chaining.
        */
       public Builder setIndex(int value) {
         
@@ -16521,6 +17001,7 @@ public final class WisdomOuterClass {
        * </pre>
        *
        * <code>int32 index = 5;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIndex() {
         
@@ -16736,7 +17217,7 @@ public final class WisdomOuterClass {
       "SACTIONS\020\013\022\027\n\023MERKLE_TRANSACTIONS\020\014\022\022\n\016G" +
       "ET_TREE_NODES\020\r\022\016\n\nTREE_NODES\020\016*0\n\rClipD" +
       "irection\022\r\n\tCLIP_TAIL\020\000\022\020\n\014CLIP_INITIAL\020" +
-      "\001*\305\002\n\017TransactionType\022\014\n\010COINBASE\020\000\022\014\n\010T" +
+      "\001*\345\002\n\017TransactionType\022\014\n\010COINBASE\020\000\022\014\n\010T" +
       "RANSFER\020\001\022\010\n\004VOTE\020\002\022\013\n\007DEPOSIT\020\003\022\036\n\032TRAN" +
       "SFER_MULTISIG_MULTISIG\020\004\022\034\n\030TRANSFER_MUL" +
       "TISIG_NORMAL\020\005\022\034\n\030TRANSFER_NORMAL_MULTIS" +
@@ -16744,22 +17225,15 @@ public final class WisdomOuterClass {
       "E\020\010\022\014\n\010INCUBATE\020\t\022\024\n\020EXTRACT_INTEREST\020\n\022" +
       "\032\n\026EXTRACT_SHARING_PROFIT\020\013\022\020\n\014EXTRACT_C" +
       "OST\020\014\022\r\n\tEXIT_VOTE\020\r\022\n\n\006PLEDGE\020\016\022\017\n\013EXIT" +
-      "_PLEDGE\020\0172\'\n\006Wisdom\022\035\n\005Entry\022\010.Message\032\010" +
-      ".Message\"\000B\020\n\016org.wisdom.p2pb\006proto3"
+      "_PLEDGE\020\017\022\017\n\013WASM_DEPLOY\020\020\022\r\n\tWASM_CALL\020" +
+      "\0212\'\n\006Wisdom\022\035\n\005Entry\022\010.Message\032\010.Message" +
+      "\"\000B\020\n\016org.wisdom.p2pb\006proto3"
     };
-    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
-          public com.google.protobuf.ExtensionRegistry assignDescriptors(
-              com.google.protobuf.Descriptors.FileDescriptor root) {
-            descriptor = root;
-            return null;
-          }
-        };
-    com.google.protobuf.Descriptors.FileDescriptor
+    descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           com.google.protobuf.TimestampProto.getDescriptor(),
-        }, assigner);
+        });
     internal_static_Message_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_Message_fieldAccessorTable = new

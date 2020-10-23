@@ -87,6 +87,7 @@ public class TransactionCheck {
     public static final String WX = "WX";
     public static final String WR = "WR";
 
+
     public APIResult TransactionFormatCheck(byte[] transfer) {
         APIResult apiResult = new APIResult();
         try {
@@ -108,6 +109,7 @@ public class TransactionCheck {
             }
             //type
             byte[] type = ByteUtil.bytearraycopy(tranlast, 0, 1);
+            Transaction.Type typeEnum = Transaction.Type.values()[type[0]];
             tranlast = ByteUtil.bytearraycopy(tranlast, 1, tranlast.length - 1);
             //nonce
             byte[] noncebyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
@@ -120,6 +122,11 @@ public class TransactionCheck {
             //gasPrice
             byte[] gasbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
             long gasPrice = BigEndian.decodeUint64(gasbyte);
+            if ((type[0] == Transaction.Type.WASM_DEPLOY.ordinal() || type[0] == Transaction.Type.WASM_CALL.ordinal()) && gasPrice < 200000) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Gasprice cannot be lower than 200000");
+                return apiResult;
+            }
             //gas
             long gas = 0;
             //hatch disabled
@@ -129,7 +136,17 @@ public class TransactionCheck {
                 apiResult.setMessage("Hatching transactions have been disabled");
                 return apiResult;
             }
-            if (15 >= type[0] && type[0] >= 0) {
+            if (nowheight > 3868529 && (type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal() || type[0] == Transaction.Type.CALL_CONTRACT.ordinal())) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Old contract transactions have been disabled");
+                return apiResult;
+            }
+            if (type[0] == Transaction.Type.DEPOSIT.ordinal()) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Deposit transactions have been disabled");
+                return apiResult;
+            }
+            if (Transaction.TYPE_MAX >= type[0] && type[0] >= 0) {
                 gas = Transaction.GAS_TABLE[type[0]];
             } else {
                 apiResult.setCode(5000);
@@ -137,7 +154,7 @@ public class TransactionCheck {
                 return apiResult;
             }
             //fee
-            if ((gasPrice * gas) < Transaction.minFee) {
+            if ((gasPrice * gas) < Transaction.minFee && (typeEnum != Transaction.Type.WASM_CALL && typeEnum != Transaction.Type.WASM_DEPLOY)) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Less than minimum handling charge");
                 return apiResult;
@@ -175,11 +192,14 @@ public class TransactionCheck {
                     return apiResult;
                 }
             }
-            byte[] emptyPubkeyhash = new byte[20];
-            if (!Arrays.equals(emptyPubkeyhash, topubkeyhash) && type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
-                apiResult.setCode(5000);
-                apiResult.setMessage("To must be zero");
-                return apiResult;
+            if (!Arrays.equals(new byte[20], topubkeyhash)) {
+                if (
+                        type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal()
+                                || typeEnum == Transaction.Type.WASM_DEPLOY) {
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("To must be zero");
+                    return apiResult;
+                }
             }
             //fromaddress
             boolean verifyfrom = (KeystoreAction.verifyAddress(KeystoreAction.pubkeyHashToAddress(frompubhash, (byte) 0x00, "")) == 0);
@@ -235,6 +255,7 @@ public class TransactionCheck {
             apiResult.setData(transaction);
             return apiResult;
         } catch (Exception e) {
+            e.printStackTrace();
             apiResult.setCode(5000);
             apiResult.setMessage("Exception error");
             return apiResult;

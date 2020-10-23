@@ -23,6 +23,7 @@ import org.springframework.util.Assert;
 import org.wisdom.Start;
 import org.wisdom.core.account.Transaction;
 import org.springframework.jdbc.core.RowMapper;
+import org.wisdom.entity.TransactionEntity;
 import org.wisdom.util.ByteUtil;
 
 import java.sql.ResultSet;
@@ -55,6 +56,9 @@ public class TransactionMapper implements RowMapper<Transaction> {
             Assert.isTrue(Arrays.equals(tx.getHash(), rs.getBytes("tx_hash")), "transaction in database had been modified");
             Assert.isTrue(tx.blockHash != null && tx.blockHash.length == 32, "block hash not found");
         }
+        byte[] wasmPayload = rs.getBytes(TransactionEntity.COLUMN_WASM_PAYLOAD);
+        if(wasmPayload != null && wasmPayload.length != 0)
+            tx.payload = wasmPayload;
         return tx;
     }
 }

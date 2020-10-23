@@ -6,10 +6,13 @@ import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.wisdom.ApiResult.APIResult;
+import org.wisdom.command.TransactionCheck;
 import org.wisdom.core.account.Transaction;
 import org.wisdom.p2p.*;
 import org.wisdom.service.CommandService;
+import org.wisdom.vm.abi.WASMTXPool;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -23,6 +26,12 @@ public class TransactionHandler implements Plugin {
 
     @Autowired
     private CommandService commandService;
+
+    @Autowired
+    private TransactionCheck transactionCheck;
+
+    @Autowired
+    private WASMTXPool wasmtxPool;
 
     public TransactionHandler() {
         this.transactionCache = new ConcurrentLinkedHashMap.Builder<String, Boolean>().maximumWeightedCapacity(CACHE_SIZE).build();
@@ -44,6 +53,16 @@ public class TransactionHandler implements Plugin {
                 .stream()
                 .map(Utils::parseTransaction)
                 .forEach(t -> {
+                    switch (Transaction.TYPES_TABLE[t.type]){
+                        case WASM_CALL:
+                        case WASM_DEPLOY: {
+                            APIResult res = transactionCheck.TransactionFormatCheck(t.toRPCBytes());
+                            if(res.getCode() == APIResult.SUCCESS) {
+                                this.wasmtxPool.collect(Collections.singleton(t));
+                            }
+                            return;
+                        }
+                    }
                     log.debug("receive transaction {} ", t.getHashHexString());
                     transactionCache.put(t.getHashHexString(), true);
                     byte[] traninfo = t.toRPCBytes();

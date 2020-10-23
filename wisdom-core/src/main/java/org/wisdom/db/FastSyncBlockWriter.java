@@ -1,5 +1,6 @@
 package org.wisdom.db;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.wisdom.core.WisdomBlockChain;
 import org.wisdom.core.validate.CompositeBlockRule;
@@ -16,12 +17,15 @@ public class FastSyncBlockWriter {
             TriesSyncManager triesSyncManager,
             WisdomRepository wisdomRepository,
             CompositeBlockRule compositeBlockRule,
-            WisdomBlockChain bc
+            WisdomBlockChain bc,
+            @Value("${wisdom.consensus.fast-sync.directory}") String fastSyncDirectory
     ) {
         this.triesSyncManager = triesSyncManager;
         this.wisdomRepository = wisdomRepository;
         this.compositeBlockRule = compositeBlockRule;
         this.bc = bc;
+        if(fastSyncDirectory == null || fastSyncDirectory.isEmpty())
+            return;
         sync();
     }
 

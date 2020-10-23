@@ -10,17 +10,21 @@ import org.tdf.rlp.RLPCodec;
 import org.wisdom.consensus.pow.EconomicModel;
 import org.wisdom.core.Block;
 import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Account;
 import org.wisdom.crypto.HashUtil;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
+import org.wisdom.db.WASMContract;
 import org.wisdom.db.WisdomRepository;
 import org.wisdom.type.PageSize;
 import org.wisdom.type.PagedView;
 import org.wisdom.util.Address;
+import org.wisdom.util.Arrays;
 
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
@@ -53,6 +57,32 @@ public class AccountController {
     public Object getAccount(@RequestParam("blockHash") String blockHash, @RequestParam("publicKeyHash") String publicKeyHash) {
         Map<String, Object> ret = new HashMap<>();
         AccountState a = accountStateTrie.get(Hex.decode(blockHash), Hex.decode(publicKeyHash)).get();
+        ret.put("data", a);
+        HexBytes hash = HexBytes.fromBytes(HashUtil.keccak256(RLPCodec.encode(a)));
+        ret.put("hash", hash);
+        // update
+        return ret;
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/internal/account")
+    public Object getAccountState(@RequestParam("blockHash") String blockHash, @RequestParam("publicKeyHash") String publicKeyHash) {
+        Map<String, Object> ret = new HashMap<>();
+        Block block = bc.getBlockByHash(Hex.decode(blockHash));
+        AccountState a = accountStateTrie.get(Hex.decode(blockHash), Hex.decode(publicKeyHash)).orElseGet(
+                () ->  {
+                    AccountState accountState = new AccountState(Hex.decode(publicKeyHash));
+                    accountState.setBlockHeight(block.nHeight);
+                    Account account = accountState.getAccount();
+                    account.setBlockHeight(block.nHeight);
+                    accountState.setAccount(account);
+                    accountState.setContract(RLPCodec.encode(new WASMContract(new byte[]{},new byte[]{})));
+                    return accountState;
+                }
+        );
+        if (Arrays.areEqual(a.getContract(),new byte[0])){
+            a.setContract(RLPCodec.encode(new WASMContract(new byte[]{},new byte[]{})));
+        }
+        System.out.println("=============================");
         ret.put("data", a);
         HexBytes hash = HexBytes.fromBytes(HashUtil.keccak256(RLPCodec.encode(a)));
         ret.put("hash", hash);
