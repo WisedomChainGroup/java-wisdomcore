@@ -24,8 +24,6 @@ import com.google.protobuf.ByteString;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.HexBytes;
@@ -59,7 +57,7 @@ import static java.util.stream.Collectors.toList;
 public class Block implements Header{
     public static final int MAX_NOTICE_LENGTH = 32;
     public static final int HASH_SIZE = 32;
-    public static final int MAX_BLOCK_SIZE = 4 * (1 << 20);
+    public static int MAX_BLOCK_SIZE;
 
     // reserve 128kb for transports
     public static final int RESERVED_SPACE = 128 * (1 << 10);
@@ -254,7 +252,6 @@ public class Block implements Header{
     public long nHeight;
 
 
-
     // 32bit unsigned unix epoch
     @RLP(6)
     @Min(0)
@@ -425,10 +422,10 @@ public class Block implements Header{
         return new MerkleTree(hashes).getLevelSize();
     }
 
-    public static final Comparator<Block> FAT_COMPARATOR = (a, b) ->{
-        if(a.getnHeight() != b.getnHeight())
+    public static final Comparator<Block> FAT_COMPARATOR = (a, b) -> {
+        if (a.getnHeight() != b.getnHeight())
             return Long.compare(a.getnHeight(), b.getnHeight());
-        if(a.body.size() != b.body.size()){
+        if (a.body.size() != b.body.size()) {
             return -Integer.compare(a.body.size(), b.body.size());
         }
         return HexBytes.fromBytes(a.getHash()).compareTo(HexBytes.fromBytes(b.getHash()));

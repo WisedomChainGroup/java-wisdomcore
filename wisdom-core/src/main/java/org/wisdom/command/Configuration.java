@@ -21,6 +21,7 @@ package org.wisdom.command;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.wisdom.core.Block;
 
 @Component
 @Setter
@@ -31,10 +32,6 @@ public class Configuration {
 
     @Value("${min.procedurefee}")
     private long min_procedurefee;
-
-    public void setMin_procedurefee(long min_procedurefee) {
-        this.min_procedurefee = min_procedurefee;
-    }
 
     @Value("${pool.clear.days}")
     private long poolcleardays;
@@ -53,6 +50,10 @@ public class Configuration {
 
     @Value("${wisdom.block-interval-switch-era}")
     private int era;
+
+    public Configuration(@Value("${block-size}") int blockSize) {
+        Block.MAX_BLOCK_SIZE = blockSize * (1 << 20);
+    }
 
     public long getPoolcleardays() {
         return poolcleardays;
@@ -86,6 +87,10 @@ public class Configuration {
 
     public long getMaxqpcount() {
         return maxqpcount;
+    }
+
+    public void setMin_procedurefee(long min_procedurefee) {
+        this.min_procedurefee = min_procedurefee;
     }
 
     public void setMaxqueued(long maxqueued) {
