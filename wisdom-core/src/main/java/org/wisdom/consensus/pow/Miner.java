@@ -181,6 +181,7 @@ public class Miner implements ApplicationListener {
             // 优先级 普通事务 > wasm 事务
             int best = WASMTXPool.findBestTransaction(newTranList);
             Transaction tx = newTranList.get(best);
+            newTranList.remove(best);
 
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
             if (isExit && tx.payload != null && payloads.contains(Hex.encodeHexString(tx.payload))) {
@@ -201,7 +202,6 @@ public class Miner implements ApplicationListener {
                 results.put(tx.getHash(), res);
                 included.put(tx.getHash(), tx);
                 block.body.add(tx);
-                newTranList.remove(best);
             }catch (Exception e){
                 e.printStackTrace();
                 WebSocket.broadcastDrop(tx, e.getMessage());
