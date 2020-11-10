@@ -50,6 +50,7 @@ import org.wisdom.vm.abi.WASMResult;
 import org.wisdom.vm.abi.WASMTXPool;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j(topic = "miner")
@@ -225,7 +226,7 @@ public class Miner implements ApplicationListener {
         block.hashMerkleState = Block.calculateMerkleState(Collections.emptyList());
         block.hashMerkleIncubate = Block.calculateMerkleIncubate(new ArrayList<>());
 
-        peningTransPool.updatePool(newTranList, 1, block.nHeight);
+        peningTransPool.updatePool(included.values().stream().collect(Collectors.toList()), 1, block.nHeight);
         for (Map.Entry<byte[], WASMResult> entry : results.entrySet()) {
             Transaction tx = included.get(entry.getKey());
             WASMResult re = entry.getValue();
