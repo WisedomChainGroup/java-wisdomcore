@@ -165,12 +165,22 @@ public class Miner implements ApplicationListener {
         // 更新 coinbase
         Map<byte[], WASMResult> results = new ByteArrayMap<>();
         Map<byte[], Transaction> included = new ByteArrayMap<>();
-        for (Transaction tx : newTranList) {
+        while (!newTranList.isEmpty()){
             long now = System.currentTimeMillis() / 1000;
-            // 可能会超时，取消打包事务
-            if(now >= endTimeStamp){
 
+            // 可能会超时，取消打包后续的事务，放回内存池
+            if(now >= endTimeStamp){
+                for (Transaction t : newTranList) {
+                    if(t.type == Transaction.Type.WASM_CALL.ordinal() || t.type == Transaction.Type.WASM_DEPLOY.ordinal()){
+                        wasmtxPool.collect(Collections.singletonList(t));
+                    }
+                }
+                break;
             }
+
+            // 优先级 普通事务 > wasm 事务
+            int best = WASMTXPool.findBestTransaction(newTranList);
+            Transaction tx = newTranList.get(best);
 
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
             if (isExit && tx.payload != null && payloads.contains(Hex.encodeHexString(tx.payload))) {
@@ -191,12 +201,13 @@ public class Miner implements ApplicationListener {
                 results.put(tx.getHash(), res);
                 included.put(tx.getHash(), tx);
                 block.body.add(tx);
+                newTranList.remove(best);
             }catch (Exception e){
                 e.printStackTrace();
                 WebSocket.broadcastDrop(tx, e.getMessage());
             }
-
         }
+
 
         // 更新 coinbase
         Trie<byte[], AccountState> trie = getTempTrie(tmpRoot);
