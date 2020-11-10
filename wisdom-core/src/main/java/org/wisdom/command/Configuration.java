@@ -51,7 +51,7 @@ public class Configuration {
     @Value("${wisdom.block-interval-switch-era}")
     private int era;
 
-    public Configuration(@Value("${block-size}") int blockSize) {
+    public Configuration(@Value("${block.size}") int blockSize) {
         Block.MAX_BLOCK_SIZE = blockSize * (1 << 20);
     }
 
