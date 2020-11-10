@@ -127,7 +127,7 @@ public class Miner implements ApplicationListener {
                 .revert(root);
     }
 
-    private Block createBlock() throws Exception {
+    private Block createBlock(long endTimeStamp) throws Exception {
         Block parent = repository.getBestBlock();
         Block block = new Block();
         block.nVersion = parent.nVersion;
@@ -166,6 +166,12 @@ public class Miner implements ApplicationListener {
         Map<byte[], WASMResult> results = new ByteArrayMap<>();
         Map<byte[], Transaction> included = new ByteArrayMap<>();
         for (Transaction tx : newTranList) {
+            long now = System.currentTimeMillis() / 1000;
+            // 可能会超时，取消打包事务
+            if(now >= endTimeStamp){
+
+            }
+
             boolean isExit = tx.type == Transaction.Type.EXIT_VOTE.ordinal() || tx.type == Transaction.Type.EXIT_MORTGAGE.ordinal();
             if (isExit && tx.payload != null && payloads.contains(Hex.encodeHexString(tx.payload))) {
                 String from = Hex.encodeHexString(Address.publicKeyToHash(tx.from));
@@ -246,7 +252,7 @@ public class Miner implements ApplicationListener {
                 return;
             }
             try {
-                Block b = createBlock();
+                Block b = createBlock(p.get().endTimeStamp);
                 if(b == null)
                     return;
                 thread = ctx.getBean(MineThread.class);
