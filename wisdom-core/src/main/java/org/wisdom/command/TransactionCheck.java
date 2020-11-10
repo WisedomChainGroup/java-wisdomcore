@@ -122,9 +122,9 @@ public class TransactionCheck {
             //gasPrice
             byte[] gasbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
             long gasPrice = BigEndian.decodeUint64(gasbyte);
-            if ((type[0] == Transaction.Type.WASM_DEPLOY.ordinal() || type[0] == Transaction.Type.WASM_CALL.ordinal()) && gasPrice < 2000) {
+            if ((type[0] == Transaction.Type.WASM_DEPLOY.ordinal() || type[0] == Transaction.Type.WASM_CALL.ordinal()) && gasPrice < 100) {
                 apiResult.setCode(5000);
-                apiResult.setMessage("Gasprice cannot be lower than 2000");
+                apiResult.setMessage("Gasprice cannot be lower than 100");
                 return apiResult;
             }
             //gas
