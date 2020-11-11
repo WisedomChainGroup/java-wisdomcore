@@ -282,7 +282,7 @@ public class Miner implements ApplicationListener {
                 return;
             }
             try {
-                Block b = createBlock(p.get().endTimeStamp);
+                Block b = createBlock(p.get().endTimeStamp - (thread.powAvg() / 1000));
                 if (b == null)
                     return;
                 thread = ctx.getBean(MineThread.class);

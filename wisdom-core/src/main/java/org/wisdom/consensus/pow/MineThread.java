@@ -49,6 +49,34 @@ public class MineThread {
     @Autowired
     private ApplicationContext ctx;
 
+    // 记录完成工作量证明的平均时间，单位是毫秒
+    private final long[] POW_CONSUMES = new long[200];
+
+    private int idx = 0;
+
+    private void record(long consume){
+        synchronized (POW_CONSUMES){
+            POW_CONSUMES[idx] = consume;
+            idx++;
+            idx = idx % POW_CONSUMES.length;
+        }
+    }
+
+    // 工作量证明的平均时间，单位是毫秒
+    public long powAvg(){
+        synchronized (POW_CONSUMES){
+            long sum = 0;
+            int count = 0;
+            for (int i = 0; i < POW_CONSUMES.length; i++) {
+                long c = POW_CONSUMES[i];
+                if(c > 0)
+                    count ++;
+                    sum += c;
+            }
+            return count > 0 ?  sum / count : (10 * 1000);
+        }
+    }
+
     @Async
     public void mine(Block block, long startTime, long endTime) {
         block.setWeight(1);
@@ -61,6 +89,7 @@ public class MineThread {
     }
 
     public Block pow(Block block, long parentBlockTimeStamp, long endTime) {
+        long start = System.currentTimeMillis();
         byte[] nBits = block.nBits;
         while (!terminated) {
             byte[] tmp = new byte[32];
@@ -81,6 +110,8 @@ public class MineThread {
             }
             byte[] hash = Block.calculatePOWHash(block);
             if (BigEndian.compareUint256(hash, nBits) < 0) {
+                long end = System.currentTimeMillis();
+                record(end - start);
                 return block;
             }
         }
