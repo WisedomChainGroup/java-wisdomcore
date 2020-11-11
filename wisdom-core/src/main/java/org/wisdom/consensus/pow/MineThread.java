@@ -59,14 +59,25 @@ public class MineThread {
 
     private static int INDEX = 0;
 
-    // 记录一次完成工作量证明消耗的时间
+    // 成功完成记录一次完成工作量证明消耗的时间
     private static void record(long consume){
         synchronized (POW_CONSUMES){
+            TIMEOUT = 0;
             POW_CONSUMES[INDEX] = consume;
             INDEX++;
             INDEX = INDEX % POW_CONSUMES.length;
         }
     }
+
+    private static void recordTimeOut(){
+        synchronized (POW_CONSUMES){
+            TIMEOUT++;
+        }
+    }
+
+    // 记录最近发生了几次 mining timeout，每次 mining timeout 会导致下次 powAvg 的最终结果增加 500 毫秒
+    // 直到 mining 成功，解除对 powAvg 的临时调整
+    private static int TIMEOUT = 0;
 
     // 计算工作量证明的平均时间，单位是毫秒
     public static long powAvg(){
@@ -82,7 +93,7 @@ public class MineThread {
             }
             if(count == 0)
                 return Long.MAX_VALUE;
-            return sum / count;
+            return sum / count + TIMEOUT * 500;
         }
     }
 
@@ -117,6 +128,7 @@ public class MineThread {
             }
             if (block.nTime >= endTime) {
                 log.error("mining timeout, dead line = " + new Date(endTime * 1000).toString() + "consider upgrade your hardware");
+                recordTimeOut();
                 wasmtxPool.collect(block.body
                         .stream()
                         .filter(x -> x.type == Transaction.Type.WASM_DEPLOY.ordinal() || x.type == Transaction.Type.WASM_CALL.ordinal())

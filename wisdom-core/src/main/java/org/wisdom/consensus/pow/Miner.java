@@ -173,7 +173,7 @@ public class Miner implements ApplicationListener {
         Map<byte[], Transaction> included = new ByteArrayMap<>();
 
         while (!newTranList.isEmpty()) {
-            long now = System.currentTimeMillis() / 1000;
+            long now = System.currentTimeMillis();
 
             // 可能会超时，取消打包后续的事务，放回内存池
             if (now >= endTimeStamp) {
@@ -286,8 +286,9 @@ public class Miner implements ApplicationListener {
             }
             try {
                 thread = ctx.getBean(MineThread.class);
-                // 预留时间给工作量证明
-                BlockAndTask b = createBlock(p.get().endTimeStamp - (MineThread.powAvg() / 1000));
+                // 预留时间给工作量证明，避免 mining timeout 发生
+                long avg = MineThread.powAvg();
+                BlockAndTask b = createBlock(p.get().endTimeStamp * 1000 - 1 - avg);
                 if (b == null)
                     return;
                 thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
