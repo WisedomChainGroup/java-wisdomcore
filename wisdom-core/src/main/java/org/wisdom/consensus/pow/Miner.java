@@ -20,27 +20,32 @@ package org.wisdom.consensus.pow;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
-import org.springframework.beans.factory.annotation.Value;
-import org.tdf.common.trie.Trie;
-import org.tdf.common.util.ByteArrayMap;
-import org.tdf.common.util.FastByteComparisons;
-import org.wisdom.controller.WebSocket;
-import org.wisdom.core.event.NewBestBlockEvent;
-import org.wisdom.core.validate.CheckPointRule;
-import org.wisdom.core.validate.Result;
-import org.wisdom.crypto.HashUtil;
-import org.wisdom.db.*;
-import org.wisdom.core.account.Transaction;
-import org.wisdom.core.event.NewBlockMinedEvent;
-import org.wisdom.core.validate.MerkleRule;
-import org.wisdom.core.validate.OfficialIncubateBalanceRule;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.wisdom.core.*;
+import org.tdf.common.trie.Trie;
+import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.FastByteComparisons;
+import org.wisdom.controller.WebSocket;
+import org.wisdom.core.Block;
+import org.wisdom.core.PendingBlocksManager;
+import org.wisdom.core.WisdomBlockChain;
+import org.wisdom.core.account.Transaction;
+import org.wisdom.core.event.NewBestBlockEvent;
+import org.wisdom.core.event.NewBlockMinedEvent;
+import org.wisdom.core.validate.CheckPointRule;
+import org.wisdom.core.validate.MerkleRule;
+import org.wisdom.core.validate.OfficialIncubateBalanceRule;
+import org.wisdom.core.validate.Result;
+import org.wisdom.crypto.HashUtil;
+import org.wisdom.db.AccountState;
+import org.wisdom.db.AccountStateTrie;
+import org.wisdom.db.AccountStateUpdater;
+import org.wisdom.db.WisdomRepository;
 import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.pool.PeningTransPool;
@@ -122,7 +127,7 @@ public class Miner implements ApplicationListener {
         return tx;
     }
 
-    private Trie<byte[], AccountState> getTempTrie(byte[] root){
+    private Trie<byte[], AccountState> getTempTrie(byte[] root) {
         return accountStateTrie
                 .getTrie()
                 .revert(root);
@@ -154,25 +159,25 @@ public class Miner implements ApplicationListener {
         byte[] tmpRoot = accountStateTrie.getRootStore().get(parent.getHash()).get();
 
         List<Transaction> wasmList = wasmtxPool.popPackable(new PrevNonceWrapper(newTranList, getTempTrie(tmpRoot).asMap()), -1);
-        if(newTranList == null){
+        if (newTranList == null) {
             newTranList = wasmList;
-        }else{
+        } else {
             newTranList.addAll(wasmList);
         }
-        if(newTranList.isEmpty() && !allowEmptyBlock)
+        if (newTranList.isEmpty() && !allowEmptyBlock)
             return null;
         Set<String> payloads = new HashSet<>();
 
         // 更新 coinbase
         Map<byte[], WASMResult> results = new ByteArrayMap<>();
         Map<byte[], Transaction> included = new ByteArrayMap<>();
-        while (!newTranList.isEmpty()){
+        while (!newTranList.isEmpty()) {
             long now = System.currentTimeMillis() / 1000;
 
             // 可能会超时，取消打包后续的事务，放回内存池
-            if(now >= endTimeStamp){
+            if (now >= endTimeStamp) {
                 for (Transaction t : newTranList) {
-                    if(t.type == Transaction.Type.WASM_CALL.ordinal() || t.type == Transaction.Type.WASM_DEPLOY.ordinal()){
+                    if (t.type == Transaction.Type.WASM_CALL.ordinal() || t.type == Transaction.Type.WASM_DEPLOY.ordinal()) {
                         wasmtxPool.collect(Collections.singletonList(t));
                     }
                 }
@@ -195,7 +200,7 @@ public class Miner implements ApplicationListener {
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
             // 校验事务
-            try{
+            try {
                 Trie<byte[], AccountState> tmp = getTempTrie(tmpRoot);
                 WASMResult res = accountStateTrie.update(tmp, block, tx);
                 tmpRoot = tmp.commit();
@@ -203,7 +208,20 @@ public class Miner implements ApplicationListener {
                 results.put(tx.getHash(), res);
                 included.put(tx.getHash(), tx);
                 block.body.add(tx);
-            }catch (Exception e){
+            } catch (Exception e) {
+                // 某个事务执行报错丢弃掉后续来自该 from 的事务
+                Iterator<Transaction> it = newTranList.iterator();
+                while (it.hasNext()) {
+                    Transaction t = it.next();
+                    if (FastByteComparisons.equal(t.from, tx.from) &&
+                            (t.type == Transaction.Type.WASM_DEPLOY.ordinal() ||
+                                    t.type == Transaction.Type.WASM_CALL.ordinal()
+                            )
+                    ) {
+                        it.remove();
+                        WebSocket.broadcastDrop(t, e.getMessage());
+                    }
+                }
                 e.printStackTrace();
                 WebSocket.broadcastDrop(tx, e.getMessage());
             }
@@ -265,7 +283,7 @@ public class Miner implements ApplicationListener {
             }
             try {
                 Block b = createBlock(p.get().endTimeStamp);
-                if(b == null)
+                if (b == null)
                     return;
                 thread = ctx.getBean(MineThread.class);
                 thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
