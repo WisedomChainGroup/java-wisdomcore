@@ -20,19 +20,21 @@ package org.wisdom.consensus.pow;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
+import org.wisdom.core.account.Transaction;
 import org.wisdom.encoding.BigEndian;
 import org.wisdom.core.Block;
 import org.wisdom.core.event.NewBlockMinedEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.wisdom.p2p.WisdomOuterClass;
+import org.wisdom.vm.abi.WASMTXPool;
 
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
@@ -49,31 +51,38 @@ public class MineThread {
     @Autowired
     private ApplicationContext ctx;
 
-    // 记录完成工作量证明的平均时间，单位是毫秒
-    private final long[] POW_CONSUMES = new long[200];
+    @Autowired
+    private WASMTXPool wasmtxPool;
 
-    private int idx = 0;
+    // 用于计算完成工作量证明的平均时间，单位是毫秒
+    private static final Long[] POW_CONSUMES = new Long[8];
 
-    private void record(long consume){
+    private static int INDEX = 0;
+
+    // 记录一次完成工作量证明消耗的时间
+    private static void record(long consume){
         synchronized (POW_CONSUMES){
-            POW_CONSUMES[idx] = consume;
-            idx++;
-            idx = idx % POW_CONSUMES.length;
+            POW_CONSUMES[INDEX] = consume;
+            INDEX++;
+            INDEX = INDEX % POW_CONSUMES.length;
         }
     }
 
-    // 工作量证明的平均时间，单位是毫秒
-    public long powAvg(){
+    // 计算工作量证明的平均时间，单位是毫秒
+    public static long powAvg(){
         synchronized (POW_CONSUMES){
             long sum = 0;
             int count = 0;
             for (int i = 0; i < POW_CONSUMES.length; i++) {
-                long c = POW_CONSUMES[i];
-                if(c > 0)
-                    count ++;
-                    sum += c;
+                Long c = POW_CONSUMES[i];
+                if(c == null)
+                    continue;
+                sum += c;
+                count ++;
             }
-            return count > 0 ?  sum / count : (10 * 1000);
+            if(count == 0)
+                return Long.MAX_VALUE;
+            return sum / count;
         }
     }
 
@@ -106,6 +115,10 @@ public class MineThread {
             }
             if (block.nTime >= endTime) {
                 log.error("mining timeout, dead line = " + new Date(endTime * 1000).toString() + "consider upgrade your hardware");
+                wasmtxPool.collect(block.body
+                        .stream()
+                        .filter(x -> x.type == Transaction.Type.WASM_DEPLOY.ordinal() || x.type == Transaction.Type.WASM_CALL.ordinal())
+                        .collect(Collectors.toList()));
                 return null;
             }
             byte[] hash = Block.calculatePOWHash(block);

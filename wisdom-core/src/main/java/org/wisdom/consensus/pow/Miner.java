@@ -171,16 +171,17 @@ public class Miner implements ApplicationListener {
         // 更新 coinbase
         Map<byte[], WASMResult> results = new ByteArrayMap<>();
         Map<byte[], Transaction> included = new ByteArrayMap<>();
+
         while (!newTranList.isEmpty()) {
             long now = System.currentTimeMillis() / 1000;
 
             // 可能会超时，取消打包后续的事务，放回内存池
             if (now >= endTimeStamp) {
-                for (Transaction t : newTranList) {
-                    if (t.type == Transaction.Type.WASM_CALL.ordinal() || t.type == Transaction.Type.WASM_DEPLOY.ordinal()) {
-                        wasmtxPool.collect(Collections.singletonList(t));
-                    }
-                }
+                System.out.println("mining will timeout, " + newTranList.size() + " transactions will packed soon...");
+                wasmtxPool.collect(newTranList
+                        .stream()
+                        .filter(x -> x.type == Transaction.Type.WASM_DEPLOY.ordinal() || x.type == Transaction.Type.WASM_CALL.ordinal())
+                        .collect(Collectors.toList()));
                 break;
             }
 
@@ -282,10 +283,11 @@ public class Miner implements ApplicationListener {
                 return;
             }
             try {
-                Block b = createBlock(p.get().endTimeStamp - (thread.powAvg() / 1000));
+                thread = ctx.getBean(MineThread.class);
+                // 预留时间给工作量证明
+                Block b = createBlock(p.get().endTimeStamp - (MineThread.powAvg() / 1000));
                 if (b == null)
                     return;
-                thread = ctx.getBean(MineThread.class);
                 thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
             } catch (Exception e) {
                 e.printStackTrace();
