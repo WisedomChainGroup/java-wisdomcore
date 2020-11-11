@@ -133,7 +133,7 @@ public class Miner implements ApplicationListener {
                 .revert(root);
     }
 
-    private Block createBlock(long endTimeStamp) throws Exception {
+    private BlockAndTask createBlock(long endTimeStamp) throws Exception {
         Block parent = repository.getBestBlock();
         Block block = new Block();
         block.nVersion = parent.nVersion;
@@ -177,7 +177,7 @@ public class Miner implements ApplicationListener {
 
             // 可能会超时，取消打包后续的事务，放回内存池
             if (now >= endTimeStamp) {
-                System.out.println("mining will timeout, " + newTranList.size() + " transactions will packed soon...");
+                log.info("mining may timeout, " + newTranList.size() + " transactions will executed soon...");
                 wasmtxPool.collect(newTranList
                         .stream()
                         .filter(x -> x.type == Transaction.Type.WASM_DEPLOY.ordinal() || x.type == Transaction.Type.WASM_CALL.ordinal())
@@ -246,12 +246,14 @@ public class Miner implements ApplicationListener {
         block.hashMerkleIncubate = Block.calculateMerkleIncubate(new ArrayList<>());
 
         peningTransPool.updatePool(included.values().stream().collect(Collectors.toList()), 1, block.nHeight);
-        for (Map.Entry<byte[], WASMResult> entry : results.entrySet()) {
-            Transaction tx = included.get(entry.getKey());
-            WASMResult re = entry.getValue();
-            WebSocket.broadcastIncluded(tx, block.nHeight, block.getHash(), re.getGasUsed(), re.getReturns(), re.getWASMEvents());
-        }
-        return block;
+
+        return new BlockAndTask(block, () -> {
+            for (Map.Entry<byte[], WASMResult> entry : results.entrySet()) {
+                Transaction tx = included.get(entry.getKey());
+                WASMResult re = entry.getValue();
+                WebSocket.broadcastIncluded(tx, block.nHeight, block.getHash(), re.getGasUsed(), re.getReturns(), re.getWASMEvents());
+            }
+        });
     }
 
     @Scheduled(fixedRate = 1000)
@@ -285,7 +287,7 @@ public class Miner implements ApplicationListener {
             try {
                 thread = ctx.getBean(MineThread.class);
                 // 预留时间给工作量证明
-                Block b = createBlock(p.get().endTimeStamp - (MineThread.powAvg() / 1000));
+                BlockAndTask b = createBlock(p.get().endTimeStamp - (MineThread.powAvg() / 1000));
                 if (b == null)
                     return;
                 thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);

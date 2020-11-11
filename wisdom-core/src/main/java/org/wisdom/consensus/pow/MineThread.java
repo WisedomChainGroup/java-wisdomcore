@@ -87,17 +87,19 @@ public class MineThread {
     }
 
     @Async
-    public void mine(Block block, long startTime, long endTime) {
+    public void mine(BlockAndTask b, long startTime, long endTime) {
+        Block block = b.getBlock();
         block.setWeight(1);
         log.info("start mining at height " + block.nHeight + " target = " + Hex.encodeHexString(block.nBits));
-        block = pow(block, startTime, endTime);
+        block = pow(b, startTime, endTime);
         terminated = true;
         if (block != null) {
             ctx.publishEvent(new NewBlockMinedEvent(this, block));
         }
     }
 
-    public Block pow(Block block, long parentBlockTimeStamp, long endTime) {
+    public Block pow(BlockAndTask blockAndTask, long parentBlockTimeStamp, long endTime) {
+        Block block = blockAndTask.getBlock();
         long start = System.currentTimeMillis();
         byte[] nBits = block.nBits;
         while (!terminated) {
@@ -125,6 +127,7 @@ public class MineThread {
             if (BigEndian.compareUint256(hash, nBits) < 0) {
                 long end = System.currentTimeMillis();
                 record(end - start);
+                blockAndTask.getTask().run();
                 return block;
             }
         }
