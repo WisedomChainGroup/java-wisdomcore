@@ -152,10 +152,6 @@ public class Miner implements ApplicationListener {
             // 优先打包普通的事务
             if(tx.type != Transaction.Type.WASM_DEPLOY.ordinal() && tx.type != Transaction.Type.WASM_CALL.ordinal())
                 return i;
-            // 如果事务的 gas 消耗值过大可能会导致超时则跳过
-            if(System.currentTimeMillis() + cache.asMap().getOrDefault(HexBytes.fromBytes(tx.getHash()), 0L) >= endTimestamp){
-                continue;
-            }
             Integer prevIndex = indices.get(tx.getFromPKHash());
             if(prevIndex == null){
                 indices.put(tx.getFromPKHash(), i);
@@ -168,8 +164,12 @@ public class Miner implements ApplicationListener {
             }
         }
 
+        long now = System.currentTimeMillis();
+
         // 第二步：找出 gasPrice 最大的事务
         return indices.values().stream()
+                // 如果事务的 gas 消耗值过大可能会导致超时则跳过
+                .filter(x -> now + cache.asMap().getOrDefault(HexBytes.fromBytes(txs.get(x).getHash()), 0L) < endTimestamp)
                 .max((x,y) -> - Long.compare(txs.get(x).gasPrice, txs.get(y).gasPrice))
                 .orElse(-1);
     }

@@ -135,7 +135,7 @@ public class AccountStateUpdater {
 
                 // 校验 nonce
                 if (originAccount.getNonce() + 1 != transaction.nonce)
-                    throw new RuntimeException("nonce is too small");
+                    throw new RuntimeException("invalid nonce, expect " + (originAccount.getNonce() + 1) + " while " + transaction.nonce + " received");
 
                 originAccount.setNonce(transaction.nonce);
                 store.put(originAccount.getPubkeyHash(), originAccount);
