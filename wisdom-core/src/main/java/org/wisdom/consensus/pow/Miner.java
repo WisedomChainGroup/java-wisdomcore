@@ -285,12 +285,12 @@ public class Miner implements ApplicationListener {
                 return;
             }
             try {
-                thread = ctx.getBean(MineThread.class);
                 // 预留时间给工作量证明，避免 mining timeout 发生
                 long avg = MineThread.powAvg();
                 BlockAndTask b = createBlock(p.get().endTimeStamp * 1000 - 1 - avg);
                 if (b == null)
                     return;
+                thread = ctx.getBean(MineThread.class);
                 thread.mine(b, proposer.startTimeStamp, proposer.endTimeStamp);
             } catch (Exception e) {
                 e.printStackTrace();
