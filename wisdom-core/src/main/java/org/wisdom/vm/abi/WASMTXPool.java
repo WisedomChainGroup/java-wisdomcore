@@ -185,31 +185,5 @@ public class WASMTXPool {
         }
     }
 
-    public static int findBestTransaction(List<Transaction> txs){
 
-        // 第一步 去掉相同 from 的事务，如果 from 相同取 nonce 较小的
-        // public key hash -> index
-        Map<byte[], Integer> indices = new ByteArrayMap<>();
-        for(int i = 0; i < txs.size(); i++){
-            Transaction tx = txs.get(i);
-            // 优先打包普通的事务
-            if(tx.type != Transaction.Type.WASM_DEPLOY.ordinal() && tx.type != Transaction.Type.WASM_CALL.ordinal())
-                return i;
-            Integer prevIndex = indices.get(tx.getFromPKHash());
-            if(prevIndex == null){
-                indices.put(tx.getFromPKHash(), i);
-                continue;
-            }
-            Transaction prev = txs.get(prevIndex);
-            // 如果 nonce 值更小，替换掉
-            if(tx.nonce < prev.nonce){
-                indices.put(tx.getFromPKHash(), i);
-            }
-        }
-
-        // 第二步：找出 gasPrice 最大的事务
-        return indices.values().stream()
-                .max((x,y) -> - Long.compare(txs.get(x).gasPrice, txs.get(y).gasPrice))
-                .orElse(-1);
-    }
 }

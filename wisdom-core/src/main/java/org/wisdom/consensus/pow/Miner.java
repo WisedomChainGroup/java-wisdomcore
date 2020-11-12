@@ -18,6 +18,8 @@
 
 package org.wisdom.consensus.pow;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Component;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
+import org.tdf.common.util.HexBytes;
 import org.wisdom.controller.WebSocket;
 import org.wisdom.core.Block;
 import org.wisdom.core.PendingBlocksManager;
@@ -116,9 +119,15 @@ public class Miner implements ApplicationListener {
 
     private boolean allowEmptyBlock;
 
+    // 存储事务 wasm 执行时间，避免 mining timeout
+    private Cache<HexBytes, Long> cache = Caffeine.newBuilder()
+            .maximumSize(1024)
+            .build();
+
     public Miner(@Value("${miner.allow-empty-block}") String aeb) {
         allowEmptyBlock = aeb == null || aeb.isEmpty() || !"false".equals(aeb.toLowerCase().trim());
     }
+
 
     private Transaction createCoinBase(long height) throws Exception {
         Transaction tx = Transaction.createEmpty();
@@ -131,6 +140,38 @@ public class Miner implements ApplicationListener {
         return accountStateTrie
                 .getTrie()
                 .revert(root);
+    }
+
+    private int findBestTransaction(List<Transaction> txs, long endTimestamp){
+        // 第一步 去掉相同 from 的事务，如果 from 相同取 nonce 较小的
+
+        // public key hash -> index
+        Map<byte[], Integer> indices = new ByteArrayMap<>();
+        for(int i = 0; i < txs.size(); i++){
+            Transaction tx = txs.get(i);
+            // 优先打包普通的事务
+            if(tx.type != Transaction.Type.WASM_DEPLOY.ordinal() && tx.type != Transaction.Type.WASM_CALL.ordinal())
+                return i;
+            // 如果事务的 gas 消耗值过大可能会导致超时则跳过
+            if(System.currentTimeMillis() + cache.asMap().getOrDefault(HexBytes.fromBytes(tx.getHash()), 0L) >= endTimestamp){
+                continue;
+            }
+            Integer prevIndex = indices.get(tx.getFromPKHash());
+            if(prevIndex == null){
+                indices.put(tx.getFromPKHash(), i);
+                continue;
+            }
+            Transaction prev = txs.get(prevIndex);
+            // 如果 nonce 值更小，替换掉
+            if(tx.nonce < prev.nonce){
+                indices.put(tx.getFromPKHash(), i);
+            }
+        }
+
+        // 第二步：找出 gasPrice 最大的事务
+        return indices.values().stream()
+                .max((x,y) -> - Long.compare(txs.get(x).gasPrice, txs.get(y).gasPrice))
+                .orElse(-1);
     }
 
     private BlockAndTask createBlock(long endTimeStamp) throws Exception {
@@ -173,10 +214,13 @@ public class Miner implements ApplicationListener {
         Map<byte[], Transaction> included = new ByteArrayMap<>();
 
         while (!newTranList.isEmpty()) {
-            long now = System.currentTimeMillis();
 
-            // 可能会超时，取消打包后续的事务，放回内存池
-            if (now >= endTimeStamp) {
+
+            // 优先级 普通事务 > wasm 事务
+            int best = findBestTransaction(newTranList, endTimeStamp);
+
+            // best < 0 可能是存在消耗 gas 消耗很大的事务，被跳过了
+            if(best < 0){
                 log.info("mining may timeout, " + newTranList.size() + " transactions will executed soon...");
                 wasmtxPool.collect(newTranList
                         .stream()
@@ -185,8 +229,6 @@ public class Miner implements ApplicationListener {
                 break;
             }
 
-            // 优先级 普通事务 > wasm 事务
-            int best = WASMTXPool.findBestTransaction(newTranList);
             Transaction tx = newTranList.get(best);
             newTranList.remove(best);
 
@@ -200,10 +242,12 @@ public class Miner implements ApplicationListener {
             if (isExit && tx.payload != null) {
                 payloads.add(Hex.encodeHexString(tx.payload));
             }
-            // 校验事务
+            // 校验事务，记录事务执行消耗的时间
             try {
                 Trie<byte[], AccountState> tmp = getTempTrie(tmpRoot);
+                long start = System.currentTimeMillis();
                 WASMResult res = accountStateTrie.update(tmp, block, tx);
+                cache.asMap().put(HexBytes.fromBytes(tx.getHash()), System.currentTimeMillis() - start);
                 tmpRoot = tmp.commit();
                 block.body.get(0).amount += res.getGasUsed() * tx.gasPrice;
                 results.put(tx.getHash(), res);
