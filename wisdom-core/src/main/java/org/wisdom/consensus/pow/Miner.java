@@ -170,7 +170,7 @@ public class Miner implements ApplicationListener {
         return indices.values().stream()
                 // 如果事务的 gas 消耗值过大可能会导致超时则跳过
                 .filter(x -> now + cache.asMap().getOrDefault(HexBytes.fromBytes(txs.get(x).getHash()), 0L) < endTimestamp)
-                .max((x,y) -> - Long.compare(txs.get(x).gasPrice, txs.get(y).gasPrice))
+                .max((x,y) -> Long.compare(txs.get(x).gasPrice, txs.get(y).gasPrice))
                 .orElse(-1);
     }
 
