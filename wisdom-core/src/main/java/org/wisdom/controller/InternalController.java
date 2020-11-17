@@ -203,7 +203,7 @@ public class InternalController {
     @GetMapping(value = {
             "/internal/wasmTxPool/{hash}"
     }, produces = "application/json")
-    public Transaction getWASMTXInPool(
+    public Object getWASMTXInPool(
             @PathVariable String hash
     ) {
         return wasmtxPool.get(HexBytes.fromHex(hash)).orElse(null);

@@ -119,7 +119,7 @@ public class WebSocket {
                         transactionHandler.broadcastTransactions(Collections.singletonList(tx));
                         broadcastPendingOrConfirm(tx, Transaction.Status.PENDING);
                     }else{
-                        broadcastDrop(tx, res.getMessage());
+                        wasmtxPool.drop(tx, res.getMessage());
                     }
                 }
                 sendNull(msg.getNonce());

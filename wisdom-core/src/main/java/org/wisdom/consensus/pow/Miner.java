@@ -264,11 +264,11 @@ public class Miner implements ApplicationListener {
                             )
                     ) {
                         it.remove();
-                        WebSocket.broadcastDrop(t, e.getMessage());
+                        wasmtxPool.drop(t, e.getMessage());
                     }
                 }
                 e.printStackTrace();
-                WebSocket.broadcastDrop(tx, e.getMessage());
+                wasmtxPool.drop(tx, e.getMessage());
             }
         }
 

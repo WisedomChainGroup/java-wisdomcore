@@ -2,8 +2,7 @@ package org.wisdom.vm.abi;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
+import lombok.*;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.ByteArrayMap;
 import org.tdf.common.util.FastByteComparisons;
@@ -18,7 +17,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Predicate;
 
 
 /**
@@ -39,10 +37,18 @@ public class WASMTXPool {
     private final ReadWriteLock cacheLock = new ReentrantReadWriteLock();
 
     // dropped transactions
-    private final Cache<HexBytes, Transaction> dropped;
+    private final Cache<HexBytes, DropInfo> dropped;
 
-
+    @Data
     @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DropInfo {
+        private Transaction transaction;
+        private String reason;
+    }
+
+
+    @RequiredArgsConstructor
     static class TransactionInfo implements Comparable<TransactionInfo> {
         private final long receivedAt;
         private final Transaction tx;
@@ -62,11 +68,17 @@ public class WASMTXPool {
     public WASMTXPool() {
         cache = new TreeSet<>();
         poolExecutor = Executors.newSingleThreadScheduledExecutor();
-        poolExecutor.scheduleWithFixedDelay(this::clear, 0, EXPIRED_IN, TimeUnit.SECONDS);
         dropped = CacheBuilder.newBuilder()
                 .expireAfterWrite(EXPIRED_IN, TimeUnit.SECONDS)
                 .build();
         this.mCache = new HashMap<>();
+        poolExecutor.scheduleWithFixedDelay(() -> {
+            try {
+                this.clear();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, 0, EXPIRED_IN, TimeUnit.SECONDS);
     }
 
     @SneakyThrows
@@ -76,17 +88,13 @@ public class WASMTXPool {
             return;
         }
         try {
-            Predicate<TransactionInfo> lambda =
-                    info -> {
-                        boolean remove = (now - info.receivedAt) / 1000 > EXPIRED_IN;
-                        if (remove) {
-                            WebSocket.broadcastDrop(info.tx, "invalid nonce or timeout");
-                            dropped.put(HexBytes.fromBytes(info.tx.getHash()), info.tx);
-                        }
-                        return remove;
-                    };
-            cache.removeIf(lambda);
-            mCache.values().removeIf(lambda);
+            List<Transaction> toDrop = new ArrayList<>();
+            mCache.values().forEach(i -> {
+                if((now - i.receivedAt) / 1000 > EXPIRED_IN){
+                    toDrop.add(i.tx);
+                }
+            });
+            toDrop.forEach(t -> this.dropInternal(t, "invalid nonce or timeout"));
         } finally {
             this.cacheLock.writeLock().unlock();
         }
@@ -110,6 +118,27 @@ public class WASMTXPool {
         return errors;
     }
 
+    private void dropInternal(Transaction tx, String reason) {
+        TransactionInfo info = this.mCache.get(HexBytes.fromBytes(tx.getHash()));
+        if (info != null){
+            cache.remove(info);
+        }
+        mCache.remove(HexBytes.fromBytes(tx.getHash()));
+        dropped.asMap().put(HexBytes.fromBytes(tx.getHash()),
+                new DropInfo(tx, reason));
+        WebSocket.broadcastDrop(tx, reason);
+    }
+
+
+    public void drop(Transaction tx, String reason) {
+        this.cacheLock.writeLock().lock();
+        try {
+            this.dropInternal(tx, reason);
+        } finally {
+            this.cacheLock.writeLock().unlock();
+        }
+    }
+
     @SneakyThrows
     public List<Transaction> popPackable(Map<byte[], Long> m, int limit) {
         this.cacheLock.writeLock().lock();
@@ -129,7 +158,7 @@ public class WASMTXPool {
                 if (t.nonce <= prevNonce) {
                     it.remove();
                     mCache.remove(HexBytes.fromBytes(t.getHash()));
-                    dropped.put(HexBytes.fromBytes(t.getHash()), t);
+                    dropped.put(HexBytes.fromBytes(t.getHash()), new DropInfo(t, "nonce too small"));
                     WebSocket.broadcastDrop(t, "invalid nonce: too small");
                     continue;
                 }
@@ -144,7 +173,7 @@ public class WASMTXPool {
             // 对于 from 相同的事务，优先取 nonce 较小的
             // 对于 from 不相同的事务，优先取 gasPrice 较大的
             ret.sort((x, y) -> {
-                if(!FastByteComparisons.equal(x.from, y.from)){
+                if (!FastByteComparisons.equal(x.from, y.from)) {
                     return -Long.compare(x.gasPrice, y.gasPrice);
                 }
                 return Long.compare(x.nonce, y.nonce);
@@ -176,14 +205,18 @@ public class WASMTXPool {
         }
     }
 
-    public Optional<Transaction> get(HexBytes hash) {
+    public Optional<Object> get(HexBytes hash) {
         this.cacheLock.readLock().lock();
         try {
-            return Optional.ofNullable(mCache.get(hash)).map(x -> x.tx);
+            DropInfo i = dropped.asMap().get(hash);
+            if(i != null)
+                return Optional.of(i);
+            TransactionInfo info = mCache.get(hash);
+            if(info != null)
+                return Optional.of(info);
+            return Optional.empty();
         } finally {
             this.cacheLock.readLock().unlock();
         }
     }
-
-
 }
