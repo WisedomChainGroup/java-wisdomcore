@@ -323,7 +323,12 @@ public class WisdomRepositoryImpl implements WisdomRepository {
 
     @Override
     public Map<byte[], AccountState> getAccountStatesAt(byte[] blockHash, Collection<byte[]> publicKeyHashes) {
-        return accountStateTrie.batchGet(blockHash, publicKeyHashes);
+        try{
+            return accountStateTrie.batchGet(blockHash, publicKeyHashes);
+        }catch (Exception e){
+            log.error("null pointer when query for block hash {} and public hashes {}", HexBytes.fromBytes(blockHash), publicKeyHashes.stream().map(HexBytes::fromBytes).map(HexBytes::toString).reduce("", (x, y) -> x + " " + y));
+            throw e;
+        }
     }
 
     @Override

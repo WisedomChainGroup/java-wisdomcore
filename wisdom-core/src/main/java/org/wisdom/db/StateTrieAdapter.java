@@ -104,7 +104,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                         x, trie.get(x).orElseGet(() -> {
                             T t = updater.createEmpty(x);
                             if(t == null){
-
+                                log.error("t is null for x = {} updater class = {}", x, updater.getClass());
                             }
                             return t;
                         })
