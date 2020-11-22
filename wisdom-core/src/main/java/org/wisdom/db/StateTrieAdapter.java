@@ -99,6 +99,9 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
 
     public Map<byte[], T> batchGet(byte[] blockHash, Collection<byte[]> keys) {
         Trie<byte[], T> trie = getTrieByBlockHash(blockHash);
+        if(trie == null){
+            log.error("trie not found for block hash " + HexBytes.fromBytes(blockHash));
+        }
         ByteArrayMap<T> m = new ByteArrayMap<>();
         keys.forEach(x ->
                 m.put(
