@@ -8,6 +8,7 @@ import org.tdf.common.store.*;
 import org.tdf.common.trie.ReadOnlyTrie;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.ByteArrayMap;
+import org.tdf.common.util.HexBytes;
 import org.tdf.rlp.RLPCodec;
 import org.tdf.rlp.RLPElement;
 import org.wisdom.core.Block;
@@ -102,7 +103,13 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         keys.forEach(x ->
                 m.put(
                         x, trie.get(x).orElseGet(() -> {
-                            T t = updater.createEmpty(x);
+                            T t = null;
+                            try{
+                                t = updater.createEmpty(x);
+                            }catch (Exception e){
+                                log.error("update.createEmpty failed: x = {} updater class = {}", HexBytes.fromBytes(x), updater.getClass());
+                                throw e;
+                            }
                             if(t == null){
                                 log.error("t is null for x = {} updater class = {}", x, updater.getClass());
                             }
