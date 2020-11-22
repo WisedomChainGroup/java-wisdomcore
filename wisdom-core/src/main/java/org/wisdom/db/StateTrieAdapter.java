@@ -45,13 +45,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         return rootStore.get(blockHash);
     }
 
-    public StateTrieAdapter(
-            Class<T> clazz, Map<byte[], T> genesisState,
-            Block genesis, DatabaseStoreFactory factory,
-            boolean logDeletes, boolean reset
-    ) {
-        this(clazz, genesisState, genesis, factory, logDeletes, reset, null);
-    }
 
     public StateTrieAdapter(
             Class<T> clazz,

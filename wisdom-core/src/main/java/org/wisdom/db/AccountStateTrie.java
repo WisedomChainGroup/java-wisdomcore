@@ -18,6 +18,7 @@ import org.wisdom.vm.hosts.Limit;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
@@ -56,7 +57,27 @@ public class AccountStateTrie extends StateTrieAdapter<AccountState> {
             @Qualifier("storageTrie") Trie<byte[], byte[]> storageTrie,
             EconomicModel economicModel
     ) throws Exception {
-        super(AccountState.class, accountStateUpdater.getGenesisStates(), genesis, factory, true, false);
+        super(AccountState.class, accountStateUpdater.getGenesisStates(), genesis, factory, true, false, new AbstractStateUpdater<AccountState>() {
+            @Override
+            public Map<byte[], AccountState> getGenesisStates() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Set<byte[]> getRelatedKeys(Transaction transaction, Map<byte[], AccountState> store) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public AccountState createEmpty(byte[] id) {
+                return new AccountState(id);
+            }
+
+            @Override
+            public AccountState update(Map<byte[], AccountState> beforeUpdate, byte[] id, AccountState state, TransactionInfo info) {
+                throw new UnsupportedOperationException();
+            }
+        });
         this.bc = bc;
         this.accountStateUpdater = accountStateUpdater;
         this.accountStateUpdater.setWisdomBlockChain(bc);
