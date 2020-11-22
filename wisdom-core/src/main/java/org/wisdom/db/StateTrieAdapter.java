@@ -106,6 +106,7 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         keys.forEach(x ->
                 m.put(
                         x, trie.get(x).orElseGet(() -> {
+                            log.info("try to create account state for {} ", HexBytes.fromBytes(x));
                             T t = null;
                             try{
                                 t = updater.createEmpty(x);
