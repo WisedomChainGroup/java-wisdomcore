@@ -17,7 +17,10 @@
  */
 package org.wisdom.core.validate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Setter;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +34,7 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.core.incubator.RateTable;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.WisdomRepository;
+import org.wisdom.encoding.JSONEncodeDecoder;
 import org.wisdom.pool.PeningTransPool;
 
 import java.util.*;
@@ -42,8 +46,9 @@ import static org.wisdom.core.account.Transaction.Type.EXIT_VOTE;
 // 2. nonce 校验
 @Component
 @Setter
+@Slf4j(topic = "account")
 public class AccountRule implements BlockRule {
-
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     RateTable rateTable;
 
@@ -68,10 +73,17 @@ public class AccountRule implements BlockRule {
     private boolean validateIncubator;
 
     @Override
+    @SneakyThrows
     public Result validateBlock(Block block) {
         byte[] parenthash = block.hashPrevBlock;
         List<byte[]> pubhashlist = block.getFromsPublicKeyHash();
-        Map<byte[], AccountState> map = wisdomRepository.getAccountStatesAt(parenthash, pubhashlist);
+        Map<byte[], AccountState> map;
+        try{
+            map = wisdomRepository.getAccountStatesAt(parenthash, pubhashlist);
+        }catch (Exception e){
+            log.error("block = " + MAPPER.writeValueAsString(block));
+            throw e;
+        }
         if (map == null) {
             return Result.Error("get accounts from database failed");
         }
