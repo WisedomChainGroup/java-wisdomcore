@@ -2,6 +2,7 @@ package org.wisdom.db;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.*;
 import org.tdf.common.trie.ReadOnlyTrie;
@@ -16,6 +17,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j(topic = "StateTrieAdapter")
 public abstract class StateTrieAdapter<T> implements StateTrie<T> {
     private static final int MAX_CACHE_SIZE = 8;
     private String TRIE;
@@ -99,7 +101,13 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
         ByteArrayMap<T> m = new ByteArrayMap<>();
         keys.forEach(x ->
                 m.put(
-                        x, trie.get(x).orElseGet(() -> updater.createEmpty(x))
+                        x, trie.get(x).orElseGet(() -> {
+                            T t = updater.createEmpty(x);
+                            if(t == null){
+
+                            }
+                            return t;
+                        })
                 )
         );
         return m;
