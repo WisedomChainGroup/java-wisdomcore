@@ -1,6 +1,7 @@
 package org.wisdom.controller;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.SneakyThrows;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -37,22 +38,62 @@ import java.util.function.Predicate;
 @ServerEndpoint(value = "/websocket/{id}")
 @Component
 public class WebSocket {
-    private static final Map<String, WebSocket> clients = new CopyOnWriteMap<>();
+    public static final Map<String, WebSocket> clients = new ConcurrentHashMap<>();
     private static final Executor EXECUTOR = Executors.newCachedThreadPool();
+
     public static ApplicationContext ctx;
 
+    @JsonIgnore
     private AccountStateTrie  accountTrie;
+
+    @JsonIgnore
     private WisdomRepository repository;
 
+    @JsonIgnore
     private Session session;
+
+    @JsonIgnore
     private final Boolean lock = true;
 
+    @JsonIgnore
     private Set<HexBytes> addresses;
+
+    @JsonIgnore
     private Map<HexBytes, Boolean> transactions;
+
     private String id;
+
+    @JsonIgnore
     private TransactionHandler transactionHandler;
+
+    @JsonIgnore
     private WASMTXPool wasmtxPool;
+
+    @JsonIgnore
     private TransactionCheck transactionCheck;
+
+    // 收到来自这个客户端的字节数量
+    private long bytesIn;
+
+    // 发送给这个客户端的字节数量
+    private long bytesOut;
+
+    // 这个客户端发送的事务数量
+    private long transactionsSend;
+
+    // 合约查询次数
+    private long contractQueries;
+
+    // 合约查询耗时
+    private long contractQueryDuration;
+
+    // 合约查询平均耗时，单位是秒
+    private double getContractQueryAverage(){
+        return contractQueryDuration * 1.0 / contractQueries / 1000;
+    }
+
+    // 合约调用的次数
+    private Map<String, Long> contractQueryMethodsCount = new ConcurrentHashMap<>();
 
     @OnOpen
     public void onOpen(Session session, @PathParam("id") String id) {
@@ -87,6 +128,7 @@ public class WebSocket {
      */
     @OnMessage
     public void onMessage(byte[] messages, Session session) {
+        this.bytesIn += messages.length;
         WebSocketMessage msg = RLPCodec.decode(messages, WebSocketMessage.class);
         switch (msg.getCodeEnum()) {
             // 事务监听
@@ -112,6 +154,7 @@ public class WebSocket {
                 boolean isList = msg.getBody().get(0).asBoolean();
                 Transaction[] txs = isList ? msg.getBody().get(1).as(Transaction[].class) :
                         new Transaction[]{msg.getBody().get(1).as(Transaction.class)};
+                this.transactionsSend += txs.length;
                 for (Transaction tx : txs) {
                     APIResult res = transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
                     if(res.getCode() == APIResult.SUCCESS){
@@ -136,12 +179,20 @@ public class WebSocket {
             }
             // 查看合约
             case CONTRACT_QUERY:{
+                this.contractQueries++;
+
                 byte[] pkHash = msg.getBody().get(0).asBytes();
                 String method = msg.getBody().get(1).asString();
                 Parameters parameters = msg.getBody().get(2)
                         .as(Parameters.class);
+                String key = HexBytes.encode(pkHash) + "#" + method;
+                this.contractQueryMethodsCount.put(key, this.contractQueryMethodsCount.getOrDefault(key, 0L) + 1);
+
                 byte[] root = accountTrie.getRootStore().get(repository.getBestBlock().getHash()).get();
+                long start = System.currentTimeMillis();
                 byte[] result = accountTrie.call(root, pkHash, method, parameters);
+                long end = System.currentTimeMillis() - start;
+                this.contractQueryDuration += end - start;
                 sendResponse(msg.getNonce(), WebSocketMessage.Code.CONTRACT_QUERY, result);
                 break;
             }
@@ -153,6 +204,7 @@ public class WebSocket {
         if (this.session == null)
             return;
         synchronized (this.lock) {
+            this.bytesOut += binary.length;
             this.session.getBasicRemote().sendBinary(ByteBuffer.wrap(binary, 0, binary.length));
         }
     }

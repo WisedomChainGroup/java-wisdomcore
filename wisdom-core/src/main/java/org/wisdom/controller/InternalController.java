@@ -208,4 +208,20 @@ public class InternalController {
     ) {
         return wasmtxPool.get(HexBytes.fromHex(hash)).orElse(null);
     }
+
+    @GetMapping(value = {
+            "/internal/wasmTxPool"
+    }, produces = "application/json")
+    public List<HexBytes> getWASMTXInPoolAll(
+    ) {
+        return wasmtxPool.getTransactionHashes();
+    }
+
+    @GetMapping(value = {
+            "/internal/ws-clients"
+    }, produces = "application/json")
+    public Object getClients(
+    ) {
+        return WebSocket.clients;
+    }
 }

@@ -219,4 +219,8 @@ public class WASMTXPool {
             this.cacheLock.readLock().unlock();
         }
     }
+
+    public List<HexBytes> getTransactionHashes(){
+        return new ArrayList<>(this.mCache.keySet());
+    }
 }
