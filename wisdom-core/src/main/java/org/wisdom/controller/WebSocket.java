@@ -2,6 +2,7 @@ package org.wisdom.controller;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,7 @@ import java.util.function.Predicate;
 
 @ServerEndpoint(value = "/websocket/{id}")
 @Component
+@Getter
 public class WebSocket {
     public static final Map<String, WebSocket> clients = new ConcurrentHashMap<>();
     private static final Executor EXECUTOR = Executors.newCachedThreadPool();
