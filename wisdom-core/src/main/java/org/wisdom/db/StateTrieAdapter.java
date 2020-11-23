@@ -107,9 +107,6 @@ public abstract class StateTrieAdapter<T> implements StateTrie<T> {
                                 log.error("update.createEmpty failed: x = {} updater class = {}", HexBytes.fromBytes(x), updater.getClass());
                                 throw e;
                             }
-                            if(t == null){
-                                log.error("t is null for x = {} updater class = {}", x, updater.getClass());
-                            }
                             return t;
                         })
                 )
