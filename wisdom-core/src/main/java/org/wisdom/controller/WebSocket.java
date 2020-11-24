@@ -193,7 +193,7 @@ public class WebSocket {
                 byte[] root = accountTrie.getRootStore().get(repository.getBestBlock().getHash()).get();
                 long start = System.currentTimeMillis();
                 byte[] result = accountTrie.call(root, pkHash, method, parameters);
-                long end = System.currentTimeMillis() - start;
+                long end = System.currentTimeMillis();
                 this.contractQueryDuration += end - start;
                 sendResponse(msg.getNonce(), WebSocketMessage.Code.CONTRACT_QUERY, result);
                 break;
