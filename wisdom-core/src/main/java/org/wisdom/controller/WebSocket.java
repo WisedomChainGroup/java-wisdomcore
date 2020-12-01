@@ -16,10 +16,8 @@ import org.wisdom.core.account.Transaction;
 import org.wisdom.db.AccountState;
 import org.wisdom.db.AccountStateTrie;
 import org.wisdom.db.WisdomRepository;
-import org.wisdom.pool.AdoptTransPool;
 import org.wisdom.sync.TransactionHandler;
 import org.wisdom.type.WebSocketMessage;
-import org.wisdom.util.CopyOnWriteMap;
 import org.wisdom.vm.abi.Parameters;
 import org.wisdom.vm.abi.WASMEvent;
 import org.wisdom.vm.abi.WASMTXPool;
@@ -28,7 +26,10 @@ import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
@@ -46,7 +47,7 @@ public class WebSocket {
     public static ApplicationContext ctx;
 
     @JsonIgnore
-    private AccountStateTrie  accountTrie;
+    private AccountStateTrie accountTrie;
 
     @JsonIgnore
     private WisdomRepository repository;
@@ -90,7 +91,7 @@ public class WebSocket {
     private long contractQueryDuration;
 
     // 合约查询平均耗时，单位是秒
-    private double getContractQueryAverage(){
+    private double getContractQueryAverage() {
         return contractQueryDuration * 1.0 / contractQueries / 1000;
     }
 
@@ -130,6 +131,14 @@ public class WebSocket {
      */
     @OnMessage
     public void onMessage(byte[] messages, Session session) {
+        try {
+            onMessageInternal(messages, session);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void onMessageInternal(byte[] messages, Session session) {
         this.bytesIn += messages.length;
         WebSocketMessage msg = RLPCodec.decode(messages, WebSocketMessage.class);
         switch (msg.getCodeEnum()) {
@@ -159,11 +168,11 @@ public class WebSocket {
                 this.transactionsSend += txs.length;
                 for (Transaction tx : txs) {
                     APIResult res = transactionCheck.TransactionFormatCheck(tx.toRPCBytes());
-                    if(res.getCode() == APIResult.SUCCESS){
+                    if (res.getCode() == APIResult.SUCCESS) {
                         this.wasmtxPool.collect(Collections.singleton(tx));
                         transactionHandler.broadcastTransactions(Collections.singletonList(tx));
                         broadcastPendingOrConfirm(tx, Transaction.Status.PENDING);
-                    }else{
+                    } else {
                         wasmtxPool.drop(tx, res.getMessage());
                     }
                 }
@@ -171,7 +180,7 @@ public class WebSocket {
                 break;
             }
             // 查看账户
-            case ACCOUNT_QUERY:{
+            case ACCOUNT_QUERY: {
                 byte[] pkHash = msg.getBody().asBytes();
                 AccountState a = accountTrie.getTrieByBlockHash(
                         repository.getBestBlock().getHash())
@@ -180,7 +189,7 @@ public class WebSocket {
                 break;
             }
             // 查看合约
-            case CONTRACT_QUERY:{
+            case CONTRACT_QUERY: {
                 this.contractQueries++;
 
                 byte[] pkHash = msg.getBody().get(0).asBytes();
