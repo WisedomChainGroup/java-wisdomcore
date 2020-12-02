@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Component
 public class WASMTXPool {
     private static final int LOCK_TIMEOUT = 3;
-    private static final int EXPIRED_IN = 3600;
+    private static final int EXPIRED_IN = 60;
     private final TreeSet<TransactionInfo> cache;
 
     private final Map<HexBytes, TransactionInfo> mCache;
@@ -107,7 +107,7 @@ public class WASMTXPool {
         try {
             for (Transaction transaction : transactions) {
                 TransactionInfo info = new TransactionInfo(System.currentTimeMillis(), transaction);
-                if (cache.contains(info))
+                if (cache.contains(info) || dropped.asMap().containsKey(HexBytes.fromBytes(transaction.getHash())))
                     continue;
                 cache.add(info);
                 mCache.put(HexBytes.fromBytes(info.tx.getHash()), info);
