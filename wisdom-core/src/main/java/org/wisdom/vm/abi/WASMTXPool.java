@@ -107,7 +107,7 @@ public class WASMTXPool {
         try {
             for (Transaction transaction : transactions) {
                 TransactionInfo info = new TransactionInfo(System.currentTimeMillis(), transaction);
-                if (cache.contains(info) || dropped.asMap().containsKey(HexBytes.fromBytes(transaction.getHash())))
+                if (cache.contains(info))
                     continue;
                 cache.add(info);
                 mCache.put(HexBytes.fromBytes(info.tx.getHash()), info);
