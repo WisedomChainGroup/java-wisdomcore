@@ -2,8 +2,10 @@ package org.wisdom.controller;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.SneakyThrows;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.*;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.tdf.common.util.HexBytes;
@@ -43,6 +45,27 @@ import java.util.function.Predicate;
 public class WebSocket {
     public static final Map<String, WebSocket> clients = new ConcurrentHashMap<>();
     private static final Executor EXECUTOR = Executors.newCachedThreadPool();
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    public static class CacheKey{
+        private HexBytes contractAddress;
+        private HexBytes stateRoot;
+        private String method;
+        private HexBytes parameters;
+    }
+
+    static final Cache<CacheKey, byte[]> CACHE = Caffeine.newBuilder()
+            .weigher((k , v) -> {
+                CacheKey key = (CacheKey) k;
+                byte[] value = (byte[]) v;
+                return key.contractAddress.size() + key.stateRoot.size() + key.method.length() + key.parameters.size()
+                        + value.length;
+            })
+            // 1GB 的合约查询缓存
+            .maximumWeight(1024 * 1024 * 1024)
+            .build();
 
     public static ApplicationContext ctx;
 
@@ -198,10 +221,19 @@ public class WebSocket {
                         .as(Parameters.class);
                 String key = HexBytes.encode(pkHash) + "#" + method;
                 this.contractQueryMethodsCount.put(key, this.contractQueryMethodsCount.getOrDefault(key, 0L) + 1);
-
                 byte[] root = accountTrie.getRootStore().get(repository.getBestBlock().getHash()).get();
                 long start = System.currentTimeMillis();
-                byte[] result = accountTrie.call(root, pkHash, method, parameters);
+                AccountState s = accountTrie.getTrie().revert(root).get(pkHash).get();
+
+                CacheKey k = new CacheKey(
+                        HexBytes.fromBytes(pkHash),
+                        HexBytes.fromBytes(s.getStorageRoot()),
+                        method,
+                        HexBytes.fromBytes(msg.getBody().get(2).getEncoded())
+                );
+
+                byte[] result =
+                        CACHE.get(k, key1 -> accountTrie.call(root, pkHash, method, parameters));
                 long end = System.currentTimeMillis();
                 this.contractQueryDuration += end - start;
                 sendResponse(msg.getNonce(), WebSocketMessage.Code.CONTRACT_QUERY, result);
