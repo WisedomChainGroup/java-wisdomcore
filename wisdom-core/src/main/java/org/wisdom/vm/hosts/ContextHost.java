@@ -46,7 +46,8 @@ public class ContextHost extends HostFunction {
     private Store<byte[], byte[]> contractCodeStore;
     private Function<byte[], Trie<byte[], byte[]>> storageTrieSupplier;
     private boolean readonly;
-
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
+                        Collections.singletonList(ValueType.I64));
     public ContextHost(
             Context context,
             Map<byte[], AccountState> states,
@@ -54,11 +55,7 @@ public class ContextHost extends HostFunction {
             Function<byte[], Trie<byte[], byte[]>> storageTrieSupplier,
             boolean readonly
     ) {
-        setName("_context");
-        setType(
-                new FunctionType(Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
-                        Collections.singletonList(ValueType.I64))
-        );
+        super("_context", FUNCTION_TYPE);
         this.context = context;
         this.states = states;
         this.contractCodeStore = contractCodeStore;
@@ -67,7 +64,7 @@ public class ContextHost extends HostFunction {
     }
 
     @Override
-    public long[] execute(long... parameters) {
+    public long execute(long[] parameters) {
         Type type = Type.values()[(int) parameters[0]];
         long ret = 0;
         boolean isPut = parameters[2] != 0;
@@ -208,7 +205,7 @@ public class ContextHost extends HostFunction {
         if (isPut) {
             putMemory((int) offset, data);
         }
-        return new long[]{ret};
+        return ret;
     }
 
 }

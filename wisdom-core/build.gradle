@@ -1,12 +1,18 @@
 
 buildscript {
     repositories {
-        maven {
-            url 'http://maven.aliyun.com/nexus/content/groups/public/'
+        if(System.getenv("X_DISABLE_MAVEN_MIRROR") == null || System.getenv("X_DISABLE_MAVEN_MIRROR").isEmpty()){
+            System.out.println("use aliyun maven repository")
+            maven {
+                url 'http://maven.aliyun.com/nexus/content/groups/public/'
+            }
+            maven {
+                url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+            }
+        }else{
+            System.out.println("not import aliyun repository settings")
         }
-        maven {
-            url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
-        }
+
         mavenLocal()
         maven {
             name = "GitHubPackages"

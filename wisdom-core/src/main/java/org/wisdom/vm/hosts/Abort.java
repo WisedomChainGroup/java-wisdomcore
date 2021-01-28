@@ -10,21 +10,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Abort extends HostFunction {
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            Arrays.asList(
+            ValueType.I32,
+            ValueType.I32,
+            ValueType.I32,
+            ValueType.I32
+            ),
+                new ArrayList<>());
+
     public Abort() {
-        setType(new FunctionType(
-                Arrays.asList(
-                        ValueType.I32,
-                        ValueType.I32,
-                        ValueType.I32,
-                        ValueType.I32
-                ),
-                new ArrayList<>())
-        );
-        setName("abort");
+        super("abort", FUNCTION_TYPE);
     }
 
     @Override
-    public long[] execute(long... parameters) {
+    public long execute(long[] parameters) {
         String message = parameters[0] == 0 ? "" : this.loadString((int) parameters[0]);
         String filename = parameters[1] == 0 ? "" : this.loadString((int) parameters[1]);
         throw new RuntimeException(String.format("%s %s error at line %d column %d",

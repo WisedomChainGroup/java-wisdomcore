@@ -18,26 +18,24 @@ public class Transfer extends HostFunction {
     private final Map<byte[], AccountState> states;
     private final byte[] contractAddress;
     private final boolean readonly;
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            Arrays.asList(
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64
+            ),
+            Collections.emptyList()
+    );
 
     public Transfer(Map<byte[], AccountState> states, byte[] contractAddress, boolean readonly) {
+        super("_transfer", FUNCTION_TYPE);
         this.states = states;
         this.contractAddress = contractAddress;
         this.readonly = readonly;
-        setType(
-                new FunctionType(
-                        Arrays.asList(
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64
-                        ),
-                        Collections.emptyList()
-                )
-        );
-        setName("_transfer");
     }
 
     @Override
-    public long[] execute(long... parameters) {
+    public long execute(long[] parameters) {
         if(readonly)
             throw new RuntimeException("transfer is not allowed here");
         if (parameters[0] != 0) {
@@ -53,6 +51,6 @@ public class Transfer extends HostFunction {
         toAccount.addBalance(amount.longValue());
         states.put(contractAddress, contractAccount);
         states.put(toAccount.getPubkeyHash(), toAccount);
-        return new long[0];
+        return 0;
     }
 }

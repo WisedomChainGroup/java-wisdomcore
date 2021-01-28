@@ -1,6 +1,5 @@
 package org.wisdom.vm.hosts;
 
-import org.tdf.common.util.HexBytes;
 import org.tdf.lotusvm.runtime.HostFunction;
 import org.tdf.lotusvm.types.FunctionType;
 import org.tdf.lotusvm.types.ValueType;
@@ -17,6 +16,15 @@ public class Reflect extends HostFunction {
     private final ContractCall parent;
     private byte[] result;
     private boolean readonly;
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            // offset, length, offset
+            Arrays.asList(
+                    ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64,
+            ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64,
+            ValueType.I64, ValueType.I64
+            ),
+                Collections.singletonList(ValueType.I64)
+            );
 
     enum Type {
         CALL_WITHOUT_PUT, // call without put into memory
@@ -25,22 +33,13 @@ public class Reflect extends HostFunction {
     }
 
     public Reflect(ContractCall parent, boolean readonly) {
+        super("_reflect", FUNCTION_TYPE);
         this.parent = parent;
-        setType(new FunctionType(
-                // offset, length, offset
-                Arrays.asList(
-                        ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64,
-                        ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64,
-                        ValueType.I64, ValueType.I64
-                ),
-                Collections.singletonList(ValueType.I64)
-        ));
-        setName("_reflect");
         this.readonly = readonly;
     }
 
     @Override
-    public long[] execute(long... longs) {
+    public long execute(long[] longs) {
         Type t = Type.values()[(int) longs[0]];
         byte[] data = null;
         long ret = 0;
@@ -92,6 +91,6 @@ public class Reflect extends HostFunction {
 
         if (put)
             putMemory((int) offset, data);
-        return new long[]{ret};
+        return ret;
     }
 }

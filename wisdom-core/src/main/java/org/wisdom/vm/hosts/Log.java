@@ -10,20 +10,21 @@ import java.util.Arrays;
 
 @Slf4j(topic = "vm")
 public class Log extends HostFunction {
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            // offset, length, offset
+            Arrays.asList(ValueType.I32, ValueType.I32),
+            new ArrayList<>()
+    );
+
     public Log() {
-        setType(new FunctionType(
-                // offset, length, offset
-                Arrays.asList(ValueType.I32, ValueType.I32),
-                new ArrayList<>()
-        ));
-        setName("_log");
+        super("_log", FUNCTION_TYPE);
     }
 
     @Override
-    public long[] execute(long... parameters) {
+    public long execute(long[] parameters) {
         log.info(
                 loadStringFromMemory((int)parameters[0], (int)parameters[1])
         );
-        return new long[0];
+        return 0;
     }
 }

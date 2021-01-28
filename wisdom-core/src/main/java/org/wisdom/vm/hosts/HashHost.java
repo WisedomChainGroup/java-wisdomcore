@@ -12,18 +12,18 @@ public class HashHost extends HostFunction {
     enum Algorithm{
         KECCAK256
     }
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            // offset, length, offset
+            Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
+            Collections.singletonList(ValueType.I64)
+    );
 
     public HashHost() {
-        setType(new FunctionType(
-                // offset, length, offset
-                Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
-                Collections.singletonList(ValueType.I64)
-        ));
-        setName("_hash");
+        super("_hash", FUNCTION_TYPE);
     }
 
     @Override
-    public long[] execute(long... parameters) {
+    public long execute(long[] parameters) {
         byte[] data = loadMemory((int) parameters[1], (int) parameters[2]);
         Algorithm a = Algorithm.values()[(int) parameters[0]];
         byte[] ret;
@@ -36,6 +36,6 @@ public class HashHost extends HostFunction {
         }
         if(parameters[4] != 0)
             putMemory((int) parameters[3], ret);
-        return new long[]{ret.length};
+        return ret.length;
     }
 }

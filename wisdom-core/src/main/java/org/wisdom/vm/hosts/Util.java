@@ -21,23 +21,21 @@ public class Util extends HostFunction {
         U64_TO_BYTES
     }
 
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            Arrays.asList(
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64
+            ),
+            Collections.singletonList(ValueType.I64)
+    );
     public Util() {
-        setType(
-                new FunctionType(
-                        Arrays.asList(
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64
-                        ),
-                        Collections.singletonList(ValueType.I64)
-                )
-        );
-        setName("_util");
+        super("_util", FUNCTION_TYPE);
     }
 
     @Override
-    public long[] execute(long... longs) {
+    public long execute(long[] longs) {
         Type t = Type.values()[(int) longs[0]];
         boolean put = longs[6] != 0;
         byte[] data = null;
@@ -82,6 +80,6 @@ public class Util extends HostFunction {
         if (put) {
             putMemory((int) longs[5], data);
         }
-        return new long[]{ret};
+        return ret;
     }
 }

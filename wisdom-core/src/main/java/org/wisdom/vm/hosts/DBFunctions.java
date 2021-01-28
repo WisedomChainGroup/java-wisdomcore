@@ -19,20 +19,19 @@ public class DBFunctions extends HostFunction {
     private List<Map.Entry<HexBytes, byte[]>> entries;
     private int index;
     private final boolean readonly;
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
+            Collections.singletonList(ValueType.I64)
+    );
 
     private void reset() {
         Map<HexBytes, byte[]> m = new TreeMap<>();
         storageTrie.forEach((x, y) -> m.put(HexBytes.fromBytes(x), y));
-        this.entries = new ArrayList<>(m.entrySet());
     }
 
     public DBFunctions(Trie<byte[], byte[]> storageTrie, boolean readonly) {
+        super("_db", FUNCTION_TYPE);
         this.storageTrie = storageTrie;
-        setName("_db");
-        setType(new FunctionType(
-                Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
-                Collections.singletonList(ValueType.I64)
-        ));
         reset();
         this.readonly = readonly;
     }
@@ -49,7 +48,7 @@ public class DBFunctions extends HostFunction {
     }
 
     @Override
-    public long[] execute(long... longs) {
+    public long execute(long[] longs) {
         Type t = Type.values()[(int) longs[0]];
         assertReadOnly(t);
         switch (t) {
@@ -65,11 +64,11 @@ public class DBFunctions extends HostFunction {
                 if (longs[4] != 0) {
                     putMemory((int) longs[3], value);
                 }
-                return new long[]{value.length};
+                return value.length;
             }
             case HAS: {
                 byte[] key = loadMemory((int) longs[1], (int) longs[2]);
-                return new long[]{storageTrie.containsKey(key) ? 1 : 0};
+                return storageTrie.containsKey(key) ? 1 : 0;
             }
             case REMOVE: {
                 if (readonly)
@@ -83,21 +82,21 @@ public class DBFunctions extends HostFunction {
                 break;
             }
             case HAS_NEXT: {
-                return new long[]{this.index < entries.size() - 1 ? 1 : 0};
+                return this.index < entries.size() - 1 ? 1 : 0;
             }
             case CURRENT_KEY: {
                 Map.Entry<HexBytes, byte[]> entry = entries.get(index);
                 if (longs[2] != 0) {
                     putMemory((int) longs[1], entry.getKey().getBytes());
                 }
-                return new long[]{entry.getKey().size()};
+                return entry.getKey().size();
             }
             case CURRENT_VALUE: {
                 Map.Entry<HexBytes, byte[]> entry = entries.get(index);
                 if (longs[2] != 0) {
                     putMemory((int) longs[1], entry.getValue());
                 }
-                return new long[]{entry.getValue().length};
+                return entry.getValue().length;
             }
             case RESET: {
                 reset();
@@ -106,6 +105,6 @@ public class DBFunctions extends HostFunction {
             default:
                 throw new RuntimeException("unreachable");
         }
-        return new long[1];
+        return 0;
     }
 }

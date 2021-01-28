@@ -20,23 +20,22 @@ public class Uint256Host extends HostFunction {
         MOD
     }
 
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            Arrays.asList(
+                    ValueType.I64,
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64, ValueType.I64,
+                    ValueType.I64, ValueType.I64
+            ),
+            Collections.singletonList(ValueType.I64)
+    );
+
     public Uint256Host() {
-        setType(
-                new FunctionType(
-                        Arrays.asList(
-                                ValueType.I64,
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64, ValueType.I64,
-                                ValueType.I64, ValueType.I64
-                        ),
-                        Collections.singletonList(ValueType.I64)
-                )
-        );
-        setName("_u256");
+        super("_u256", FUNCTION_TYPE);
     }
 
     @Override
-    public long[] execute(long... longs) {
+    public long execute(long[] longs) {
         Type t = Type.values()[(int) longs[0]];
         byte[] data = null;
         boolean put = longs[6] != 0;
@@ -78,7 +77,7 @@ public class Uint256Host extends HostFunction {
         if (put){
             putMemory((int) offset, data);
         }
-        return new long[]{ret};
+        return ret;
     }
 
 

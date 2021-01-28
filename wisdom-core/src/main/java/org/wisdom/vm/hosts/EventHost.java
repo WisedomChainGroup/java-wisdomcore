@@ -16,23 +16,21 @@ public class EventHost extends HostFunction {
     private boolean readonly;
     @Getter
     private final List<WASMEvent> events;
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            Arrays.asList
+                    (ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
+            Collections.emptyList()
+    );
 
     public EventHost(byte[] pkHash, boolean readonly) {
+        super("_event", FUNCTION_TYPE);
         this.pkHash = pkHash;
-        setName("_event");
-        setType(
-                new FunctionType(
-                        Arrays.asList
-                                (ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
-                        Collections.emptyList()
-                )
-        );
         this.readonly = readonly;
         this.events = new ArrayList<>();
     }
 
     @Override
-    public long[] execute(long... parameters) {
+    public long execute(long[] parameters) {
         if (readonly)
             throw new RuntimeException("cannot call event here");
         String x = loadStringFromMemory((int) parameters[0], (int) parameters[1]);
@@ -41,6 +39,6 @@ public class EventHost extends HostFunction {
         WASMEvent e = new WASMEvent(x, li);
         WebSocket.broadcastEvent(pkHash, e.getName(), e.getOutputs());
         events.add(e);
-        return new long[0];
+        return 0;
     }
 }

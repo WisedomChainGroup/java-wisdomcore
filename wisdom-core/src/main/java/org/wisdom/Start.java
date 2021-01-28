@@ -43,6 +43,8 @@ import org.tdf.common.serialize.Codec;
 import org.tdf.common.store.DatabaseStore;
 import org.tdf.common.store.NoDeleteBatchStore;
 import org.tdf.common.trie.Trie;
+import org.tdf.lotusvm.common.Register;
+import org.tdf.lotusvm.runtime.Frame;
 import org.wisdom.consensus.pow.ProposersState;
 import org.wisdom.controller.WebSocket;
 import org.wisdom.core.utxo.UTXOSets;

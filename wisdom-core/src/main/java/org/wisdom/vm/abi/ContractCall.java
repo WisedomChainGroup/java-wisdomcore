@@ -1,6 +1,9 @@
 package org.wisdom.vm.abi;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import org.tdf.common.store.Store;
 import org.tdf.common.trie.Trie;
 import org.tdf.common.util.HexBytes;
@@ -53,6 +56,28 @@ public class ContractCall {
     private byte[] recipient;
 
     private AtomicInteger atomicInteger;
+
+    static {
+        initCache();
+    }
+
+    static Cache<HexBytes, Module> CACHE;
+
+    public static void initCache() {
+        ContractCall.CACHE = CacheBuilder.newBuilder()
+                .maximumSize(1024)
+                .build();
+    }
+
+    @SneakyThrows
+    private Module getModule(HexBytes contractHash) {
+        return CACHE.get(contractHash, () -> new Module(
+                contractStore.get(contractHash.getBytes())
+                        .orElseThrow(() -> new RuntimeException(
+                                "contract " + HexBytes.fromBytes(this.recipient) + " not found in db"))
+        ));
+    }
+
 
     public ContractCall(Map<byte[], AccountState> states, Header header, Transaction transaction, Function<byte[], Trie<byte[], byte[]>> storageTrieSupplier, Store<byte[], byte[]> contractStore, Limit limit, int depth, byte[] sender, boolean readonly, AtomicInteger atomicInteger) {
         this.states = states;
@@ -206,6 +231,7 @@ public class ContractCall {
                 throw new RuntimeException("cannot deploy contract here");
             m = new Module(binaryOrAddress);
             byte[] hash = HashUtil.keccak256(binaryOrAddress);
+            CACHE.put(HexBytes.fromBytes(hash), m);
             contractStore.put(hash, binaryOrAddress);
             contractPKHash = Transaction.createContractPKHash(transaction.getHash(), atomicInteger.get());
             this.atomicInteger.incrementAndGet();
@@ -243,7 +269,7 @@ public class ContractCall {
                 this.readonly
         );
 
-        if(isDeploy && contractABIs != null){
+        if (isDeploy && contractABIs != null) {
             DBFunctions.getStorageTrie().put("__abi".getBytes(StandardCharsets.UTF_8), RLPCodec.encode(contractABIs));
             contractAccount.setStorageRoot(DBFunctions.getStorageTrie().commit());
             states.put(contractPKHash, contractAccount);
@@ -265,9 +291,7 @@ public class ContractCall {
                 .builder()
                 .hooks(Collections.singleton(limit))
                 .hostFunctions(hosts.getAll())
-                .binary(contractStore.get(contractAccount.getContractHash())
-                        .orElseThrow(() -> new RuntimeException(
-                                "contract " + HexBytes.fromBytes(this.recipient) + " not found in db")))
+                .module(getModule(HexBytes.fromBytes(contractAccount.getContractHash())))
                 .build();
 
 
@@ -280,7 +304,7 @@ public class ContractCall {
             long[] rets = instance.execute(method, offsets);
             if (parameters.getReturnType().length > 0) {
                 ret.add(
-                       RLPElement.readRLPTree(getResult(instance, rets[0], AbiDataType.values()[parameters.getReturnType()[0]]))
+                        RLPElement.readRLPTree(getResult(instance, rets[0], AbiDataType.values()[parameters.getReturnType()[0]]))
                 );
             }
         }

@@ -28,18 +28,18 @@ public class RLPHost extends HostFunction {
     private RLPList list;
     private List<byte[]> elements;
     private byte[] elementsEncoded;
+    public static final FunctionType FUNCTION_TYPE = new FunctionType(
+            // offset, length, offset
+            Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
+            Collections.singletonList(ValueType.I64)
+    );
 
     public RLPHost() {
-        setType(new FunctionType(
-                // offset, length, offset
-                Arrays.asList(ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64, ValueType.I64),
-                Collections.singletonList(ValueType.I64)
-        ));
-        setName("_rlp");
+        super("_rlp", FUNCTION_TYPE);
     }
 
     @Override
-    public long[] execute(long... longs) {
+    public long execute(long... longs) {
         Type t = Type.values()[(int) longs[0]];
         long ret = 0;
         boolean put = longs[4] != 0;
@@ -100,7 +100,7 @@ public class RLPHost extends HostFunction {
                 ret = data.length;
                 if (longs[4] != 0) {
                     this.elementsEncoded = null;
-                    this.elements = null;
+                    this.elements.clear();
                 }
                 break;
             }
@@ -110,6 +110,6 @@ public class RLPHost extends HostFunction {
         if (put) {
             putMemory((int) longs[3], data);
         }
-        return new long[]{ret};
+        return ret;
     }
 }
