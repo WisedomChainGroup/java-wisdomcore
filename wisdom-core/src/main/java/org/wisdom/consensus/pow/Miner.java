@@ -224,11 +224,6 @@ public class Miner implements ApplicationListener {
 
             // best < 0 可能是存在消耗 gas 消耗很大的事务，被跳过了
             if(best < 0){
-                log.info("mining may timeout, " + newTranList.size() + " transactions will executed soon...");
-                wasmtxPool.collect(newTranList
-                        .stream()
-                        .filter(x -> x.type == Transaction.Type.WASM_DEPLOY.ordinal() || x.type == Transaction.Type.WASM_CALL.ordinal())
-                        .collect(Collectors.toList()));
                 break;
             }
 
@@ -281,6 +276,15 @@ public class Miner implements ApplicationListener {
             }
         }
 
+
+        for (int i = 0; i < newTranList.size(); i++) {
+            Transaction x = newTranList.get(i);
+            if(x.type == Transaction.Type.WASM_DEPLOY.ordinal() || x.type == Transaction.Type.WASM_CALL.ordinal()) {
+                wasmtxPool.collect(Collections.singletonList(x));
+            } else {
+                adoptTransPool.add(Collections.singletonList(x));
+            }
+        }
 
         // 更新 coinbase
         Trie<byte[], AccountState> trie = getTempTrie(tmpRoot);
