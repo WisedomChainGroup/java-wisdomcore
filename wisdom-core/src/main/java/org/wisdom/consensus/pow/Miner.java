@@ -142,7 +142,7 @@ public class Miner implements ApplicationListener {
                 .revert(root);
     }
 
-    private int findBestTransaction(List<Transaction> txs, long endTimestamp){
+    private int findBestTransaction(List<Transaction> txs, long endTimestamp, boolean transferFirst){
         // 第一步 去掉相同 from 的事务，如果 from 相同取 nonce 较小的
 
         // public key hash -> index
@@ -150,7 +150,7 @@ public class Miner implements ApplicationListener {
         for(int i = 0; i < txs.size(); i++){
             Transaction tx = txs.get(i);
             // 优先打包普通的事务
-            if(tx.type != Transaction.Type.WASM_DEPLOY.ordinal() && tx.type != Transaction.Type.WASM_CALL.ordinal())
+            if(transferFirst && tx.type != Transaction.Type.WASM_DEPLOY.ordinal() && tx.type != Transaction.Type.WASM_CALL.ordinal())
                 return i;
             Integer prevIndex = indices.get(tx.getFromPKHash());
             if(prevIndex == null){
@@ -213,11 +213,14 @@ public class Miner implements ApplicationListener {
         Map<byte[], WASMResult> results = new ByteArrayMap<>();
         Map<byte[], Transaction> included = new ByteArrayMap<>();
 
-        while (!newTranList.isEmpty()) {
+        // 一个区块最多包含128条事务，转账事务数量大于64条时，不再优先打包转账事务
+        int includedCnt = 0;
+        int includedTransferCnt = 0;
+        while (!newTranList.isEmpty() && includedCnt < 128) {
 
 
             // 优先级 普通事务 > wasm 事务
-            int best = findBestTransaction(newTranList, endTimeStamp);
+            int best = findBestTransaction(newTranList, endTimeStamp, includedTransferCnt < 64);
 
             // best < 0 可能是存在消耗 gas 消耗很大的事务，被跳过了
             if(best < 0){
@@ -253,6 +256,12 @@ public class Miner implements ApplicationListener {
                 results.put(tx.getHash(), res);
                 included.put(tx.getHash(), tx);
                 block.body.add(tx);
+
+                if( tx.type != Transaction.Type.WASM_DEPLOY.ordinal() && tx.type != Transaction.Type.WASM_CALL.ordinal()){
+                    includedTransferCnt++;
+                }
+                includedCnt++;
+
             } catch (Exception e) {
                 // 某个事务执行报错丢弃掉后续来自该 from 的事务
                 Iterator<Transaction> it = newTranList.iterator();
