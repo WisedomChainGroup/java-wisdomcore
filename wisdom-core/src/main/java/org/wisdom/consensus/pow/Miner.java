@@ -293,6 +293,7 @@ public class Miner implements ApplicationListener {
         trie.flush();
         accountStateTrie.getRootStore().put(block.getHash(), block.accountStateTrieRoot);
 
+        log.info("new blocked mined, contains {} transactions packed", includedCnt);
         block.body.get(0).setHashCache(
                 HashUtil.keccak256(block.body.get(0).getRawForHash())
         );
