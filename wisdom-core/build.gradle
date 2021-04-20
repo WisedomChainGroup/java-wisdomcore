@@ -314,6 +314,10 @@ dependencies {
 
     compile "org.springframework.boot:spring-boot-starter-data-jpa:${springbootVersion}"
     compile group: 'com.h2database', name: 'h2', version: '1.4.200'
+
+    // https://mvnrepository.com/artifact/org.yaml/snakeyaml
+    implementation group: 'org.yaml', name: 'snakeyaml', version: '1.28'
+
 }
 
 task copyDependencies(type: Copy) {
