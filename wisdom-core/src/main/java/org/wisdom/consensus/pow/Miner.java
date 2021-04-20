@@ -213,10 +213,10 @@ public class Miner implements ApplicationListener {
         Map<byte[], WASMResult> results = new ByteArrayMap<>();
         Map<byte[], Transaction> included = new ByteArrayMap<>();
 
-        // 一个区块最多包含128条事务，转账事务数量大于64条时，不再优先打包转账事务
+        // 一个区块最多包含224条事务，转账事务数量大于64条时，不再优先打包转账事务
         int includedCnt = 0;
         int includedTransferCnt = 0;
-        while (!newTranList.isEmpty() && includedCnt < 128) {
+        while (!newTranList.isEmpty() && includedCnt < 224) {
 
 
             // 优先级 普通事务 > wasm 事务

@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Component
 public class WASMTXPool {
     private static final int LOCK_TIMEOUT = 3;
-    private static final int EXPIRED_IN = 60;
+    private static final int EXPIRED_IN = 5;
     private final TreeSet<TransactionInfo> cache;
 
     private final Map<HexBytes, TransactionInfo> mCache;
