@@ -104,7 +104,7 @@ fi
 
 cd $PROJECT_ROOT/..
 $GRADLE_WRAPPER clean
-$GRADLE_WRAPPER jar
+$GRADLE_WRAPPER bootJar
 
 rm -rf $CUR/build
 mkdir -p $CUR/build
