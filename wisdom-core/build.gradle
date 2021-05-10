@@ -1,85 +1,63 @@
-
 buildscript {
     repositories {
-        if(System.getenv("X_DISABLE_MAVEN_MIRROR") == null || System.getenv("X_DISABLE_MAVEN_MIRROR").isEmpty()){
-            System.out.println("use aliyun maven repository")
-            maven {
-                url 'http://maven.aliyun.com/nexus/content/groups/public/'
-            }
-            maven {
-                url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
-            }
-        }else{
-            System.out.println("not import aliyun repository settings")
-        }
-
         mavenLocal()
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/TrustedDataFramework/java-rlp")
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-        maven { url "https://repo.springsource.org/plugins-release" }
         jcenter()
         mavenCentral()
     }
     dependencies {
-        classpath 'io.spring.gradle:propdeps-plugin:0.0.9.RELEASE'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:3.0.1'
-        classpath 'com.typesafe:config:1.2.1'
         classpath('se.transmode.gradle:gradle-docker:1.2')
     }
-
 }
 
+
 plugins {
+    id 'java'
     id 'application'
+    id 'org.springframework.boot' version '2.2.5.RELEASE'
+//    id 'docker'
+//    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
 //    id 'jacoco'
-    id 'com.github.kt3k.coveralls' version '2.6.3'
-    id 'com.jfrog.bintray' version '1.0'
-    id 'org.ajoberstar.grgit' version '2.2.0' apply false
+//    id 'com.github.kt3k.coveralls' version '2.6.3'
+//    id 'com.jfrog.bintray' version '1.0'
+//    id 'org.ajoberstar.grgit' version '2.2.0' apply false
 //    id 'org.springframework.boot' version '2.1.4.RELEASE'
 }
 
-apply plugin: 'propdeps-maven'
-apply plugin: 'com.jfrog.artifactory-upload'
-apply plugin: 'docker'
+repositories {
+    if(System.getenv("X_DISABLE_MAVEN_MIRROR") == null || System.getenv("X_DISABLE_MAVEN_MIRROR").isEmpty()){
+        System.out.println("use aliyun maven repository")
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/groups/public/'
+        }
+        maven {
+            url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+        }
+    }else{
+        System.out.println("not import aliyun repository settings")
+    }
 
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
+    mavenLocal()
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/TrustedDataFramework/java-rlp")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+    maven { url "https://repo.springsource.org/plugins-release" }
+    jcenter()
+    mavenCentral()
 }
 
-processResources{
-    exclude('genesis/wisdom-genesis-generator.json')
-}
+
+
 
 //apply plugin: 'io.spring.dependency-management'
 
-
 sourceCompatibility = 1.8
 
-mainClassName = 'org.wisdom.Start'
-applicationDefaultJvmArgs = ["-server", "-Xss2m", "-Xmx2G", "-XX:-OmitStackTraceInFastThrow"]
 
-if (project.hasProperty('jvmArgs')) {
-    applicationDefaultJvmArgs = applicationDefaultJvmArgs + project.jvmArgs.split('\\s+').toList()
-}
-if (project.hasProperty("mainClass")) {
-    mainClassName = mainClass
-}
-
-
-ext.generatedSrcDir = file('src/gen/java')
-
-sourceSets.main.java.srcDirs += generatedSrcDir
-
-
-tasks.withType(JavaCompile) {
-    options.warnings = false
-}
 
 task runKeyStoreTool(type: JavaExec){
     main = "org.wisdom.tools.KeyStoreTool"
@@ -99,107 +77,107 @@ task runTransactionTestTool(type: JavaExec){
 }
 
 // bash src/main/docker/core_v2/build-docker.sh -t test
-task buildDockerJdk(type: Docker) {
-    push = false
-    tag = "wisdomchain/server_jre8"
-    tagVersion = 'latest'
-    applicationName = 'server_jre8'
-    dockerfile = file('src/main/docker/server_jre8/Dockerfile')
-}
+//task buildDockerJdk(type: Docker) {
+//    push = false
+//    tag = "wisdomchain/server_jre8"
+//    tagVersion = 'latest'
+//    applicationName = 'server_jre8'
+//    dockerfile = file('src/main/docker/server_jre8/Dockerfile')
+//}
 
 // bash src/main/docker/server_jre8_with_dependencies/build-docker.sh -t latest
-task buildDockerJdkWithDependencies(type: Docker) {
-    push = false
-    tag = "wisdomchain/server_jre8_with_dependencies"
-    tagVersion = 'latest'
-    applicationName = 'server_jre8_with_dependencies'
-    dockerfile = file('src/main/docker/server_jre8_with_dependencies/Dockerfile')
-    doFirst {
-        copy {
-            from copyDependencies into "${stageDir}/lib"
-        }
-        copy{
-            from 'src/main/resources/genesis/wisdom-genesis-generator.json' into "${stageDir}/genesis"
-        }
-    }
-}
+//task buildDockerJdkWithDependencies(type: Docker) {
+//    push = false
+//    tag = "wisdomchain/server_jre8_with_dependencies"
+//    tagVersion = 'latest'
+//    applicationName = 'server_jre8_with_dependencies'
+//    dockerfile = file('src/main/docker/server_jre8_with_dependencies/Dockerfile')
+//    doFirst {
+//        copy {
+//            from copyDependencies into "${stageDir}/lib"
+//        }
+//        copy{
+//            from 'src/main/resources/genesis/wisdom-genesis-generator.json' into "${stageDir}/genesis"
+//        }
+//    }
+//}
 
-task buildDockerCore(type: Docker, dependsOn: jar) {
-    push = false
-    tag = "wisdomchain/wdc_core"
-    tagVersion = 'latest'
-    applicationName = 'wdc_core'
-    dockerfile = file('src/main/docker/core/Dockerfile')
+//task buildDockerCore(type: Docker, dependsOn: jar) {
+//    push = false
+//    tag = "wisdomchain/wdc_core"
+//    tagVersion = 'latest'
+//    applicationName = 'wdc_core'
+//    dockerfile = file('src/main/docker/core/Dockerfile')
+//
+//    doFirst {
+//        copy {
+//            from jar into stageDir
+//        }
+//        copy {
+//            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
+//        }
+//        copy {
+//            from 'src/main/docker/core/version.json' into stageDir
+//        }
+//    }
+//}
 
-    doFirst {
-        copy {
-            from jar into stageDir
-        }
-        copy {
-            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
-        }
-        copy {
-            from 'src/main/docker/core/version.json' into stageDir
-        }
-    }
-}
+//task buildDockerCoreTest(type: Docker, dependsOn: jar) {
+//    push = false
+//    tag = "wisdomchain/wdc_core"
+//    tagVersion = 'test'
+//    applicationName = 'wdc_core'
+//    dockerfile = file('src/main/docker/core/Dockerfile')
+//
+//    doFirst {
+//        copy {
+//            from jar into stageDir
+//        }
+//        copy {
+//            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
+//        }
+//        copy {
+//            from 'src/main/docker/core/version.json' into stageDir
+//        }
+//    }
+//}
 
-task buildDockerCoreTest(type: Docker, dependsOn: jar) {
-    push = false
-    tag = "wisdomchain/wdc_core"
-    tagVersion = 'test'
-    applicationName = 'wdc_core'
-    dockerfile = file('src/main/docker/core/Dockerfile')
+//task buildDockerFullNode(type: Docker, dependsOn: jar) {
+//    push = false
+//    tag = "wisdomchain/wisdom_fullnode"
+//    tagVersion = 'latest'
+//    applicationName = 'wdc_fullnode'
+//    dockerfile = file('src/main/docker/core/Dockerfile')
+//
+//    doFirst {
+//        copy {
+//            from jar into stageDir
+//        }
+//        copy {
+//            from copyDependencies into "${stageDir}/lib"
+//        }
+//        copy {
+//            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
+//        }
+//    }
+//}
 
-    doFirst {
-        copy {
-            from jar into stageDir
-        }
-        copy {
-            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
-        }
-        copy {
-            from 'src/main/docker/core/version.json' into stageDir
-        }
-    }
-}
-
-task buildDockerFullNode(type: Docker, dependsOn: jar) {
-    push = false
-    tag = "wisdomchain/wisdom_fullnode"
-    tagVersion = 'latest'
-    applicationName = 'wdc_fullnode'
-    dockerfile = file('src/main/docker/core/Dockerfile')
-
-    doFirst {
-        copy {
-            from jar into stageDir
-        }
-        copy {
-            from copyDependencies into "${stageDir}/lib"
-        }
-        copy {
-            from 'src/main/docker/core/run_wdc_core.sh' into stageDir
-        }
-    }
-}
-
-task buildDockerPgsql(type: Docker) {
-    push = false
-    tag = "wisdomchain/wdc_pgsql"
-    tagVersion = 'latest'
-    applicationName = 'wdc_pgsql'
-    dockerfile = file('src/main/docker/pgsql/Dockerfile')
-
-    doFirst {
-        copy {
-            from 'src/main/resources/ddl.sql' into stageDir
-        }
-        copy {
-            from 'src/main/docker/pgsql/init.sh' into stageDir
-        }
-    }
-}
+//task buildDockerPgsql(type: Docker) {
+//    push = false
+//    tag = "wisdomchain/wdc_pgsql"
+//    tagVersion = 'latest'
+//    applicationName = 'wdc_pgsql'
+//    dockerfile = file('src/main/docker/pgsql/Dockerfile')
+//
+//    doFirst {
+//        copy {
+//            from 'src/main/resources/ddl.sql' into stageDir
+//        }
+//        copy {
+//            from 'src/main/docker/pgsql/init.sh' into stageDir
+//        }
+//    }
+//}
 
 
 ext {
@@ -239,7 +217,7 @@ dependencies {
 
 
     // used to hide spring initialization logs messages in samples
-    optional "org.slf4j:jcl-over-slf4j:${slf4jVersion}"
+//    optional "org.slf4j:jcl-over-slf4j:${slf4jVersion}"
 
     compile "junit:junit:${junitVersion}"
     compile "org.springframework:spring-test:${springVersion}"
@@ -319,18 +297,16 @@ dependencies {
     implementation group: 'org.yaml', name: 'snakeyaml', version: '1.28'
 
 }
-
-task copyDependencies(type: Copy) {
-    from configurations.runtime
-    destinationDir = file('build/libs/lib')
-}
-
-jar {
-    manifest {
-        attributes 'Main-Class': mainClassName
-        attributes 'Class-Path': '. ' + configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
-    }
-}
-
-
-run.jvmArgs=['-Xms16g']
+//
+//task copyDependencies(type: Copy) {
+//    from configurations.runtime
+//    destinationDir = file('build/libs/lib')
+//}
+//
+//jar {
+//    manifest {
+//        attributes 'Main-Class': mainClassName
+//        attributes 'Class-Path': '. ' + configurations.compile.collect { 'lib/' + it.getName() }.join(' ')
+//    }
+//}
+//

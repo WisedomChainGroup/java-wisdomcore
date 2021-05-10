@@ -1,4 +1,4 @@
-FROM wisdomchain/server_jre8_with_dependencies
+FROM wisdomchain/server_jre8
 
 RUN apt update
 RUN apt install -y netcat

@@ -1,27 +1,6 @@
-wrapper.gradleVersion = '4.6'
-
-allprojects {
-    apply plugin: 'eclipse'
-    if (JavaVersion.current().isJava8Compatible()) {
-        //Disable lint of javadoc until someone fixes all the html
-        tasks.withType(Javadoc) {
-          options.addStringOption('Xdoclint:none', '-quiet')
-      }
-    }
-}
-
 subprojects {
-    apply plugin: 'java'
-    apply plugin: 'maven'
-
-
     group = 'org.wisdom'
 
-
-    compileJava.options.encoding = 'UTF-8'
-    compileJava.options.compilerArgs << '-XDignore.symbol.file'
-
-    compileTestJava.options.encoding = 'UTF-8'
 
     repositories {
         jcenter()

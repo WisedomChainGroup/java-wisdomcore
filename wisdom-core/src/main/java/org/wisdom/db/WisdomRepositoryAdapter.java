@@ -123,7 +123,7 @@ public class WisdomRepositoryAdapter implements WisdomRepository {
     }
 
     @Override
-    public Optional<Candidate> getLatestCandidate(byte[] _) {
+    public Optional<Candidate> getLatestCandidate(byte[] n) {
         return Optional.empty();
     }
 

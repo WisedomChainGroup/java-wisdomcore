@@ -47,7 +47,6 @@ public class TriesSyncManager {
 
     private CheckPointRule checkPointRule;
 
-    @Setter
     private WisdomRepository repository;
 
     private int blocksPerEra;
