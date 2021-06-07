@@ -136,7 +136,12 @@ public class TransactionCheck {
                 apiResult.setMessage("Hatching transactions have been disabled");
                 return apiResult;
             }
-            if (nowheight > 3868529 && nowheight < 5285889 && (type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal() || type[0] == Transaction.Type.CALL_CONTRACT.ordinal())) {
+            if (nowheight > 3868529 && nowheight < 5285889 && type[0] == Transaction.Type.CALL_CONTRACT.ordinal()) {
+                apiResult.setCode(5000);
+                apiResult.setMessage("Old contract transactions have been disabled");
+                return apiResult;
+            }
+            if (nowheight > 3868529 && type[0] == Transaction.Type.DEPLOY_CONTRACT.ordinal()) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Old contract transactions have been disabled");
                 return apiResult;
