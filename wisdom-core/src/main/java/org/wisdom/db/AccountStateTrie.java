@@ -126,7 +126,6 @@ public class AccountStateTrie extends StateTrieAdapter<AccountState> {
 
         for (Transaction tx : block.body.subList(1, block.body.size())) {
             WASMResult re = results.get(tx.getHash());
-            System.out.println("broadcast =====");
             WebSocket.broadcastIncluded(tx, block.nHeight, block.getHash(), re.getGasUsed(), re.getReturns(), re.getWASMEvents());
         }
 
