@@ -55,6 +55,7 @@ import org.wisdom.keystore.crypto.RipemdUtility;
 import org.wisdom.keystore.crypto.SHA3Utility;
 import org.wisdom.keystore.wallet.KeystoreAction;
 import org.wisdom.protobuf.tcp.command.HatchModel;
+import org.wisdom.service.BlacklistService;
 import org.wisdom.service.Impl.CommandServiceImpl;
 import org.wisdom.util.ByteUtil;
 
@@ -83,6 +84,9 @@ public class TransactionCheck {
 
     @Autowired
     RateTable rateTable;
+
+    @Autowired
+    BlacklistService blacklistService;
 
     public static final String WX = "WX";
     public static final String WR = "WR";
@@ -119,6 +123,13 @@ public class TransactionCheck {
             byte[] frompubkey = ByteUtil.bytearraycopy(tranlast, 0, 32);
             byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(frompubkey));
             tranlast = ByteUtil.bytearraycopy(tranlast, 32, tranlast.length - 32);
+            //blacklist
+            boolean inBlacklist = blacklistService.checkInBlacklist(KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, "WX"));
+            if (inBlacklist){
+                apiResult.setCode(5000);
+                apiResult.setMessage("from is on blacklist");
+                return apiResult;
+            }
             //gasPrice
             byte[] gasbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
             long gasPrice = BigEndian.decodeUint64(gasbyte);
