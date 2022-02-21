@@ -124,11 +124,14 @@ public class TransactionCheck {
             byte[] frompubhash = RipemdUtility.ripemd160(SHA3Utility.keccak256(frompubkey));
             tranlast = ByteUtil.bytearraycopy(tranlast, 32, tranlast.length - 32);
             //blacklist
-            boolean inBlacklist = blacklistService.checkInBlacklist(KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, "WX"));
-            if (inBlacklist){
-                apiResult.setCode(5000);
-                apiResult.setMessage("from is on blacklist");
-                return apiResult;
+            long nowheight = wisdomRepository.getBestBlock().nHeight;
+            if (nowheight > 7524984){
+                boolean inBlacklist = blacklistService.checkInBlacklist(KeystoreAction.pubkeyToAddress(frompubkey, (byte) 0x00, "WX"));
+                if (inBlacklist){
+                    apiResult.setCode(5000);
+                    apiResult.setMessage("from is on blacklist");
+                    return apiResult;
+                }
             }
             //gasPrice
             byte[] gasbyte = ByteUtil.bytearraycopy(tranlast, 0, 8);
@@ -141,7 +144,6 @@ public class TransactionCheck {
             //gas
             long gas = 0;
             //hatch disabled
-            long nowheight = wisdomRepository.getBestBlock().nHeight;
             if (nowheight > 1305500 && type[0] == 9) {
                 apiResult.setCode(5000);
                 apiResult.setMessage("Hatching transactions have been disabled");
