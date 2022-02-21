@@ -24,7 +24,9 @@ public class BlacklistServiceImpl implements BlacklistService {
                 "WX1LgdYa3MFBZGzMVia3bTUyEFKL6sJJjqKg," +
                 "WX1PzvixeChm1JSwTS6cFY1r54nHZBQ4nSks," +
                 "WX148XCjc23TJJLLzX9v6nNWoVNTC1uq3hns," +
-                "WX1G7JrdxYppf7w9PGWpY35dzs9igxBY2Db9";
+                "WX1G7JrdxYppf7w9PGWpY35dzs9igxBY2Db9," +
+                "WX1CUFDhQ3T62JHKNfbYsxo3juiLAkwdpwXy," +
+                "WX1HiRg4xZ4zLBJpvmsDALhPXSX48KjpTBrZ";
         List<String> blackList = Arrays.asList(blackListStr.split(","));
         return blackList.contains(address);
     }
